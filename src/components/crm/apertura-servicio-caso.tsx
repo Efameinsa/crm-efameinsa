@@ -106,6 +106,8 @@ export function AperturaServicioCaso({
   const [entregaModo, setEntregaModo] = useState<"domicilio" | "agencia" | "planta">("domicilio");
   const [agencia, setAgencia] = useState("");
   const [agenciaDireccion, setAgenciaDireccion] = useState("");
+  // El horario de atención de la agencia (0505; Lesly, 15-10).
+  const [agenciaHorario, setAgenciaHorario] = useState("");
   const [destinoObservacion, setDestinoObservacion] = useState("");
   const [recibeDoc, setRecibeDoc] = useState("");
   const [coordinaContabilidad, setCoordinaContabilidad] = useState("");
@@ -138,6 +140,7 @@ export function AperturaServicioCaso({
     !esGarantia && !tecnico.trim() && "el técnico",
     esGarantia && entregaModo === "agencia" && !agencia.trim() && "la agencia",
     esGarantia && entregaModo === "agencia" && !agenciaDireccion.trim() && "la dirección de la agencia",
+    esGarantia && entregaModo === "agencia" && !agenciaHorario.trim() && "el horario de atención de la agencia",
     !direccion.trim() && (esGarantia ? "adónde se entregan" : "dónde se hace"),
     !confirmo.trim() && "con quién lo confirmó",
     !destino && "Lima o provincia",
@@ -165,7 +168,7 @@ export function AperturaServicioCaso({
         coordinaContabilidad,
         coordinaLogistica,
         destinoObservacion,
-        ...(esGarantia ? { entregaModo, agencia, agenciaDireccion } : {}),
+        ...(esGarantia ? { entregaModo, agencia, agenciaDireccion, agenciaHorario } : {}),
         equipos: esGarantia ? undefined : equiposElegidos,
         repuestos: esGarantia
           ? repuestosListos.map((x) => ({ cantidad: Math.max(1, Number(x.cantidad) || 1), descripcion: x.descripcion, sku: x.sku }))
@@ -431,6 +434,10 @@ export function AperturaServicioCaso({
                   <div className="grid gap-1">
                     <Label className="text-xs">Dirección de la agencia (donde los deja el almacén) <span className="text-destructive">*</span></Label>
                     <Input value={agenciaDireccion} onChange={(e) => setAgenciaDireccion(e.target.value)} placeholder="Ej.: JR. LUNA PIZARRO N° 459 - LA VICTORIA" />
+                  </div>
+                  <div className="grid gap-1 sm:col-span-2">
+                    <Label className="text-xs">Horario de atención de la agencia <span className="text-destructive">*</span></Label>
+                    <Input value={agenciaHorario} onChange={(e) => setAgenciaHorario(e.target.value)} placeholder="Ej.: L-V 8:00 a 18:00 · Sáb 8:00 a 13:00" />
                   </div>
                 </>
               )}

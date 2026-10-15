@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, Truck } from "lucide-react";
 import { registrarVisitaPlanta } from "@/lib/acciones/visitas-planta";
+import { TipoDocBotones } from "@/components/crm/visita-planta-boton";
+import { errorDocVisita, guardarDocVisita, type TipoDocVisita } from "@/lib/visitas-planta-columnas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,13 +28,22 @@ export function VisitaProveedorBoton() {
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
   const vacio = { empresa: "", ruc: "", persona: "", dni: "", telefono: "", motivo: "", fecha: hoy, hora: "09:00" };
   const [f, setF] = useState(vacio);
-  const [acompanantes, setAcompanantes] = useState<{ nombre: string; dni: string }[]>([]);
+  const [acompanantes, setAcompanantes] = useState<{ nombre: string; dni: string; tipo: TipoDocVisita }[]>([]);
+  const [tipoDoc, setTipoDoc] = useState<TipoDocVisita>("dni");
   const campo = (k: keyof typeof f) => ({ value: f[k], onChange: (e: React.ChangeEvent<HTMLInputElement>) => setF((x) => ({ ...x, [k]: e.target.value })) });
   const listo = f.empresa.trim().length >= 2 && f.persona.trim().length >= 3 && f.motivo.trim().length >= 3 && !!f.fecha;
 
   function enviar() {
+    const errorDoc = errorDocVisita(f.dni, tipoDoc) ?? acompanantes.map((a) => a.nombre.trim() && errorDocVisita(a.dni, a.tipo) && `${a.nombre.trim()}: ${errorDocVisita(a.dni, a.tipo)}`).find(Boolean);
+    if (errorDoc) return void toast.error(errorDoc);
     startTransition(async () => {
-      const r = await registrarVisitaPlanta({ cuentaId: null, ...f, acompanantes, proveedor: true });
+      const r = await registrarVisitaPlanta({
+        cuentaId: null,
+        ...f,
+        dni: guardarDocVisita(f.dni, tipoDoc),
+        acompanantes: acompanantes.map((a) => ({ nombre: a.nombre, dni: guardarDocVisita(a.dni, a.tipo) })),
+        proveedor: true,
+      });
       if (r.error) return void toast.error(r.error, { duration: 8000 });
       toast.success(
         r.correoEnviado
@@ -42,6 +53,7 @@ export function VisitaProveedorBoton() {
       setAbierto(false);
       setF(vacio);
       setAcompanantes([]);
+      setTipoDoc("dni");
       router.refresh();
     });
   }
@@ -77,7 +89,7 @@ export function VisitaProveedorBoton() {
               <Input {...campo("ruc")} inputMode="numeric" />
             </div>
           </div>
-          <div className="grid grid-cols-[1fr_8rem] gap-2">
+          <div className="grid grid-cols-[1fr_9.5rem] gap-2">
             <div className="grid gap-1">
               <Label className="text-xs">
                 Quién viene <span className="text-destructive">*</span>
@@ -85,8 +97,11 @@ export function VisitaProveedorBoton() {
               <Input {...campo("persona")} placeholder="Nombre y apellido" />
             </div>
             <div className="grid gap-1">
-              <Label className="text-xs">DNI</Label>
-              <Input {...campo("dni")} inputMode="numeric" />
+              <div className="flex items-center justify-between gap-1">
+                <Label className="text-xs">{tipoDoc === "ce" ? "C.E." : "DNI"}</Label>
+                <TipoDocBotones tipo={tipoDoc} onChange={setTipoDoc} />
+              </div>
+              <Input {...campo("dni")} inputMode={tipoDoc === "ce" ? "text" : "numeric"} placeholder={tipoDoc === "ce" ? "N.º de carné" : "8 dígitos"} />
             </div>
           </div>
           <div className="grid gap-1">
@@ -94,17 +109,18 @@ export function VisitaProveedorBoton() {
             <Input {...campo("telefono")} inputMode="tel" />
           </div>
           <div className="grid gap-1">
-            <Label className="text-xs">¿Viene acompañado? Nombre y DNI de cada uno (vigilancia los pide)</Label>
+            <Label className="text-xs">¿Viene acompañado? Nombre y DNI o C.E. de cada uno (vigilancia los pide)</Label>
             {acompanantes.map((a, i) => (
-              <div key={i} className="grid grid-cols-[1fr_8rem_auto] gap-1.5">
+              <div key={i} className="grid grid-cols-[1fr_auto_7rem_auto] items-center gap-1.5">
                 <Input value={a.nombre} onChange={(e) => setAcompanantes((xs) => xs.map((x, j) => (j === i ? { ...x, nombre: e.target.value } : x)))} placeholder="Nombre y apellido" />
-                <Input value={a.dni} onChange={(e) => setAcompanantes((xs) => xs.map((x, j) => (j === i ? { ...x, dni: e.target.value } : x)))} placeholder="DNI" inputMode="numeric" />
+                <TipoDocBotones tipo={a.tipo} onChange={(t) => setAcompanantes((xs) => xs.map((x, j) => (j === i ? { ...x, tipo: t } : x)))} />
+                <Input value={a.dni} onChange={(e) => setAcompanantes((xs) => xs.map((x, j) => (j === i ? { ...x, dni: e.target.value } : x)))} placeholder={a.tipo === "ce" ? "C.E." : "DNI"} inputMode={a.tipo === "ce" ? "text" : "numeric"} />
                 <button type="button" onClick={() => setAcompanantes((xs) => xs.filter((_, j) => j !== i))} className="text-xs text-muted-foreground hover:text-destructive">
                   Quitar
                 </button>
               </div>
             ))}
-            <button type="button" onClick={() => setAcompanantes((xs) => [...xs, { nombre: "", dni: "" }])} className="justify-self-start text-xs font-medium text-primary hover:underline">
+            <button type="button" onClick={() => setAcompanantes((xs) => [...xs, { nombre: "", dni: "", tipo: "dni" }])} className="justify-self-start text-xs font-medium text-primary hover:underline">
               + Acompañante
             </button>
           </div>

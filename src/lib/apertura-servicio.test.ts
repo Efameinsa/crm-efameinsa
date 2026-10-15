@@ -197,6 +197,20 @@ describe("las filas llevan lo que el correo lleva", () => {
     expect(faltantesApertura({ ...d, agenciaDireccion: null })).toContain("la dirección de la agencia (primer destino)");
   });
 
+  it("el horario de atención de la agencia sale en el primer destino y se pide (0505; Lesly, 15-10)", () => {
+    const d = { ...PERU_VACATION, entregaModo: "agencia" as const, agenciaDestino: "Marvisur, agencia Ica", agenciaDireccion: "Av. Paseo de la República 3570, San Isidro" };
+    expect(faltantesApertura(d)).toContain("el horario de atención de la agencia (en «Dirección y quién recibe»)");
+    const con = { ...d, agenciaHorario: " L-V 8:00 a 18:00 · Sáb 8:00 a 13:00 " };
+    expect(filasApertura(con)[2].informacion.split("\n")).toEqual([
+      "AGENCIA Marvisur, agencia Ica",
+      "Av. Paseo de la República 3570, San Isidro",
+      "HORARIO DE ATENCIÓN: L-V 8:00 a 18:00 · Sáb 8:00 a 13:00",
+    ]);
+    expect(faltantesApertura(con).some((f) => f.includes("horario"))).toBe(false);
+    // A domicilio no se pide.
+    expect(faltantesApertura({ ...PERU_VACATION, entregaModo: "domicilio" }).some((f) => f.includes("horario"))).toBe(false);
+  });
+
   it("las observaciones de las filas se escriben a mano (Rubí, 12-10; 0445)", () => {
     const f = filasApertura({ ...PERU_VACATION, obsFilas: { "6": "  Si no está, recibe el Sr. Pérez ", "2": "", "4": "no va", "11": "no va" } });
     expect(f[5].observaciones).toBe("Si no está, recibe el Sr. Pérez");

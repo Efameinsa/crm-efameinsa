@@ -37,6 +37,24 @@ const MAX_VUELTAS = 5;
 /** Tope de tiempo: pasado esto se corta por las buenas con lo que haya. */
 const PRESUPUESTO_MS = 100_000;
 
+/**
+ * EL HILO VIEJO VA SIN EL PENSAMIENTO (Santos, 15-10: «¿por qué Efamein no
+ * funciona?»). Cada bloque de pensamiento lleva una firma atada a las
+ * instrucciones con que se creó; las instrucciones llevan la guía y las
+ * bitácoras, que cambian con cada despliegue (y la fecha, a medianoche). La
+ * pregunta siguiente de una conversación abierta antes de eso fallaba con 400
+ * «The block is bound to a different conversation». El pensamiento de las
+ * preguntas ya respondidas no hace falta: se quita y queda solo lo dicho y lo
+ * consultado. Dentro de la pregunta en curso sí se conserva (lo exige la API).
+ */
+function sinPensamiento(turnos: Anthropic.Beta.BetaMessageParam[]): Anthropic.Beta.BetaMessageParam[] {
+  return turnos.map((m) => {
+    if (m.role !== "assistant" || typeof m.content === "string") return m;
+    const content = m.content.filter((b) => b.type !== "thinking" && b.type !== "redacted_thinking");
+    return { ...m, content: content.length ? content : [{ type: "text", text: "—" }] };
+  });
+}
+
 type Evento =
   | { t: "conversacion"; id: string }
   | { t: "consulta"; texto: string }
@@ -173,7 +191,7 @@ export async function POST(request: Request) {
           content: adjuntos.bloques.length ? [...adjuntos.bloques, { type: "text", text: pregunta }] : pregunta,
         },
       ];
-      const mensajes: Anthropic.Beta.BetaMessageParam[] = [...hilo.turnos, ...turno];
+      const mensajes: Anthropic.Beta.BetaMessageParam[] = [...sinPensamiento(hilo.turnos), ...turno];
       const evidencias: Evidencia[] = [];
       const consultas: Registro["consultas"] = [];
       const uso = { entrada: 0, salida: 0, cacheLectura: 0, cacheEscritura: 0, costo: 0 };

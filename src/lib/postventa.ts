@@ -146,6 +146,8 @@ export interface ServicioPostventa {
   agencia_destino?: string | null;
   /** Entrega en agencia: dirección de la agencia donde lo deja el almacén (0345). */
   agencia_direccion?: string | null;
+  /** Horario de atención de la agencia (0505; Lesly, 15-10). */
+  agencia_horario?: string | null;
   apertura_tipo?: string | null;
   apertura_fecha?: string | null;
   apertura_hora?: string | null;

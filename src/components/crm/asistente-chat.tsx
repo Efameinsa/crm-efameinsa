@@ -13,12 +13,12 @@ import {
   Minimize2,
   Minus,
   Paperclip,
-  Sparkles,
   SquarePen,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TextoAsistente } from "@/components/crm/texto-asistente";
+import { AvatarEfamein } from "@/components/crm/avatar-efamein";
 
 /** Lo mismo que acepta el servidor (lib/asistente/adjuntos.ts). */
 const ACEPTA = "image/jpeg,image/png,image/webp,image/gif,application/pdf,.docx,.xlsx,.xls,.csv,.txt";
@@ -363,14 +363,11 @@ export function AsistenteChat({
       {/* Cabecera: quién es, y los tres controles de la ventana. */}
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-gradient-to-b from-secondary/50 to-card px-4 py-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm ring-2 ring-primary/15">
-            <Sparkles className="size-4" />
-          </span>
+          {/* Solo «Efamein», con su cara (Santos, 15-10). */}
+          <AvatarEfamein className="size-8" />
           <div className="min-w-0 leading-tight">
-            <h2 className="truncate text-[14px] font-bold tracking-tight">Asistente Efamein</h2>
-            <p className="truncate text-[11.5px] text-muted-foreground">
-              {pensando ? "Consultando el CRM…" : "Responde con los datos del CRM y sus permisos"}
-            </p>
+            <h2 className="truncate text-[14px] font-bold tracking-tight">Efamein</h2>
+            {pensando && <p className="truncate text-[11.5px] text-muted-foreground">Consultando el CRM…</p>}
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-0.5">
@@ -411,9 +408,7 @@ export function AsistenteChat({
       <div ref={listaRef} className="barra-fina relative min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {mensajes.length === 0 ? (
           <div className={cn("flex h-full flex-col items-center justify-center gap-5 px-1 text-center", ancho)}>
-            <span className="animar-latido flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20">
-              <Sparkles className="size-6" />
-            </span>
+            <AvatarEfamein className="size-16 rounded-2xl" />
             <div>
               <h3 className="text-[18px] font-bold tracking-tight">Hola, {nombre.split(" ")[0]}. ¿En qué le ayudo?</h3>
               <p className="mx-auto mt-1 max-w-sm text-[13px] text-muted-foreground">
@@ -456,9 +451,7 @@ export function AsistenteChat({
                 </div>
               ) : (
                 <div key={i} className="animar-entrada flex gap-3">
-                  <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm">
-                    <Sparkles className="size-3.5" />
-                  </span>
+                  <AvatarEfamein className="mt-0.5 size-7" sonrie={false} />
                   <div className="min-w-0 flex-1">
                     {m.error ? (
                       <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-2.5 text-[14px] text-destructive">

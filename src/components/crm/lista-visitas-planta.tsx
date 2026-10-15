@@ -7,6 +7,7 @@ import { Ban, Check, Pencil, Printer } from "lucide-react";
 import { cancelarVisitaPlanta, marcarVisita, marcarVisitaImpresa, reprogramarVisitaPlanta } from "@/lib/acciones/visitas-planta";
 import { CircuitoVisita, CerrarVisitaBoton, ETIQUETA_RESULTADO } from "@/components/crm/circuito-visita";
 import { cn } from "@/lib/utils";
+import { docVisita } from "@/lib/visitas-planta-columnas";
 import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 export interface VisitaFila {
@@ -170,10 +171,10 @@ export function ListaVisitasPlanta({
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-foreground">
                     {v.persona}
-                    {v.dni && <span className="ml-1.5 font-mono text-xs font-normal text-muted-foreground">DNI {v.dni}</span>}
+                    {v.dni && <span className="ml-1.5 font-mono text-xs font-normal text-muted-foreground">{docVisita(v.dni)}</span>}
                     {acomp.length > 0 && (
                       <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                        + {acomp.map((a) => `${a.nombre}${a.dni ? ` (DNI ${a.dni})` : ""}`).join(", ")}
+                        + {acomp.map((a) => `${a.nombre}${a.dni ? ` (${docVisita(a.dni)})` : ""}`).join(", ")}
                       </span>
                     )}
                   </p>
@@ -336,9 +337,9 @@ export function ListaVisitasPlanta({
             <tbody>
               <tr><th>Fecha</th><td className="capitalize">{fechaLarga(imprimiendo.fecha)} · {hora(imprimiendo.hora)}</td></tr>
               <tr><th>{imprimiendo.tipo_visitante === "proveedor" ? "Proveedor" : "Empresa"}</th><td>{imprimiendo.empresa}{imprimiendo.ruc ? ` · RUC ${imprimiendo.ruc}` : ""}</td></tr>
-              <tr><th>Persona</th><td>{imprimiendo.persona}{imprimiendo.dni ? ` · DNI ${imprimiendo.dni}` : ""}</td></tr>
+              <tr><th>Persona</th><td>{imprimiendo.persona}{imprimiendo.dni ? ` · ${docVisita(imprimiendo.dni)}` : ""}</td></tr>
               {(imprimiendo.acompanantes ?? []).map((a, i) => (
-                <tr key={i}><th>Acompañante</th><td>{a.nombre}{a.dni ? ` · DNI ${a.dni}` : ""}</td></tr>
+                <tr key={i}><th>Acompañante</th><td>{a.nombre}{a.dni ? ` · ${docVisita(a.dni)}` : ""}</td></tr>
               ))}
               {imprimiendo.telefono && <tr><th>Teléfono</th><td>{imprimiendo.telefono}</td></tr>}
               {imprimiendo.cotizacion_ref && <tr><th>N° cotización</th><td>{imprimiendo.cotizacion_ref}</td></tr>}

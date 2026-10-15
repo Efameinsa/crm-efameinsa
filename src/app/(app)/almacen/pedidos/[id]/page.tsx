@@ -87,6 +87,8 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
               <span>
                 1) Se deja en la agencia: {servicio.agencia_destino ?? "(agencia por confirmar)"}
                 {servicio.agencia_direccion ? ` — ${servicio.agencia_direccion}` : " — (falta la dirección de la agencia)"}
+                {/* Lesly, 15-10: para no llegar con la agencia cerrada. */}
+                {servicio.agencia_horario ? ` · Atiende: ${servicio.agencia_horario}` : " · (falta el horario de atención)"}
               </span>
             </p>
           )}
