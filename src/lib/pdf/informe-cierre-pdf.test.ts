@@ -142,4 +142,10 @@ describe("correo según razón social", () => {
     const { correoEnSerie } = await import("./series");
     expect(correoEnSerie(null, "OPEN")).toBeNull();
   });
+  it("renderiza con tipo de cambio, sin él y con las cifras tapadas (Ariana 15-10)", async () => {
+    for (const props of [{ tipoCambio: 3.75 }, { tipoCambio: null }, { tipoCambio: 3.75, sinMontos: true }]) {
+      const pdf = await render(props);
+      expect(pdf.toString("latin1").startsWith("%PDF-")).toBe(true);
+    }
+  });
 });

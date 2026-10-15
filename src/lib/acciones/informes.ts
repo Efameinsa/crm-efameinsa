@@ -68,6 +68,8 @@ export interface DatosInforme {
   formaPago: "transferencia" | "deposito" | null;
   /** N.º de operación del pago, si ya pagó (0493, Gabriela 15-10): Finanzas lo copia. */
   numeroOperacion?: string | null;
+  /** Tipo de cambio (soles por dólar) que va debajo del MONTO TOTAL VENTA (Ariana 15-10). Opcional. */
+  tipoCambio?: number | null;
   moneda: string;
   notaCondiciones: string | null;
   /**
@@ -119,6 +121,8 @@ export interface PresupuestoDisponible {
   /** Solo las del CRM: la moneda en que se IMPRIMIÓ. Si salió en soles, las
    *  líneas ya vienen en soles y el cierre se hace en soles (05-10, 2218-26). */
   moneda?: "USD" | "PEN";
+  /** Solo las del CRM impresas en soles: el tipo de cambio con que se convirtió, para el cierre. */
+  tipoCambio?: number | null;
   /** Solo las del CRM que salieron a nombre de otra empresa del grupo (0310): a ella se le factura. */
   facturarA?: { razonSocial: string; numDoc: string | null; direccion: string | null } | null;
 }
@@ -281,6 +285,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
       estado: c.estado,
       lineas,
       moneda: enSoles ? ("PEN" as const) : ("USD" as const),
+      tipoCambio: enSoles ? Number(c.tipo_cambio) : null,
       facturarA: c.facturar_a_cuenta_id
         ? (() => {
             const snap = (c.cliente_snapshot ?? {}) as { razon_social?: string; num_doc?: string | null; direccion?: string | null };
@@ -367,6 +372,7 @@ function aFila(cuentaId: string, d: DatosInforme, creadoPor: string | null) {
     modalidad_pago: d.modalidadPago,
     forma_pago: d.formaPago,
     numero_operacion: d.numeroOperacion?.trim() || null,
+    tipo_cambio: d.tipoCambio != null && d.tipoCambio > 0 ? d.tipoCambio : null,
     moneda: d.moneda === "PEN" ? "PEN" : "USD",
     // El total con IGV, que es lo que se cobra. Se calcula acá y no en el
     // navegador: el importe del documento no puede depender de lo que
@@ -864,6 +870,7 @@ export interface BorradorInforme {
   modalidadPago: string[];
   formaPago: "transferencia" | "deposito" | null;
   numeroOperacion: string;
+  tipoCambio: number | null;
   notaCondiciones: string;
   pctAntesDespacho: number | null;
   creditoDias: number | null;
@@ -938,6 +945,7 @@ export async function cargarBorradorInforme(
       modalidadPago: ((i.modalidad_pago ?? []) as string[]).filter(Boolean),
       formaPago: i.forma_pago === "transferencia" || i.forma_pago === "deposito" ? i.forma_pago : null,
       numeroOperacion: texto(i.numero_operacion),
+      tipoCambio: i.tipo_cambio == null ? null : Number(i.tipo_cambio),
       notaCondiciones: texto(i.nota_condiciones),
       pctAntesDespacho: i.pct_antes_despacho == null ? null : Number(i.pct_antes_despacho),
       creditoDias: i.credito_dias == null ? null : Number(i.credito_dias),
