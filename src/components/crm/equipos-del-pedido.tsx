@@ -12,7 +12,7 @@ import { useState, useTransition } from "react";
 import Link from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, Loader2, PackageX, ScanBarcode } from "lucide-react";
+import { Check, Loader2, PackageX, ScanBarcode, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { abrirOtroCircuito, agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarProcedencia, marcarSinStock, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
 import { probarEquipoDelPedido, tecnicoYFechaDeLaPrueba } from "@/lib/acciones/almacen";
@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BotonAgregarFotos, TomarOSubirVarias, VideosDeLaPrueba } from "@/components/crm/tomar-o-subir";
 import { Documentos } from "@/components/crm/informe-soporte-apertura";
-import { agregarArchivosDelEquipo } from "@/lib/acciones/almacen";
+import { agregarArchivosDelEquipo, quitarArchivoDelEquipo } from "@/lib/acciones/almacen";
 import { cn } from "@/lib/utils";
 import { esTorre, seriesDeLaDescripcion } from "@/lib/torres";
 import { faltaParaProbar, hojaDelSistema, type ArchivoProtocolo, type MaquinaParaProbar } from "@/lib/protocolo-completo";
@@ -867,7 +867,7 @@ function Fila({
           {archivosGuardados.length > 0 && (
             <ul className="flex flex-wrap gap-1.5">
               {archivosGuardados.map((a, i) => (
-                <li key={i}>
+                <li key={i} className="inline-flex items-center">
                   <button
                     type="button"
                     onClick={() => abrirArchivo(a.path)}
@@ -876,6 +876,9 @@ function Fila({
                   >
                     {a.etiqueta === "documento" || /pdf|word|document/i.test(a.tipo ?? "") ? "📄" : (a.tipo ?? "").startsWith("video/") ? "🎬" : "🖼️"} <span className="truncate">{a.nombre}</span>
                   </button>
+                  {!(e.prueba_lista_at && candado) && (
+                    <QuitarArchivo itemId={e.id} servicioId={servicioId} archivo={a} />
+                  )}
                 </li>
               ))}
             </ul>
@@ -934,6 +937,35 @@ function tipoDeVideo(nombre: string): string | null {
   return ext === "mp4" ? "video/mp4" : ext === "mov" ? "video/quicktime" : ext === "webm" ? "video/webm" : ext === "3gp" ? "video/3gpp" : null;
 }
 
+/**
+ * La ✕ al lado de cada archivo guardado (0504; Ariana, 15-10: subió dos
+ * imágenes que no eran del OPEN 060-2026). Pregunta antes de quitar.
+ */
+function QuitarArchivo({ itemId, servicioId, archivo }: { itemId: string; servicioId: string; archivo: FotoAlmacen }) {
+  const router = useRouter();
+  const [pendiente, startTransition] = useTransition();
+  return (
+    <button
+      type="button"
+      disabled={pendiente}
+      title={`Quitar «${archivo.nombre}»`}
+      aria-label={`Quitar ${archivo.nombre}`}
+      className="ml-0.5 inline-flex size-5 items-center justify-center rounded-md text-muted-foreground hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+      onClick={() => {
+        if (!window.confirm(`¿Quitar «${archivo.nombre}» de esta máquina? Deja de salir en el informe de prueba y embalaje.`)) return;
+        startTransition(async () => {
+          const r = await quitarArchivoDelEquipo(itemId, servicioId, archivo.path);
+          if (r.error) return void toast.error(r.error, { duration: 9000 });
+          toast.success("Archivo quitado");
+          router.refresh();
+        });
+      }}
+    >
+      {pendiente ? <Loader2 className="size-3 animate-spin" /> : <X className="size-3" />}
+    </button>
+  );
+}
+
 function ConCodigoEnElInforme({ servicioId }: { servicioId: string }) {
   return (
     <p className="text-[11px] text-muted-foreground">
@@ -987,7 +1019,7 @@ function ArchivosDeParte({ p, servicioId, probada, candado }: { p: EquipoDelPedi
       {guardados.length > 0 && (
         <ul className="flex flex-wrap gap-1.5">
           {guardados.map((a, i) => (
-            <li key={i}>
+            <li key={i} className="inline-flex items-center">
               <button
                 type="button"
                 onClick={() => abrir(a.path)}
@@ -996,6 +1028,7 @@ function ArchivosDeParte({ p, servicioId, probada, candado }: { p: EquipoDelPedi
               >
                 {a.etiqueta === "documento" || /pdf|word|document/i.test(a.tipo ?? "") ? "📄" : (a.tipo ?? "").startsWith("video/") ? "🎬" : "🖼️"} <span className="truncate">{a.nombre}</span>
               </button>
+              {!(probada && candado) && <QuitarArchivo itemId={p.id} servicioId={servicioId} archivo={a} />}
             </li>
           ))}
         </ul>
