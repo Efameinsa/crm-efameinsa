@@ -167,6 +167,59 @@ function FilaApertura({
   const faltaVb = faltaVistoBuenoFinanzas(f);
   // El segundo botón (buzón, Jhon 14-10): validar el crédito ahí mismo o, ya validado, volver a verlo.
   const conValidacion = pide && (Boolean(f.finanzas_vb_at) || (faltaVb && puedeValidar));
+  // El expediente (cliente, cierre, pago y el cierre en sí): en todas las aperturas, no solo las de crédito (buzón, Facturación 1 15-10).
+  const expediente = (
+    <div className="rounded-lg border border-border bg-secondary/30 p-3 text-xs">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">El expediente</p>
+      <p className="mt-1 font-semibold text-foreground">
+        {p?.cliente ?? "Pedido"}
+        {p?.clienteDoc ? ` · ${p.clienteDoc}` : ""}
+      </p>
+      <p className="text-muted-foreground">
+        {[p?.codigoCierre ? `Cierre ${p.codigoCierre}` : null, p?.numeroErp ? `Pedido ${p.numeroErp}` : null, p?.comercialNombre ?? null]
+          .filter(Boolean)
+          .join(" · ")}
+      </p>
+      {p?.equipo && <p className="mt-0.5 text-muted-foreground">{p.equipo.replace(/\s+/g, " ")}</p>}
+      <p className="mt-1">
+        Forma de pago: <b>{f.forma_pago ?? "sin dato"}</b>
+        {p?.condicion ? ` · antes del despacho: ${p.condicion}` : ""}
+      </p>
+      {p && p.total != null && (
+        <p className="mt-0.5">
+          Total {formatoMonto(p.moneda, p.total)} · confirmado {formatoMonto(p.moneda, p.pagado)} · antes del despacho{" "}
+          {formatoMonto(p.moneda, p.requerido)} · saldo {formatoMonto(p.moneda, p.saldo)}
+        </p>
+      )}
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        {p?.informeId && p.codigoCierre && (
+          <ExpedienteCierre
+            informeId={p.informeId}
+            codigo={p.codigoCierre}
+            cliente={p.cliente}
+            clienteDoc={p.clienteDoc}
+            clienteCorreo={p.clienteCorreo}
+            numeroOperacion={p.numeroOperacion}
+            serie={p.serie ?? "EFAMEINSA"}
+            monto={p.total ?? 0}
+            moneda={p.moneda}
+            modalidadPago={p.modalidadPago}
+            entregaLugar={p.entregaLugar}
+            entregaFecha={p.entregaFecha}
+            adjuntos={p.adjuntos}
+            compendio={null}
+            pedidoId={f.id}
+            soloLectura
+          />
+        )}
+        {conPedido && (
+          <Link href={`/finanzas/pedidos/${f.id}`} className="text-[11px] font-semibold text-primary hover:underline">
+            Abrir el pedido completo (abonos y liquidaciones)
+          </Link>
+        )}
+      </div>
+    </div>
+  );
   return (
     <li className="flex flex-wrap items-center gap-3 px-4 py-3">
       <div className="min-w-0 flex-1">
@@ -234,56 +287,7 @@ function FilaApertura({
       )}
       {conValidacion && (
         <ValidarCreditoApertura validado={Boolean(f.finanzas_vb_at)}>
-          <div className="rounded-lg border border-border bg-secondary/30 p-3 text-xs">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">El expediente</p>
-            <p className="mt-1 font-semibold text-foreground">
-              {p?.cliente ?? "Pedido"}
-              {p?.clienteDoc ? ` · ${p.clienteDoc}` : ""}
-            </p>
-            <p className="text-muted-foreground">
-              {[p?.codigoCierre ? `Cierre ${p.codigoCierre}` : null, p?.numeroErp ? `Pedido ${p.numeroErp}` : null, p?.comercialNombre ?? null]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-            {p?.equipo && <p className="mt-0.5 text-muted-foreground">{p.equipo.replace(/\s+/g, " ")}</p>}
-            <p className="mt-1">
-              Forma de pago: <b>{f.forma_pago ?? "sin dato"}</b>
-              {p?.condicion ? ` · antes del despacho: ${p.condicion}` : ""}
-            </p>
-            {p && p.total != null && (
-              <p className="mt-0.5">
-                Total {formatoMonto(p.moneda, p.total)} · confirmado {formatoMonto(p.moneda, p.pagado)} · antes del despacho{" "}
-                {formatoMonto(p.moneda, p.requerido)} · saldo {formatoMonto(p.moneda, p.saldo)}
-              </p>
-            )}
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              {p?.informeId && p.codigoCierre && (
-                <ExpedienteCierre
-                  informeId={p.informeId}
-                  codigo={p.codigoCierre}
-                  cliente={p.cliente}
-                  clienteDoc={p.clienteDoc}
-                  clienteCorreo={p.clienteCorreo}
-                  numeroOperacion={p.numeroOperacion}
-                  serie={p.serie ?? "EFAMEINSA"}
-                  monto={p.total ?? 0}
-                  moneda={p.moneda}
-                  modalidadPago={p.modalidadPago}
-                  entregaLugar={p.entregaLugar}
-                  entregaFecha={p.entregaFecha}
-                  adjuntos={p.adjuntos}
-                  compendio={null}
-                  pedidoId={f.id}
-                  soloLectura
-                />
-              )}
-              {conPedido && (
-                <Link href={`/finanzas/pedidos/${f.id}`} className="text-[11px] font-semibold text-primary hover:underline">
-                  Abrir el pedido completo (abonos y liquidaciones)
-                </Link>
-              )}
-            </div>
-          </div>
+          {expediente}
           <VistoBuenoSalida
             d={{
               servicioId: f.id,
@@ -305,6 +309,11 @@ function FilaApertura({
               moneda: f.moneda,
             }}
           />
+        </ValidarCreditoApertura>
+      )}
+      {!conValidacion && (
+        <ValidarCreditoApertura validado={false} soloExpediente>
+          {expediente}
         </ValidarCreditoApertura>
       )}
       {!f.guia_confirmada_at && !faltaVb && f.apertura_despacho_at && (
