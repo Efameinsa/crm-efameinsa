@@ -6,6 +6,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { enviarCorreoN8n } from "@/lib/avisos-n8n";
 import { armarCorreo } from "@/lib/correo/plantilla";
 import { notificarAlmacen, notificarCentral } from "@/lib/notificaciones";
+import { docVisita } from "@/lib/visitas-planta-columnas";
 
 /**
  * Quién viene a la planta (0238).
@@ -106,7 +107,7 @@ export async function registrarVisitaPlanta(datos: {
     tipo: "visita_nueva",
     titulo: `${datos.videollamada ? "Videollamada" : "Visita"} ${datos.proveedor ? "de proveedor" : datos.videollamada ? "· abrir lavandería" : datos.showroom ? "al showroom" : "a planta"} el ${datos.fecha}${datos.hora ? ` ${datos.hora.slice(0, 5)}` : ""} · ${datos.empresa.trim()}`,
     cuerpo:
-      `${datos.persona.trim()}${datos.dni ? ` (DNI ${datos.dni})` : ""}. ${datos.motivo.trim()}` +
+      `${datos.persona.trim()}${datos.dni ? ` (${docVisita(datos.dni)})` : ""}. ${datos.motivo.trim()}` +
       (transporte ? ` Llega en transporte: ${transporteTexto(transporte)}.` : "") +
       (recoge.length ? ` Recoge: ${recoge.map(recogeTexto).join("; ")}.` : "") +
       (maquinas.length ? ` Preparar máquinas: ${maquinas.map((m) => `${m.maquina} (${queHacer(m)})`).join("; ")}.` : ""),
@@ -144,8 +145,8 @@ export async function registrarVisitaPlanta(datos: {
         `<p>Buenos días, ${datos.videollamada ? "para informar la siguiente videollamada con un cliente (no viene a la planta)" : `para informar la siguiente visita${datos.proveedor ? " de proveedor" : ""}`}:</p>` +
         `<table style="border-collapse:collapse"><tr>${th("FECHA")}${th("HORA")}${th(datos.proveedor ? "PROVEEDOR" : "PROSPECTO")}${th("N° COTIZACIÓN")}${th("OBSERVACIÓN")}</tr>` +
         `<tr>${td(`<span style="background:#ffff00">${fecha}</span>`)}${td(`<span style="color:#c00">${hora}</span>`)}` +
-        `${td(`${datos.dni ? `DNI ${esc(datos.dni)} - ` : datos.ruc ? `RUC ${esc(datos.ruc)} - ` : ""}${esc(datos.persona)}` +
-          (datos.acompanantes ?? []).filter((a) => a.nombre?.trim()).map((a) => `<br>${a.dni ? `DNI ${esc(a.dni)} - ` : ""}${esc(a.nombre)}`).join("") +
+        `${td(`${datos.dni ? `${esc(docVisita(datos.dni))} - ` : datos.ruc ? `RUC ${esc(datos.ruc)} - ` : ""}${esc(datos.persona)}` +
+          (datos.acompanantes ?? []).filter((a) => a.nombre?.trim()).map((a) => `<br>${a.dni ? `${esc(docVisita(a.dni))} - ` : ""}${esc(a.nombre)}`).join("") +
           `<br><b>${esc(datos.empresa)}</b>${datos.telefono ? `<br>Tel. ${esc(datos.telefono)}` : ""}`)}` +
         `${td(cotizacionRef ? `N° ${esc(cotizacionRef)}` : "—")}${td(esc(datos.motivo))}</tr></table>` +
         `<p>` +
@@ -166,7 +167,7 @@ export async function registrarVisitaPlanta(datos: {
           : "") +
         (datos.prenderTv ? `<span style="background:#ffff00">Prender TV</span><br>` : "") +
         (datos.showroom ? `<span style="background:#ffff00">Abrir lavandería</span><br>` : "") +
-        (datos.infocorp ? `Se solicita Infocorp: ${esc(datos.empresa)}${datos.ruc ? ` (RUC ${esc(datos.ruc)})` : datos.dni ? ` (DNI ${esc(datos.dni)})` : ""}<br>` : "") +
+        (datos.infocorp ? `Se solicita Infocorp: ${esc(datos.empresa)}${datos.ruc ? ` (RUC ${esc(datos.ruc)})` : datos.dni ? ` (${esc(docVisita(datos.dni))})` : ""}<br>` : "") +
         `</p>` +
         `<p>Gracias,</p>` +
         `<p style="color:#666;font-size:12px">${esc(perfil.codigo_comercial ? `${perfil.codigo_comercial} · ` : "")}${esc(perfil.nombre)} · registrado en el CRM.</p></div>`, firma: null }),

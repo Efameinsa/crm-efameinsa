@@ -8,6 +8,7 @@ import { buscarEmpresaParaVisita, equiposDeLaFichaParaVisita, registrarVisitaPla
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { errorDocVisita, guardarDocVisita, type TipoDocVisita } from "@/lib/visitas-planta-columnas";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,28 @@ import {
 } from "@/components/ui/dialog";
 
 type MaquinaAPreparar = { maquina: string; caracteristicas: string; moverAPrueba: boolean; quitarFilm: boolean };
+
+/** DNI o C.E. con un toque (Rubí, buzón 15-10): vigilancia pide el documento que traiga. */
+export function TipoDocBotones({ tipo, onChange }: { tipo: TipoDocVisita; onChange: (t: TipoDocVisita) => void }) {
+  return (
+    <span className="inline-flex overflow-hidden rounded border border-border text-[10px] font-semibold">
+      {(["dni", "ce"] as const).map((t) => (
+        <button
+          key={t}
+          type="button"
+          onClick={() => onChange(t)}
+          aria-pressed={tipo === t}
+          title={t === "dni" ? "Documento Nacional de Identidad" : "Carné de extranjería"}
+          className={tipo === t ? "bg-primary px-1.5 py-px text-primary-foreground" : "px-1.5 py-px text-muted-foreground hover:bg-accent"}
+        >
+          {t === "dni" ? "DNI" : "C.E."}
+        </button>
+      ))}
+    </span>
+  );
+}
+
+const textoEquipo = (e: EquipoDeLaFicha) => `${e.modelo}${e.serie ? ` · serie ${e.serie}` : ""}`;
 
 /**
  * «Viene a la planta» (0238).
@@ -57,7 +80,8 @@ export function VisitaPlantaBoton({
   const [cotizacion, setCotizacion] = useState("");
   // Capítulo 1 de Catherine: «¿Usted viene solo? ¿Viene con familiares, con
   // amigos, con socios? ¿Me puede brindar el número de DNI y nombre completo?»
-  const [acompanantes, setAcompanantes] = useState<{ nombre: string; dni: string }[]>([]);
+  const [acompanantes, setAcompanantes] = useState<{ nombre: string; dni: string; tipo: TipoDocVisita }[]>([]);
+  const [tipoDoc, setTipoDoc] = useState<TipoDocVisita>("dni");
   // Preparación de máquinas para visita de clientes (0422; Brenda, 09-10): qué
   // máquinas llevar al área de prueba o a cuáles quitarles el film. Almacén
   // necesita más que el modelo para quitar el film: voltaje, fase, capacidad… (Lesly, 07-10).
@@ -117,6 +141,16 @@ export function VisitaPlantaBoton({
       toast.error("Para quitarle el film escriba las características de la máquina (voltaje, fase, capacidad…): almacén las necesita.");
       return;
     }
+    const errorDoc = errorDocVisita(f.dni, tipoDoc);
+    if (errorDoc) {
+      toast.error(`${videollamada ? "Documento" : "Documento de quien viene"}: ${errorDoc}`);
+      return;
+    }
+    const errorAcomp = videollamada ? null : acompanantes.map((a) => a.nombre.trim() && errorDocVisita(a.dni, a.tipo) && `${a.nombre.trim()}: ${errorDocVisita(a.dni, a.tipo)}`).find(Boolean);
+    if (errorAcomp) {
+      toast.error(`Acompañante ${errorAcomp}`);
+      return;
+    }
     if (conTransporte && !videollamada && !transporte.placa.trim()) {
       toast.error("Escriba la placa del vehículo: vigilancia la pide en la puerta. Si no viene vehículo, desmarque «Llega con vehículo».");
       return;
@@ -125,8 +159,8 @@ export function VisitaPlantaBoton({
       .map((m) => `${m.maquina.trim()}${m.caracteristicas.trim() ? ` — ${m.caracteristicas.trim()}` : ""} (${[m.moverAPrueba && "al área de prueba", m.quitarFilm && "quitar el film"].filter(Boolean).join(" y ")})`)
       .join("; ");
     startTransition(async () => {
-      const r = await registrarVisitaPlanta({ cuentaId: cuentaElegida, oportunidadId, ...f, showroom: showroom || videollamada, prenderTv, infocorp, cotizacionRef: cotizacion, videollamada,
-        acompanantes: videollamada ? [] : acompanantes, maquinas: lista, equiposRecoge: videollamada ? [] : recoge,
+      const r = await registrarVisitaPlanta({ cuentaId: cuentaElegida, oportunidadId, ...f, dni: guardarDocVisita(f.dni, tipoDoc), showroom: showroom || videollamada, prenderTv, infocorp, cotizacionRef: cotizacion, videollamada,
+        acompanantes: videollamada ? [] : acompanantes.map((a) => ({ nombre: a.nombre, dni: guardarDocVisita(a.dni, a.tipo) })), maquinas: lista, equiposRecoge: videollamada ? [] : recoge,
         transporte: conTransporte && !videollamada ? transporte : null });
       if (r.error) {
         toast.error(r.error, { duration: 8000 });
@@ -143,6 +177,7 @@ export function VisitaPlantaBoton({
       );
       setAbierto(false);
       setF((x) => ({ ...x, persona: "", dni: "", telefono: "", motivo: "" }));
+      setTipoDoc("dni");
       // Que la próxima visita no herede la máquina ni el film de ésta.
       setMaquinas([]);
       setAcompanantes([]);
@@ -236,7 +271,65 @@ export function VisitaPlantaBoton({
           {!cuentaId && !cuentaElegida && buscado && sugerencias.length === 0 && (
             <p className="-mt-1 text-[11px] text-muted-foreground">No hay ficha con ese nombre o RUC: se registra como cliente nuevo.</p>
           )}
-          <div className="grid grid-cols-[1fr_8rem] gap-2">
+          {/* Los equipos del cliente para solo marcar (0467; Rubí, buzón 15-10): cuál recoge y cuál preparar para la visita. */}
+          {cuentaElegida && !equiposFicha && <p className="-mt-1 text-[11px] text-muted-foreground">Buscando los equipos de este cliente…</p>}
+          {cuentaElegida && equiposFicha && (
+            <div className="grid gap-1.5 rounded-md border border-border p-2">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Equipos de este cliente</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {videollamada
+                    ? "Marque cuál hay que preparar para mostrarlo en la videollamada."
+                    : "Marque cuál se lleva (va con su serie en el aviso, el correo y la hoja de vigilancia) y cuál hay que preparar para la visita."}
+                </p>
+              </div>
+              {equiposFicha.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground">Esta ficha no tiene equipos registrados con serie: escríbalo en «Para qué viene» o en «Preparación de máquinas».</p>
+              ) : (
+                equiposFicha.map((e) => {
+                  const texto = textoEquipo(e);
+                  const preparado = maquinas.some((m) => m.maquina.trim() === texto);
+                  return (
+                    <div key={e.id} className="grid gap-0.5 rounded-md bg-muted/40 px-2 py-1.5">
+                      <p className="text-sm">
+                        {e.modelo}
+                        {e.serie && <span className="ml-1 font-mono text-[11px] text-muted-foreground">· serie {e.serie}</span>}
+                      </p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        {!videollamada && (
+                          <label className="flex items-center gap-2 text-xs">
+                            <input
+                              type="checkbox"
+                              checked={recoge.includes(e.id)}
+                              onChange={(ev) => setRecoge((xs) => (ev.target.checked ? [...xs, e.id] : xs.filter((x) => x !== e.id)))}
+                              className="size-4"
+                            />
+                            Lo recoge
+                          </label>
+                        )}
+                        <label className="flex items-center gap-2 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={preparado}
+                            onChange={(ev) =>
+                              setMaquinas((xs) =>
+                                ev.target.checked
+                                  ? [...xs, { maquina: texto, caracteristicas: "", moverAPrueba: true, quitarFilm: false }]
+                                  : xs.filter((m) => m.maquina.trim() !== texto),
+                              )
+                            }
+                            className="size-4"
+                          />
+                          Prepararlo para la visita
+                        </label>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+          <div className="grid grid-cols-[1fr_9.5rem] gap-2">
             <div className="grid gap-1">
               <Label className="text-xs">
                 {videollamada ? "Con quién es la videollamada" : "Quién viene"} <span className="text-destructive">*</span>
@@ -244,8 +337,11 @@ export function VisitaPlantaBoton({
               <Input {...campo("persona")} placeholder="Nombre y apellido" autoFocus />
             </div>
             <div className="grid gap-1">
-              <Label className="text-xs">DNI</Label>
-              <Input {...campo("dni")} inputMode="numeric" />
+              <div className="flex items-center justify-between gap-1">
+                <Label className="text-xs">{tipoDoc === "ce" ? "C.E." : "DNI"}</Label>
+                <TipoDocBotones tipo={tipoDoc} onChange={setTipoDoc} />
+              </div>
+              <Input {...campo("dni")} inputMode={tipoDoc === "ce" ? "text" : "numeric"} placeholder={tipoDoc === "ce" ? "N.º de carné" : "8 dígitos"} />
             </div>
           </div>
           <div className="grid gap-1">
@@ -254,15 +350,16 @@ export function VisitaPlantaBoton({
           </div>
           {!videollamada && (<>
           <div className="grid gap-1">
-            <Label className="text-xs">¿Viene acompañado? Nombre y DNI de cada uno (vigilancia los pide)</Label>
+            <Label className="text-xs">¿Viene acompañado? Nombre y DNI o C.E. de cada uno (vigilancia los pide)</Label>
             {acompanantes.map((a, i) => (
-              <div key={i} className="grid grid-cols-[1fr_8rem_auto] gap-1.5">
+              <div key={i} className="grid grid-cols-[1fr_auto_7rem_auto] items-center gap-1.5">
                 <Input value={a.nombre} onChange={(e) => setAcompanantes((xs) => xs.map((x, j) => (j === i ? { ...x, nombre: e.target.value } : x)))} placeholder="Nombre y apellido" />
-                <Input value={a.dni} onChange={(e) => setAcompanantes((xs) => xs.map((x, j) => (j === i ? { ...x, dni: e.target.value } : x)))} placeholder="DNI" inputMode="numeric" />
+                <TipoDocBotones tipo={a.tipo} onChange={(t) => setAcompanantes((xs) => xs.map((x, j) => (j === i ? { ...x, tipo: t } : x)))} />
+                <Input value={a.dni} onChange={(e) => setAcompanantes((xs) => xs.map((x, j) => (j === i ? { ...x, dni: e.target.value } : x)))} placeholder={a.tipo === "ce" ? "C.E." : "DNI"} inputMode={a.tipo === "ce" ? "text" : "numeric"} />
                 <button type="button" onClick={() => setAcompanantes((xs) => xs.filter((_, j) => j !== i))} className="text-xs text-muted-foreground hover:text-destructive">Quitar</button>
               </div>
             ))}
-            <button type="button" onClick={() => setAcompanantes((xs) => [...xs, { nombre: "", dni: "" }])} className="justify-self-start text-xs font-medium text-primary hover:underline">
+            <button type="button" onClick={() => setAcompanantes((xs) => [...xs, { nombre: "", dni: "", tipo: "dni" }])} className="justify-self-start text-xs font-medium text-primary hover:underline">
               + Acompañante
             </button>
           </div>
@@ -270,7 +367,7 @@ export function VisitaPlantaBoton({
           <div className="grid gap-2 rounded-md border border-border p-2">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Preparación de máquinas para visita de clientes</p>
-              <p className="text-[11px] text-muted-foreground">Qué equipos tiene que preparar almacén para la exhibición: llevarlos al área de prueba o quitarles el film.</p>
+              <p className="text-[11px] text-muted-foreground">Qué equipos tiene que preparar almacén para la exhibición: llevarlos al área de prueba o quitarles el film.{equiposFicha?.length ? " Los del cliente que marcó arriba ya están aquí." : ""}</p>
             </div>
             {maquinas.map((m, i) => (
               <div key={i} className="grid gap-1.5 rounded-md bg-muted/40 p-2">
@@ -303,32 +400,6 @@ export function VisitaPlantaBoton({
               + Máquina a preparar
             </button>
           </div>
-          {!videollamada && cuentaElegida && equiposFicha && (
-            <div className="grid gap-1.5 rounded-md border border-border p-2">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">¿Viene a recoger equipos suyos?</p>
-                <p className="text-[11px] text-muted-foreground">Marque cuáles se lleva: van con su serie en el aviso, el correo y la hoja de vigilancia.</p>
-              </div>
-              {equiposFicha.length === 0 ? (
-                <p className="text-[11px] text-muted-foreground">Esta ficha no tiene equipos registrados con serie: escriba cuál recoge en «Para qué viene».</p>
-              ) : (
-                equiposFicha.map((e) => (
-                  <label key={e.id} className="flex items-start gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={recoge.includes(e.id)}
-                      onChange={(ev) => setRecoge((xs) => (ev.target.checked ? [...xs, e.id] : xs.filter((x) => x !== e.id)))}
-                      className="mt-0.5 size-4 shrink-0"
-                    />
-                    <span>
-                      {e.modelo}
-                      {e.serie && <span className="ml-1 font-mono text-[11px] text-muted-foreground">· serie {e.serie}</span>}
-                    </span>
-                  </label>
-                ))
-              )}
-            </div>
-          )}
           {!videollamada && (
             <div className="grid gap-1.5 rounded-md border border-border p-2">
               <label className="flex items-center gap-2 text-sm">
