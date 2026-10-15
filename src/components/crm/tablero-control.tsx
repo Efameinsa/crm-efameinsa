@@ -51,6 +51,8 @@ export interface TarjetaControl {
   total: number;
   pct: number;
   frena: { texto: string; dueno: string; grave: boolean } | null;
+  /** El abono confirmado que no cubre lo acordado, en una línea (15-10). */
+  pagoParcial: string | null;
   fechaDespacho: string | null;
   puedeAprobar: boolean;
   /**
@@ -354,6 +356,12 @@ function Tarjeta({
         </p>
       ) : (
         <p className="mt-2 text-xs font-semibold text-[#1E7F4F]">Listo para cerrar</p>
+      )}
+      {p.pagoParcial && (
+        <p className="mt-1.5 flex items-start gap-1.5 rounded-md border border-amber-400/70 bg-amber-500/10 px-2 py-1.5 text-xs font-semibold text-amber-900 dark:text-amber-200">
+          <OctagonAlert className="mt-0.5 size-3.5 flex-none" />
+          <span>Pago parcial, no despachar: {p.pagoParcial}</span>
+        </p>
       )}
 
       {p.fechaDespacho && <p className="mt-1.5 text-[11px] text-muted-foreground">Despacho: {p.fechaDespacho}</p>}

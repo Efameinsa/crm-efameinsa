@@ -214,8 +214,8 @@ export default async function SusPedidosPage({ searchParams }: { searchParams: P
                         {sr.con} de {sr.total} con serie
                       </span>
                     )}
-                    <span className={cn("rounded-full px-2 py-0.5 font-semibold", pago === "completo" ? "bg-[#1E7F4F]/10 text-[#1E7F4F]" : "bg-secondary text-foreground")}>
-                      {pago === "completo" ? "Pago confirmado" : pago === "parcial" ? "Pago parcial" : "Pago pendiente"}
+                    <span className={cn("rounded-full px-2 py-0.5 font-semibold", pago === "completo" ? "bg-[#1E7F4F]/10 text-[#1E7F4F]" : pago === "parcial" ? "bg-amber-500/15 text-amber-900 dark:text-amber-200" : "bg-secondary text-foreground")}>
+                      {pago === "completo" ? "Pago confirmado" : pago === "parcial" ? "Pago parcial · falta el saldo" : "Pago pendiente"}
                     </span>
                     {s.despachado_at && <span className="rounded-full bg-secondary px-2 py-0.5 font-semibold">Despachado</span>}
                     {s.urgencia_finanzas_at && !cerrado && (

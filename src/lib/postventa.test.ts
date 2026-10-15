@@ -13,6 +13,7 @@ import {
   textoCondicionPago,
   textoPlanoNoEnviado,
   pedidoSinCobro,
+  pagoParcialSinCubrir,
   pideVistoBuenoFinanzas,
   faltaVistoBuenoFinanzas,
   faltanLetrasEnAlmacen,
@@ -614,5 +615,44 @@ describe("maquinasPorSerie (Rubí 14-10: un informe de puesta en marcha por seri
     expect(maquinasPorSerie(lista).map((m) => m.serie)).toEqual(["604KWNM5N407", "604KWJU5N412", "304KWUC0V206"]);
     expect(maquinasPorSerie(lista)[1].descripcion).toMatch(/^Lavadora · /);
     expect(maquinasPorSerie(lista)[2]).toMatchObject({ equipoId: "e3", descripcion: "Secadora · LAVADORA – SECADORA SEMI INDUSTRIAL" });
+  });
+});
+
+describe("pagoParcialSinCubrir: el abono confirmado que no cubre lo acordado (reunión 15-10)", () => {
+  // Wong Lu Vega: US$ 7 900 de contado (100 %), pagó US$ 1 580 (20 %) y
+  // Finanzas lo confirmó. Salía en verde y postventa quiso despachar.
+  const wong = { monto: 7900, monto_pagado: 1580, pct_antes_despacho: 100, pago_confirmado_at: "2026-10-07T15:40:00Z" };
+
+  it("con cifras dice cuánto pagó, cuánto falta y por qué no sale", () => {
+    const r = pagoParcialSinCubrir(pedido(wong));
+    expect(r?.corto).toBe("Pagó el 20 % (USD 1,580), faltan USD 6,320");
+    expect(r?.largo).toContain("La condición es contado");
+    expect(r?.largo).toContain("No se despacha hasta que Finanzas confirme lo que falta");
+  });
+
+  it("el paso de pago queda hecho pero con alerta, no verde", () => {
+    const pago = bloquesPedido(pedido(wong)).flatMap((b) => b.pasos).find((p) => p.clave === "pago");
+    expect(pago?.hecho).toBe(true);
+    expect(pago?.etiqueta).toBe("Pago parcial: Finanzas confirmó solo un adelanto, falta el saldo");
+    expect(pago?.alerta).toContain("faltan USD 6,320");
+  });
+
+  it("sin cifras (postventa no ve montos) lo dice sin números", () => {
+    const r = pagoParcialSinCubrir(sinPrecios(pedido(wong)));
+    expect(r?.corto).toBe("Pagó solo un adelanto, falta el saldo");
+    expect(r?.largo).toContain("La condición es contado");
+  });
+
+  it("PRODECO: 50 % acordado y todavía no se llega", () => {
+    const r = pagoParcialSinCubrir(pedido({ monto: 49558.82, monto_pagado: 21890, pct_antes_despacho: 50, pago_confirmado_at: "2026-10-01T15:00:00Z" }));
+    expect(r?.largo).toContain("La condición es 50 % antes del despacho y todavía no se llega");
+  });
+
+  it("no aplica cuando el adelanto acordado está cubierto, cuando falta la confirmación, ni con salida autorizada", () => {
+    expect(pagoParcialSinCubrir(pedido({ monto: 10000, monto_pagado: 5000, pct_antes_despacho: 50, pago_confirmado_at: "2026-10-01T15:00:00Z" }))).toBeNull();
+    expect(pagoParcialSinCubrir(pedido({ ...wong, pago_confirmado_at: null }))).toBeNull();
+    expect(pagoParcialSinCubrir(pedido({ ...wong, salida_autorizada_at: "2026-10-08T15:00:00Z" }))).toBeNull();
+    expect(pagoParcialSinCubrir(pedido({ ...wong, despachado_at: "2026-10-08T15:00:00Z" }))).toBeNull();
+    expect(bloquesPedido(pedido({ monto: 7900, monto_pagado: 7900, pct_antes_despacho: 100, pago_confirmado_at: "2026-10-07T15:40:00Z" })).flatMap((b) => b.pasos).find((p) => p.clave === "pago")?.alerta).toBeUndefined();
   });
 });

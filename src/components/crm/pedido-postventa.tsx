@@ -533,7 +533,12 @@ export function PedidoPostventa({
                 <div key={paso.clave} className="relative flex gap-3">
                   {/* El riel: nodo + línea que conecta con el siguiente paso. */}
                   <div className="flex w-5 flex-none flex-col items-center">
-                    {paso.hecho ? (
+                    {paso.hecho && paso.alerta ? (
+                      // Hecho, pero no verde: hay algo que leer (pago parcial, 15-10).
+                      <span className="flex size-5 flex-none items-center justify-center rounded-full bg-amber-500">
+                        <OctagonAlert className="size-3.5 text-white" />
+                      </span>
+                    ) : paso.hecho ? (
                       <span className="flex size-5 flex-none items-center justify-center rounded-full bg-[#1E7F4F]">
                         <Check className="size-3 text-white" />
                       </span>
@@ -551,12 +556,30 @@ export function PedidoPostventa({
                       </span>
                     )}
                     {!esUltimo && (
-                      <span className={cn("w-px flex-1", paso.hecho ? "bg-[#1E7F4F]/40" : "bg-border")} />
+                      <span className={cn("w-px flex-1", paso.hecho && paso.alerta ? "bg-amber-400/60" : paso.hecho ? "bg-[#1E7F4F]/40" : "bg-border")} />
                     )}
                   </div>
 
-                  {/* Lo hecho se lee en una línea; lo actual, en su tarjeta. */}
-                  {paso.hecho ? (
+                  {/* Lo hecho se lee en una línea; lo actual, en su tarjeta. Lo hecho
+                      CON ALERTA (pago parcial, 15-10) va en tarjeta ámbar: Carlos,
+                      «que sea algo que uno lee y diga no». */}
+                  {paso.hecho && paso.alerta ? (
+                    <div className="mb-3 min-w-0 flex-1 rounded-lg border border-amber-400/70 bg-amber-500/10 px-3 py-2.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="flex-1 text-sm font-semibold text-amber-900 dark:text-amber-200">{paso.etiqueta}</p>
+                        {(paso.cuando || paso.quien) && (
+                          <span className="whitespace-nowrap font-mono text-[11px] tabular-nums text-muted-foreground">
+                            {paso.cuando ? fechaHoraLima(paso.cuando) : ""}
+                            {paso.quien && <span className="ml-1.5 font-sans font-medium text-foreground/70">· {paso.quien}</span>}
+                          </span>
+                        )}
+                        {accionDePaso(paso)}
+                      </div>
+                      <p className="mt-1 text-xs font-medium text-amber-800 dark:text-amber-300">{paso.alerta}</p>
+                      {detalleDePaso(paso) && <p className="mt-0.5 text-[11px] text-muted-foreground">{detalleDePaso(paso)}</p>}
+                      <DocumentosDelPaso docs={documentos[paso.clave]} />
+                    </div>
+                  ) : paso.hecho ? (
                     <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 pb-3">
                       <p className="text-xs text-muted-foreground">{paso.etiqueta}</p>
                       {detalleDePaso(paso) && <span className="text-[11px] text-muted-foreground/70">{detalleDePaso(paso)}</span>}

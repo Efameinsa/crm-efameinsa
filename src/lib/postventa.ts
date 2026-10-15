@@ -248,6 +248,16 @@ export interface PasoPedido {
   cuando: string | null;
   /** Por qué no se puede avanzar todavía. */
   trabado?: string;
+  /**
+   * Hecho, pero con algo que hay que LEER antes de seguir. Reunión 15-10
+   * (Carlos, Ariana, Santos; caso Wong Lu Vega): el pago parcial salía con el
+   * check verde de «Finanzas confirmó» y postventa, revisando todo lo que
+   * faltaba atender, lo leyó como pagado al 100 % y quiso despachar. Carlos:
+   * «no debe salir como verde»; Ariana: «algo visual que dé alerta… amarillo»;
+   * Carlos: «más que color, que sea algo que uno lee y diga no; ambas cosas».
+   * Se pinta en ámbar, con el texto de qué falta.
+   */
+  alerta?: string;
   detalle?: string;
   /** Quién lo hizo o lo aprobó (0473): el id, y el nombre si quien llama pasó los nombres. */
   por?: string | null;
@@ -696,6 +706,56 @@ export function bloquesPedido(s: ServicioPostventa, nombres?: Record<string, str
   return bloques;
 }
 
+/**
+ * EL PAGO PARCIAL QUE NO CUBRE LO ACORDADO (reunión 15-10, 12:51).
+ *
+ * Finanzas confirmó un abono, pero lo pagado no llega a lo que la condición
+ * de pago exige antes del despacho (el 100 % si es contado, o el adelanto
+ * pactado). Es exactamente el caso en que el servidor va a negar la apertura:
+ * acá se dice con palabras y en ámbar, para que nadie lo lea como «pagado».
+ *
+ * `corto` cabe en una tarjeta o una fila de lista; `largo` va en el paso del
+ * pedido y en el anuncio de la cabecera. Sin cifras (postventa no ve montos,
+ * `sinPrecios` las tapa) se dice lo mismo sin números: el estado del pago y
+ * `despacho_liberado` ya vienen resueltos del servidor.
+ *
+ * No aplica cuando el adelanto acordado está cubierto (eso es lo pactado, no
+ * un problema: 0232), cuando no hay cobro, ni cuando gerencia u operaciones ya
+ * autorizaron la salida con su código.
+ */
+export function pagoParcialSinCubrir(s: ServicioPostventa): { corto: string; largo: string } | null {
+  if (s.completado || s.cerrado_at || s.despachado_at) return null;
+  if (pedidoSinCobro(s)) return null;
+  const confirmado = s.pago_confirmado_at != null || marcadoEnExcel(s.confirmacion_abono);
+  if (!confirmado) return null;
+  if (estadoPago(s) !== "parcial") return null;
+  const liberado = s.despacho_liberado ?? evaluarPagoParaDespacho(s).cubierto;
+  if (liberado) return null;
+  if (s.salida_autorizada_at || s.despacho_sin_cancelar_motivo) return null;
+
+  const pct = s.pct_antes_despacho == null ? null : Number(s.pct_antes_despacho);
+  const total = s.monto == null ? null : Number(s.monto);
+  const pagado = Number(s.monto_pagado ?? 0);
+  const regla =
+    pct != null && pct > 0 && pct < 100
+      ? `La condición es ${pct % 1 === 0 ? pct : pct.toFixed(1)} % antes del despacho y todavía no se llega.`
+      : "La condición es contado: tiene que estar pagado todo antes de despachar.";
+  const cierre = "No se despacha hasta que Finanzas confirme lo que falta, o gerencia u operaciones autoricen la salida con su código.";
+  if (total != null && total > 0) {
+    const pctPagado = Math.round((pagado / total) * 100);
+    const saldo = saldoPendiente(s);
+    const f = (n: number) => `${s.moneda} ${n.toLocaleString("es-PE")}`;
+    return {
+      corto: `Pagó el ${pctPagado} % (${f(pagado)}), faltan ${f(saldo)}`,
+      largo: `Pagó ${f(pagado)} (${pctPagado} %) de ${f(total)}: faltan ${f(saldo)}. ${regla} ${cierre}`,
+    };
+  }
+  return {
+    corto: "Pagó solo un adelanto, falta el saldo",
+    largo: `Pagó solo un adelanto: falta el saldo. ${regla} ${cierre}`,
+  };
+}
+
 function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
   const saldo = saldoPendiente(s);
   const provincia = esProvincia(s);
@@ -722,6 +782,8 @@ function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
   const liberado = s.despacho_liberado ?? evaluarPagoParaDespacho(s).cubierto;
   const adelantoCubierto = !pagado && liberado && s.pct_antes_despacho != null && Number(s.pct_antes_despacho) < 100;
   const pideVB = pideVistoBuenoFinanzas(s);
+  // El abono confirmado que no cubre lo acordado se lee en ámbar (15-10).
+  const parcialSinCubrir = pagoParcialSinCubrir(s);
   // CRÉDITO SIN ADELANTO (Santos, 14-10, Beneficencia de Huancayo: todo a crédito,
   // 0 % antes del despacho). No hay abono que confirmar: el visto bueno de Finanzas
   // del crédito (0469) es su confirmación y destraba la apertura.
@@ -739,7 +801,9 @@ function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
           ? "Finanzas confirmó el pago"
           : adelantoCubierto
             ? `Finanzas confirmó el adelanto acordado (${Number(s.pct_antes_despacho)} %)`
-            : "Finanzas confirmó un pago parcial"
+            : parcialSinCubrir
+              ? "Pago parcial: Finanzas confirmó solo un adelanto, falta el saldo"
+              : "Finanzas confirmó un pago parcial"
         : pedidoSinCobro(s)
           ? textoSinCobro(s)
           : pagoDesconocido
@@ -765,6 +829,7 @@ function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
       // comisión del saldo) también se ve; confirmar otro abono la limpia.
       ...(s.pago_observado_at && !pagoConfirmado ? { trabado: `Finanzas observó el pago: ${s.pago_observado_motivo ?? "sin detalle"}` } : {}),
       ...(s.pago_observado_at && pagoConfirmado ? { detalle: `Finanzas observó: ${s.pago_observado_motivo ?? "sin detalle"}` } : {}),
+      ...(parcialSinCubrir ? { alerta: parcialSinCubrir.largo } : {}),
     },
     // VENTA A CRÉDITO: FINANZAS DA EL VISTO BUENO ANTES DE QUE SALGA (0469,
     // caso COFACO 14-10). Letras, adelanto y comisiones; la base frena la

@@ -12,6 +12,7 @@ import { ColaDespachos } from "@/components/crm/cola-despachos";
 import {
   avancePedido,
   bloquesPedido,
+  pagoParcialSinCubrir,
   etiquetaResponsable,
   puedeVerPrecios,
   queLoFrena,
@@ -149,6 +150,7 @@ export default async function ControlPedidosPage({
       total: avance.total,
       pct: Math.round((avance.hechos / avance.total) * 100),
       frena: frena ? { texto: frena.texto, dueno: etiquetaResponsable(frena.responsable), grave: frena.grave } : null,
+      pagoParcial: pagoParcialSinCubrir(s)?.corto ?? null,
       fechaDespacho: s.fecha_despacho ? fechaLima(s.fecha_despacho) : null,
       puedeAprobar: !s.aprobado_at && s.informe_cierre_id != null,
       fasesDetalle: bloques.map((b) => ({

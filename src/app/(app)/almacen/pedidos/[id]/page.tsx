@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { PedidoAlmacen, type MaquinaDeLaSalida } from "@/components/crm/pedido-almacen";
+import { AvisoPagoParcial } from "@/components/crm/aviso-pago-parcial";
 import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
 import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
 import { InformesDelPedido } from "@/components/crm/informes-del-pedido";
@@ -155,6 +156,8 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-4">
+          {/* El almacén despacha lo que dice la apertura; si no la hay por el saldo, que lo lea (15-10). */}
+          <AvisoPagoParcial servicio={servicio} />
           <PedidoAlmacen servicio={servicio} porEquipo={listaEquipos.length > 0} maquinas={maquinasSalida} />
           {/* Máquina por máquina, cada una con su protocolo (0260): va ancho, que acá se trabaja. */}
           {/* En un servicio el renglón es el servicio, no una máquina que probar (Lesly, 09-10). */}

@@ -853,6 +853,15 @@ export function FormularioInforme({
     /cr[eé]dito/i.test([modalidad[0] ?? "", modalidadOtra].join(" ")) ||
     (pctAntesDespacho.trim() !== "" && Number(pctAntesDespacho) < 100);
   const faltaVoucher = (avisoFaltantes ?? []).some((f) => f.tipo === "voucher");
+  // CONTADO EN EL NÚMERO, ADELANTO EN EL TEXTO (reunión 15-10, caso Wong Lu
+  // Vega): el cierre decía «20 % adelanto // 80 % a fin de mes» y a la vez
+  // «100 % antes del despacho». El 100 % es lo que mira postventa, y con el
+  // adelanto confirmado el pedido se leyó como pagado. Se avisa acá, donde se
+  // escribe, sin bloquear: hay ventas de contado con adelanto previo.
+  const textoCondicion = [modalidad[0] ?? "", modalidadOtra, notaCondiciones].join(" ");
+  const formaDescribeSaldo =
+    /saldo|cuota|letra|financ|contra ?entrega|despu[eé]s|luego|fin(al)?(es)? de mes|semana|d[ií]as/i.test(textoCondicion) ||
+    (/adelant|a cuenta/i.test(textoCondicion) && !/antes del despacho/i.test(textoCondicion));
 
   return (
     <div className="space-y-5">
@@ -1499,6 +1508,7 @@ export function FormularioInforme({
           {pctAntesDespacho.trim() === "" ? (
             <p className="mt-1 text-[11px] text-amber-700">Falta: sin este dato postventa exigirá el pago completo antes de despachar.</p>
           ) : (
+            <>
             <p className="mt-1 text-[11px] text-muted-foreground">
               {Number(pctAntesDespacho) >= 100
                 ? "Contado: el equipo sale con el total pagado."
@@ -1506,6 +1516,14 @@ export function FormularioInforme({
                   ? `Todo a crédito: el equipo sale sin pago previo y el total vence a ${creditoDias || "?"} días del despacho.`
                   : `Con el ${pctAntesDespacho} % confirmado por Finanzas el equipo sale; el ${100 - Number(pctAntesDespacho)} % restante vence a ${creditoDias || "?"} días del despacho.`}
             </p>
+            {Number(pctAntesDespacho) >= 100 && formaDescribeSaldo && (
+              <p className="mt-1 rounded-md border border-amber-400/60 bg-amber-500/10 px-2 py-1.5 text-[11px] font-medium text-amber-800">
+                Ojo: la forma de pago describe un adelanto con saldo posterior, pero acá dice que el 100 % debe estar pagado antes del
+                despacho (contado). Si el equipo sale con el adelanto, escriba ese porcentaje y los días del saldo; si sale recién con
+                todo pagado, déjelo en 100. Con este número decide postventa si puede despachar.
+              </p>
+            )}
+            </>
           )}
         </Campo>
         </Bloqueado>

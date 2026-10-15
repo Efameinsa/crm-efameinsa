@@ -12,6 +12,11 @@ Vigente al 15-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 
 ## Cronología de decisiones que tocan su trabajo
 
+### 15-10 12:51 · Pagos parciales que se leían como pagados (Carlos, Ariana, Santos)
+- Postventa quiso despachar dos pedidos (Abachi y Wong Lu Vega) porque el paso «Finanzas confirmó» salía en verde; solo había adelantos. Carlos: sin el 100 % (o el adelanto acordado) no se despacha.
+- Desde ese día el pedido muestra en ámbar cuánto se pagó y cuánto falta cuando lo confirmado no cubre la condición. **Lo que ustedes hacen no cambia:** confirman cada abono como siempre. Lo que cambia es que el adelanto ya no se lee como pago completo.
+- Seis pedidos abiertos estaban así al 15-10: Alcántara (abono de reserva), PRODECO (50 % acordado, todavía no se llega; el cliente espera fotos de la máquina embalada para pagar), Wong Lu Vega (20 %), Rojas Plaza, Abachi y Vidawasi (contado con adelanto). Cuando entre el saldo de cualquiera, confirmarlo en el pedido lo pone en verde.
+
 ### 15-10 09:53 · Reunión de Carlos con Santos
 - **Sin pago confirmado o validado por Finanzas no hay apertura.** La apertura es la orden de despacho: el almacén despacha lo que dice, sin mirar pagos. Postventa confirma antes con Finanzas («¿ya tienes las letras?») y avisa al almacén. El CRM ya lo frena desde el 14-10.
 - **Lo que Carlos vio en COFACO:** el comercial avisó por correo que las letras viajaban con el transportista; Finanzas recién las estaba haciendo y luego tuvo que perseguir el equipo para entregarlas. «La letra es dinero»: en condiciones normales se firma la letra y recién se despacha. Con un cliente grande, gerencia puede acordar que viajen con el chofer, coordinado con postventa.
