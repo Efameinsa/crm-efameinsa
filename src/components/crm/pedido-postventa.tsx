@@ -672,6 +672,7 @@ export function PedidoPostventa({
                 entregaModo: datos.entrega === "agencia" || datos.entrega === "planta" ? datos.entrega : "domicilio",
                 agenciaDestino: datos.agencia,
                 agenciaDireccion: datos.agencia_direccion,
+                agenciaHorario: datos.agencia_horario,
                 pin: datos.pin,
               }),
             "Dirección y quién recibe, verificados",
@@ -711,6 +712,14 @@ export function PedidoPostventa({
             etiqueta: "Primera dirección: la agencia donde el almacén deja el equipo (obligatorio si es en agencia)",
             inicial: servicio.agencia_direccion ?? "",
             ejemplo: "Ej.: Marvisur, Av. Paseo de la República 3570, San Isidro",
+            requerido: false,
+          },
+          // Lesly, 15-10: el horario lo levanta postventa en la coordinación; sale en la apertura.
+          {
+            nombre: "agencia_horario",
+            etiqueta: "Horario de atención de esa agencia (obligatorio si es en agencia: el almacén no puede llegar con la agencia cerrada)",
+            inicial: servicio.agencia_horario ?? "",
+            ejemplo: "Ej.: L-V 8:00 a 18:00 · Sáb 8:00 a 13:00 · Dom cerrado",
             requerido: false,
           },
           {
@@ -757,7 +766,10 @@ export function PedidoPostventa({
                       !igual(servicio.recibe_doc, recibeDe(d).doc) ||
                       (!!d.telefono?.trim() && !igual(servicio.recibe_telefono, d.telefono)) ||
                       !igual(servicio.entrega_modo, modo) ||
-                      (modo === "agencia" && (!igual(servicio.agencia_destino, d.agencia) || !igual(servicio.agencia_direccion, d.agencia_direccion)))
+                      (modo === "agencia" &&
+                        (!igual(servicio.agencia_destino, d.agencia) ||
+                          !igual(servicio.agencia_direccion, d.agencia_direccion) ||
+                          !igual(servicio.agencia_horario, d.agencia_horario)))
                     );
                   },
                 },

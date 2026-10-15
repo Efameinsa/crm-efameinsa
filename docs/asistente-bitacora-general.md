@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 15-10 (tarde) · Lesly: el horario de atención de la agencia va en la apertura
+- **Qué pidió:** que las aperturas lleven el horario de atención de la agencia, levantado por postventa en la coordinación.
+- **Qué se hizo:** «Dirección y quién recibe» pide el horario cuando la entrega es por agencia (obligatorio); sale en el «Primer destino» de la apertura y en el pedido del almacén. Los pedidos por agencia ya verificados lo piden al emitir la apertura.
+
 ### 15-10 (tarde) · Almacén: barrita de carga por archivo
 - **Qué pasó:** al subir fotos de la prueba no se sabía cuánto faltaba, y daban ganas de recargar la página (se perdía lo elegido). Además, elegir las fotos no las guarda: hay que pulsar el botón de guardar, que pasaba desapercibido.
 - **Qué se hizo:** cada archivo muestra su barrita con el porcentaje; con archivos elegidos sin guardar sale un aviso amarillo y el botón «Guardar N archivos» resaltado; el navegador pregunta antes de recargar o cerrar.

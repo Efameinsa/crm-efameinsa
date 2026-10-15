@@ -137,6 +137,7 @@ export async function cargarHojaApertura(
     entregaModo: s.entrega_modo ?? null,
     agenciaDestino: s.agencia_destino ?? null,
     agenciaDireccion: s.agencia_direccion ?? null,
+    agenciaHorario: s.agencia_horario ?? null,
     fecha: s.apertura_fecha ?? s.fecha_despacho ?? null,
     hora: horaAmPm(s.apertura_hora),
     recibeNombre: s.recibe_nombre ?? contacto?.nombre ?? null,

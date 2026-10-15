@@ -162,6 +162,8 @@ export interface DatosApertura {
   agenciaDestino: string | null;
   /** Dirección de la agencia donde lo deja el almacén: el primer destino (0345). */
   agenciaDireccion?: string | null;
+  /** Horario de atención de esa agencia (0505; Lesly, 15-10): lo levanta postventa en la coordinación. */
+  agenciaHorario?: string | null;
   fecha: string | null;
   hora: string | null;
   recibeNombre: string | null;
@@ -302,7 +304,14 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
   if (d.entregaModo === "agencia") {
     // «AGENCIA AGENCIA SHALOM» (CRISTO REY, 01-10): si el nombre ya lo dice (o «ANGENCIA»), no se repite.
     const agencia = d.agenciaDestino ?? "(agencia por confirmar)";
-    primerDestino = [/^\s*an?gencia\b/i.test(agencia) ? agencia : `AGENCIA ${agencia}`, d.agenciaDireccion ?? "(falta la dirección de la agencia)"].join("\n");
+    primerDestino = [
+      /^\s*an?gencia\b/i.test(agencia) ? agencia : `AGENCIA ${agencia}`,
+      d.agenciaDireccion ?? "(falta la dirección de la agencia)",
+      // El horario de atención (0505; Lesly, 15-10): que el almacén no llegue con la agencia cerrada.
+      d.agenciaHorario?.trim() ? `HORARIO DE ATENCIÓN: ${d.agenciaHorario.trim()}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
     destinoFinal = [d.direccion ?? "—", finalAparte].filter(Boolean).join("\n");
   } else if (d.entregaModo === "planta") {
     // EL CLIENTE LO RECOGE (Ariana, 10-10; 0434): equipos industriales que
@@ -406,6 +415,7 @@ export function faltantesApertura(d: DatosApertura): string[] {
   if (!d.equipo) falta.push("la descripción del equipo");
   if (!d.direccion) falta.push("la dirección");
   if (d.entregaModo === "agencia" && !d.agenciaDireccion) falta.push("la dirección de la agencia (primer destino)");
+  if (d.entregaModo === "agencia" && !d.agenciaHorario?.trim()) falta.push("el horario de atención de la agencia (en «Dirección y quién recibe»)");
   if (!d.fecha) falta.push("el día del servicio");
   if (!d.hora) falta.push("la hora");
   if (!d.recibeNombre) falta.push("quién recibe");

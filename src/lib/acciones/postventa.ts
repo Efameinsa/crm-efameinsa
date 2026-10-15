@@ -548,6 +548,8 @@ export async function verificarDireccion(
     agenciaDestino?: string | null;
     /** La dirección de la agencia donde el almacén lo deja: el primer destino (0345). */
     agenciaDireccion?: string | null;
+    /** Horario de atención de esa agencia (0505; Lesly, 15-10). */
+    agenciaHorario?: string | null;
     /**
      * Destino verificado (Rubí, 01-10, caso Ninamango): la empresa puede tener
      * dirección fiscal en Lima y pedir el equipo para provincia. Cambia el
@@ -569,6 +571,8 @@ export async function verificarDireccion(
   // Rubí y Lesly, 30-09: sin la dirección de la agencia el almacén no sabe a
   // dónde llevarlo; la del cliente es el destino final, no el primero.
   if (datos.entregaModo === "agencia" && !datos.agenciaDireccion?.trim()) return falla("Escriba la dirección de la agencia donde el almacén deja el equipo (la primera dirección)");
+  // Lesly, 15-10: el horario de atención de la agencia lo levanta postventa en la coordinación.
+  if (datos.entregaModo === "agencia" && !datos.agenciaHorario?.trim()) return falla("Escriba el horario de atención de la agencia (ej. «L-V 8:00 a 18:00 · Sáb 8:00 a 13:00»): el almacén no puede llegar con la agencia cerrada");
   const candado = await candadoDeApertura(servicioId, datos.pin, (s) => {
     const igual = (a: unknown, b: string | null | undefined) => String(a ?? "").trim() === (b ?? "").trim();
     const modo = datos.entregaModo ?? s.entrega_modo;
@@ -580,7 +584,8 @@ export async function verificarDireccion(
       (!!datos.recibeTelefono?.trim() && !igual(s.recibe_telefono, datos.recibeTelefono)) ||
       (!!datos.entregaModo && !igual(s.entrega_modo, datos.entregaModo)) ||
       (!!datos.destino && !igual(s.modalidad, datos.destino)) ||
-      (modo === "agencia" && (!igual(s.agencia_destino, datos.agenciaDestino) || !igual(s.agencia_direccion, datos.agenciaDireccion)))
+      (modo === "agencia" &&
+        (!igual(s.agencia_destino, datos.agenciaDestino) || !igual(s.agencia_direccion, datos.agenciaDireccion) || !igual(s.agencia_horario, datos.agenciaHorario)))
     );
   });
   if (candado.error) return { error: candado.error, pidePin: candado.pidePin };
@@ -600,6 +605,7 @@ export async function verificarDireccion(
             entrega_modo: datos.entregaModo,
             agencia_destino: datos.entregaModo === "agencia" ? datos.agenciaDestino?.trim() || null : null,
             agencia_direccion: datos.entregaModo === "agencia" ? datos.agenciaDireccion?.trim() || null : null,
+            agencia_horario: datos.entregaModo === "agencia" ? datos.agenciaHorario?.trim() || null : null,
           }
         : {}),
     })
@@ -1727,6 +1733,7 @@ export async function abrirAperturaDesdeCaso(
     entregaModo?: "domicilio" | "agencia" | "planta";
     agencia?: string;
     agenciaDireccion?: string;
+    agenciaHorario?: string;
     /** Los equipos de la ficha que atiende el técnico (0453, Santos 13-10): una fila por equipo, con su serie. */
     equipos?: string[];
   },
@@ -1742,8 +1749,8 @@ export async function abrirAperturaDesdeCaso(
   if (esGarantia && !repuestos?.length) return falla("Agregue los repuestos que se entregan por garantía");
   const limpio = (v: string | null | undefined) => (v?.trim() ? v.trim() : null);
   const modo = esGarantia && datos.entregaModo && ["domicilio", "agencia", "planta"].includes(datos.entregaModo) ? datos.entregaModo : null;
-  if (modo === "agencia" && (!limpio(datos.agencia) || !limpio(datos.agenciaDireccion))) {
-    return falla("Escriba la agencia y su dirección (donde el almacén deja los repuestos)");
+  if (modo === "agencia" && (!limpio(datos.agencia) || !limpio(datos.agenciaDireccion) || !limpio(datos.agenciaHorario))) {
+    return falla("Escriba la agencia, su dirección y su horario de atención (donde el almacén deja los repuestos)");
   }
   const { data: servicioId, error } = await supabase.rpc("apertura_desde_caso", {
     p_atencion: atencionId,
@@ -1774,7 +1781,12 @@ export async function abrirAperturaDesdeCaso(
     apertura_coordina_logistica: limpio(datos.coordinaLogistica),
     destino_observacion: limpio(datos.destinoObservacion),
     ...(modo
-      ? { entrega_modo: modo, agencia_destino: modo === "agencia" ? limpio(datos.agencia) : null, agencia_direccion: modo === "agencia" ? limpio(datos.agenciaDireccion) : null }
+      ? {
+          entrega_modo: modo,
+          agencia_destino: modo === "agencia" ? limpio(datos.agencia) : null,
+          agencia_direccion: modo === "agencia" ? limpio(datos.agenciaDireccion) : null,
+          agencia_horario: modo === "agencia" ? limpio(datos.agenciaHorario) : null,
+        }
       : {}),
   };
   if (Object.values(extras).some((v) => v !== null)) {
