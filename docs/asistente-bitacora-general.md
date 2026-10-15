@@ -18,6 +18,11 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 15-10 (tarde) · Rubí: la secadora de ECOLAV necesita su propio circuito
+- **Qué pasó:** ECOLAV SORELA compró una lavadora y una secadora en una sola venta, y quedaron en un solo pedido. La lavadora salió el 21-09 a Moquegua y completó el circuito; la secadora no tenía stock y recién se despacha ahora. Rubí: «necesito que se haga otro circuito para ese equipo». El CRM solo permitía marcar «No va en este despacho», pero lo que se quedaba no tenía camino propio y al cerrar el pedido se iba con él. Además, la secadora figuraba como probada sin serie ni protocolo.
+- **Qué se hizo el mismo día:** postventa puede abrirle su propio circuito al equipo que no salió (ver la guía, «Pedidos»). La secadora de ECOLAV ya tiene su pedido: viene con el pago confirmado y la aprobación, y su siguiente paso es solicitar la prueba y embalaje al almacén. La marca de «probada» se borró porque no tenía respaldo.
+- **Pendiente:** el almacén registra la serie de la secadora cuando llegue, y postventa vuelve a verificar con el cliente la dirección y quién recibe.
+
 ### 15-10 (tarde) · Lo que resolvió el buzón (Gabriela, Brenda)
 - **El cierre trae el correo del cliente y el N.º de operación** (pidió Gabriela, para que Finanzas pueda copiarlos sin buscarlos). El correo está dentro de «Se le factura a» y avisa si falta; el «N.º de operación» va debajo de «Forma de pago» y se llena solo si el cliente ya pagó (número del voucher). Salen en el cierre, en el PDF y en el «Expediente» de Finanzas y Facturación. En un cierre ya emitido se agregan con la corrección (código de Central).
 - **Caso AQUASEC:** una contacta de un cliente que ya era de Brenda entró por campaña y abrió una ficha nueva sin RUC. Se unió con la ficha que ya tenía el RUC, el expediente del día quedó ahí con la persona entre los contactos, y la cotización sale con el RUC. Sigue siendo la regla: un cliente, una ficha; si entra duplicado, se pide unir por el buzón.

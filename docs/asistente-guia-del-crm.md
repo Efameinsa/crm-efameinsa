@@ -632,6 +632,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Una fila por máquina, con su serie.** Si un renglón trae varias series, se separa en filas.
 - En un repuesto, la «SERIE:» del renglón es la de la máquina a la que va la pieza. Central debe pulsar «Pedir al almacén».
 - **«No va en este despacho»** marca un despacho parcial.
+- **Otro circuito para el equipo que no salió** (desde 15-10). Si un pedido con varios equipos ya salió y uno se quedó (por ejemplo la secadora que llegó después), postventa abre «Equipos de este pedido» → «¿Algún equipo no salió en este despacho? Abrirle su propio circuito», marca el equipo y escribe el motivo. Nace un pedido nuevo del mismo cierre: el pago confirmado por Finanzas, la aprobación, la condición de pago y el plano ya vienen hechos; empieza de nuevo en prueba y embalaje (se le solicita al almacén), dirección verificada, apertura, despacho, puesta en marcha y cierre. El equipo se muda al pedido nuevo (no queda en los dos) y el pedido nuevo no lleva monto: la venta se cuenta una sola vez, en el pedido original. Cada pedido enlaza al otro en su cabecera. Antes del despacho también sirve para lo marcado «No va en este despacho».
 - **Sin stock:** una fila sin serie o con código pero sin mercadería se marca «Sin stock» con motivo (importación, compra local o fabricación). Se limpia sola cuando se registra la serie real.
 - Las series escritas como «NO HAY STOCK» o «PENDIENTE» son un truco viejo que ya no se usa.
 
