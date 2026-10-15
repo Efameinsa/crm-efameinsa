@@ -18,6 +18,12 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 15-10 (tarde) · TERRANOVA y MANDARA: grupo empresarial; regla para clientes que no figuran en el CRM
+- **Qué pasó:** Central no podía abrir el expediente de TERRANOVA REPRESENTACIONES S.A.C. En el CRM solo había dos llamadas de 2019 sin ficha (venían del Excel de Central). Primero se respondió que no era cliente, pero **eso fue un error**: Brenda confirmó que TERRANOVA ya compró antes y que es del mismo grupo empresarial que MANDARA S.A.C. (mismo contacto). Además, su file físico está en el inventario de EFAMEINSA.
+- **Qué se hizo:** TERRANOVA tiene ficha propia, colgada de MANDARA como empresa del grupo y en la cartera de Brenda (C1). Se le asignaron sus dos llamadas de 2019 y quedó enlazada a su file del inventario, y las dos fichas llevan una nota sobre el grupo.
+- **Pendiente:** la venta anterior de TERRANOVA no aparece en ningún Excel ni cierre digital. Hay que pedir su file para cargar la fecha, el equipo y el monto de esa venta (Brenda/Central con Santos).
+- **Regla nueva (ingeniero Carlos):** si un cliente está en los Excel o en el inventario de files pero no figura en el CRM, se le pide a Santos que lo cargue. Cuando ya está en el CRM, quien lo gestiona pide el file en «Files» y Central lo entrega desde ahí.
+
 ### 15-10 (tarde) · Lesly: el horario de atención de la agencia va en la apertura
 - **Qué pidió:** que las aperturas lleven el horario de atención de la agencia, levantado por postventa en la coordinación.
 - **Qué se hizo:** «Dirección y quién recibe» pide el horario cuando la entrega es por agencia (obligatorio); sale en el «Primer destino» de la apertura y en el pedido del almacén. Los pedidos por agencia ya verificados lo piden al emitir la apertura.

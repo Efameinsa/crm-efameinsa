@@ -33,6 +33,8 @@ export interface VisitaCircuito {
   cerrada_at?: string | null;
   resultado?: string | null;
   resultado_nota?: string | null;
+  /** Los equipos de la ficha que venía a recoger (0467). */
+  equipos_recoge?: { equipo_id: string; modelo: string; serie?: string | null }[] | null;
   cancelada_at: string | null;
 }
 
@@ -40,6 +42,7 @@ export const ETIQUETA_RESULTADO: Record<string, string> = {
   compro: "Compró / cerró",
   pide_cotizacion: "Pide cotización",
   evaluando: "Queda evaluando",
+  recogio_equipo: "Recogió equipo",
   recogio: "Recogió repuesto o documento",
   pago: "Vino a pagar",
   solo_miro: "Solo miró",
@@ -100,7 +103,8 @@ export function CircuitoVisita({ visita: v, compacto = false }: { visita: Visita
 export function CerrarVisitaBoton({ visita: v, compacto = false }: { visita: VisitaCircuito; compacto?: boolean }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
-  const [resultado, setResultado] = useState<string>("pide_cotizacion");
+  // Si venía a recoger equipos de su ficha (0467), lo normal es que se los llevó (0507, Rubí 15-10).
+  const [resultado, setResultado] = useState<string>((v.equipos_recoge?.length ?? 0) > 0 ? "recogio_equipo" : "pide_cotizacion");
   const [nota, setNota] = useState("");
   const [pendiente, startTransition] = useTransition();
   if (v.cerrada_at || v.cancelada_at) return null;
