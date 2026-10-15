@@ -580,7 +580,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Numeración:** NNN-AAAA, una serie anual por empresa (EFAMEINSA y OPEN). Lo emitido no se renumera. Lo anulado conserva su número. Puede haber números reservados (por ejemplo, para cierres antiguos en Word de postventa); quien emite no tiene que hacer nada especial con ellos.
 - **Cada renglón tiene tipo** (equipo, repuesto o servicio). Se puede «Pegar una lista» desde Excel. **Las líneas de servicio no piden serie.** Un mantenimiento genera un pedido de tipo mantenimiento.
 - **«Se le factura a»** se edita en su propio cuadro, solo para ese documento; no cambia la ficha. Avisa si el RUC es distinto.
-- **Condición de pago obligatoria:** porcentaje antes del despacho y días de crédito. Las pastillas Contado, Crédito y 50 % adelanto la proponen. La política general de la empresa es un adelanto más el saldo antes del despacho, aunque la venta a crédito es normal en la casa.
+- **Condición de pago obligatoria:** porcentaje antes del despacho y días de crédito. Las pastillas Contado, Crédito y 50 % adelanto la proponen. La política general de la empresa es un adelanto más el saldo antes del despacho, aunque la venta a crédito es normal en la casa. **Ese porcentaje es lo que postventa mira para despachar.** Si la forma de pago escrita describe un adelanto con saldo posterior («20 % adelanto, 80 % a fin de mes») y el porcentaje dice 100, el formulario avisa en ámbar (desde el 15-10): si el equipo sale con el adelanto, hay que poner ese porcentaje y los días del saldo; si sale recién con todo pagado, se deja en 100.
 - **Documentos:** voucher(s), OC y otros acuerdos. Si se eligió «¿De qué presupuesto copio los equipos?», la cotización enlazada ya cuenta como documento y no hace falta adjuntarla.
 - **Al emitir, el cierre se ata a su venta.** La venta se registra sin IGV y con el importe del cierre. Si el cierre llega después, la venta se corrige y la diferencia queda anotada.
 
@@ -638,6 +638,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **La condición de pago manda en el despacho.** Se compara lo pagado con lo acordado antes del despacho, no con el total. Solo se pide «quién autorizó y por qué» si entró menos de lo acordado.
 - Gerencia, operaciones y administración pueden definir la condición de pago de un pedido.
 - **Salir con saldo pendiente** pide código. Desde el 14-10, postventa también necesita código; ya no basta un motivo.
+- **Un pago confirmado puede ser parcial, y se ve en ámbar (desde el 15-10).** Finanzas confirma cada abono que entra, no «que ya pagó todo». Si lo confirmado no llega a lo acordado antes del despacho (el 100 % si es contado, o el adelanto pactado), el pedido no lo muestra en verde: el paso de pago dice «Pago parcial: Finanzas confirmó solo un adelanto, falta el saldo», arriba del pedido sale un anuncio ámbar con cuánto pagó y cuánto falta (sin cifras para quien no ve montos), y en el control de pedidos y la bandeja aparece «Pago parcial». Postventa no hace la apertura hasta que Finanzas confirme lo que falta o gerencia u operaciones autoricen la salida con código. Caso que lo originó: Wong Lu Vega (pagó el 20 % y el pedido se leía como pagado); ese día había seis pedidos abiertos igual.
 
 **Visto bueno de Finanzas para ventas a crédito** (desde el 14-10)
 - **Cuándo se necesita:** toda **venta** (no los servicios ni los casos) en la que:
@@ -1053,6 +1054,9 @@ No hace falta avisar a mano. Desde el 15-10, al guardar la corrección, Central 
 
 **42. ¿Quién me da el código para corregir mi cierre?**
 Solo Central, desde el 15-10. Escriba qué está mal y pídale el código a Central: ella lo coordina con Carlos. El código de Lesly ya no sirve para cierres. (3.5)
+
+**44. El pedido dice que Finanzas confirmó el pago, pero el cliente solo pagó un adelanto. ¿Puedo despachar?**
+No. Finanzas confirma cada abono, no el total. Desde el 15-10 el pedido lo muestra en ámbar: el paso de pago dice «Pago parcial… falta el saldo» y arriba sale un anuncio con cuánto falta. El CRM no deja hacer la apertura hasta que Finanzas confirme lo que falta según la condición de pago, o hasta que gerencia u operaciones autoricen la salida con su código. Si la condición del cierre está mal (dice contado y la venta era con saldo a plazo), el comercial la corrige con el código de Central, o gerencia u operaciones definen la condición en el pedido. (3.6)
 
 **43. ¿Este cierre necesita orden de servicio o de compra?**
 Depende del cliente. Lea el cierre completo, revise en la ficha si sus compras anteriores llevaron orden y, si no está claro, pregúntele al comercial. Las empresas medianas y grandes suelen trabajar con orden, y sin ella no se puede facturar ni despachar. (2.2)

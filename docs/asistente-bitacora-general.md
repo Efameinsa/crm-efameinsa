@@ -18,6 +18,13 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 15-10 12:51 · Carlos con Ariana y Santos: pedidos por despachar con pago parcial
+- **Qué pasó:** postventa estaba revisando todos los pedidos que faltaba atender. Dos clientes (Abachi y Wong Lu Vega) figuraban «pendientes por despachar» y el pedido mostraba el check verde de «Finanzas confirmó». Ariana preguntó al comercial y no: habían pagado solo un adelanto. Carlos: «para nosotros hacer el despacho tiene que pagar el 100 %… no debe salir como verde». Ariana: «algo visual que dé alerta, amarillo». Carlos: «más que color, que sea algo que uno lee y diga no; ambas cosas; que salga un anuncio». Y no era un solo caso: ese día había seis pedidos abiertos así (Alcántara, PRODECO, Wong Lu Vega, Rojas Plaza, Abachi y Vidawasi).
+- **Por qué pasaba:** Finanzas confirma cada abono que entra. El paso se marcaba hecho (verde) con el texto chico «confirmó un pago parcial», y en una lista larga se leía como pagado. En Wong Lu Vega, además, el cierre decía «20 % adelanto, 80 % a fin de mes» y a la vez «100 % antes del despacho».
+- **Qué se hizo el mismo día:** el abono que no cubre lo acordado se ve en ámbar, no en verde: en el paso de pago («Pago parcial: Finanzas confirmó solo un adelanto, falta el saldo»), en un anuncio arriba del pedido con cuánto pagó y cuánto falta, en la tarjeta del control de pedidos y en la bandeja de postventa. El almacén ve el mismo anuncio. El CRM ya no dejaba hacer la apertura en esos casos; ahora además lo dice. Y al emitir un cierre, si la forma de pago describe un adelanto con saldo pero el porcentaje dice 100, el formulario avisa.
+- **Regla (Carlos):** sin el 100 % (o el adelanto acordado) confirmado por Finanzas, no se despacha. Si hay que despachar igual, lo autoriza gerencia u operaciones con su código.
+- **Pendiente:** Carlos decide si Wong Lu Vega se despacha con el adelanto (entonces el cierre pasa a 20 % antes del despacho, con el código de Central) o espera el saldo. PRODECO: el cliente espera fotos de la máquina embalada para pagar lo que falta; Ariana se las manda.
+
 ### 15-10 09:53 · Reunión de Carlos con Santos (y Central, postventa)
 - **El código para corregir un cierre lo da Central, no Lesly.**
   - Caso: el cierre OPEN 057-2026 (NEWREST) pasó a Finanzas sin la orden de servicio; después se corrigió con el código de operaciones y Central se enteró por un correo. Postventa ya tenía el pedido y el cliente llamaba sin parar.

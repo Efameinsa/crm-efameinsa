@@ -20,6 +20,7 @@ import { fechaCalendario, fechaLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 import { CerrarPedidoAnterior } from "@/components/crm/cerrar-pedido-anterior";
 import { PedidoPostventa } from "@/components/crm/pedido-postventa";
+import { AvisoPagoParcial } from "@/components/crm/aviso-pago-parcial";
 import { LetrasDelPedido } from "@/components/crm/letras-del-pedido";
 import { nombresDelPedido } from "@/lib/nombres-del-pedido";
 import { InformesDelPedido } from "@/components/crm/informes-del-pedido";
@@ -193,6 +194,8 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
         </div>
       </div>
 
+      {/* El abono que no cubre lo acordado se anuncia ANTES de «qué sigue» (15-10). */}
+      <AvisoPagoParcial servicio={servicio} />
       {/* LO ÚNICO QUE IMPORTA AHORA. */}
       {siguiente ? (
         <a href="#pasos" className={cn("flex items-center gap-4 rounded-xl border p-4 shadow-sm", frena?.grave ? "border-amber-400 bg-amber-50" : "border-primary/30 bg-primary/5")}>

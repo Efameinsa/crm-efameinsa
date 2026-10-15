@@ -27,6 +27,7 @@ import {
   veTodoPostventa,
   sinPrecios,
   estadoPago,
+  pagoParcialSinCubrir,
   ETIQUETA_ESTADO_PAGO,
   type ServicioPostventa,
 } from "@/lib/postventa";
@@ -315,11 +316,14 @@ export default async function PostventaPage() {
       // lista confunden (Santos, 31-08). El RUC se quita solo para mostrar.
       cliente: (s.cliente_texto ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, ""),
       etiqueta: "Nuevo pedido",
-      detalle: verPrecios
-        ? s.monto
-          ? `${s.moneda} ${Number(s.monto).toLocaleString("es-PE")}`
-          : "sin monto"
-        : ETIQUETA_ESTADO_PAGO[estadoPago(s)],
+      // El abono que no cubre lo acordado se dice desde la bandeja (15-10).
+      detalle: pagoParcialSinCubrir(s)
+        ? `PAGO PARCIAL · ${pagoParcialSinCubrir(s)?.corto}`
+        : verPrecios
+          ? s.monto
+            ? `${s.moneda} ${Number(s.monto).toLocaleString("es-PE")}`
+            : "sin monto"
+          : ETIQUETA_ESTADO_PAGO[estadoPago(s)],
       estado: reloj.estado,
       horas: reloj.horas,
       limite: LIMITE_PEDIDO_HORAS,

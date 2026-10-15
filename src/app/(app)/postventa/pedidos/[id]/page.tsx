@@ -12,6 +12,7 @@ import type { FotoAlmacen } from "@/lib/postventa";
 import { requerirPerfil } from "@/lib/auth";
 import { PedidoPostventa } from "@/components/crm/pedido-postventa";
 import { LetrasDelPedido } from "@/components/crm/letras-del-pedido";
+import { AvisoPagoParcial } from "@/components/crm/aviso-pago-parcial";
 import { nombresDelPedido } from "@/lib/nombres-del-pedido";
 import { InformesDelPedido } from "@/components/crm/informes-del-pedido";
 import { ETIQUETA_ESTADO_APERTURA, aperturaAbierta, estadoApertura } from "@/lib/aperturas-llamada";
@@ -407,6 +408,7 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
           una encomienda—, a la derecha los papeles y los datos de entrega,
           que se consultan pero no se recorren. */}
       {/* Las letras de crédito que viajan con el equipo (0470). */}
+      <AvisoPagoParcial servicio={servicio} />
       <LetrasDelPedido s={servicio} cliente={(servicio.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "")} />
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_21rem]">
