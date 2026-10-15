@@ -8,7 +8,7 @@
 // protocolo». Esta lista es eso: una fila por unidad vendida, con su serie,
 // si va en este despacho, y —para el almacén— su protocolo de prueba.
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { BotonAgregarFotos, TomarOSubirVarias, VideosDeLaPrueba } from "@/components/crm/tomar-o-subir";
 import { Documentos } from "@/components/crm/informe-soporte-apertura";
 import { agregarArchivosDelEquipo, quitarArchivoDelEquipo } from "@/lib/acciones/almacen";
+import { subirConProgreso } from "@/lib/subir-con-progreso";
 import { cn } from "@/lib/utils";
 import { esTorre, seriesDeLaDescripcion } from "@/lib/torres";
 import { faltaParaProbar, hojaDelSistema, type ArchivoProtocolo, type MaquinaParaProbar } from "@/lib/protocolo-completo";
@@ -284,6 +285,9 @@ function Fila({
   // Varios PDF o Word por máquina (0297): el protocolo o el informe completo.
   const [docs, setDocs] = useState<File[]>([]);
   const [sumando, setSumando] = useState(false);
+  // Una barrita por archivo mientras sube (Ariana, 15-10): sin ella no sabía
+  // cuánto faltaba, recargaba la página y perdía lo elegido.
+  const [subiendo, setSubiendo] = useState<Subida[] | null>(null);
   const [fotosSec, setFotosSec] = useState<File[]>([]);
   const [docsSec, setDocsSec] = useState<File[]>([]);
   // La otra máquina de la torre se prueba con la unidad pero con lo suyo (Lesly, 03-10):
@@ -304,6 +308,7 @@ function Fila({
     : "";
 
   function correr(fn: () => Promise<{ error: string | null; pedidoListo?: boolean }>, exito: string) {
+    setSubiendo(null);
     startTransition(async () => {
       const r = await fn();
       if (r.error) {
@@ -311,6 +316,7 @@ function Fila({
         return;
       }
       toast.success(r.pedidoListo ? "Con esta ya están todas: el pedido queda probado y embalado. Postventa ya lo sabe." : exito);
+      setSubiendo(null);
       router.refresh();
     });
   }
@@ -340,15 +346,21 @@ function Fila({
   }
 
   async function subir(archivos: File[], documentos: File[] = [], sufijo = ""): Promise<FotoAlmacen[] | null> {
-    const storage = createClient().storage.from("adjuntos");
     const salida: FotoAlmacen[] = [];
-    for (const file of [...archivos, ...documentos]) {
+    const todos = [...archivos, ...documentos];
+    // Se suman a la lista de barritas (una corrida puede subir lo de varias máquinas).
+    const ids = todos.map(() => crypto.randomUUID());
+    setSubiendo((x) => [...(x ?? []), ...todos.map((f, i) => ({ id: ids[i], nombre: f.name, fraccion: 0 }))]);
+    const marcar = (i: number, cambio: Partial<Subida>) =>
+      setSubiendo((x) => x && x.map((s) => (s.id === ids[i] ? { ...s, ...cambio } : s)));
+    for (const [i, file] of todos.entries()) {
       const path = `pedidos/${servicioId}/almacen/protocolo-${e.orden}${sufijo}-${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, "_").slice(0, 60)}`;
       const tipo = file.type || tipoDeVideo(file.name) || "image/jpeg";
       // Sin tipo, el archivo viaja como octet-stream y el bucket lo rechaza: se le pone el suyo.
-      const { error } = await storage.upload(path, file.type ? file : new File([file], file.name, { type: tipo }), { contentType: tipo });
+      const { error } = await subirConProgreso("adjuntos", path, file, tipo, (fraccion) => marcar(i, { fraccion }));
       if (error) {
-        toast.error(`No se pudo subir «${file.name}»: ${error.message}`);
+        marcar(i, { error });
+        toast.error(`No se pudo subir «${file.name}»: ${error}. Lo elegido sigue en pantalla: vuelva a pulsar.`, { duration: 10000 });
         return null;
       }
       salida.push({ path, nombre: file.name.slice(0, 120), tipo: tipo.slice(0, 100), etiqueta: documentos.includes(file) ? "documento" : tipo.startsWith("video/") ? "video" : "protocolo" });
@@ -428,6 +440,16 @@ function Fila({
   const apagado = !e.en_este_despacho;
   // El mismo momento en que sale el bloque de fotos de abajo.
   const puedeSubirFotos = modo === "almacen" && e.en_este_despacho && !e.prueba_lista_at;
+
+  // Con archivos elegidos sin guardar, o subiendo, el navegador pregunta antes
+  // de recargar o cerrar (Ariana, 15-10: recargaba y perdía lo elegido).
+  const sinGuardar = porGuardar > 0 || (pendiente && subiendo !== null);
+  useEffect(() => {
+    if (!sinGuardar) return;
+    const avisar = (ev: BeforeUnloadEvent) => ev.preventDefault();
+    window.addEventListener("beforeunload", avisar);
+    return () => window.removeEventListener("beforeunload", avisar);
+  }, [sinGuardar]);
   return (
     <li className={cn("rounded-md border px-2.5 py-2", apagado ? "border-dashed border-border bg-muted/40 text-muted-foreground" : "border-border bg-card")}>
       <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
@@ -771,14 +793,24 @@ function Fila({
               fotos debería generarse el informe»). Antes nada se guardaba hasta «Probada y embalada»,
               así que el informe no tenía nada que mostrar. Con esto las fotos quedan en el informe
               de inmediato y la máquina se marca probada cuando el almacén lo decide. */}
+          {/* Elegir no es guardar (Ariana, 15-10: eligió las fotos y no vio el botón
+              para guardarlas). Mientras haya algo elegido, el aviso y el botón resaltan. */}
+          {porGuardar > 0 && !pendiente && (
+            <p className="rounded-md border border-amber-400/70 bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-950">
+              ⚠️ {porGuardar === 1 ? "1 archivo elegido todavía no está guardado" : `${porGuardar} archivos elegidos todavía no están guardados`}. Pulse
+              «Guardar {porGuardar === 1 ? "1 archivo" : `${porGuardar} archivos`}» y espere a que se llenen las barritas.
+            </p>
+          )}
+          {subiendo && <BarrasDeSubida lista={subiendo} />}
           <Button
             size="sm"
-            variant="outline"
-            className="mr-1.5 h-8"
+            variant={porGuardar > 0 ? "default" : "outline"}
+            className={cn("mr-1.5 h-8", porGuardar > 0 && "bg-amber-600 text-white hover:bg-amber-700")}
             disabled={pendiente || (porGuardar === 0 && !datosCambiados)}
             onClick={() => correr(guardarFotos, porGuardar === 0 ? "Técnico y fecha guardados: ya salen en el informe" : "Fotos guardadas: ya están en el informe de prueba y embalaje")}
           >
-            {porGuardar === 0 && datosCambiados ? "Guardar técnico y fecha" : "Guardar fotos"}
+            {pendiente && subiendo ? <Loader2 className="size-3.5 animate-spin" /> : null}
+            {porGuardar === 0 && datosCambiados ? "Guardar técnico y fecha" : porGuardar > 0 ? `Guardar ${porGuardar === 1 ? "1 archivo" : `${porGuardar} archivos`}` : "Guardar fotos"}
           </Button>
           {/* EL BORRADOR DEL INFORME ANTES DE CERRAR (Ariana, 07-10: «una opción para visualizar el
               informe como borrador antes de guardar los cambios… verificar que todo sea correcto antes
@@ -891,6 +923,7 @@ function Fila({
                 <TomarOSubirVarias titulo="Más fotos de esta máquina" archivos={fotos} onChange={setFotos} maximo={100} />
                 <VideosDeLaPrueba titulo="Video de la prueba" archivos={videos} onChange={setVideos} />
                 <Documentos archivos={docs} onChange={setDocs} titulo="Más documentos (PDF o Word)" />
+                {subiendo && <BarrasDeSubida lista={subiendo} />}
                 <div className="flex gap-1.5">
                   <Button
                     size="sm"
@@ -935,6 +968,36 @@ function Fila({
 function tipoDeVideo(nombre: string): string | null {
   const ext = nombre.split(".").pop()?.toLowerCase();
   return ext === "mp4" ? "video/mp4" : ext === "mov" ? "video/quicktime" : ext === "webm" ? "video/webm" : ext === "3gp" ? "video/3gpp" : null;
+}
+
+type Subida = { id: string; nombre: string; fraccion: number; error?: string };
+
+/** Una barrita por archivo mientras sube (Ariana, 15-10). */
+function BarrasDeSubida({ lista }: { lista: Subida[] }) {
+  const listos = lista.filter((s) => s.fraccion >= 1).length;
+  return (
+    <div className="space-y-1 rounded-md border border-border bg-background p-2" aria-live="polite">
+      <p className="text-[11px] font-semibold text-foreground">
+        {listos === lista.length ? `✓ Subidos ${listos} de ${lista.length}` : `Subiendo ${listos} de ${lista.length}… no recargue ni cierre la página`}
+      </p>
+      <ul className="space-y-1">
+        {lista.map((s) => (
+          <li key={s.id} className="grid grid-cols-[minmax(0,1fr)_7rem_2.5rem] items-center gap-2 text-[11px]">
+            <span className="truncate" title={s.nombre}>{s.nombre}</span>
+            <span className="h-1.5 overflow-hidden rounded-full bg-muted">
+              <span
+                className={cn("block h-full rounded-full transition-[width]", s.error ? "bg-red-600" : s.fraccion >= 1 ? "bg-emerald-600" : "bg-primary")}
+                style={{ width: `${Math.round((s.error ? 1 : s.fraccion) * 100)}%` }}
+              />
+            </span>
+            <span className={cn("text-right tabular-nums", s.error ? "text-red-700" : "text-muted-foreground")}>
+              {s.error ? "falló" : s.fraccion >= 1 ? "✓" : `${Math.round(s.fraccion * 100)}%`}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 /**

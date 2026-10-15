@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 15-10 (tarde) · Almacén: barrita de carga por archivo
+- **Qué pasó:** al subir fotos de la prueba no se sabía cuánto faltaba, y daban ganas de recargar la página (se perdía lo elegido). Además, elegir las fotos no las guarda: hay que pulsar el botón de guardar, que pasaba desapercibido.
+- **Qué se hizo:** cada archivo muestra su barrita con el porcentaje; con archivos elegidos sin guardar sale un aviso amarillo y el botón «Guardar N archivos» resaltado; el navegador pregunta antes de recargar o cerrar.
+
 ### 15-10 (tarde) · Almacén: quitar fotos subidas por error
 - **Qué pasó:** en la prueba y embalaje del OPEN 060-2026 (CONSORCIO EL PORTAL DEL MARQUES) se subieron dos imágenes que no correspondían, y el CRM solo dejaba agregar archivos, no quitarlos.
 - **Qué se hizo:** cada foto o documento guardado de la máquina tiene una ✕ para quitarlo (pregunta antes). Si la máquina ya está «Probada y embalada», pide abrir el informe con el código de Lesly, como para agregar.
