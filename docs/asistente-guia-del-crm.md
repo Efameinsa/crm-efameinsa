@@ -315,7 +315,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Rol propio** («operaciones»): no es comercial, ni almacén, ni gerencia.
 - **Hace:**
   - **dicta el código de operaciones** para anular cierres, corregir derivaciones, corregir documentos numerados, cambiar una apertura emitida, modificar una máquina ya «probada y embalada», corregir informes y unir fichas;
-  - **desde el 15-10 ya no autoriza corregir un cierre emitido ni agregarle documentos:** eso lo autoriza Central (o gerencia). Si se escribe el código de Lesly ahí, el CRM avisa que es de operaciones y que hay que pedírselo a Central;
+  - **desde el 15-10 ya no autoriza corregir un cierre emitido ni agregarle documentos:** eso lo autoriza solo Central. Si se escribe el código de Lesly ahí, el CRM avisa que es de operaciones y que hay que pedírselo a Central;
   - mantiene el **catálogo** (productos, servicios, repuestos, precios, fichas, códigos, stock);
   - reparte permisos temporales (por ejemplo, la llave para ver y cotizar mantenimiento);
   - edita el Directorio y la lista de técnicos;
@@ -585,7 +585,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Al emitir, el cierre se ata a su venta.** La venta se registra sin IGV y con el importe del cierre. Si el cierre llega después, la venta se corrige y la diferencia queda anotada.
 
 **Después de emitido**
-- **Emitido = sellado.** Agregar documentos o corregir pide motivo y **código de Central o gerencia** (ventana de unos 30 minutos). Desde el 15-10; antes era el de operaciones (Lesly) o gerencia. Carlos lo cambió por el caso NEWREST: Central es quien ejecuta el cierre, así que cualquier cambio pasa por ella. **Central no se autoriza a sí misma una corrección:** si quien corrige es Central, el código lo da gerencia. Para agregar un documento (por ejemplo, el voucher que llega tarde), Central sí puede usar el suyo. Se crea una versión nueva, la anterior se archiva y se recalcula la venta. No cambian ni el número, ni la serie, ni la fecha, ni el cliente, ni la moneda.
+- **Emitido = sellado.** Agregar documentos o corregir pide motivo y **código de Central** (ventana de unos 30 minutos). Al personal se le dice solo eso: el código se le pide a Central. Desde el 15-10; antes era el de operaciones (Lesly) o gerencia. Carlos lo cambió por el caso NEWREST: Central es quien ejecuta el cierre, así que cualquier cambio pasa por ella. Central no se autoriza a sí misma una corrección. Para agregar un documento (por ejemplo, el voucher que llega tarde), Central sí puede usar el suyo. Se crea una versión nueva, la anterior se archiva y se recalcula la venta. No cambian ni el número, ni la serie, ni la fecha, ni el cliente, ni la moneda.
 - **Quién se entera de una corrección (desde el 15-10):** nadie tiene que avisar a mano.
   - **Central siempre** (salvo que la corrección la haya hecho Central), porque Central ejecuta el cierre. El aviso en la campana dice quién corrigió, con el código de quién, el motivo y **qué campos cambiaron**, y si el pedido ya existe, con qué versión se generó.
   - **Quien emitió el cierre**, si lo corrigió otro (Central, operaciones o gerencia).
@@ -837,7 +837,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - los intentos fallidos quedan registrados;
   - dos correcciones seguidas necesitan supervisores distintos.
 - **Código de operaciones (Lesly):** para correcciones operativas (aperturas emitidas, protocolos, informes, series, fichas, destino). Ya no sirve para corregir cierres (desde el 15-10).
-- **Código de Central** (desde el 15-10): solo para corregir un cierre emitido o agregarle documentos. Lo dicta Central coordinando con Carlos. Gerencia también puede darlo. Central no se lo da a sí misma para una corrección.
+- **Código de Central** (desde el 15-10): solo para corregir un cierre emitido o agregarle documentos. Lo dicta Central coordinando con Carlos. Al personal se le indica solo Central.
 - **Código de gerencia:** para lo que tiene impacto económico (devolver un cierre con el proceso avanzado, liberar un pedido sin liquidación, una salida con saldo o sin visto bueno).
 - **Por orden directa de Santos (gerencia)** se puede hacer una operación sin el código de operaciones, dejando rastro: «por orden de Santos (gerencia)». No aplica a pedidos que lleguen por otra vía.
 - **El asistente nunca da ni pide códigos.** Indica quién los dicta.
@@ -953,7 +953,7 @@ OPEN es la primera opción (gerencia, 23-09). Para elegir EFAMEINSA, el CRM le p
 Revise que tenga lugar de entrega, condición de pago (porcentaje antes del despacho y días de crédito), a quién se factura y los documentos (voucher u OC; la cotización enlazada ya cuenta). Si es a crédito, declárelo: no lleva voucher. Si el RUC no coincide con la ficha, el CRM lo avisa arriba. (1.6, 3.5)
 
 **9. Me equivoqué en un cierre ya emitido. ¿Qué hago?**
-Un cierre emitido está sellado. Para corregirlo o agregarle documentos hace falta motivo y código de Central o gerencia (desde el 15-10; el de Lesly ya no sirve para esto); se crea una versión nueva. Si la venta se cayó, pida la anulación desde la vista de su cierre. Anular lo hacen operaciones, Central, gerencia o usted mismo, con código de operaciones o gerencia. (3.5)
+Un cierre emitido está sellado. Para corregirlo o agregarle documentos hace falta motivo y el código de Central (desde el 15-10; el de Lesly ya no sirve para esto); se crea una versión nueva. Si la venta se cayó, pida la anulación desde la vista de su cierre. Anular lo hacen operaciones, Central, gerencia o usted mismo, con código de operaciones o gerencia. (3.5)
 
 **10. Central me devolvió el cierre. ¿Lo perdí?**
 No. Devolver no es anular: el número se conserva. Lo verá arriba en «Mis cierres» con el motivo. Corríjalo y responda «ya lo corregí» para que vuelva a Central. (3.5)
@@ -1052,7 +1052,7 @@ Por el Buzón de sugerencias (la bombilla de la barra), con captura si puede. Cu
 No hace falta avisar a mano. Desde el 15-10, al guardar la corrección, Central recibe el aviso solo, con quién corrigió, el motivo y qué campos cambiaron; el mensaje de confirmación le dice a quién se avisó. Si el pedido ya existe, también se enteran Finanzas, postventa o el almacén cuando lo que cambió les toca (facturación, entrega, equipos). Lo que sí debe saber: el pedido no cambia solo. Si corrigió equipos, entrega o cliente, Central compara el pedido con la versión nueva y lo ajusta; si le urge, confírmelo con Central. (3.5)
 
 **42. ¿Quién me da el código para corregir mi cierre?**
-Central (o gerencia), desde el 15-10. Escriba qué está mal y pídale el código a Central: ella lo coordina con Carlos. El código de Lesly ya no sirve para cierres. Si la corrección la hace Central, el código lo da gerencia. (3.5)
+Solo Central, desde el 15-10. Escriba qué está mal y pídale el código a Central: ella lo coordina con Carlos. El código de Lesly ya no sirve para cierres. (3.5)
 
 **43. ¿Este cierre necesita orden de servicio o de compra?**
 Depende del cliente. Lea el cierre completo, revise en la ficha si sus compras anteriores llevaron orden y, si no está claro, pregúntele al comercial. Las empresas medianas y grandes suelen trabajar con orden, y sin ella no se puede facturar ni despachar. (2.2)

@@ -22,7 +22,7 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 - **El código para corregir un cierre lo da Central, no Lesly.**
   - Caso: el cierre OPEN 057-2026 (NEWREST) pasó a Finanzas sin la orden de servicio; después se corrigió con el código de operaciones y Central se enteró por un correo. Postventa ya tenía el pedido y el cliente llamaba sin parar.
   - Carlos: «tú [Central] vas a dar el código sí y solo sí para modificar el cierre… coordinándolo conmigo… solamente para edición de cierres, nada más».
-  - Desde ese día: corregir un cierre emitido o agregarle documentos pide el código de **Central o gerencia**. El de Lesly sigue valiendo para lo demás (anular, derivar a postventa, aperturas, protocolos, fichas). Central no se autoriza a sí misma una corrección.
+  - Desde ese día: corregir un cierre emitido o agregarle documentos pide el código de **Central**, y en pantalla solo se indica Central (Santos, 15-10). El de Lesly sigue valiendo para lo demás (anular, derivar a postventa, aperturas, protocolos, fichas). Central no se autoriza a sí misma una corrección.
   - Antes era (desde el 02-09): código de Lesly o gerencia.
 - **Central lee todo antes de pasar un cierre.** «Tú no recibes nada, o recibes todo pero lo lees.» Para saber si un cliente trabaja con orden de servicio o de compra: leer el cierre, mirar el histórico del cliente en su ficha y preguntar al comercial, en cualquier orden. Depende del cliente: suelen llevarla las empresas medianas y grandes.
   - Caso del día anterior (cliente con plataforma de proveedores): sin orden de servicio no se podía facturar. Contabilidad ya lo sabía por experiencia y lo hizo notar.

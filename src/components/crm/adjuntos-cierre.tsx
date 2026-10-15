@@ -320,7 +320,7 @@ export function AdjuntosCierre({
             ))}
           </div>
           <p className="text-xs font-medium text-amber-900">
-            El cierre ya fue emitido: agregar documentos necesita el código de autorización de Central o gerencia.
+            El cierre ya fue emitido: agregar documentos necesita el código de autorización de Central.
           </p>
           <CampoCodigo valor={codigo} onChange={setCodigo} tono="amber" id={`codigo-expediente-${informeId}`} />
           <button
