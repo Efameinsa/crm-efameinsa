@@ -122,6 +122,15 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
   // Los equipos del pedido, uno por unidad vendida (0260): serie = stock,
   // qué va en este despacho, y el protocolo de cada uno.
   const listaEquipos = await cargarEquiposDelPedido(servicio.id);
+  // Otro circuito del mismo cierre (0501): el pedido del que salió aparte y los que salieron de este.
+  const continuaDeId = (crudo as { continua_de?: string | null }).continua_de ?? null;
+  const [{ data: continuaDe }, { data: siguenData }] = await Promise.all([
+    continuaDeId
+      ? supabase.from("servicios_postventa").select("id, equipo").eq("id", continuaDeId).maybeSingle()
+      : Promise.resolve({ data: null as { id: string; equipo: string | null } | null }),
+    supabase.from("servicios_postventa").select("id, equipo").eq("continua_de", servicio.id).order("created_at"),
+  ]);
+  const siguen = (siguenData ?? []) as { id: string; equipo: string | null }[];
   // Las aperturas de llamada de este pedido (0281, reunión 23-09).
   const { data: aperturasData } = await supabase
     .from("aperturas_llamada")
@@ -257,6 +266,21 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
               {servicio.numero_pedido_erp && ` · Pedido ${servicio.numero_pedido_erp}`}
               {informe?.orden_compra && ` · OC ${informe.orden_compra}`}
             </p>
+            {/* Otro circuito del mismo cierre (0501, ECOLAV 15-10): de dónde viene y qué salió aparte. */}
+            {(continuaDe || siguen.length > 0) && (
+              <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
+                {continuaDe && (
+                  <Link href={`/postventa/pedidos/${continuaDe.id}`} className="font-medium text-primary hover:underline">
+                    ← Sale aparte del pedido que ya despachó {(continuaDe.equipo ?? "").split("\n")[0].split(",")[0]}
+                  </Link>
+                )}
+                {siguen.map((x) => (
+                  <Link key={x.id} href={`/postventa/pedidos/${x.id}`} className="font-medium text-primary hover:underline">
+                    {(x.equipo ?? "Equipo").split("\n")[0].split(",")[0]} sigue en otro circuito →
+                  </Link>
+                ))}
+              </p>
+            )}
             {capturaUrl && (
               <a href={capturaUrl} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs font-medium text-primary hover:underline">
                 Ver la captura con que Finanzas confirmó el pago →
