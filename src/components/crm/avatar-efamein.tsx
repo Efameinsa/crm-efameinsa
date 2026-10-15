@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils";
  * estilo glass que estamos usando en el CRM, el isotipo blanco… y una pequeña
  * animación como si sonriera»).
  *
- * Vidrio oscuro del color de la barra lateral (#16171a), con un brillo arriba
- * y un resplandor granate abajo; la «e» de EFAMEINSA en blanco. La sonrisa:
+ * Vidrio rojo oscuro: del granate de la marca a casi negro, con un brillo
+ * arriba (Santos: negro puro «parece muy tétrico»); la «e» de EFAMEINSA en blanco. La sonrisa:
  * cada tanto la «e» se ladea y el cuarto de arriba se levanta, como quien
  * sonríe; al pasar el mouse sonríe en el momento. Con «reducir movimiento»
  * del sistema, quieta.
@@ -27,9 +27,10 @@ export function AvatarEfamein({
     <span
       className={cn(
         "efamein-avatar relative isolate flex shrink-0 items-center justify-center overflow-hidden rounded-full",
-        "bg-[linear-gradient(145deg,#33353d_0%,#1d1e23_45%,#121316_100%)]",
-        "shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-8px_16px_-8px_rgba(126,18,16,0.55),0_6px_18px_-6px_rgba(18,19,22,0.55)]",
-        "ring-1 ring-white/10",
+        // Rojo oscuro con negro, no negro puro (Santos, 15-10: «así de negro parece muy tétrico»).
+        "bg-[radial-gradient(120%_90%_at_30%_15%,#c0362c_0%,#8e1a16_38%,#5a0f0d_70%,#260707_100%)]",
+        "shadow-[inset_0_1px_0_rgba(255,255,255,0.28),inset_0_-8px_16px_-8px_rgba(0,0,0,0.55),0_6px_18px_-6px_rgba(90,15,13,0.55)]",
+        "ring-1 ring-white/15",
         sonrie && "efamein-sonrie",
         className,
       )}

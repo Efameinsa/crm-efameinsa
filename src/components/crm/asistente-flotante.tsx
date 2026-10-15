@@ -410,8 +410,8 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
         {enEspera && actividad.pensando && (
           <span className="pointer-events-none absolute -inset-1.5 animate-spin rounded-full border-2 border-primary/60 border-t-transparent [animation-duration:1.1s]" aria-hidden="true" />
         )}
-        {/* LA CARA DE EFAMEIN (Santos, 15-10): vidrio oscuro como la barra
-            lateral, la «e» de EFAMEINSA en blanco, sin el círculo, y una
+        {/* LA CARA DE EFAMEIN (Santos, 15-10): vidrio rojo oscuro con negro,
+            la «e» de EFAMEINSA en blanco, sin el círculo, y una
             sonrisa de vez en cuando. Al lado, una nube que ofrece ayuda. */}
         <span
           className={cn(
@@ -419,7 +419,7 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
             agarrada && "scale-110 group-hover:scale-110",
           )}
         >
-          <AvatarEfamein className="size-full shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-10px_18px_-8px_rgba(126,18,16,0.6),0_10px_24px_-8px_rgba(18,19,22,0.6)]" />
+          <AvatarEfamein className="size-full shadow-[inset_0_1px_0_rgba(255,255,255,0.28),inset_0_-10px_18px_-8px_rgba(0,0,0,0.55),0_10px_24px_-8px_rgba(90,15,13,0.6)]" />
         </span>
         {!abierto && !agarrada && (
           <span
