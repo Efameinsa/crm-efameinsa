@@ -187,6 +187,13 @@ const ESTILO_AVISO: Record<
   // El mismo tipo sirve para «ya lo corregí» tras una devolución (0178). Como
   // el pedido nuevo: se queda hasta que lo toquen, porque el pedido no cambia
   // solo y alguien tiene que comparar.
+  // El cliente hizo clic en un correo de campaña (0496, 15-10): señal de interés.
+  correo_campana_clic: {
+    encabezado: "📧 Un cliente hizo clic en un correo de campaña",
+    accion: "Ver la ficha",
+    duracion: 15000,
+    tono: "success",
+  },
   cierre_corregido: {
     encabezado: "✏️ Un cierre se corrigió — revisar qué cambió",
     accion: "Ver qué cambió",

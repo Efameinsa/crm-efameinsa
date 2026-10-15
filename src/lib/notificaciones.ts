@@ -40,6 +40,8 @@ export type TipoNotificacion =
   // (0178, Carlos 05-09: «tendrías que rechazarlo y que lo haga bien»).
   | "cierre_devuelto"
   | "cierre_corregido"
+  // Hizo clic en un correo de campaña (0496, 15-10): buen momento para llamarle.
+  | "correo_campana_clic"
   // Central se entera en la campana de cada cierre emitido (0339, Santos 29-09).
   | "cierre_emitido"
   // Postventa y el almacén se avisan entre sí lo que le toca al otro (0246).
