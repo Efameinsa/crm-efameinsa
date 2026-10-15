@@ -261,6 +261,10 @@ describe("las filas llevan lo que el correo lleva", () => {
   it("quien recibe va con DNI y celular cuando se tienen", () => {
     expect(filasApertura(MOTORGAS)[5].informacion).toBe("Felix Alejandro Reyes Ortiz\nDNI: 43538088\nCel: 904895898");
     expect(filasApertura(PERU_VACATION)[5].informacion).toBe("ANA CARDENAS\nCel: 996 155 115");
+    // Recibe una empresa (Rubí, 15-10): con 11 dígitos va como RUC, no como DNI.
+    expect(filasApertura({ ...MOTORGAS, recibeNombre: "CONSORCIO EL PORTAL DEL MARQUÉS SAC", recibeDoc: "20100047218" })[5].informacion).toBe(
+      "CONSORCIO EL PORTAL DEL MARQUÉS SAC\nRUC: 20100047218\nCel: 904895898",
+    );
   });
 
   it("lo que falta se marca, no se inventa", () => {

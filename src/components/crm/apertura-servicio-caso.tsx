@@ -475,7 +475,7 @@ export function AperturaServicioCaso({
             <Input value={recibeTelefono} onChange={(e) => setRecibeTelefono(e.target.value)} inputMode="tel" />
           </div>
           <div className="grid gap-1">
-            <Label className="text-xs">DNI de quien recibe</Label>
+            <Label className="text-xs">DNI de quien recibe (o RUC, si recibe una empresa)</Label>
             <Input
               value={recibeDoc}
               onChange={(e) => setRecibeDoc(e.target.value)}

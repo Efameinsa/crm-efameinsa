@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dniValido, errorDocumento, rucDentroDelTexto, rucValido } from "./documento";
+import { dniValido, errorDocRecibe, errorDocumento, rucDentroDelTexto, rucValido, tipoDocRecibe } from "./documento";
 
 // Los RUC de estas pruebas salen de la propia base: 9.891 de los 9.904 pasan
 // el módulo 11, y los 13 que no son datos malos del histórico (prefijos que
@@ -87,5 +87,21 @@ describe("errorDocumento", () => {
     expect(errorDocumento("RUC", "20552956461")).toBeNull();
     expect(errorDocumento("DNI", "45187286")).toBeNull();
     expect(errorDocumento("CE", "001234567")).toBeNull();
+  });
+});
+
+describe("documento de quien recibe (Rubí, 15-10)", () => {
+  it("11 dígitos es RUC; lo demás, DNI", () => {
+    expect(tipoDocRecibe("20100047218")).toBe("RUC");
+    expect(tipoDocRecibe("43538088")).toBe("DNI");
+    expect(tipoDocRecibe(null)).toBe("DNI");
+  });
+  it("exige el DNI de 8 o un RUC que exista", () => {
+    expect(errorDocRecibe("DNI", "435")).toMatch(/DNI de quien recibe es obligatorio/);
+    expect(errorDocRecibe("DNI", "43538088")).toBeNull();
+    expect(errorDocRecibe("RUC", "")).toMatch(/RUC de la empresa/);
+    expect(errorDocRecibe("RUC", "2010004721")).toMatch(/11 dígitos/);
+    expect(errorDocRecibe("RUC", "20100047219")).toMatch(/no existe/);
+    expect(errorDocRecibe("RUC", "20100047218")).toBeNull();
   });
 });

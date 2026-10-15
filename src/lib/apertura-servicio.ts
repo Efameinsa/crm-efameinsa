@@ -1,4 +1,5 @@
 import { fechaCalendario } from "@/lib/fechas";
+import { tipoDocRecibe } from "@/lib/documento";
 
 /**
  * LA APERTURA DE SERVICIO — el formato con el que postventa avisa al equipo.
@@ -323,7 +324,7 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
     .filter(Boolean)
     .join("\n");
 
-  const recibe = [d.recibeNombre ?? "—", d.recibeDoc ? `DNI: ${d.recibeDoc}` : null, d.recibeTelefono ? `Cel: ${d.recibeTelefono}` : null]
+  const recibe = [d.recibeNombre ?? "—", d.recibeDoc ? `${tipoDocRecibe(d.recibeDoc)}: ${d.recibeDoc}` : null, d.recibeTelefono ? `Cel: ${d.recibeTelefono}` : null]
     .filter(Boolean)
     .join("\n");
   const contabilidad = d.coordinaContabilidad?.trim() || "—";
