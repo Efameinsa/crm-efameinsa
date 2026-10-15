@@ -12,6 +12,11 @@ Vigente al 15-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 
 ## Cronología de decisiones que tocan su trabajo
 
+### 15-10 (tarde) · Correo del cliente y N.º de operación en el cierre (buzón de Gabriela)
+- Gabriela pidió que el cierre traiga el correo del cliente y el número de operación del pago, para que Finanzas los copie sin buscarlos. Desde ese día el correo está en «Se le factura a» (avisa si falta) y el «N.º de operación» va debajo de «Forma de pago»: se llena solo si el cliente ya pagó; si no, queda vacío.
+- Los dos datos salen en el cierre, en su PDF y en el «Expediente» que abren Finanzas y Facturación. Si un cierre ya emitido no los tiene, el comercial los agrega con la corrección (código de Central) y a Finanzas le llega el aviso de corrección si el pedido ya existe.
+- **Ojo:** el N.º de operación lo escribe el comercial; no reemplaza la confirmación del abono contra el banco, que sigue siendo de Finanzas.
+
 ### 15-10 12:51 · Pagos parciales que se leían como pagados (Carlos, Ariana, Santos)
 - Postventa quiso despachar dos pedidos (Abachi y Wong Lu Vega) porque el paso «Finanzas confirmó» salía en verde; solo había adelantos. Carlos: sin el 100 % (o el adelanto acordado) no se despacha.
 - Desde ese día el pedido muestra en ámbar cuánto se pagó y cuánto falta cuando lo confirmado no cubre la condición. **Lo que ustedes hacen no cambia:** confirman cada abono como siempre. Lo que cambia es que el adelanto ya no se lee como pago completo.

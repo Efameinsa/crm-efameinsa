@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 15-10 (tarde) · Lo que resolvió el buzón (Gabriela, Brenda)
+- **El cierre trae el correo del cliente y el N.º de operación** (pidió Gabriela, para que Finanzas pueda copiarlos sin buscarlos). El correo está dentro de «Se le factura a» y avisa si falta; el «N.º de operación» va debajo de «Forma de pago» y se llena solo si el cliente ya pagó (número del voucher). Salen en el cierre, en el PDF y en el «Expediente» de Finanzas y Facturación. En un cierre ya emitido se agregan con la corrección (código de Central).
+- **Caso AQUASEC:** una contacta de un cliente que ya era de Brenda entró por campaña y abrió una ficha nueva sin RUC. Se unió con la ficha que ya tenía el RUC, el expediente del día quedó ahí con la persona entre los contactos, y la cotización sale con el RUC. Sigue siendo la regla: un cliente, una ficha; si entra duplicado, se pide unir por el buzón.
+
 ### 15-10 12:51 · Carlos con Ariana y Santos: pedidos por despachar con pago parcial
 - **Qué pasó:** postventa estaba revisando todos los pedidos que faltaba atender. Dos clientes (Abachi y Wong Lu Vega) figuraban «pendientes por despachar» y el pedido mostraba el check verde de «Finanzas confirmó». Ariana preguntó al comercial y no: habían pagado solo un adelanto. Carlos: «para nosotros hacer el despacho tiene que pagar el 100 %… no debe salir como verde». Ariana: «algo visual que dé alerta, amarillo». Carlos: «más que color, que sea algo que uno lee y diga no; ambas cosas; que salga un anuncio». Y no era un solo caso: ese día había seis pedidos abiertos así (Alcántara, PRODECO, Wong Lu Vega, Rojas Plaza, Abachi y Vidawasi).
 - **Por qué pasaba:** Finanzas confirma cada abono que entra. El paso se marcaba hecho (verde) con el texto chico «confirmó un pago parcial», y en una lista larga se leía como pagado. En Wong Lu Vega, además, el cierre decía «20 % adelanto, 80 % a fin de mes» y a la vez «100 % antes del despacho».
@@ -545,36 +549,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 - **El cierre semanal y la proyección usan la misma fuente.** Desde el 12-09 el cierre semanal se guarda como histórico.
 
 ### 24-08 · Lunes de arranque
-- **Capacitación a los comerciales.** Desde el 22-08 ya no tocan el Excel y trabajan solo en el CRM.
-- **El número de cotización se asigna al confirmar.** Un borrador no gasta número.
-- **Aprobación por ítem.**
-- **Regla de Carlos: a un comercial no se le muestran datos de otro.**
+- Capacitación; los comerciales trabajan solo en el CRM desde el 22-08. El número de cotización se asigna al confirmar, aprobación por ítem, y a un comercial no se le muestran datos de otro.
 
 ### 14-08 al 22-08 · Primeras reuniones con gerencia
-- **14-08 (demo):**
-  - El cliente es de quien lo atendió.
-  - Un precio bajo lista lo aprueba gerencia, y el rechazo exige nota.
-  - Las cotizaciones no se modifican: se duplican con número nuevo. Caso real: un mismo número enviado con dos precios.
-  - Cada comercial ve solo lo suyo.
-  - Las metas entran al CRM.
-  - La migración histórica se adelanta.
-- **17-08:** la ficha técnica tiene formato fijo. Los comerciales se nombran por código («Comercial Cx»).
-- **18-08:** postventa es «la línea siguiente y la fortaleza competitiva». El filtro SUNAT es obligatorio. El interés se califica en 5 niveles.
-- **19-08:**
-  - Nuevos resultados de gestión en lenguaje del comercial (No contestó, Pidió cotización, Compra a futuro…).
-  - Antes de derivar se busca a quién pertenece el cliente.
-  - Brenda pasó de C8 a C1.
-- **20-08:**
-  - Reporte diario en PDF («vital»).
-  - La meta son seguimientos efectivos, no llamadas sin respuesta.
-  - Estadísticas separadas Efameinsa y Open.
-  - Los comerciales se nombran por código porque las carteras se traspasan.
-  - La numeración reinicia cada enero.
-- **21-08:**
-  - Se importaron las oportunidades vivas de los Excel, porque Carlos, probando como «comercial nuevo», no encontraba las suyas.
-  - Informe de cierre en el CRM, con fecha por calendario o «por confirmar».
-  - Un RUC equivocado es peor que ninguno: los cambios de RUC esperan la confirmación de Carlos.
-- **22-08:** última entrega de Excel de los comerciales. Primera cotización real en el CRM.
+- Se fijaron las bases: el cliente es de quien lo atendió; precio bajo lista lo aprueba gerencia (rechazo con nota); las cotizaciones no se modifican, se duplican; cada comercial ve solo lo suyo y se nombra por código (Cx); filtro SUNAT obligatorio; un RUC equivocado es peor que ninguno; reporte diario en PDF; numeración que reinicia cada enero. El 22-08 salió la primera cotización real en el CRM.
 
 ---
 
