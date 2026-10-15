@@ -95,3 +95,26 @@ export function errorDocumento(tipo: TipoDocumento, valor: string): string | nul
   }
   return null;
 }
+
+/**
+ * QUIEN RECIBE PUEDE SER UNA EMPRESA (Rubí, 15-10: «opción de seleccionar
+ * NOMBRE o RAZÓN SOCIAL, y DNI o RUC»). La agencia entrega a una persona con su
+ * DNI o a una empresa con su RUC. El tipo no se guarda aparte: lo dice el largo
+ * del número (11 dígitos es RUC; lo demás, DNI).
+ */
+export function tipoDocRecibe(doc: string | null | undefined): "DNI" | "RUC" {
+  return (doc ?? "").replace(/\D/g, "").length === 11 ? "RUC" : "DNI";
+}
+
+/** El motivo por el que el documento de quien recibe no sirve, o null si está bien. */
+export function errorDocRecibe(tipo: "DNI" | "RUC", valor: string | null | undefined): string | null {
+  const n = (valor ?? "").replace(/\D/g, "");
+  if (tipo === "RUC") {
+    if (!n) return "El RUC de la empresa que recibe es obligatorio: sin él la agencia no entrega";
+    if (n.length !== 11) return `El RUC tiene 11 dígitos; escribió ${n.length}`;
+    if (!rucValido(n)) return "Ese RUC no existe: revise los dígitos";
+    return null;
+  }
+  if (n.length < 8) return "El DNI de quien recibe es obligatorio (8 dígitos): sin él la agencia no entrega";
+  return null;
+}

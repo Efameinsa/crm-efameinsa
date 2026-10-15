@@ -55,6 +55,7 @@ import { cn } from "@/lib/utils";
 import { TipoPedidoSelector } from "@/components/crm/tipo-pedido-selector";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
 import { TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
+import { tipoDocRecibe } from "@/lib/documento";
 
 /**
  * La ficha del pedido: los diez pasos del circuito, agrupados de a tres.
@@ -663,8 +664,9 @@ export function PedidoPostventa({
               verificarDireccion(servicio.id, {
                 direccion: datos.direccion,
                 confirmoNombre: datos.confirmo,
-                recibeNombre: datos.recibe,
-                recibeDoc: datos.doc,
+                recibeNombre: recibeDe(datos).nombre,
+                recibeDoc: recibeDe(datos).doc,
+                recibeTipo: datos.recibe_tipo === "empresa" ? "RUC" : "DNI",
                 recibeTelefono: datos.telefono,
                 destino: datos.destino === "provincia" ? "provincia" : datos.destino === "lima" ? "lima" : null,
                 entregaModo: datos.entrega === "agencia" || datos.entrega === "planta" ? datos.entrega : "domicilio",
@@ -719,8 +721,22 @@ export function PedidoPostventa({
             requerido: true,
           },
           { nombre: "confirmo", etiqueta: "Con quién habló (nombre y cargo)", inicial: servicio.direccion_verificada_con ?? "", requerido: true },
-          { nombre: "recibe", etiqueta: "Quién recibe el equipo", inicial: servicio.recibe_nombre ?? "", requerido: true },
-          { nombre: "doc", etiqueta: "DNI de quien recibe (obligatorio: la agencia lo pide)", inicial: servicio.recibe_doc ?? "", requerido: true },
+          // Puede recibir una persona o una empresa (Rubí, 15-10: «NOMBRE o RAZÓN
+          // SOCIAL, y DNI o RUC»). Lo ya guardado con 11 dígitos abre en «empresa».
+          {
+            nombre: "recibe_tipo",
+            etiqueta: "Quién recibe el equipo",
+            inicial: tipoDocRecibe(servicio.recibe_doc) === "RUC" ? "empresa" : "persona",
+            requerido: true,
+            opciones: [
+              { valor: "persona", etiqueta: "Una persona (nombre y DNI)" },
+              { valor: "empresa", etiqueta: "Una empresa (razón social y RUC)" },
+            ],
+          },
+          { nombre: "recibe", etiqueta: "Nombre de quien recibe", inicial: servicio.recibe_nombre ?? "", requerido: true, soloSi: (d) => d.recibe_tipo !== "empresa" },
+          { nombre: "doc", etiqueta: "DNI de quien recibe (obligatorio: la agencia lo pide)", inicial: servicio.recibe_doc ?? "", requerido: true, soloSi: (d) => d.recibe_tipo !== "empresa" },
+          { nombre: "recibe_rs", etiqueta: "Razón social de la empresa que recibe", inicial: servicio.recibe_nombre ?? "", requerido: true, soloSi: (d) => d.recibe_tipo === "empresa" },
+          { nombre: "ruc", etiqueta: "RUC de la empresa que recibe (obligatorio: la agencia lo pide)", inicial: servicio.recibe_doc ?? "", requerido: true, soloSi: (d) => d.recibe_tipo === "empresa" },
           { nombre: "telefono", etiqueta: "Teléfono de quien recibe", inicial: servicio.recibe_telefono ?? "", requerido: true },
           ...(servicio.apertura_despacho_at
             ? [
@@ -737,8 +753,8 @@ export function PedidoPostventa({
                       (!!d.destino && !igual(servicio.modalidad, d.destino)) ||
                       !igual(servicio.direccion_entrega, d.direccion) ||
                       !igual(servicio.direccion_verificada_con, d.confirmo) ||
-                      (!!d.recibe?.trim() && !igual(servicio.recibe_nombre, d.recibe)) ||
-                      !igual(servicio.recibe_doc, d.doc) ||
+                      (!!recibeDe(d).nombre.trim() && !igual(servicio.recibe_nombre, recibeDe(d).nombre)) ||
+                      !igual(servicio.recibe_doc, recibeDe(d).doc) ||
                       (!!d.telefono?.trim() && !igual(servicio.recibe_telefono, d.telefono)) ||
                       !igual(servicio.entrega_modo, modo) ||
                       (modo === "agencia" && (!igual(servicio.agencia_destino, d.agencia) || !igual(servicio.agencia_direccion, d.agencia_direccion)))
@@ -914,8 +930,8 @@ export function PedidoPostventa({
           // Lo ya cargado viene escrito: un campo en blanco lo borraba al volver a registrar.
           { nombre: "transportista", etiqueta: "Agencia o transportista", inicial: servicio.transportista ?? "", requerido: false },
           { nombre: "guia", etiqueta: "N.º de guía de remisión", inicial: servicio.guia ?? "", requerido: false },
-          { nombre: "recibe", etiqueta: "Quién recibe", inicial: servicio.recibe_nombre ?? "", requerido: false },
-          { nombre: "doc", etiqueta: "DNI de quien recibe", inicial: servicio.recibe_doc ?? "", requerido: false },
+          { nombre: "recibe", etiqueta: "Quién recibe (nombre o razón social)", inicial: servicio.recibe_nombre ?? "", requerido: false },
+          { nombre: "doc", etiqueta: "DNI o RUC de quien recibe", inicial: servicio.recibe_doc ?? "", requerido: false },
           { nombre: "telefono", etiqueta: "Su teléfono", inicial: servicio.recibe_telefono ?? "", requerido: false },
           ...(pagoIncompleto
             ? [
@@ -1056,6 +1072,11 @@ function BotonPaso({ children, onClick }: { children: React.ReactNode; onClick: 
       {children}
     </Button>
   );
+}
+
+/** Quien recibe, según se eligió persona (nombre y DNI) o empresa (razón social y RUC). */
+function recibeDe(d: Record<string, string>): { nombre: string; doc: string } {
+  return d.recibe_tipo === "empresa" ? { nombre: d.recibe_rs ?? "", doc: d.ruc ?? "" } : { nombre: d.recibe ?? "", doc: d.doc ?? "" };
 }
 
 interface Campo {

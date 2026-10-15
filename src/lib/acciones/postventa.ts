@@ -12,6 +12,7 @@ import { avisarFinanzasSiFaltaVistoBueno } from "@/lib/aviso-visto-bueno";
 import { MESES_PRIMER_PREVENTIVO } from "@/lib/preventivo";
 import { sumarContactoOperativo } from "@/lib/contacto-operativo-servidor";
 import { limpiarObsFilas, lineasGuia, type GuiaApertura } from "@/lib/apertura-servicio";
+import { errorDocRecibe, tipoDocRecibe } from "@/lib/documento";
 
 /**
  * Las acciones del circuito de postventa (migración 0087).
@@ -539,6 +540,8 @@ export async function verificarDireccion(
     confirmoNombre: string;
     recibeNombre?: string;
     recibeDoc?: string;
+    /** Recibe una persona (DNI) o una empresa (RUC); sin él, lo dice el largo del número. */
+    recibeTipo?: "DNI" | "RUC";
     recibeTelefono?: string;
     /** A domicilio o en agencia, y cuál (0259). */
     entregaModo?: "domicilio" | "agencia" | "planta" | null;
@@ -558,8 +561,10 @@ export async function verificarDireccion(
   const supabase = await createClient();
   if (datos.destino && datos.destino !== "lima" && datos.destino !== "provincia") return falla("El destino es Lima o provincia");
   if (!datos.direccion.trim()) return falla("Escriba la dirección tal como la confirmó el cliente");
-  // El DNI de quien recibe es obligatorio (Lesly, 21-09: «tiene que ser obligatorio»).
-  if (!datos.recibeDoc?.trim() || datos.recibeDoc.replace(/\D/g, "").length < 8) return falla("El DNI de quien recibe es obligatorio (8 dígitos): sin él la agencia no entrega");
+  // El DNI de quien recibe es obligatorio (Lesly, 21-09: «tiene que ser obligatorio»);
+  // si recibe una empresa, su RUC (Rubí, 15-10).
+  const errorDoc = errorDocRecibe(datos.recibeTipo ?? tipoDocRecibe(datos.recibeDoc), datos.recibeDoc);
+  if (errorDoc || !datos.recibeDoc) return falla(errorDoc ?? "Falta el documento de quien recibe");
   if (datos.entregaModo === "agencia" && !datos.agenciaDestino?.trim()) return falla("Diga en qué agencia y a qué ciudad (ej. «Marvisur, agencia Trujillo»): en Cusco hay seis");
   // Rubí y Lesly, 30-09: sin la dirección de la agencia el almacén no sabe a
   // dónde llevarlo; la del cliente es el destino final, no el primero.
