@@ -1029,7 +1029,7 @@ function PasoRegistro({
               </button>
             ))}
           </div>
-          {garantia?.en_garantia && clasificacion !== "garantia" && (
+          {garantia?.en_garantia && clasificacion && SE_COBRA[clasificacion] && (
             <p className="mt-1.5 text-[11px] text-amber-700">
               Ojo: el equipo está en garantía y está por clasificarlo como cobrable.
             </p>

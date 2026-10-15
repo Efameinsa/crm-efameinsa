@@ -636,7 +636,7 @@ export async function avanzarAtencion(datos: {
 
   // Los frenos que hacen que el dato signifique algo.
   if (datos.hasta === "diagnostico" && !a.clasificacion) {
-    return { error: "Antes de los antecedentes hay que decir si es garantía, preventivo, correctivo, facturable o una revisión" };
+    return { error: "Antes de los antecedentes hay que decir si es garantía, preventivo, correctivo, facturable, una revisión o una capacitación" };
   }
   if (datos.hasta === "atencion" && !a.programada_at) {
     return { error: "Primero hay que programarla: día, hora y técnico" };
