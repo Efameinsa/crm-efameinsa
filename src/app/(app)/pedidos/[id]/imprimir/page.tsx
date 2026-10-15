@@ -67,7 +67,11 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
   const empresa = i?.serie === "OPEN" ? "Open Investments" : "Corporación Efameinsa e Ingeniería S.A.";
   const cliente = i?.cliente_nombre ?? (s.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "");
   const titulo = `PEDIDO ${s.numero_pedido_erp ?? "SIN NÚMERO"}`;
-  const otros = (i?.items ?? []).filter((x) => x.bloque && x.bloque !== "venta");
+  // Lo regalado que es una máquina ya va en la tabla con su serie (0502); aquí
+  // queda solo lo que no lleva fila (servicios sin costo y otros conceptos).
+  const primeraLinea = (t: string) => t.split("\n")[0].trim().toUpperCase();
+  const enLaTabla = new Set(lista.map((e) => primeraLinea(e.descripcion)));
+  const otros = (i?.items ?? []).filter((x) => x.bloque && x.bloque !== "venta" && !enLaTabla.has(primeraLinea(x.descripcion)));
   const filas: [string, string | null][] = [
     ["Cliente", cliente],
     ["RUC / DNI", i?.cliente_doc ?? null],
