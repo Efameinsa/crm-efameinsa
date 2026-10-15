@@ -361,6 +361,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - «Facturados»;
   - «Enviada al cliente».
 - **Autoriza las guías** de las aperturas (desde el 12-10) indicando el motivo de la guía (desde el 14-10) y el comprobante.
+- **«Ver el expediente» en cada apertura** (desde el 15-10, lo pidió Facturación): en «Aperturas por confirmar», también en las de contado y las ya confirmadas, despliega el cliente con su RUC, el cierre, el pedido, el comercial, el equipo, la forma de pago y las cifras, con el botón para abrir el cierre completo y sus adjuntos. En las ventas a crédito sigue dentro de «Ver la validación del crédito».
 - **Varios anticipos** (desde el 14-10): un pedido ya facturado vuelve a «Por facturar», con el aviso «Nuevo anticipo por facturar», cuando Finanzas sube una liquidación nueva con «factura pendiente» después de la última factura. Registrada la factura nueva, Finanzas actualiza la liquidación con el número.
 - **A crédito factura cuando postventa da la orden** (14-10): los días de crédito corren desde la factura, así que se espera a que el cliente confirme que el equipo llegó y está conforme.
 

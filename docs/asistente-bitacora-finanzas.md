@@ -12,6 +12,10 @@ Vigente al 15-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 
 ## Cronología de decisiones que tocan su trabajo
 
+### 15-10 (tarde) · Facturación: volver a ver el expediente en las aperturas
+- **Qué pidió:** Facturación quería volver a ver el expediente de la venta al confirmar una apertura, como cuando Finanzas hacía la validación. Solo aparecía dentro de «Ver la validación del crédito», así que en las ventas al contado no había cómo verlo.
+- **Qué se hizo:** cada apertura tiene ahora «Ver el expediente» (cliente y RUC, cierre, pedido, comercial, equipo, forma de pago, total, confirmado y saldo, y el cierre completo con adjuntos). La sugerencia llegó dos veces con la misma captura; se atendió una sola vez.
+
 ### 15-10 (tarde) · Correo del cliente y N.º de operación en el cierre (buzón de Gabriela)
 - Gabriela pidió que el cierre traiga el correo del cliente y el número de operación del pago, para que Finanzas los copie sin buscarlos. Desde ese día el correo está en «Se le factura a» (avisa si falta) y el «N.º de operación» va debajo de «Forma de pago»: se llena solo si el cliente ya pagó; si no, queda vacío.
 - Los dos datos salen en el cierre, en su PDF y en el «Expediente» que abren Finanzas y Facturación. Si un cierre ya emitido no los tiene, el comercial los agrega con la corrección (código de Central) y a Finanzas le llega el aviso de corrección si el pedido ya existe.
