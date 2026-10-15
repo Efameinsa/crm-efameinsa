@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 15-10 (tarde) · Almacén: quitar fotos subidas por error
+- **Qué pasó:** en la prueba y embalaje del OPEN 060-2026 (CONSORCIO EL PORTAL DEL MARQUES) se subieron dos imágenes que no correspondían, y el CRM solo dejaba agregar archivos, no quitarlos.
+- **Qué se hizo:** cada foto o documento guardado de la máquina tiene una ✕ para quitarlo (pregunta antes). Si la máquina ya está «Probada y embalada», pide abrir el informe con el código de Lesly, como para agregar.
+
 ### 15-10 (tarde) · Central: «no puedo abrir el expediente de TERRANOVA REPRESENTACIONES»
 - **Qué pasó:** en «Buscar en todo el CRM» solo salía un contacto de Central, sin botón «Abrir».
 - **Por qué:** no era cliente. Fue una llamada de 2019 que nunca llegó a cotización ni compra, importada de los Excel de Central sin ficha. La misma persona (mismo celular) escribió en octubre por otra empresa, que sí tiene ficha y comercial.

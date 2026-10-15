@@ -189,6 +189,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - **«Sin apertura de despacho no sale nada del almacén.»** Si postventa programó sin cumplir los pasos, el almacén ve el despacho en rojo, con lo que falta, y no puede prepararlo ni sacarlo.
   - **Con saldo pendiente, la salida queda trabada** hasta que se autorice. Se compara lo pagado con lo **acordado antes del despacho** (el porcentaje del cierre), no con el total.
   - **Si las letras «van con el equipo»**, el almacén debe marcar que recibió las letras. Sin eso, no sale.
+- **Quitar una foto o documento subido por error** (desde 15-10): en la fila de la máquina, junto a cada archivo guardado hay una **✕**. Pregunta antes de quitar y el archivo deja de salir en el informe de prueba y embalaje. Si la máquina ya está marcada «Probada y embalada», el informe está guardado: primero se abre con el código de Lesly (en el informe de protocolo) y recién ahí aparece la ✕, igual que para agregar.
 
 ### 1.12 Entrega, puesta en marcha y cierre del pedido
 
