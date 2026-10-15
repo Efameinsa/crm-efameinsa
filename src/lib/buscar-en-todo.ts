@@ -64,6 +64,12 @@ export interface Resultado {
   href: string | null;
   /** Un segundo enlace, cuando el documento tiene PDF propio. */
   hrefPdf?: string | null;
+  /**
+   * Una línea que explica lo que no se ve: por qué no hay «Abrir» o a dónde
+   * lleva en realidad. Central buscó TERRANOVA (15-10) y solo vio una fila sin
+   * enlace: una consulta de 2019 que nunca tuvo ficha.
+   */
+  nota?: string | null;
 }
 
 export interface Hallazgos {
@@ -163,7 +169,7 @@ export async function buscarEnTodo(
       : supabase
           .from("leads")
           .select(
-            "id, codigo, razon_social, nombre_contacto, estado, canal, created_at, cuenta_id, perfiles!leads_asignado_a_fkey(nombre, codigo_comercial)",
+            "id, codigo, razon_social, nombre_contacto, estado, canal, created_at, recibido_at, cuenta_id, telefono_normalizado, perfiles!leads_asignado_a_fkey(nombre, codigo_comercial)",
           )
           .or(`codigo.ilike.${patron},razon_social.ilike.${patron},nombre_contacto.ilike.${patron},num_doc.ilike.${patronDoc}`)
           .limit(POR_TIPO),
@@ -260,18 +266,57 @@ export async function buscarEnTodo(
     })),
   );
 
+  /**
+   * UN CONTACTO SIN FICHA NO TIENE EXPEDIENTE, PERO LA PERSONA PUEDE TENERLA.
+   *
+   * Los contactos importados de los Excel de Central (2019 en adelante) que
+   * nunca llegaron a cotización quedaron sin ficha. Si el mismo celular hoy es
+   * contacto de un cliente, se ofrece esa ficha: TERRANOVA REPRESENTACIONES
+   * (llamada de 2019) es Lenny de los Ríos, que el 06-10-2026 escribió por
+   * MANDARA S.A.C.
+   */
+  const sinFicha = (contactos.data ?? []).filter((l) => !l.cuenta_id && l.telefono_normalizado);
+  const fichaPorTelefono = new Map<string, { id: string; razon: string | null; dueño: string | null }>();
+  const telefonos = [...new Set(sinFicha.map((l) => String(l.telefono_normalizado)))];
+  if (telefonos.length > 0) {
+    const { data: actuales } = await supabase
+      .from("contactos")
+      .select("telefono_normalizado, created_at, cuentas(id, razon_social, perfiles(nombre, codigo_comercial))")
+      .in("telefono_normalizado", telefonos)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    for (const c of actuales ?? []) {
+      const cuenta = c.cuentas as unknown as { id: string; razon_social: string | null; perfiles: unknown } | null;
+      const tel = String(c.telefono_normalizado);
+      if (cuenta?.id && !fichaPorTelefono.has(tel)) {
+        fichaPorTelefono.set(tel, { id: cuenta.id, razon: cuenta.razon_social, dueño: dueño(cuenta.perfiles) });
+      }
+    }
+  }
+
   agregar(
     "contacto",
-    (contactos.data ?? []).map((l) => ({
-      tipo: "contacto" as const,
-      titulo: l.codigo ?? "sin código",
-      cliente: l.razon_social ?? l.nombre_contacto,
-      responsable: dueño(l.perfiles),
-      estado: `${String(l.estado).replace(/_/g, " ")} · por ${l.canal}`,
-      fecha: dia(l.created_at),
-      monto: null,
-      href: l.cuenta_id ? `/gerencia/clientes/${l.cuenta_id}` : null,
-    })),
+    (contactos.data ?? []).map((l) => {
+      const otra = !l.cuenta_id && l.telefono_normalizado ? fichaPorTelefono.get(String(l.telefono_normalizado)) : undefined;
+      // La fecha que importa es cuándo llamó, no cuándo se importó el Excel
+      // (todos los históricos dicen 19/08/2026).
+      const fecha = dia(l.recibido_at ?? l.created_at);
+      return {
+        tipo: "contacto" as const,
+        titulo: l.codigo ?? "sin código",
+        cliente: l.razon_social ?? l.nombre_contacto,
+        responsable: dueño(l.perfiles),
+        estado: `${String(l.estado).replace(/_/g, " ")} · por ${l.canal}`,
+        fecha,
+        monto: null,
+        href: l.cuenta_id ? `/gerencia/clientes/${l.cuenta_id}` : otra ? `/gerencia/clientes/${otra.id}` : null,
+        nota: l.cuenta_id
+          ? null
+          : otra
+            ? `Este contacto no tiene ficha propia, pero la misma persona (mismo celular) hoy es contacto de ${otra.razon ?? "otro cliente"}${otra.dueño ? ` (${otra.dueño})` : ""}: «Abrir» lleva a esa ficha.`
+            : `Consulta${fecha ? ` del ${fecha}` : ""} que nunca llegó a cotización ni compra: no tiene ficha ni expediente. Si vuelve a escribir, regístrelo como contacto nuevo.`,
+      };
+    }),
   );
 
   agregar(
