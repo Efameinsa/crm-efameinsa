@@ -40,7 +40,7 @@ export type TipoAtencion =
   | "revision_garantia"
   | "capacitacion"
   | "otro";
-export type ClasificacionAtencion = "garantia" | "preventivo" | "correctivo" | "facturable" | "revision";
+export type ClasificacionAtencion = "garantia" | "preventivo" | "correctivo" | "facturable" | "revision" | "capacitacion";
 
 /**
  * Las etiquetas de las nueve etapas.
@@ -276,6 +276,9 @@ export const ETIQUETA_CLASIFICACION: Record<ClasificacionAtencion, string> = {
   // Ariana, 14-09: «si la máquina no presentaba nada (…) te da una revisión,
   // porque el cliente me informó que está trabajando bien» (0231).
   revision: "Revisión",
+  // Rubí, buzón 15-10 (0503): enseñarle al personal del cliente a usar la
+  // máquina. Si se va a cobrar, es «Servicio facturable».
+  capacitacion: "Capacitación",
 };
 
 /** Si se cobra o no. Es la pregunta que el área contesta antes que ninguna. */
@@ -285,6 +288,7 @@ export const SE_COBRA: Record<ClasificacionAtencion, boolean> = {
   correctivo: true,
   facturable: true,
   revision: false,
+  capacitacion: false,
 };
 
 export const COLOR_CLASIFICACION: Record<ClasificacionAtencion, string> = {
@@ -293,6 +297,7 @@ export const COLOR_CLASIFICACION: Record<ClasificacionAtencion, string> = {
   correctivo: "bg-amber-500/10 text-amber-700",
   facturable: "bg-secondary text-foreground",
   revision: "bg-sky-500/10 text-sky-800",
+  capacitacion: "bg-violet-500/10 text-violet-800",
 };
 
 export interface Atencion {

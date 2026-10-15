@@ -44,3 +44,7 @@ test("un caso sin clasificar todavía no exige nada", () => {
   // caso que quizá ni siquiera era facturable.
   expect(caso({ clasificacion: null, cotizaciones: 0, motivo: null })).toBe(false);
 });
+
+test("la capacitación no se cobra, como la revisión (0503)", () => {
+  expect(caso({ clasificacion: "capacitacion", cotizaciones: 0, motivo: null })).toBe(false);
+});
