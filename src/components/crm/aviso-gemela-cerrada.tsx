@@ -26,6 +26,12 @@ import { fechaLimaCorta } from "@/lib/fechas";
  * fecha y el motivo de al lado para que pueda comprobarlo, y con el botón acá
  * mismo. NO archiva solo: puede ser otra consulta del mismo cliente, y eso solo
  * lo sabe quien lo atendió.
+ *
+ * `ultimaGestion` (Moisés, 15-10, Jaime Barahona): la otra ficha ya estaba
+ * cerrada cuando se abrió esta, pero se siguió anotando allá. Se dice qué y
+ * cuándo, porque la fecha del cierre sola no explica el aviso. Sale también en
+ * el panel de la agenda, que es donde la tarea vencida molesta: ahí
+ * `alArchivar` la saca del calendario sin recargar.
  */
 export function AvisoGemelaCerrada({
   oportunidadId,
@@ -33,12 +39,16 @@ export function AvisoGemelaCerrada({
   etapaGemela,
   cerradaAt,
   motivo,
+  ultimaGestion,
+  alArchivar,
 }: {
   oportunidadId: string;
   gemelaId: string;
   etapaGemela: string;
   cerradaAt: string;
   motivo?: string | null;
+  ultimaGestion?: { fecha: string; nota: string | null } | null;
+  alArchivar?: () => void;
 }) {
   const router = useRouter();
   const [archivando, startTransition] = useTransition();
@@ -52,6 +62,7 @@ export function AvisoGemelaCerrada({
         return;
       }
       toast.success("Archivada. Sale de sus pendientes y no cuenta como perdida; puede retomarla desde la cartera.");
+      alArchivar?.();
       router.refresh();
     });
   }
@@ -68,10 +79,16 @@ export function AvisoGemelaCerrada({
               ? `A este cliente ya se le vendió — el ${fechaLimaCorta(cerradaAt)}, en otra ficha suya`
               : `A este cliente ya lo cerró el ${fechaLimaCorta(cerradaAt)}, en otra ficha suya${motivo ? ` (${motivo})` : ""}`}
           </p>
+          {ultimaGestion && (
+            <p className="mt-1 text-xs text-foreground">
+              Y siguió anotando allá: la última gestión es del <b>{fechaLimaCorta(ultimaGestion.fecha)}</b>
+              {ultimaGestion.nota ? <> — «{ultimaGestion.nota.length > 140 ? `${ultimaGestion.nota.slice(0, 140)}…` : ultimaGestion.nota}»</> : null}.
+            </p>
+          )}
           <p className="mt-1 text-xs text-muted-foreground">
             {esVenta
               ? "Y acá no pasó nada después de esa venta. Si esta ficha es la misma consulta, seguirle pidiendo llamadas es trabajo repetido sobre un cliente que ya compró."
-              : "Y acá no pasó nada después de ese cierre. Si esta ficha es la misma consulta, lo que ya decidió allá vale también para esta."}{" "}
+              : `Y acá no pasó nada después de ${ultimaGestion ? "eso" : "ese cierre"}. Si esta ficha es la misma consulta, lo que ya decidió allá vale también para esta.`}{" "}
             Archivarla la saca de sus pendientes, <b className="text-foreground">no cuenta como perdida</b> y puede
             retomarla desde la cartera cuando quiera. Si es otra consulta distinta del mismo cliente, déjela y siga.
           </p>

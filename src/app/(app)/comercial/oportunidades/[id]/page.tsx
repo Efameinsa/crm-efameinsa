@@ -11,6 +11,7 @@ import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
 import { EstadoDelPedido } from "@/components/crm/estado-del-pedido";
 import { RegistroRapido } from "@/components/crm/registro-rapido";
 import { AvisoGemelaCerrada } from "@/components/crm/aviso-gemela-cerrada";
+import { gemelaQueYaResolvio } from "@/lib/gemela-cerrada";
 import { PideServicioBoton } from "@/components/crm/pide-servicio-boton";
 import { CambiarEtapa } from "@/components/crm/cambiar-etapa";
 import { ListaCotizaciones } from "@/components/crm/lista-cotizaciones";
@@ -185,8 +186,7 @@ export default async function OportunidadDetallePage({
     { data: asignacion },
     { data: primeraGestion },
     { data: gestionEnOtraFicha },
-    { data: ultimaGestionPropia },
-    { data: gemelaCerrada },
+    gemelaResuelta,
     tipificacionesWa,
   ] = await Promise.all([
     supabase.from("catalogo_rubros").select("id, nombre").eq("activo", true).order("nombre"),
@@ -240,19 +240,6 @@ export default async function OportunidadDetallePage({
           .limit(1)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    // La última vez que se HABLÓ CON EL CLIENTE en esta ficha: es la vara
-    // contra la que se mide si lo de la ficha gemela pasó después. Solo los
-    // tipos que cuentan como contacto (0090): una nota administrativa —como la
-    // que dejó el repuesto del histórico el 02-09 en media base— no es trabajo
-    // sobre el caso, y contarla taparía justamente el aviso que se busca.
-    supabase
-      .from("actividades")
-      .select("realizada_at")
-      .eq("oportunidad_id", id)
-      .in("tipo", ["llamada", "whatsapp", "email", "visita", "showroom", "reunion_online"])
-      .order("realizada_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
     //  · LA MISMA CONSULTA, YA RESUELTA EN LA FICHA DE AL LADO. Ariana, por
     //    Santos (09-09, con YOPLAC OCHOA LISSETH): «se repiten ahí, ya lo
     //    había puesto sin interés y no procede». El Excel trajo dos fichas de
@@ -262,18 +249,17 @@ export default async function OportunidadDetallePage({
     //    quien se le VENDIÓ el 03-09 mientras la ficha repetida la mandaba a
     //    llamar. La salida existe desde el 08-09 —archivar, que no cuenta
     //    como perdida— pero está dentro de un desplegable que hay que abrir:
-    //    nadie le decía que correspondía usarla.
-    cuenta?.id
-      ? supabase
-          .from("oportunidades")
-          .select("id, etapa, cerrada_at, catalogo_motivos_rechazo(nombre)")
-          .eq("cuenta_id", cuenta.id)
-          .neq("id", id)
-          .not("cerrada_at", "is", null)
-          .order("cerrada_at", { ascending: false })
-          .limit(1)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
+    //    nadie le decía que correspondía usarla. Desde el 15-10 (Moisés, Jaime
+    //    Barahona) cuenta también lo que se siguió anotando en la cerrada: ver
+    //    `gemelaQueYaResolvio`.
+    gemelaQueYaResolvio(supabase, {
+      id,
+      cuentaId: cuenta?.id ?? null,
+      etapa: oportunidad.etapa,
+      createdAt: oportunidad.created_at ?? null,
+      comercialId: oportunidad.comercial_id ?? null,
+      tipoPostventa: oportunidad.tipo_postventa ?? null,
+    }),
     // WhatsApp de campañas, fase 1 sin API (14-09-2026): el resultado vigente
     // de la conversación, si este contacto vino con un código de campaña.
     oportunidad.lead_id ? tipificacionesActuales([oportunidad.lead_id]) : Promise.resolve([]),
@@ -459,25 +445,10 @@ export default async function OportunidadDetallePage({
       ? "en la ficha del histórico: esa atención venía del Excel, de antes del CRM"
       : "en otra ficha de este mismo cliente";
 
-  // ¿ESTA FICHA YA NO TIENE NADA QUE HACER? Se muestra el aviso solo si esta
-  // sigue abierta y lo de la ficha gemela pasó DESPUÉS de lo último que se
-  // hizo acá: si acá hubo movimiento posterior, la que manda es esta y el
-  // aviso sería ruido.
-  const ETAPAS_CERRADAS = ["venta", "rechazada", "derivada", "historico"];
-  const gemela = gemelaCerrada as unknown as
-    | { id: string; etapa: string; cerrada_at: string; catalogo_motivos_rechazo: { nombre: string } | { nombre: string }[] | null }
-    | null;
-  const ultimoContactoAca = ultimaGestionPropia?.realizada_at ?? oportunidad.created_at ?? null;
-  const laConsultaSeResolvioAlLado =
-    gemela &&
-    !ETAPAS_CERRADAS.includes(oportunidad.etapa) &&
-    ultimoContactoAca &&
-    new Date(gemela.cerrada_at).getTime() > new Date(ultimoContactoAca).getTime()
-      ? gemela
-      : null;
-  const motivoGemela = Array.isArray(laConsultaSeResolvioAlLado?.catalogo_motivos_rechazo)
-    ? laConsultaSeResolvioAlLado.catalogo_motivos_rechazo[0]?.nombre
-    : laConsultaSeResolvioAlLado?.catalogo_motivos_rechazo?.nombre;
+  // ¿ESTA FICHA YA NO TIENE NADA QUE HACER? La misma consulta se resolvió (o
+  // se sigue llevando) en otra ficha de este cliente, después de lo último que
+  // se hizo acá: se avisa arriba de todo.
+  const laConsultaSeResolvioAlLado = gemelaResuelta;
 
   // «Así se quedó» (30-09): lo archivado del cliente, a la vista y sin contar
   // como trabajo. Sale de la historia que esta página ya carga.
@@ -732,8 +703,9 @@ export default async function OportunidadDetallePage({
               oportunidadId={oportunidad.id}
               gemelaId={laConsultaSeResolvioAlLado.id}
               etapaGemela={laConsultaSeResolvioAlLado.etapa}
-              cerradaAt={laConsultaSeResolvioAlLado.cerrada_at}
-              motivo={motivoGemela}
+              cerradaAt={laConsultaSeResolvioAlLado.cerradaAt}
+              motivo={laConsultaSeResolvioAlLado.motivo}
+              ultimaGestion={laConsultaSeResolvioAlLado.ultimaGestion}
             />
           )}
 

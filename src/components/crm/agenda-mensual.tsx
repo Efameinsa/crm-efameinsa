@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import { DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { ChevronLeft, ChevronRight, X, CalendarDays, Clock, Check, Trash2, Plus, Copy, Phone, Mail } from "lucide-react";
 import { toast } from "sonner";
-import { reprogramarAccion } from "@/lib/acciones/oportunidades";
+import { reprogramarAccion, consultaResueltaAlLado } from "@/lib/acciones/oportunidades";
+import { AvisoGemelaCerrada } from "@/components/crm/aviso-gemela-cerrada";
+import type { GemelaResuelta } from "@/lib/gemela-cerrada";
 import { crearTarea, actualizarTarea, eliminarTarea } from "@/lib/acciones/tareas";
 import { RegistroRapido, type ResultadoGestion, type MotivoRechazo } from "@/components/crm/registro-rapido";
 import { SelectorFecha } from "@/components/crm/selector-fecha";
@@ -153,6 +155,21 @@ export function AgendaMensual({
   const activa = arrastrando && !arrastrando.startsWith("t:") ? acciones.find((a) => a.id === arrastrando) : null;
   const tareaArrastrada = arrastrando?.startsWith("t:") ? tareas.find((t) => "t:" + t.id === arrastrando) : null;
   const seleccionada = seleccion ? acciones.find((a) => a.id === seleccion) : null;
+
+  // Moisés, 15-10 (Jaime Barahona): la tarea seguía vencida aunque ya había
+  // anotado «Sin interés» dos veces… en la otra ficha del cliente, la que ya
+  // estaba rechazada. Al abrir la tarjeta se pregunta si la consulta ya se
+  // resolvió al lado, y se ofrece archivar esta, como en la ficha.
+  const [alLado, setAlLado] = useState<{ id: string; gemela: GemelaResuelta } | null>(null);
+  useEffect(() => {
+    if (!seleccion) return;
+    let vigente = true;
+    consultaResueltaAlLado(seleccion)
+      .then((g) => { if (vigente) setAlLado(g ? { id: seleccion, gemela: g } : null); })
+      .catch(() => {});
+    return () => { vigente = false; };
+  }, [seleccion]);
+  const gemelaDeLaSeleccionada = alLado && alLado.id === seleccion ? alLado.gemela : null;
   const tareaAbierta = tareaSel ? tareas.find((t) => t.id === tareaSel) : null;
   const hechaAbierta = hechaSel ? hechas.find((h) => h.id === hechaSel) : null;
   const ventaAbierta = ventaSel ? ventas.find((v) => v.id === ventaSel) : null;
@@ -577,6 +594,22 @@ export function AgendaMensual({
                   </span>
                 )}
               </div>
+
+              {gemelaDeLaSeleccionada && (
+                <AvisoGemelaCerrada
+                  oportunidadId={seleccionada.id}
+                  gemelaId={gemelaDeLaSeleccionada.id}
+                  etapaGemela={gemelaDeLaSeleccionada.etapa}
+                  cerradaAt={gemelaDeLaSeleccionada.cerradaAt}
+                  motivo={gemelaDeLaSeleccionada.motivo}
+                  ultimaGestion={gemelaDeLaSeleccionada.ultimaGestion}
+                  alArchivar={() => {
+                    const id = seleccionada.id;
+                    setAcciones((prev) => prev.filter((a) => a.id !== id));
+                    cerrar();
+                  }}
+                />
+              )}
 
               <RegistroRapido oportunidadId={seleccionada.id} resultados={resultados} motivos={motivos} />
 

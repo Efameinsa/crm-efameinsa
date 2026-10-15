@@ -7,6 +7,7 @@ import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/li
 import { marcarLeidasDeOportunidad } from "@/lib/acciones/notificaciones";
 import { avisarGestionRegistradaEducanet, avisarLeadRespondidoEducanet } from "@/lib/avisos-educanet";
 import type { EtapaOportunidad } from "@/types/database";
+import { gemelaQueYaResolvio, type GemelaResuelta } from "@/lib/gemela-cerrada";
 
 const TIPOS_ACTIVIDAD = [
   "llamada",
@@ -551,6 +552,30 @@ export async function registrarGestionYDerivar(datos: {
     return { error: `La oportunidad quedó como pasada a otro, pero no se pudo guardar la nota: ${gestion.error}` };
   }
   return { error: null };
+}
+
+/**
+ * Para el panel de la agenda (Moisés, 15-10): ¿la consulta de este expediente
+ * ya se resolvió —o se sigue llevando— en otro del mismo cliente? Lo mismo que
+ * avisa la ficha del expediente (`gemelaQueYaResolvio`), pedido al abrir la
+ * tarjeta para no cargarlo para toda la agenda.
+ */
+export async function consultaResueltaAlLado(oportunidadId: string): Promise<GemelaResuelta | null> {
+  const supabase = await createClient();
+  const { data: op } = await supabase
+    .from("oportunidades")
+    .select("id, cuenta_id, etapa, created_at, comercial_id, tipo_postventa")
+    .eq("id", oportunidadId)
+    .maybeSingle();
+  if (!op) return null;
+  return gemelaQueYaResolvio(supabase, {
+    id: op.id,
+    cuentaId: op.cuenta_id,
+    etapa: op.etapa,
+    createdAt: op.created_at,
+    comercialId: op.comercial_id,
+    tipoPostventa: op.tipo_postventa,
+  });
 }
 
 /**
