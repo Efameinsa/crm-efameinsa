@@ -284,7 +284,7 @@ export function VistaCierre({
     setEditando(false);
   }
   // «Editar»: si la ventana sigue viva se entra directo; si no, el cuadro
-  // del motivo y el código. El código lo dicta Central o gerencia por teléfono
+  // del motivo y el código. El código lo dicta Central por teléfono (Santos 15-10: en pantalla solo Central)
   // (desde el 15-10, 0494: antes también Lesly; Carlos lo pasó a Central).
   // Desde el 30-09 la corrección se hace en el MISMO formulario del cierre
   // (/editar), no en esta vista: Gabriela no reconocía la pantalla y no
@@ -827,8 +827,8 @@ export function VistaCierre({
           <DialogHeader>
             <DialogTitle>Corregir el informe N.º {informe.codigo}</DialogTitle>
             <DialogDescription>
-              Un cierre emitido solo se corrige con autorización. Diga qué está mal y pida el código de cuatro dígitos a Central
-              (o a gerencia): abre media hora para corregir en esta misma pantalla. La versión de hoy queda archivada y el
+              Un cierre emitido solo se corrige con autorización. Diga qué está mal y pida el código de cuatro dígitos a Central:
+              abre media hora para corregir en esta misma pantalla. La versión de hoy queda archivada y el
               PDF sale corregido.
             </DialogDescription>
           </DialogHeader>
@@ -852,7 +852,7 @@ export function VistaCierre({
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-foreground" htmlFor="codigo-correccion">
-                Código de Central o gerencia
+                Código de Central
               </label>
               <CampoCodigo id="codigo-correccion" valor={pin} onChange={setPin} autoFocus={motivo.trim().length >= MOTIVO_MIN} />
             </div>

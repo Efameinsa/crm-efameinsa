@@ -591,7 +591,7 @@ export async function agregarAdjuntosInforme(
     const { data: ventana } = pin ? { data: null } : await supabase.rpc("correccion_informe_abierta", { p_informe: informeId });
     if (!pin && !ventana) {
       return {
-        error: "El expediente de un cierre emitido está sellado: pida el código a Central o a gerencia.",
+        error: "El expediente de un cierre emitido está sellado: pida el código a Central.",
         requiereCodigo: true,
       };
     }

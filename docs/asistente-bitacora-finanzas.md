@@ -18,7 +18,7 @@ Vigente al 15-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 - **Alcance del visto bueno:** Carlos dijo que no se hace la apertura «si y solo si está pagado o validado por Finanzas». Coincide con la regla vigente (todo lo que no está pagado al 100 % pide visto bueno).
 - **Orden de servicio y orden de compra:** los clientes grandes que trabajan con plataforma no se pueden facturar sin su orden de servicio. Central lo revisa antes de pasar el cierre; si falta, se le pide al comercial. Caso: NEWREST (OPEN 057-2026), corregido el 15-10 para agregarla.
 - **Moneda:** todo se vende en dólares. Si el cliente paga en soles con el tipo de cambio de la empresa, el cierre sigue en dólares (consorcio del Portal Marqués).
-- **Correcciones de cierre:** desde el 15-10 las autoriza Central (o gerencia), no Lesly. Si el pedido ya existe, Finanzas recibe el aviso cuando cambia algo de facturación o pago.
+- **Correcciones de cierre:** desde el 15-10 las autoriza Central, no Lesly. Si el pedido ya existe, Finanzas recibe el aviso cuando cambia algo de facturación o pago.
 
 ### 14-10 (tarde) · Nuevo anticipo por facturar y cierre anulado de AGROCASAGRANDE
 - **Un pedido puede facturarse una vez por anticipo** (buzón de Jhon). Caso: PRODECO (PED-0010-2026) pagó un primer adelanto el 30-09, se liquidó y se facturó (E001-826). Luego hizo dos pagos a cuenta más, para facturar como 2.º adelanto, pero la liquidación nueva no le aparecía a Facturación.
