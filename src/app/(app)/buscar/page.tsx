@@ -142,6 +142,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
                         </Link>
                       )}
                     </span>
+                    {r.nota && <p className="basis-full text-xs text-muted-foreground">{r.nota}</p>}
                   </li>
                 ))}
               </ul>
