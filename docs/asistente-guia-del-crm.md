@@ -1,6 +1,6 @@
 # Base de conocimiento del CRM Efameinsa
 
-Vigente al 14-10-2026 (tarde). Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
+Vigente al 15-10-2026. Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
 
 ## 0. Cómo usar este documento
 
@@ -195,7 +195,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Pasos:**
   1. **«Despacho verificado por postventa».** Es el doble check. No se da si las letras siguen pendientes de entrega, y **el código de gerencia no lo salta**.
   2. **«Letras entregadas al cliente»**, con fotos y con quién las recibió.
-  3. **Puesta en marcha** con su informe por equipo («¿De qué equipo es este informe?»), fotos y lectura de ciclos. En repuestos: «Repuesto instalado». En servicios: «Mantenimiento/Revisión ejecutado, con informe».
+  3. **Puesta en marcha** con su informe por equipo («¿De qué equipo es este informe?»), fotos y lectura de ciclos. Desde el 14-10 el informe se llena por partes: detalle del trabajo realizado, puesta en marcha, contador de ciclos, observaciones, solución y recomendaciones (lo vacío no se imprime). En repuestos: «Repuesto instalado». En servicios: «Mantenimiento/Revisión ejecutado, con informe».
   4. **«Informe enviado» al cliente.** Para marcarlo hay que subir una constancia.
   5. **«Orden a Finanzas para facturar y cobrar».** Aparece cuando se pagó menos del 100 % antes del despacho (crédito o saldo). Finanzas la marca «atendida».
   6. **«Pedido cerrado».**
@@ -232,7 +232,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - si pierde un cliente por traspaso, los datos de postventa de ese cliente (los ve el nuevo dueño).
 - **Puede:**
   - registrar gestiones, cotizar, emitir cierres de sus clientes;
-  - **pedir la anulación** de su cierre («Pedir la anulación», con motivo);
+  - **pedir la anulación** de su cierre («Pedir la anulación», con motivo) o, desde el 14-10, **anularlo él mismo con código** de operaciones o gerencia («Anular con código»);
   - pedir expedientes o clientes ajenos con código (ver 3.1);
   - pasar contactos a Central;
   - **pedir Infocorp** desde el expediente (desde el 12-10: Central lo obtiene y lo sube, con visibilidad restringida);
@@ -240,7 +240,6 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **No puede:**
   - corregir lo ya numerado sin código;
   - crear rubros nuevos (solo elige de la lista);
-  - anular un cierre él mismo;
   - crear cierres en cartera ajena.
 - **WhatsApp:** trabaja en la bandeja del CRM. La línea personal está cerrada salvo excepción (ver 3.9).
 - **Acceso:** solo desde la oficina (gerencia, 23-09). Excepción: los perfiles de **trabajo de campo** (piloto de C1 desde el 01-10), con ubicación del celular y consentimiento escrito.
@@ -353,6 +352,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - «Facturados»;
   - «Enviada al cliente».
 - **Autoriza las guías** de las aperturas (desde el 12-10) indicando el motivo de la guía (desde el 14-10) y el comprobante.
+- **Varios anticipos** (desde el 14-10): un pedido ya facturado vuelve a «Por facturar», con el aviso «Nuevo anticipo por facturar», cuando Finanzas sube una liquidación nueva con «factura pendiente» después de la última factura. Registrada la factura nueva, Finanzas actualiza la liquidación con el número.
 - **A crédito factura cuando postventa da la orden** (14-10): los días de crédito corren desde la factura, así que se espera a que el cliente confirme que el equipo llegó y está conforme.
 
 ### 2.8 Importaciones
@@ -574,11 +574,13 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 **Anular un cierre**
 - El comercial **pide la anulación** desde la vista de su cierre, con motivo. Llega a operaciones y gerencia, y en Central aparece arriba en un recuadro amarillo.
-- **Operaciones, Central o gerencia anulan con código.**
+- **Operaciones, Central, gerencia o quien emitió el cierre anulan con código** (el de operaciones o gerencia). Desde el 14-10, quien emitió el cierre ve «Anular con código» junto a «Pedir anulación»; antes solo podía pedirla.
 - **Qué pasa al anular:**
   - la venta cae y el pedido se cierra solo;
   - si era un duplicado, la venta pasa al cierre que lo reemplaza;
   - el comercial recibe aviso con el motivo;
+  - si no lo anuló Central, Central recibe aviso con quién lo anuló y el motivo; Finanzas también, si ya tenía el pedido;
+  - el cierre queda en la pestaña «Anulados» de Cierres de venta, con su motivo;
   - después se rehace lo que corresponda (cotización y cierre nuevos, con aprobación si baja de lista).
 - Gerencia: «no se anuló una venta, se anuló un papel».
 
@@ -655,10 +657,10 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - en la hoja de chequeo, si hay plantilla, al menos una casilla marcada (desde el 14-10 no se exigen todas: se marca solo lo que corresponde).
 - **El N.º de protocolo ya no se exige** (Santos, 14-10: «en ese documento no va el número de protocolo»). Es opcional.
 - **Excepciones:**
-  - Las máquinas con hoja de chequeo en el sistema (hoy, la lavadora) no exigen PDF ni Word, porque el sistema ya lo genera.
-  - Calandria, secadora y prensa sí lo exigen hasta que tengan su plantilla (pendiente).
+  - Las máquinas con hoja de chequeo en el sistema (lavadora, secadora —también la de una torre—, desmanchadora, prensa de planchado, rodillo o calandria y calderín) no exigen PDF ni Word, porque el sistema ya lo genera.
+  - Las que no tienen hoja (centrífuga, ablandador y otras) sí lo exigen.
   - El repuesto solo pide protocolo, foto y técnico.
-- **Hoja «PROTOCOLO DE LAVADORA»:** replica el papel, casilla por casilla. Cada renglón se marca ✓, ✗ o **«N/A»**. Desde el 14-10 basta con marcar lo que corresponde (al menos una casilla); los vacíos ya no frenan.
+- **Hojas de chequeo** (lavadora desde el 13-10; secadora, desmanchadora, prensa, rodillo/calandria y calderín desde el 14-10): replican el papel, casilla por casilla. Prensa, rodillo y calderín se marcan por tipo de energía (gas, eléctrico, vapor). Cada renglón se marca ✓, ✗ o **«N/A»**. Desde el 14-10 basta con marcar lo que corresponde (al menos una casilla); los vacíos ya no frenan.
 - **Protocolo de equipo en stock** (desde el 14-10, pedido de Lesly): en Almacén → pestaña **«Protocolos»** se puede hacer el protocolo de una máquina que todavía no tiene pedido, por su serie, con la misma hoja (ficha, fotos, video, PDF y hoja de chequeo). Al darlo por terminado pasa solo a la máquina del pedido que tenga esa serie, y en el pedido solo falta marcar «Probada y embalada». Desde que pasó al pedido, se corrige en el pedido.
 - **Pestaña «Protocolos»** (Almacén): lista todos los protocolos, de pedidos y de stock, con N.º, serie, técnico, fecha y estado; tiene buscador y filtros.
 - **El video de la prueba es opcional** y no reemplaza al protocolo.
@@ -791,7 +793,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - Central puede entregar el file a postventa enlazado al pedido;
   - por qué: antes se usaba un cuaderno de cargos, «cero control»;
   - los cierres nuevos pueden no estar aún en el inventario (por confirmar cómo pedirlos).
-- **Visitas a planta:** «Viene a la planta» avisa a Central, almacén y logística, y genera la hoja para vigilancia. También existe «Registrar visita de proveedor».
+- **Visitas a planta:** «Viene a la planta» avisa a Central, almacén y logística, y genera la hoja para vigilancia. Desde el 14-10 a Central y al almacén les sale un **mensaje grande** al centro de la pantalla, con campanada, que se queda hasta pulsar «Entendido» (o «Imprimir para vigilancia» / «Ver las visitas»); si el CRM estaba cerrado, aparece al entrar. También existe «Registrar visita de proveedor».
 
 ### 3.11 Códigos de autorización (cómo funcionan, sin valores)
 
@@ -918,7 +920,7 @@ OPEN es la primera opción (gerencia, 23-09). Para elegir EFAMEINSA, el CRM le p
 Revise que tenga lugar de entrega, condición de pago (porcentaje antes del despacho y días de crédito), a quién se factura y los documentos (voucher u OC; la cotización enlazada ya cuenta). Si es a crédito, declárelo: no lleva voucher. Si el RUC no coincide con la ficha, el CRM lo avisa arriba. (1.6, 3.5)
 
 **9. Me equivoqué en un cierre ya emitido. ¿Qué hago?**
-Un cierre emitido está sellado. Para corregirlo o agregarle documentos hace falta motivo y código de operaciones o gerencia; se crea una versión nueva. Si la venta se cayó, pida la anulación desde la vista de su cierre. Anular lo hacen operaciones, Central o gerencia con código. (3.5)
+Un cierre emitido está sellado. Para corregirlo o agregarle documentos hace falta motivo y código de operaciones o gerencia; se crea una versión nueva. Si la venta se cayó, pida la anulación desde la vista de su cierre. Anular lo hacen operaciones, Central, gerencia o usted mismo, con código de operaciones o gerencia. (3.5)
 
 **10. Central me devolvió el cierre. ¿Lo perdí?**
 No. Devolver no es anular: el número se conserva. Lo verá arriba en «Mis cierres» con el motivo. Corríjalo y responda «ya lo corregí» para que vuelva a Central. (3.5)
@@ -966,7 +968,7 @@ Por orden de gerencia del 09-10: Central no deriva a postventa sin autorización
 «Corregir la derivación» pide el código del supervisor. Si fue un aviso a otras áreas, use «Revertir» en «Lo que derivé», también con código. Si lo que está mal es el texto o el cliente de la solicitud, use el lápiz de «Inicio · lo que solicitó el cliente». (3.10)
 
 **25. ¿Por qué el almacén no puede marcar «Probada y embalada»?**
-Porque falta algo del protocolo de alguna máquina: una foto, el PDF o Word (salvo la lavadora con hoja en el sistema), la ficha con modelo, serie y técnico, o la hoja de chequeo sin ninguna casilla marcada. El N.º de protocolo ya no se pide (desde el 14-10). El botón lista lo que falta; para un pedido concreto, consulte qué le falta a cada máquina. (3.7)
+Porque falta algo del protocolo de alguna máquina: una foto, el PDF o Word (salvo las máquinas con hoja en el sistema), la ficha con modelo, serie y técnico, o la hoja de chequeo sin ninguna casilla marcada. El N.º de protocolo ya no se pide (desde el 14-10). El botón lista lo que falta; para un pedido concreto, consulte qué le falta a cada máquina. (3.7)
 
 **26. Ya marcamos «probada y embalada» pero hay que cambiar algo.**
 Hace falta el código de operaciones (Lesly) y un motivo. Lo marcado como probado queda bloqueado a propósito. (3.7)
