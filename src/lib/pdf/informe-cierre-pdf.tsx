@@ -77,6 +77,8 @@ export interface InformeCierrePdfProps {
   contactoDespacho: ContactoInforme;
   modalidadPago: string[];
   formaPago: "transferencia" | "deposito" | null;
+  /** N.º de operación del pago, si ya pagó (0493). */
+  numeroOperacion?: string | null;
   moneda: string;
   notaCondiciones: string | null;
   /** La condición como dato (0232): % pagado antes del despacho y días del saldo. */
@@ -342,7 +344,7 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
   const {
     logoBuffer, serie, codigo, fecha, referencia, asunto, presupuestoRef,
     comprobante, clienteNuevo, cliente, contactoVenta, contactoContabilidad, contactoDespacho,
-    modalidadPago, formaPago, moneda, notaCondiciones, pctAntesDespacho, creditoDias, garantia, entrega, notaDespacho, urgente,
+    modalidadPago, formaPago, numeroOperacion, moneda, notaCondiciones, pctAntesDespacho, creditoDias, garantia, entrega, notaDespacho, urgente,
     incluye, gratis, notaFinal, items, itemsGratuitos, adjuntos, compendio, firma, sinMontos = false,
   } = props;
   const monto = (v: number) => cifra(v, sinMontos);
@@ -484,6 +486,12 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
           <Casilla estilos={estilos} marcada={formaPago === "transferencia"} texto="Transferencia" />
           <Casilla estilos={estilos} marcada={formaPago === "deposito"} texto="Depósito" />
         </View>
+        {numeroOperacion && (
+          <View style={estilos.datoFila}>
+            <Text style={estilos.datoEtiqueta}>N.º de operación:</Text>
+            <Text style={estilos.datoValor}>{numeroOperacion}</Text>
+          </View>
+        )}
         {/* La garantía, rotulada y con las condiciones de venta, que es donde
             Central y postventa la buscan: de acá sale el plazo que después
             fija `garantia_hasta` de cada equipo instalado. Antes estaba al

@@ -1,3 +1,4 @@
+import { requerirRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ListaDelSistema, type ItemLista } from "@/components/crm/lista-del-sistema";
 
@@ -29,6 +30,9 @@ interface FilaUso {
 }
 
 export default async function CatalogosPage() {
+  // Propio desde el 15-10: el layout de /admin ahora deja pasar a gerencia
+  // (solo para la auditoría del asistente).
+  await requerirRol(["admin", "operaciones"]);
   const supabase = await createClient();
   const { data } = await supabase.rpc("uso_de_listas");
   const filas = (data ?? []) as unknown as FilaUso[];

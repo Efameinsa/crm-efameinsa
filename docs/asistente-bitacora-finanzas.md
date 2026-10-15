@@ -12,6 +12,14 @@ Vigente al 15-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 
 ## Cronología de decisiones que tocan su trabajo
 
+### 15-10 09:53 · Reunión de Carlos con Santos
+- **Sin pago confirmado o validado por Finanzas no hay apertura.** La apertura es la orden de despacho: el almacén despacha lo que dice, sin mirar pagos. Postventa confirma antes con Finanzas («¿ya tienes las letras?») y avisa al almacén. El CRM ya lo frena desde el 14-10.
+- **Lo que Carlos vio en COFACO:** el comercial avisó por correo que las letras viajaban con el transportista; Finanzas recién las estaba haciendo y luego tuvo que perseguir el equipo para entregarlas. «La letra es dinero»: en condiciones normales se firma la letra y recién se despacha. Con un cliente grande, gerencia puede acordar que viajen con el chofer, coordinado con postventa.
+- **Alcance del visto bueno:** Carlos dijo que no se hace la apertura «si y solo si está pagado o validado por Finanzas». Coincide con la regla vigente (todo lo que no está pagado al 100 % pide visto bueno).
+- **Orden de servicio y orden de compra:** los clientes grandes que trabajan con plataforma no se pueden facturar sin su orden de servicio. Central lo revisa antes de pasar el cierre; si falta, se le pide al comercial. Caso: NEWREST (OPEN 057-2026), corregido el 15-10 para agregarla.
+- **Moneda:** todo se vende en dólares. Si el cliente paga en soles con el tipo de cambio de la empresa, el cierre sigue en dólares (consorcio del Portal Marqués).
+- **Correcciones de cierre:** desde el 15-10 las autoriza Central (o gerencia), no Lesly. Si el pedido ya existe, Finanzas recibe el aviso cuando cambia algo de facturación o pago.
+
 ### 14-10 (tarde) · Nuevo anticipo por facturar y cierre anulado de AGROCASAGRANDE
 - **Un pedido puede facturarse una vez por anticipo** (buzón de Jhon). Caso: PRODECO (PED-0010-2026) pagó un primer adelanto el 30-09, se liquidó y se facturó (E001-826). Luego hizo dos pagos a cuenta más, para facturar como 2.º adelanto, pero la liquidación nueva no le aparecía a Facturación.
   - Ahora, si Finanzas sube una liquidación con «factura pendiente» **después** de la última factura del pedido, el pedido vuelve a «Por facturar» con el aviso «Nuevo anticipo por facturar» y la nota de Finanzas. A Facturación también le llega a la campana.
@@ -187,7 +195,7 @@ Dos excepciones: los pedidos **sin cobro** (garantía, servicio desde un caso) n
 - **Julca:** confirmar que la factura con la serie errada se corrigió.
 
 **Esperan a gerencia (Carlos)**
-- **Alcance del visto bueno:** ¿todo crédito o solo ventas con letras? Hoy aplica a todo crédito. Si Carlos decide «solo letras», la regla se afloja.
+- **Alcance del visto bueno:** ¿todo crédito o solo ventas con letras? Hoy aplica a todo crédito. El 15-10 Carlos dijo que sin pago o sin validación de Finanzas no hay apertura, lo que coincide con la regla vigente (por confirmar si cierra la pregunta).
 - **Facturación como primera opción OPEN:** vigente desde el 23-09; no hay cambios anunciados.
 - **Acceso de Finanzas a Infocorp** (por confirmar si se quiere).
 

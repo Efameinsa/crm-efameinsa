@@ -112,6 +112,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       contactoDespacho={informe.contacto_despacho ?? {}}
       modalidadPago={informe.modalidad_pago ?? []}
       formaPago={informe.forma_pago}
+      numeroOperacion={informe.numero_operacion}
       moneda={informe.moneda}
       notaCondiciones={informe.nota_condiciones}
       pctAntesDespacho={informe.pct_antes_despacho == null ? null : Number(informe.pct_antes_despacho)}

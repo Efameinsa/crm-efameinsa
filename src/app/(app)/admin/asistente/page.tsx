@@ -61,7 +61,8 @@ export default async function AuditoriaAsistentePage({
 }: {
   searchParams: Promise<{ persona?: string; dias?: string; estado?: string; q?: string }>;
 }) {
-  await requerirRol(["admin"]);
+  // Gerencia también (Carlos, 15-10: quiere leer lo que el personal le pregunta).
+  await requerirRol(["admin", "gerencia"]);
   const filtro = await searchParams;
   const dias = [1, 7, 30, 90].includes(Number(filtro.dias)) ? Number(filtro.dias) : 7;
   const desde = new Date(Date.now() - dias * 86_400_000).toISOString();
@@ -91,7 +92,7 @@ export default async function AuditoriaAsistentePage({
   // Los adjuntos se abren con un enlace firmado de una hora. Se firman con la
   // llave de servicio porque las copias del asistente (carpeta asistente/ del
   // bucket «adjuntos») no tienen política para nadie: esta pantalla ya pasó
-  // requerirRol(["admin"]) y solo firma rutas de esa carpeta.
+  // requerirRol(["admin", "gerencia"]) y solo firma rutas de esa carpeta.
   const rutas = filas.flatMap((f) => (f.adjuntos ?? []).map((a) => a.ruta)).filter((r): r is string => Boolean(r?.startsWith("asistente/")));
   const firmadas = new Map<string, string>();
   if (rutas.length) {

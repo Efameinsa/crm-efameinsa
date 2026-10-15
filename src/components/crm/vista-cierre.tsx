@@ -79,6 +79,7 @@ export interface InformeVista {
   orden_compra: string | null;
   modalidad_pago: string[];
   forma_pago: string | null;
+  numero_operacion: string | null;
   comprobante: string | null;
   nota_condiciones: string | null;
   entrega_fecha: string | null;
@@ -133,6 +134,7 @@ interface Borrador {
   urgente: boolean;
   modalidad_pago: string;
   forma_pago: string;
+  numero_operacion: string;
   comprobante: string;
   nota_condiciones: string;
   entrega_fecha: string;
@@ -170,6 +172,7 @@ function aBorrador(i: InformeVista): Borrador {
     urgente: i.urgente,
     modalidad_pago: i.modalidad_pago.join("\n"),
     forma_pago: i.forma_pago ?? "",
+    numero_operacion: i.numero_operacion ?? "",
     comprobante: i.comprobante ?? "",
     nota_condiciones: i.nota_condiciones ?? "",
     entrega_fecha: i.entrega_fecha ?? "",
@@ -281,7 +284,8 @@ export function VistaCierre({
     setEditando(false);
   }
   // «Editar»: si la ventana sigue viva se entra directo; si no, el cuadro
-  // del motivo y el código. El código lo dicta Lesly o gerencia por teléfono.
+  // del motivo y el código. El código lo dicta Central o gerencia por teléfono
+  // (desde el 15-10, 0494: antes también Lesly; Carlos lo pasó a Central).
   // Desde el 30-09 la corrección se hace en el MISMO formulario del cierre
   // (/editar), no en esta vista: Gabriela no reconocía la pantalla y no
   // encontraba dónde subir el voucher. El editor en línea de abajo queda sin uso.
@@ -488,7 +492,7 @@ export function VistaCierre({
                   <p className="text-xs text-muted-foreground">
                     {informe.cliente_doc && <span className="font-mono">{informe.cliente_doc}</span>}
                     {informe.cliente_doc && informe.cliente_correo && " · "}
-                    {informe.cliente_correo}
+                    {informe.cliente_correo && <span className="select-all">{informe.cliente_correo}</span>}
                   </p>
                   {informe.cliente_direccion && <p className="text-xs text-muted-foreground">{informe.cliente_direccion}</p>}
                 </div>
@@ -667,6 +671,9 @@ export function VistaCierre({
                 <Campo etiqueta="Forma">
                   <Selector value={b.forma_pago} onChange={(v) => set("forma_pago", v)} opciones={FORMA_PAGO} />
                 </Campo>
+                <Campo etiqueta="N.º de operación">
+                  <Input value={b.numero_operacion} onChange={(e) => set("numero_operacion", e.target.value)} className="font-mono" />
+                </Campo>
                 <Campo etiqueta="Comprobante">
                   <Selector value={b.comprobante} onChange={(v) => set("comprobante", v)} opciones={COMPROBANTE} />
                 </Campo>
@@ -690,6 +697,11 @@ export function VistaCierre({
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
+                {informe.numero_operacion && (
+                  <p className="text-xs text-muted-foreground">
+                    N.º de operación: <span className="select-all font-mono text-foreground">{informe.numero_operacion}</span>
+                  </p>
+                )}
                 {informe.nota_condiciones && <p className="text-xs text-muted-foreground">{informe.nota_condiciones}</p>}
               </div>
             )}
@@ -782,7 +794,7 @@ export function VistaCierre({
             {emitido && !anulado && (
               <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
                 {ventanaViva
-                  ? `Con la autorización de ${ventana?.autorizo ?? "operaciones"} los documentos se agregan sin otro código. Quitar no se puede: el expediente solo crece.`
+                  ? `Con la autorización de ${ventana?.autorizo ?? "Central"} los documentos se agregan sin otro código. Quitar no se puede: el expediente solo crece.`
                   : "Agregar pide el código y queda firmado. Quitar no se puede: el expediente solo crece."}
               </p>
             )}
@@ -815,8 +827,8 @@ export function VistaCierre({
           <DialogHeader>
             <DialogTitle>Corregir el informe N.º {informe.codigo}</DialogTitle>
             <DialogDescription>
-              Un cierre emitido solo se corrige con autorización. Diga qué está mal y pida el código de cuatro dígitos a Lesly
-              (operaciones) o a gerencia: abre media hora para corregir en esta misma pantalla. La versión de hoy queda archivada y el
+              Un cierre emitido solo se corrige con autorización. Diga qué está mal y pida el código de cuatro dígitos a Central
+              (o a gerencia): abre media hora para corregir en esta misma pantalla. La versión de hoy queda archivada y el
               PDF sale corregido.
             </DialogDescription>
           </DialogHeader>
@@ -840,7 +852,7 @@ export function VistaCierre({
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-foreground" htmlFor="codigo-correccion">
-                Código de Lesly o gerencia
+                Código de Central o gerencia
               </label>
               <CampoCodigo id="codigo-correccion" valor={pin} onChange={setPin} autoFocus={motivo.trim().length >= MOTIVO_MIN} />
             </div>

@@ -17,6 +17,21 @@ Vigente al 15-10-2026. Complementa la «Bitácora del CRM» general (asistente-b
 
 ## Cronología
 
+### 15-10 · Reunión de Carlos con Santos (09:53)
+- **Casos de cierre:**
+  - **NEWREST (OPEN 057-2026):** el cierre pasó los checks de Central sin la orden de servicio; Brenda lo corrigió con el código de Lesly. Carlos detuvo el avance a propósito «para ver quién reacciona». Desde ese día el código de corrección de cierres lo da Central, coordinando con Carlos.
+  - **Inversiones EIP (Ilo):** se le cotizó US$ 425 el 24-09 sin descuento; la clienta pidió que se le respete la cotización del 20-03 (US$ 399). La demora que reclama (un mes) se debió a que se le vendieron repuestos aparte (unos US$ 500 por máquina y US$ 941 en la otra). Carlos aprobó tratarlo **como paquete** pese a la fecha: se le confirma, paga y recién se regulariza la cotización y se hace el cierre. Si pide la cotización antes, se le manda.
+  - **Consorcio del Portal Marqués:** pagó en soles con el tipo de cambio de la empresa; el cierre sigue en dólares.
+- **Campañas de Facebook y «no contesta».** Carlos vio en la agenda que casi todo dice «no contesta» y pidió un doble check. Medición del 15-10 (WhatsApp de campañas de los últimos 14 días, 614 contactos): en la agenda abierta, la mitad (141 de 278) tiene como última gestión «No contestó». Del total, el 24 % quedó en «No contestó», el 34 % en «Sin interés / no procede» y el 22 % sin ninguna gestión. Por semana, los «no contestó» bajaron de 27 % (semana del 28-09) a 17-20 %. Por campaña, M3-PERU y M4-PERU están cerca de un tercio; M5-PERU y M9-PERU, por debajo del 15 %.
+- **Marketing (lo que contó Santos y lo que pidió Carlos):**
+  - Unos 50 correos con imágenes listos y la cuenta de envío de Amazon confirmada (dominio y dirección validados). Santos le manda 10 a Carlos para que los revise.
+  - **SEO:** la autoridad de la marca ya existe («todo el mundo habla de nosotros»); para reforzarla hacen falta artículos revisados por un técnico, con toque humano y **firmados por una persona real** (Carlos, Katherine u otra con LinkedIn), publicados en una sección de noticias de la web. Un alias no sirve.
+  - **Enlaces de otros sitios (backlinks):** Carlos pidió no perderlo de vista: de menos a más (unos 50 para empezar), con proveedores de sitios afines y con tráfico, y con auditoría de los enlaces. Comprar a cualquiera perjudica.
+  - **Imágenes de la web:** Santos las deja corriendo hoy.
+  - **Contenido orgánico:** a Carlos le preocupa que no haya nada orgánico mientras corren las campañas. Hace falta una persona para videos: Carlos pidió un **perfil de asistente para cámara** (buena dicción y buena actitud), con funciones generales y sin un detalle que asuste. Los técnicos pueden salir en videos con frases muy puntuales.
+  - Micrófono (lo gestiona Santos; si no llega, se compra igual), luces, firma de correo con alternativas y stickers con la misma línea gráfica.
+- **Desempeño:** Rubí es quien más reporta en el buzón, pero recién desde hace tres días, con más de un mes y medio de CRM; Carlos quiere más retroalimentación. Ariana está a cargo de las llamadas y el seguimiento de prospectos de postventa: Carlos le da la oportunidad por su actitud.
+
 ### 14-10
 - **Fichas unidas que cambian cartera:**
   - **Abzul:** tenía una ficha en C1 (Brenda, con la venta de agosto y los casos de postventa) y otra con RUC en C5 (Katerine, con notas de 2024 y los equipos de la guía). Santos decidió unirlas en la de Brenda; **Katerine pierde esa ficha** de su cartera. Origen: Rubí no veía la cotización de Ariana.
@@ -305,6 +320,11 @@ Vigente al 15-10-2026. Complementa la «Bitácora del CRM» general (asistente-b
 ---
 
 ## Pendientes de gerencia
+
+**Del 15-10**
+- **Carteras de C6 y C9:** a quién se entregan (los dos usuarios se desactivaron el 15-10).
+- **Perfil de asistente para cámara** (Santos lo prepara) y los 10 correos para que Carlos los revise.
+- **Por qué tantos contactos de Facebook quedan en «no contesta»:** revisar la calidad de las campañas M3 y M4.
 
 **Publicidad y marketing**
 1. **Presupuesto de Google:** hoy el tope es S/ 250 al día (07-10). Falta elegir entre el techo de S/ 7.800 al mes (06-10) y los escenarios A, B o C (07-10). Revisión del tope ~15-16-10.
