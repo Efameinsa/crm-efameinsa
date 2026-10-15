@@ -18,6 +18,11 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 15-10 (tarde) · Central: «no puedo abrir el expediente de TERRANOVA REPRESENTACIONES»
+- **Qué pasó:** en «Buscar en todo el CRM» solo salía un contacto de Central, sin botón «Abrir».
+- **Por qué:** no era cliente. Fue una llamada de 2019 que nunca llegó a cotización ni compra, importada de los Excel de Central sin ficha. La misma persona (mismo celular) escribió en octubre por otra empresa, que sí tiene ficha y comercial.
+- **Qué se hizo:** el buscador ahora explica por qué un contacto no tiene expediente, muestra la fecha en que llamó (no la del pase al CRM) y, si el celular es hoy contacto de un cliente, «Abrir» lleva a esa ficha.
+
 ### 15-10 (tarde) · Rubí: quien recibe el equipo puede ser una empresa
 - **Qué pidió:** en «Dirección y quién recibe» del pedido, poder poner la razón social y el RUC cuando recibe una empresa (caso Portal del Marqués), no solo nombre y DNI de una persona.
 - **Qué se hizo:** el cuadro pregunta primero «Una persona (nombre y DNI)» o «Una empresa (razón social y RUC)». El RUC se revisa al guardarlo (que exista, para atajar un dígito mal tecleado). La apertura de despacho lo imprime como «RUC: …». Sigue siendo obligatorio uno de los dos: sin él la agencia no entrega.

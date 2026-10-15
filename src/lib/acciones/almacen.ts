@@ -189,6 +189,21 @@ export async function agregarArchivosDelEquipo(itemId: string, servicioId: strin
 }
 
 /**
+ * Quitar una foto o documento subido por error a la máquina (0504; Ariana,
+ * 15-10, OPEN 060-2026). Si ya está probada y embalada pide el código (0450).
+ */
+export async function quitarArchivoDelEquipo(itemId: string, servicioId: string, path: string) {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("quitar_archivo_del_equipo", { p_item: itemId, p_path: path });
+  if (error) return { error: limpiar(error.message) };
+  revalidatePath(`/almacen/pedidos/${servicioId}`);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath(`/pedidos/${servicioId}/protocolo`);
+  return { error: null };
+}
+
+/**
  * LA FECHA REAL DEL PROTOCOLO (0416; Ariana, 07-10: «colocar la fecha en la que
  * realmente se efectuó, especialmente cuando el protocolo fue realizado
  * anteriormente al registro en el CRM»). Se corrige desde el informe.
