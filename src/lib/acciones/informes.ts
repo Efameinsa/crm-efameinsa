@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { enviarEventoMeta } from "@/lib/meta-capi";
 import { totalesConIgv } from "@/lib/igv";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { INCLUYE_POR_DEFECTO, TIPOS_PEDIDO_CIERRE, tipoItemDelProducto, type TipoItemInforme, type TipoPedidoCierre } from "@/lib/informes";
 import { esquemaAdjuntoNuevo, MAX_ADJUNTOS, type AdjuntoCierre, type AdjuntoNuevo } from "@/lib/adjuntos-cierre";
 import { esquemaCorreccionInforme, type CorreccionInforme } from "@/lib/correccion-informe";
@@ -765,7 +766,7 @@ export async function abrirCorreccionInforme(
 export async function corregirInformeEmitido(
   informeId: string,
   cambios: CorreccionInforme,
-): Promise<{ error: string | null; version?: number }> {
+): Promise<{ error: string | null; version?: number; avisados?: string[] }> {
   if (!z.string().uuid().safeParse(informeId).success) return { error: "Informe inválido" };
   const revisados = esquemaCorreccionInforme.safeParse(cambios);
   if (!revisados.success) return { error: revisados.error.issues[0]?.message ?? "Hay un dato con formato inválido" };
@@ -778,12 +779,50 @@ export async function corregirInformeEmitido(
   });
   if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
 
-  const fila = data as { cuenta_id?: string; version?: number } | null;
+  const fila = data as { cuenta_id?: string; codigo?: string; version?: number } | null;
   revalidatePath(`/comercial/cierres/${informeId}`);
   revalidatePath("/comercial/cierres");
   revalidatePath("/central/cierres");
   if (fila?.cuenta_id) revalidatePath(`/comercial/cartera/${fila.cuenta_id}`);
-  return { error: null, version: fila?.version };
+  return { error: null, version: fila?.version, avisados: await avisadosDeLaCorreccion(fila?.codigo) };
+}
+
+/**
+ * A quién le acaba de llegar el aviso de esta corrección (0492). La regla vive
+ * en la base, en el disparador avisar_cierre_corregido: Central siempre, quien
+ * emitió el cierre si lo corrigió otro, y Finanzas, postventa y almacén según
+ * qué cambió y cómo va el pedido. Acá solo se lee lo que insertó, para
+ * decírselo en la confirmación a quien corrigió (Brenda, 15-10: «¿a Central le
+ * llega un mensaje?»). Si esta lectura falla, la corrección ya está hecha y el
+ * aviso ya está en la campana: se devuelve vacío y no se dice nada.
+ */
+async function avisadosDeLaCorreccion(codigo: string | undefined): Promise<string[]> {
+  if (!codigo) return [];
+  try {
+    const { data } = await createAdminClient()
+      .from("notificaciones")
+      .select("perfiles!inner(rol, es_postventa, es_almacen, codigo_comercial)")
+      .eq("tipo", "cierre_corregido")
+      .gte("created_at", new Date(Date.now() - 30_000).toISOString())
+      .ilike("titulo", `%${codigo}%corregido%`);
+    const filas = (data ?? []) as unknown as {
+      perfiles: { rol: string; es_postventa: boolean | null; es_almacen: boolean | null; codigo_comercial: string | null } | null;
+    }[];
+    const orden = ["Central", "quien emitió el cierre", "Finanzas", "postventa", "el almacén"];
+    const areas = new Set<string>();
+    for (const { perfiles: p } of filas) {
+      if (!p) continue;
+      if (p.rol === "central") areas.add("Central");
+      else if (p.rol === "finanzas" || p.rol === "facturacion") areas.add("Finanzas");
+      else if (p.es_almacen) areas.add("el almacén");
+      else if (p.es_postventa) areas.add("postventa");
+      else areas.add("quien emitió el cierre");
+    }
+    return orden.filter((a) => areas.has(a));
+  } catch (err) {
+    console.error("avisadosDeLaCorreccion(): no se pudo leer a quién se avisó", err);
+    return [];
+  }
 }
 
 // ── Volver a abrir un borrador ──────────────────────────────────────────

@@ -173,10 +173,23 @@ const ESTILO_AVISO: Record<
     duracion: Infinity,
     tono: "warning",
   },
-  // Central anuló un cierre (0237) y alguien viene a la planta (0238).
+  // Se anuló un cierre (0237): al comercial y, desde 0491, también a Central y
+  // Finanzas cuando lo anuló otro. Y alguien viene a la planta (0238).
   cierre_anulado: {
-    encabezado: "Central anuló un cierre suyo",
+    encabezado: "Se anuló un cierre",
     accion: "Ver el motivo",
+    duracion: Infinity,
+    tono: "warning",
+  },
+  // Un cierre emitido se corrigió con código (0492, Brenda y Santos 15-10): a
+  // Central siempre, a quien lo emitió si lo corrigió otro, y a Finanzas,
+  // postventa y almacén si ya trabajan ese pedido y cambió algo que les toca.
+  // El mismo tipo sirve para «ya lo corregí» tras una devolución (0178). Como
+  // el pedido nuevo: se queda hasta que lo toquen, porque el pedido no cambia
+  // solo y alguien tiene que comparar.
+  cierre_corregido: {
+    encabezado: "✏️ Un cierre se corrigió — revisar qué cambió",
+    accion: "Ver qué cambió",
     duracion: Infinity,
     tono: "warning",
   },
@@ -432,6 +445,8 @@ export function CampanaNotificaciones({
       "saldo_ads",
       // Pedido nuevo: Central tiene que pedir las series (buzón, 09-10).
       "cierre_emitido",
+      // Cierre corregido: el pedido no cambia solo, alguien compara (0492, 15-10).
+      "cierre_corregido",
       "urgencia",
       "urgencia_finanzas",
       "urgencia_almacen",

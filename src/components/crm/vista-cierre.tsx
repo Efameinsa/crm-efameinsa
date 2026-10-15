@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FileText, History, Lock, PencilLine, Plus, ShieldCheck, Trash2, Truck, Users, Wallet, X } from "lucide-react";
 import { abrirCorreccionInforme, corregirInformeEmitido } from "@/lib/acciones/informes";
-import type { CorreccionInforme } from "@/lib/correccion-informe";
+import { fraseDeAvisados, type CorreccionInforme } from "@/lib/correccion-informe";
 import { AdjuntosCierre } from "@/components/crm/adjuntos-cierre";
 import { CompendioGestion } from "@/components/crm/compendio-gestion";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
@@ -315,7 +315,10 @@ export function VistaCierre({
         toast.error(r.error, { duration: 8000 });
         return;
       }
-      toast.success(`Cierre corregido: ahora es la versión ${r.version ?? informe.version + 1}. El PDF ya sale corregido.`);
+      // Y a quién le llegó el aviso (0492): Brenda preguntó si Central se entera.
+      toast.success(`Cierre corregido: ahora es la versión ${r.version ?? informe.version + 1}. El PDF ya sale corregido.${fraseDeAvisados(r.avisados)}`, {
+        duration: r.avisados?.length ? 12000 : 6000,
+      });
       setEditando(false);
       setVentana(null);
       setMotivo("");

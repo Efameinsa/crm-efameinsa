@@ -18,6 +18,18 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 15-10 · Aviso cuando se corrige un cierre emitido (Brenda, Santos)
+- **Qué pasó:** Brenda corrigió con código el cierre OPEN 057-2026 (NEWREST, servicio de mantenimiento) para anotar la orden de servicio. El pedido PED-0024-2026 ya estaba liberado y en postventa desde el 13-10. Preguntó: «una vez que se corrige, ¿cuál es el proceso para que se informe a postventa? ¿A Central le llega un mensaje?». Le preguntó al asistente y no estaba mapeado, porque no existía: la corrección archivaba la versión y recalculaba la venta, pero no avisaba a nadie.
+- **Decisión de Santos:** Central debe recibir el aviso. Se armó entero:
+  - **Central siempre** (salvo que haya corregido Central), con quién corrigió, el código de quién, el motivo y qué campos cambiaron.
+  - **Quien emitió el cierre**, si lo corrigió otro.
+  - **Si el pedido ya existe,** Finanzas y Facturación (si cambió algo de facturación o pago), postventa (si el pedido ya está liberado y cambió cliente, equipos o entrega) y almacén (si ya se pidieron las series y cambiaron los equipos). Nadie recibe un aviso por un dato que no le toca.
+  - El aviso se queda en pantalla hasta que lo toquen, como el de pedido nuevo. En «Cierres de venta» el cierre corregido lleva la marca «v2 · corregido el…».
+  - Quien corrige ve en la confirmación a quién se avisó.
+- **Regla que lo acompaña:** el pedido no cambia solo. Los equipos del pedido se copian del cierre al generarlo; después de una corrección, Central compara y ajusta.
+- **Antes era:** solo había aviso cuando Central devolvía el cierre y el comercial respondía «ya lo corregí».
+- **Dato del mismo caso:** en una corrección, si el cierre es de repuesto o servicio, la lista «Incluye» por defecto (manuales, planos, puesta en marcha) se vacía sola, porque es de venta de equipo (regla del 14-10, caso Yawar Inka). Lo escrito a mano no se toca. En el 057-2026 pasó eso y el aviso lo dice («cambió: lo que incluye»).
+
 ### 14-10 (tarde) · Lo que resolvió el buzón y otros ajustes (Central, Jhon, Rubí, Brenda, Santos)
 - **Anular un cierre: ahora también puede quien lo emitió, con código** (Santos, a raíz de un cierre de Ariana).
   - El código es el de operaciones o gerencia y se usa una sola vez. «Pedir la anulación» sigue existiendo.
