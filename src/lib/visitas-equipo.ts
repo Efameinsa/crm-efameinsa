@@ -181,6 +181,7 @@ const RESULTADO_PLANTA: Record<string, string> = {
   compro: "Compró",
   pide_cotizacion: "Pide cotización",
   evaluando: "Evaluando",
+  recogio_equipo: "Recogió equipo",
   recogio: "Recogió",
   pago: "Pagó",
   solo_miro: "Solo miró",
