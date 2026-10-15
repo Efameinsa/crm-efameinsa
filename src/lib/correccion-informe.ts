@@ -1,6 +1,20 @@
 import { z } from "zod";
 
 /**
+ * La frase de la confirmación: a quién le llegó el aviso de la corrección
+ * (0492). Brenda, 15-10: «una vez que se corrige, ¿cuál es el proceso para que
+ * se informe a postventa? ¿A Central le llega un mensaje?». Ahora la pantalla
+ * se lo dice en el acto. Sin avisados (corrigió Central un cierre suyo y sin
+ * pedido) no agrega nada.
+ */
+export function fraseDeAvisados(avisados: string[] | undefined): string {
+  const xs = [...new Set((avisados ?? []).filter(Boolean))];
+  if (xs.length === 0) return "";
+  const lista = xs.length === 1 ? xs[0] : `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}`;
+  return ` Aviso enviado a ${lista}.`;
+}
+
+/**
  * Qué se puede corregir de un cierre EMITIDO y con qué forma (0153). La lista
  * blanca de la base es la que manda; esto solo evita mandar basura. Va en su
  * propio módulo porque un archivo "use server" solo puede exportar funciones.

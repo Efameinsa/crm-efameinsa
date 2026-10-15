@@ -126,6 +126,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - **Postventa no ve el pedido hasta que Central lo libera.**
   - **Central puede devolver un cierre mal hecho**, con motivo. Devolver no es anular. Si el proceso ya avanzó (series pedidas o pedido en Finanzas), devolverlo pide código, porque almacén y Finanzas ya trabajan sobre él. Un número de pedido por sí solo no cuenta como avance.
   - **Desde el 12-10, Central debe comparar el código del producto con el cierre.** Se despachó una lavadora equivocada porque el código no mostraba la descripción. Que el código traiga siempre su descripción depende de los datos del catálogo (por confirmar si ya está completo).
+  - **Si el cierre se corrige después de emitido (desde el 15-10), Central recibe el aviso en la campana** con quién lo corrigió, el motivo y qué cambió. El pedido no se actualiza solo: Central compara el pedido con la versión vigente del cierre y ajusta (equipos, entrega, cliente) o pide al almacén lo que falte. Si el pedido ya existe, Finanzas, postventa y almacén reciben el mismo aviso cuando lo que cambió les toca (3.5).
 
 ### 1.8 Finanzas: pago, liquidación y visto bueno
 
@@ -252,7 +253,8 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - **Clientes**, que muestra la cartera completa en solo lectura (de quién es cada cliente);
   - «Ver la historia de la empresa»;
   - Presupuestos: cantidades por comercial y buscador por cliente y serie, incluido el archivo de Word;
-  - todos los informes de cierre («Cierres de venta») y «Sus pedidos».
+  - todos los informes de cierre («Cierres de venta») y «Sus pedidos»;
+  - en la campana: cada cierre emitido, cada cierre anulado por otro y, desde el 15-10, cada cierre corregido con código (con qué cambió).
 - **No entra** a las pantallas del comercial. Del pedido ve la versión imprimible («Ver pedido PED-…»).
 - **Puede:**
   - registrar, derivar, unir a una ficha existente, avisar al dueño, descartar;
@@ -570,6 +572,12 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 **Después de emitido**
 - **Emitido = sellado.** Agregar documentos o corregir pide motivo y código de operaciones o gerencia (ventana de unos 30 minutos). Se crea una versión nueva, la anterior se archiva y se recalcula la venta. No cambian ni el número, ni la serie, ni la fecha, ni el cliente, ni la moneda.
+- **Quién se entera de una corrección (desde el 15-10):** nadie tiene que avisar a mano.
+  - **Central siempre** (salvo que la corrección la haya hecho Central), porque Central ejecuta el cierre. El aviso en la campana dice quién corrigió, con el código de quién, el motivo y **qué campos cambiaron**, y si el pedido ya existe, con qué versión se generó.
+  - **Quien emitió el cierre**, si lo corrigió otro (Central, operaciones o gerencia).
+  - **Si el pedido ya existe, los que lo trabajan, solo según lo que cambió:** Finanzas y Facturación cuando cambia razón social, RUC, dirección fiscal, equipos o importe, pago, comprobante, orden de compra o condiciones; postventa cuando el pedido ya está liberado y cambia cliente, equipos, entrega, quién recibe, lo que incluye, garantía o urgencia; almacén cuando ya se pidieron las series y cambian los equipos, lo que incluye o lo gratuito.
+  - **El pedido no cambia solo.** Los equipos del pedido se copian del cierre al generarlo; si la corrección toca equipos, entrega o cliente, Central compara el pedido con la versión vigente y ajusta lo que haga falta. En «Cierres de venta» el cierre corregido lleva la marca «v2 · corregido el…».
+  - Antes del 15-10 no había aviso: el único existía cuando Central había devuelto el cierre y el comercial respondía «ya lo corregí». Caso que lo originó: OPEN 057-2026 (NEWREST), corregido con el pedido ya en postventa.
 - **Devolución de Central:** el cierre aparece arriba en «Mis cierres» del comercial, con el motivo. El comercial corrige y responde «ya lo corregí». Cada vuelta queda registrada.
 
 **Anular un cierre**
@@ -1014,6 +1022,9 @@ En «Files»: elija el cliente y la empresa (OPEN, EFAMEINSA o ambas) del invent
 
 **40. Quiero que el CRM haga algo distinto. ¿A quién se lo digo?**
 Por el Buzón de sugerencias (la bombilla de la barra), con captura si puede. Cuando se resuelva, verá un aviso al entrar. Las sugerencias suman puntos en Crece. (0)
+
+**41. Corregí un cierre emitido con código. ¿Tengo que avisarle a Central o a postventa?**
+No hace falta avisar a mano. Desde el 15-10, al guardar la corrección, Central recibe el aviso solo, con quién corrigió, el motivo y qué campos cambiaron; el mensaje de confirmación le dice a quién se avisó. Si el pedido ya existe, también se enteran Finanzas, postventa o el almacén cuando lo que cambió les toca (facturación, entrega, equipos). Lo que sí debe saber: el pedido no cambia solo. Si corrigió equipos, entrega o cliente, Central compara el pedido con la versión nueva y lo ajusta; si le urge, confírmelo con Central. (3.5)
 
 ---
 

@@ -78,6 +78,9 @@ interface FilaInforme {
   anulado_motivo: string | null;
   regularizado: boolean;
   reg_por_entregar: boolean;
+  /** 1 al emitir; sube con cada corrección con código (0153). Central compara el pedido con la versión vigente (0492). */
+  version: number;
+  corregido_at: string | null;
   perfiles: { nombre: string; codigo_comercial: string | null } | null;
   cotizaciones: { id: string; codigo: string } | null;
 }
@@ -115,7 +118,7 @@ export default async function CierresCentralPage({
   let consulta = supabase
     .from("informes_cierre")
     .select(
-      "id, codigo, serie, fecha, emitido_at, asunto, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, oportunidad_id, venta_id, adjuntos, anulado_at, anulado_motivo, regularizado, reg_por_entregar, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial), cotizaciones!informes_cierre_cotizacion_id_fkey(id, codigo)",
+      "id, codigo, serie, fecha, emitido_at, asunto, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, oportunidad_id, venta_id, adjuntos, anulado_at, anulado_motivo, regularizado, reg_por_entregar, version, corregido_at, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial), cotizaciones!informes_cierre_cotizacion_id_fkey(id, codigo)",
     )
     .not("emitido_at", "is", null);
   if (busqueda) {
@@ -491,6 +494,16 @@ export default async function CierresCentralPage({
                     </p>
                     <p className="text-[11px] text-muted-foreground">
                       <span className="font-mono font-semibold text-foreground">N.º {f.codigo}</span>
+                      {/* Corregido con código después de emitido (0153): el pedido que
+                          Central generó salió de la versión anterior y no cambia solo (0492). */}
+                      {f.version > 1 && (
+                        <span
+                          title="Este cierre se corrigió con código después de emitido. Si el pedido ya estaba generado, compárelo con la versión vigente: el pedido no cambia solo."
+                          className="ml-1.5 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-800"
+                        >
+                          v{f.version}{f.corregido_at ? ` · corregido el ${fechaHoraLima(f.corregido_at)}` : ""}
+                        </span>
+                      )}
                       {" · "}
                       {f.serie === "OPEN" ? "Open Investments" : "Efameinsa"}
                       {" · "}

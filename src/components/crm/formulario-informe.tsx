@@ -47,7 +47,7 @@ import { cn } from "@/lib/utils";
 import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
 import { hoyLima } from "@/lib/periodo";
 import { AYUDA_SERIE_EFAMEINSA, MOTIVO_SERIE_MINIMO, SERIE_POR_DEFECTO, motivoSerieSuficiente } from "@/lib/serie-facturacion";
-import type { CorreccionInforme } from "@/lib/correccion-informe";
+import { fraseDeAvisados, type CorreccionInforme } from "@/lib/correccion-informe";
 
 // Informe de cierre de ventas: la pantalla que el comercial llena.
 //
@@ -674,7 +674,10 @@ export function FormularioInforme({
           toast.error(r.error, { duration: 8000 });
           return;
         }
-        toast.success(`Cierre N.º ${correccion.codigo} corregido: ahora es la versión ${r.version ?? ""}. El PDF ya sale corregido.`);
+        // Y a quién le llegó el aviso (0492): Brenda, 15-10, «¿a Central le llega un mensaje?».
+        toast.success(`Cierre N.º ${correccion.codigo} corregido: ahora es la versión ${r.version ?? ""}. El PDF ya sale corregido.${fraseDeAvisados(r.avisados)}`, {
+          duration: r.avisados?.length ? 12000 : 6000,
+        });
       } else {
         toast.success("Documentos agregados al expediente.");
       }
