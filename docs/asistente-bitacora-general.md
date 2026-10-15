@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 15-10 (tarde) · Rubí: quien recibe el equipo puede ser una empresa
+- **Qué pidió:** en «Dirección y quién recibe» del pedido, poder poner la razón social y el RUC cuando recibe una empresa (caso Portal del Marqués), no solo nombre y DNI de una persona.
+- **Qué se hizo:** el cuadro pregunta primero «Una persona (nombre y DNI)» o «Una empresa (razón social y RUC)». El RUC se revisa al guardarlo (que exista, para atajar un dígito mal tecleado). La apertura de despacho lo imprime como «RUC: …». Sigue siendo obligatorio uno de los dos: sin él la agencia no entrega.
+
 ### 15-10 (tarde) · Rubí: «no me aparece el pedido de Portal del Marqués»
 - **Qué pasó:** Central generó el pedido del repuesto de Portal del Marqués (OPEN 060-2026, un manómetro para Cajamarca) y apuró a Finanzas, pero el pedido no aparecía en la bandeja de postventa.
 - **Por qué:** no era un error. Generar el pedido es un paso intermedio de Central: falta que Finanzas confirme el pago y suba la liquidación, que Central la acepte y marque «Pedido ejecutado». Recién ahí postventa lo ve (regla de Carlos, 15-09: primero la liquidación, después el pedido ejecutado).
