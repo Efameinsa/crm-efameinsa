@@ -190,7 +190,7 @@ export function ChipsAdjuntos({ adjuntos }: { adjuntos: AdjuntoCierreFirmado[] }
 export async function subirArchivosCierre(
   informeId: string,
   pendientes: AdjuntoPendiente[],
-  /** Código de operaciones/gerencia — solo para un informe ya emitido (0142). */
+  /** Código de Central/gerencia — solo para un informe ya emitido (0142, 0494). */
   pin?: string,
 ): Promise<{ error: string | null; adjuntos?: AdjuntoCierre[]; requiereCodigo?: boolean }> {
   const storage = createClient().storage.from("adjuntos");
@@ -304,8 +304,8 @@ export function AdjuntosCierre({
         </div>
       )}
 
-      {/* Lo elegido sobre un cierre emitido espera el código de Lesly o
-          gerencia (0142): se ve QUÉ va a entrar antes de autorizarlo. */}
+      {/* Lo elegido sobre un cierre emitido espera el código de Central o
+          gerencia (0142; hasta el 15-10 también Lesly, 0494): se ve QUÉ va a entrar antes de autorizarlo. */}
       {pendientes.length > 0 && (
         <div className="space-y-2 rounded-lg border border-amber-400/50 bg-amber-500/10 p-3">
           <div className="flex flex-wrap gap-1.5">
@@ -320,7 +320,7 @@ export function AdjuntosCierre({
             ))}
           </div>
           <p className="text-xs font-medium text-amber-900">
-            El cierre ya fue emitido: agregar documentos necesita el código de autorización de operaciones o gerencia.
+            El cierre ya fue emitido: agregar documentos necesita el código de autorización de Central o gerencia.
           </p>
           <CampoCodigo valor={codigo} onChange={setCodigo} tono="amber" id={`codigo-expediente-${informeId}`} />
           <button

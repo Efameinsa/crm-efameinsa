@@ -36,7 +36,16 @@ const DURACION = 600;
  * está fuera de la lista de lecturas permitidas). Muestra uno de ejemplo,
  * rotulado, con el mismo reloj, para que se vea cómo se usa.
  */
-export function PinSupervisor({ plegada = false, demo = false }: { plegada?: boolean; demo?: boolean }) {
+export function PinSupervisor({
+  plegada = false,
+  demo = false,
+  para = "Para autorizar a Central cuando corrige una derivación.",
+}: {
+  plegada?: boolean;
+  demo?: boolean;
+  /** Para qué sirve el código de quien lo mira (Central solo autoriza correcciones de cierre, 0494). */
+  para?: string;
+}) {
   const [codigo, setCodigo] = useState<string | null>(null);
   const [restante, setRestante] = useState(0);
   const [cargando, setCargando] = useState(false);
@@ -152,7 +161,7 @@ export function PinSupervisor({ plegada = false, demo = false }: { plegada?: boo
       )}
       {error && <p className="mt-1 px-1 text-[10px] text-red-300">{error}</p>}
       <p className={cn("mt-1 px-1 text-[10px] text-sidebar-foreground/40", codigo && "hidden")}>
-        Para autorizar a Central cuando corrige una derivación.
+        {para}
       </p>
     </div>
   );

@@ -18,6 +18,26 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 15-10 09:53 · Reunión de Carlos con Santos (y Central, postventa)
+- **El código para corregir un cierre lo da Central, no Lesly.**
+  - Caso: el cierre OPEN 057-2026 (NEWREST) pasó a Finanzas sin la orden de servicio; después se corrigió con el código de operaciones y Central se enteró por un correo. Postventa ya tenía el pedido y el cliente llamaba sin parar.
+  - Carlos: «tú [Central] vas a dar el código sí y solo sí para modificar el cierre… coordinándolo conmigo… solamente para edición de cierres, nada más».
+  - Desde ese día: corregir un cierre emitido o agregarle documentos pide el código de **Central o gerencia**. El de Lesly sigue valiendo para lo demás (anular, derivar a postventa, aperturas, protocolos, fichas). Central no se autoriza a sí misma una corrección.
+  - Antes era (desde el 02-09): código de Lesly o gerencia.
+- **Central lee todo antes de pasar un cierre.** «Tú no recibes nada, o recibes todo pero lo lees.» Para saber si un cliente trabaja con orden de servicio o de compra: leer el cierre, mirar el histórico del cliente en su ficha y preguntar al comercial, en cualquier orden. Depende del cliente: suelen llevarla las empresas medianas y grandes.
+  - Caso del día anterior (cliente con plataforma de proveedores): sin orden de servicio no se podía facturar. Contabilidad ya lo sabía por experiencia y lo hizo notar.
+- **GMP es nuestra marca de calandrias.** Si GMP remite a una persona, es un cliente al que le vendimos: se identifica por la serie de la placa (ERP antiguo, correos o buscador por serie), se registra y se atiende como oportunidad de venta.
+- **Sin pago confirmado no hay apertura.** Carlos: la apertura de servicio es la orden de despacho; el almacén despacha lo que dice la apertura. Postventa coordina antes con Finanzas («¿ya tienes las letras?») y con el almacén («no despachas hasta que te diga»). El almacén coordina con postventa, no con Finanzas. Caso: COFACO, que salió sin letras el 14-10. El CRM ya lo frena desde el 14-10.
+- **Todo se vende en dólares,** salvo que la venta haya empezado en soles. Si el cliente pagó en soles con nuestro tipo de cambio, el cierre sigue en dólares (consorcio del Portal Marqués).
+- **Seguimiento comercial:** si el cliente dice que cotiza con la competencia y pide que lo llamen en cinco días, se le llama antes. «Si no eres agresivo en la parte comercial, vamos a tener un problema.» Caso: una venta perdida con la competencia por esperar la fecha.
+- **Cuando alguien deja la empresa,** se avisa a Santos por correo el mismo día y su usuario se desactiva enseguida. Su cartera se entrega a quien se decida; no se trabaja con el usuario de quien se fue.
+- **El asistente Efamein ya está para todos** y cada persona tiene el alcance de su área. Carlos: «ahí está tu asistente: pregúntale qué tengo por hacer». Si algo no está mapeado, Efamein lo dice y se reporta por el buzón. Desde el 15-10, gerencia puede leer las consultas que se le hacen («Auditoría del asistente»).
+- **Postventa: pregunta, reporta, informa.** Carlos pidió que, si alguien no entiende un paso, pregunte, y que se reporten las incidencias por el buzón. Las personas tienen que poder resolver sin depender de que alguien esté al lado.
+- **Pendientes que salieron:**
+  - Santos: documentar y diagramar el flujo de todos los procedimientos, para que cualquiera sepa con quién coordinar cada paso.
+  - Santos con Lesly: las series (lo único pendiente del almacén).
+  - Santos: revisar por qué tantos contactos de Facebook quedan en «no contesta».
+
 ### 15-10 · Aviso cuando se corrige un cierre emitido (Brenda, Santos)
 - **Qué pasó:** Brenda corrigió con código el cierre OPEN 057-2026 (NEWREST, servicio de mantenimiento) para anotar la orden de servicio. El pedido PED-0024-2026 ya estaba liberado y en postventa desde el 13-10. Preguntó: «una vez que se corrige, ¿cuál es el proceso para que se informe a postventa? ¿A Central le llega un mensaje?». Le preguntó al asistente y no estaba mapeado, porque no existía: la corrección archivaba la versión y recalculaba la venta, pero no avisaba a nadie.
 - **Decisión de Santos:** Central debe recibir el aviso. Se armó entero:
@@ -658,6 +678,7 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 ## Pendientes y temas sin decidir
 
 **Decide gerencia (Carlos)**
+- **A quién va la cartera de las personas que dejaron la empresa** (C6 y C9, desde el 15-10). Mientras tanto, lo que escriban sus clientes queda en la bandeja de Central para que lo derive.
 - **Garantía:** el registro de máquinas pone 24 meses aunque el cierre diga 36. Solo AGROCASAGRANDE se ajustó a 36. Falta la regla general.
 - **Preventivo:** la alerta es a los 4 meses (aviso a los 3), pero la Ruta de mantenimiento marca «vencido» a los 6. Gerencia no lo ha ratificado.
 - **Dueño del prospecto** (15 días, 6 meses o permanente): anunciado el 01-10, no implementado.

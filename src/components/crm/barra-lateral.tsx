@@ -109,6 +109,12 @@ export function BarraLateral({
           Vive acá porque es donde lo tiene a mano cuando la llaman, sin salir
           de lo que estaba haciendo. */}
       {(rol === "gerencia" || rol === "admin" || esOperaciones) && <PinSupervisor plegada={plegada} />}
+      {/* CENTRAL (0494, reunión de Carlos 15-10): su código sirve solo para que
+          otro corrija un cierre emitido o le agregue documentos —«tú vas a dar
+          el código sí y solo sí para modificar el cierre»—. Lesly ya no. */}
+      {rol === "central" && !esOperaciones && (
+        <PinSupervisor plegada={plegada} para="Solo para autorizar que corrijan un cierre emitido o le agreguen documentos." />
+      )}
 
       {/* A continuación de la lista, como un ítem más — pegado al borde
           inferior de la pantalla nadie lo veía (reportado 25-08). */}

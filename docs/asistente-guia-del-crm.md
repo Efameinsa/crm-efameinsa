@@ -266,7 +266,8 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - registrar visitas a planta;
   - gestionar los REG;
   - mandar «Avisar a…» (Finanzas, postventa y comercial dueño) y revertir avisos mal enviados (con código);
-  - subir Infocorp.
+  - subir Infocorp;
+  - **dictar el código para corregir un cierre emitido o agregarle documentos** (desde el 15-10, por decisión de Carlos; lo coordina con Carlos). Central ve su código en la barra lateral («PIN de autorización») y solo sirve para eso. Ver 3.5 y 3.11.
 - **Necesita código para:**
   - corregir una derivación;
   - derivar a postventa;
@@ -277,6 +278,11 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - corregir una solicitud con cotización o venta;
   - revertir avisos.
 - **No decide cartera.** Unir un contacto a una ficha y cambiar la cartera completa son dos pasos distintos con código, a propósito, para que Central no decida de quién es el cliente.
+- **Cómo trabaja Central (Carlos, 15-10): «tú no recibes nada, o recibes todo pero lo lees».**
+  - **Antes de dar los checks a un cierre, se lee el expediente completo.** Dar dos clics sin leer es el error que Carlos señaló: el cierre de un cliente grande pasó a Finanzas sin su orden de servicio.
+  - **¿Este cierre necesita orden de servicio u orden de compra?** Depende del cliente; no todos la llevan. Suelen trabajar con ella las empresas medianas y grandes, y algunas con su propia plataforma de proveedores: sin ese documento no se les puede facturar ni despachar. Para saberlo, en cualquier orden: (1) leer toda la información del cierre; (2) mirar el histórico del cliente en su ficha, si sus compras anteriores llevaron orden de servicio o de compra («tres clics, no leer una Biblia»); (3) preguntarle al comercial. Si el cliente trabaja con orden y falta, no se pasa: se le dice al comercial que la agregue.
+  - **Un cliente que llega por un fabricante o proveedor.** GMP es la marca de calandrias que Efameinsa representa y vende. Cuando GMP (u otro fabricante) reenvía a una persona, es porque ese equipo lo vendimos nosotros: el cliente buscó al fabricante por un precio menor y, por la alianza, el fabricante lo remite. Hay que **identificar al cliente por la serie de la placa** que mandó (en el ERP antiguo, en los correos o con el buscador por serie), registrarlo en su ficha y derivarlo: es una oportunidad de venta. No se registra como «una persona X».
+  - **Si algo no cuadra, se pregunta antes de pasar,** al comercial o a Carlos. La coordinación interna de gerencia con un vendedor no cambia el procedimiento de Central: «cumple tu procedimiento».
 
 ### 2.3 Postventa (PV, PV1, PV2, PV3)
 
@@ -309,6 +315,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Rol propio** («operaciones»): no es comercial, ni almacén, ni gerencia.
 - **Hace:**
   - **dicta el código de operaciones** para anular cierres, corregir derivaciones, corregir documentos numerados, cambiar una apertura emitida, modificar una máquina ya «probada y embalada», corregir informes y unir fichas;
+  - **desde el 15-10 ya no autoriza corregir un cierre emitido ni agregarle documentos:** eso lo autoriza Central (o gerencia). Si se escribe el código de Lesly ahí, el CRM avisa que es de operaciones y que hay que pedírselo a Central;
   - mantiene el **catálogo** (productos, servicios, repuestos, precios, fichas, códigos, stock);
   - reparte permisos temporales (por ejemplo, la llave para ver y cotizar mantenimiento);
   - edita el Directorio y la lista de técnicos;
@@ -372,10 +379,12 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - devoluciones con proceso avanzado;
   - reglas nuevas.
 - **Dicta el código del supervisor.** Es rotativo, dura pocos minutos y se quema al usarse. Puede levantar el código por un día, pero el motivo sigue siendo obligatorio.
+- **Ve la «Auditoría del asistente»** (desde el 15-10, pedido de Carlos): cada pregunta que el personal le hizo a Efamein, con la respuesta, como un chat. Sirve para entender qué no saben las personas y qué falta explicar.
 
 ### 2.10 Administración
 
 - Gestiona usuarios. Solo puede borrar los que no tienen historial; a los demás los desactiva.
+- **Cuando alguien deja la empresa** (Carlos, 15-10): el jefe o Recursos Humanos avisa a Santos por correo **el mismo día**, y se desactiva su usuario enseguida (el CRM se abre desde cualquier parte del mundo). Al desactivarlo, deja de recibir leads y se le cierran las sesiones. Su cartera se entrega a quien gerencia decida. **No se sigue trabajando con el usuario y la contraseña de quien se fue:** se reasigna la cartera a la persona que la atiende.
 - Atiende el buzón de sugerencias («Observaciones del sistema»). Gerencia lo lee; cada persona ve solo las suyas.
 
 ### 2.11 Cuentas de práctica
@@ -470,6 +479,11 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - Al marcar «Interesado», el CRM pide calificar en el mismo clic, porque «interesado» no dice qué nivel es.
 - **«Corresponde cerrar»:** un prospecto sin respuesta en 1 mes, o una cotización sin respuesta en 3 meses, aparece en «Mi día» para que la persona decida. **El CRM no lo cierra solo.**
 
+**Seguimiento cuando el cliente cotiza con la competencia** (Carlos, 15-10)
+- Si el cliente dice «estoy cotizando con la competencia, llámame el día 10», **no se espera al 10**: se le llama antes (el 6, el 7, el 8), con respeto y sin acosar. Esperar la fecha que dio es perder la venta: muchas veces compra antes.
+- Carlos: «si no eres agresivo en la parte comercial, vamos a tener un problema». La regla general: si dice «llámame el próximo año», se le llama este año.
+- Caso: una venta se perdió con la competencia porque el comercial esperó la fecha que el cliente le dio.
+
 **Qué cuenta como gestión**
 - Cuentan como contacto real: llamada, correo, visita y videollamada.
 - **Desde el 30-09, la gestión por WhatsApp no suma a la meta de gestiones** porque inflaba el indicador. Se cuenta aparte.
@@ -506,7 +520,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 **IGV y moneda**
 - **IGV:** los montos se guardan sin IGV y el PDF suma el 18 %. Los servicios del catálogo se cargan sin IGV.
 - **Check «incluye IGV» por renglón:** solo al final, cuando la venta ya se cerró en una cifra redonda (gerencia: «cotizar neto como siempre»).
-- **Moneda:** el CRM guarda en dólares y puede cotizar en soles; lo escrito en soles se respeta tal cual. El tipo de cambio lo fija gerencia, no el comercial. El cierre hereda la moneda de la cotización, y corregir un cierre no cambia su moneda.
+- **Moneda:** el CRM guarda en dólares y puede cotizar en soles; lo escrito en soles se respeta tal cual. El tipo de cambio lo fija gerencia, no el comercial. El cierre hereda la moneda de la cotización, y corregir un cierre no cambia su moneda. **Todo se vende en dólares**, salvo que la venta haya empezado en soles; si el cliente paga en soles con el tipo de cambio de la empresa, el cierre sigue en dólares (Carlos, 15-10, caso del consorcio del Portal Marqués).
 - **Forma de pago:** se elige de una lista y trae su saldo (por ejemplo, Contado = 100 %). Si la forma y el saldo se contradicen, sale un aviso ámbar.
 
 **Líneas y contenido del PDF**
@@ -571,7 +585,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Al emitir, el cierre se ata a su venta.** La venta se registra sin IGV y con el importe del cierre. Si el cierre llega después, la venta se corrige y la diferencia queda anotada.
 
 **Después de emitido**
-- **Emitido = sellado.** Agregar documentos o corregir pide motivo y código de operaciones o gerencia (ventana de unos 30 minutos). Se crea una versión nueva, la anterior se archiva y se recalcula la venta. No cambian ni el número, ni la serie, ni la fecha, ni el cliente, ni la moneda.
+- **Emitido = sellado.** Agregar documentos o corregir pide motivo y **código de Central o gerencia** (ventana de unos 30 minutos). Desde el 15-10; antes era el de operaciones (Lesly) o gerencia. Carlos lo cambió por el caso NEWREST: Central es quien ejecuta el cierre, así que cualquier cambio pasa por ella. **Central no se autoriza a sí misma una corrección:** si quien corrige es Central, el código lo da gerencia. Para agregar un documento (por ejemplo, el voucher que llega tarde), Central sí puede usar el suyo. Se crea una versión nueva, la anterior se archiva y se recalcula la venta. No cambian ni el número, ni la serie, ni la fecha, ni el cliente, ni la moneda.
 - **Quién se entera de una corrección (desde el 15-10):** nadie tiene que avisar a mano.
   - **Central siempre** (salvo que la corrección la haya hecho Central), porque Central ejecuta el cierre. El aviso en la campana dice quién corrigió, con el código de quién, el motivo y **qué campos cambiaron**, y si el pedido ya existe, con qué versión se generó.
   - **Quien emitió el cierre**, si lo corrigió otro (Central, operaciones o gerencia).
@@ -634,6 +648,15 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Qué indica Finanzas:** el estado de las letras: «No lleva letras», «Las letras van con el equipo», «El cliente tiene las letras, falta que las firme» o «Letras firmadas». También la cantidad y la comisión interplaza o bancaria, si la hubo.
 - **Salida de emergencia:** el código de gerencia u operaciones, que queda registrado como «Salida autorizada con código, sin visto bueno de Finanzas».
 - **Por qué:** un equipo salió a crédito sin sus letras porque el Excel decía «SI» al adelanto y el CRM lo leyó como pagado completo.
+
+**Sin pago confirmado no hay apertura, y nadie despacha sin coordinar** (Carlos, 15-10)
+- **La apertura de servicio es la orden de despacho.** El almacén despacha lo que dice la apertura y no mira condiciones de pago. Por eso **postventa no hace la apertura si el pedido no está pagado o validado por Finanzas.** El CRM ya lo frena (visto bueno de Finanzas y saldo con código, desde el 14-10).
+- **Antes de que salga un equipo, postventa coordina dos veces** («triangulación doble»):
+  1. con **Finanzas**: «¿ya tienes las letras? el cliente recoge mañana a las 8»;
+  2. con el **almacén**: «coordina conmigo, no con Finanzas: no despachas nada hasta que yo te diga que están las letras».
+- El almacén no tiene lazo directo con Finanzas: su contacto es postventa.
+- **La letra es dinero.** En condiciones normales se entrega la letra, el cliente la firma y recién se despacha. Con un cliente grande y confiable, gerencia puede acordar que las letras viajen con el chofer; eso se coordina por correo con postventa antes.
+- Caso: COFACO (14-10). El comercial avisó por correo que las letras iban con el transportista, pero postventa no estaba, el almacén despachó y Finanzas todavía estaba haciendo las letras. Fallaron postventa, el almacén y Finanzas a la vez.
 
 **Letras que viajan con el equipo** (desde el 14-10)
 1. El almacén marca «recibí las letras». Sin eso, no sale.
@@ -806,14 +829,15 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 ### 3.11 Códigos de autorización (cómo funcionan, sin valores)
 
 - **Código del supervisor:**
-  - lo dictan gerencia, administración y operaciones;
+  - lo dictan gerencia, administración y operaciones (y Central, solo para los cierres);
   - cambia cada pocos minutos (el anterior también vale un rato, porque se dicta por teléfono);
   - **se quema al usarse**;
   - siempre exige un motivo;
   - quien lo tiene no se lo pide a sí mismo;
   - los intentos fallidos quedan registrados;
   - dos correcciones seguidas necesitan supervisores distintos.
-- **Código de operaciones (Lesly):** para correcciones operativas (aperturas emitidas, protocolos, informes, series, fichas, destino).
+- **Código de operaciones (Lesly):** para correcciones operativas (aperturas emitidas, protocolos, informes, series, fichas, destino). Ya no sirve para corregir cierres (desde el 15-10).
+- **Código de Central** (desde el 15-10): solo para corregir un cierre emitido o agregarle documentos. Lo dicta Central coordinando con Carlos. Gerencia también puede darlo. Central no se lo da a sí misma para una corrección.
 - **Código de gerencia:** para lo que tiene impacto económico (devolver un cierre con el proceso avanzado, liberar un pedido sin liquidación, una salida con saldo o sin visto bueno).
 - **Por orden directa de Santos (gerencia)** se puede hacer una operación sin el código de operaciones, dejando rastro: «por orden de Santos (gerencia)». No aplica a pedidos que lleguen por otra vía.
 - **El asistente nunca da ni pide códigos.** Indica quién los dicta.
@@ -830,6 +854,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **PED-NNNN-AAAA:** número de un pedido.
 - **REG:** cierre regularizado, es decir, un cierre de Word anterior al CRM subido con el correlativo siguiente. No suma a la venta.
 - **PRUEBA…:** documentos de cuentas de práctica. No cuentan.
+- **GMP:** marca de calandrias que Efameinsa representa y vende. Si GMP remite a alguien, es un cliente nuestro (ver 2.2).
 - **EFAMEINSA / OPEN (Open Investments):** las dos razones sociales con las que factura la empresa. Cada una tiene su serie de cotizaciones y de cierres. OPEN es la primera opción.
 - **C1…C10:** posiciones de comercial (no personas).
 - **PV:** el área de postventa. **PV1, PV2, PV3:** las personas de postventa.
@@ -928,7 +953,7 @@ OPEN es la primera opción (gerencia, 23-09). Para elegir EFAMEINSA, el CRM le p
 Revise que tenga lugar de entrega, condición de pago (porcentaje antes del despacho y días de crédito), a quién se factura y los documentos (voucher u OC; la cotización enlazada ya cuenta). Si es a crédito, declárelo: no lleva voucher. Si el RUC no coincide con la ficha, el CRM lo avisa arriba. (1.6, 3.5)
 
 **9. Me equivoqué en un cierre ya emitido. ¿Qué hago?**
-Un cierre emitido está sellado. Para corregirlo o agregarle documentos hace falta motivo y código de operaciones o gerencia; se crea una versión nueva. Si la venta se cayó, pida la anulación desde la vista de su cierre. Anular lo hacen operaciones, Central, gerencia o usted mismo, con código de operaciones o gerencia. (3.5)
+Un cierre emitido está sellado. Para corregirlo o agregarle documentos hace falta motivo y código de Central o gerencia (desde el 15-10; el de Lesly ya no sirve para esto); se crea una versión nueva. Si la venta se cayó, pida la anulación desde la vista de su cierre. Anular lo hacen operaciones, Central, gerencia o usted mismo, con código de operaciones o gerencia. (3.5)
 
 **10. Central me devolvió el cierre. ¿Lo perdí?**
 No. Devolver no es anular: el número se conserva. Lo verá arriba en «Mis cierres» con el motivo. Corríjalo y responda «ya lo corregí» para que vuelva a Central. (3.5)
@@ -1025,6 +1050,12 @@ Por el Buzón de sugerencias (la bombilla de la barra), con captura si puede. Cu
 
 **41. Corregí un cierre emitido con código. ¿Tengo que avisarle a Central o a postventa?**
 No hace falta avisar a mano. Desde el 15-10, al guardar la corrección, Central recibe el aviso solo, con quién corrigió, el motivo y qué campos cambiaron; el mensaje de confirmación le dice a quién se avisó. Si el pedido ya existe, también se enteran Finanzas, postventa o el almacén cuando lo que cambió les toca (facturación, entrega, equipos). Lo que sí debe saber: el pedido no cambia solo. Si corrigió equipos, entrega o cliente, Central compara el pedido con la versión nueva y lo ajusta; si le urge, confírmelo con Central. (3.5)
+
+**42. ¿Quién me da el código para corregir mi cierre?**
+Central (o gerencia), desde el 15-10. Escriba qué está mal y pídale el código a Central: ella lo coordina con Carlos. El código de Lesly ya no sirve para cierres. Si la corrección la hace Central, el código lo da gerencia. (3.5)
+
+**43. ¿Este cierre necesita orden de servicio o de compra?**
+Depende del cliente. Lea el cierre completo, revise en la ficha si sus compras anteriores llevaron orden y, si no está claro, pregúntele al comercial. Las empresas medianas y grandes suelen trabajar con orden, y sin ella no se puede facturar ni despachar. (2.2)
 
 ---
 

@@ -124,6 +124,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/gerencia/auditoria", etiqueta: "Auditoría de cuentas", icono: Users },
     { href: "/gerencia/cartera-liberable", etiqueta: "Cartera liberable", icono: FileText },
     { href: "/observaciones", etiqueta: "Observaciones del sistema", icono: MessageSquareWarning },
+    // Lo que el personal le pregunta a Efamein (Carlos, 15-10).
+    { href: "/admin/asistente", etiqueta: "Auditoría del asistente", icono: Sparkles },
   ],
   // OPERACIONES (0115). Su día no es vender: es autorizar lo que los demás
   // no pueden corregir solos, repartir los permisos que se dan y se quitan,
