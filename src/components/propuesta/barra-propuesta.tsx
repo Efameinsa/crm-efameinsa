@@ -69,6 +69,7 @@ export function BarraPropuesta({
   perfil,
   verComo,
   pin = false,
+  pinPara,
   demo = true,
   contadores = {},
   movil = false,
@@ -85,8 +86,10 @@ export function BarraPropuesta({
   opciones: OpcionMenu[];
   perfil: string;
   verComo?: { etiqueta: string; href: string }[];
-  /** Gerencia, admin y operaciones: el PIN de autorización, como en la barra de siempre. */
+  /** Gerencia, admin, operaciones y Central: el PIN de autorización, como en la barra de siempre. */
   pin?: boolean;
+  /** Para qué sirve ese código (Central: solo cierres emitidos, 0494). */
+  pinPara?: string;
 }) {
   const ruta = usePathname();
   // Los chats que le escribieron (02-10) los sabe la campana, no el servidor.
@@ -163,7 +166,7 @@ export function BarraPropuesta({
           tocara nada. Van como <a> a secas (Next no precarga anclas). */}
       {pin && (
         <div className="mt-auto pb-3 [&>div]:px-3">
-          <PinSupervisor demo={demo} />
+          <PinSupervisor demo={demo} para={pinPara} />
         </div>
       )}
       <div className={cn("space-y-1 border-t border-sidebar-border p-3", !pin && "mt-auto")}>

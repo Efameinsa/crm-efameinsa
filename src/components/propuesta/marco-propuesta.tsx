@@ -101,7 +101,9 @@ export async function MarcoPropuesta({
     contadores,
     opciones: MENU[tipo],
     perfil: NOMBRE_PERFIL[tipo],
-    pin: tipo === "gerencia" || tipo === "admin" || tipo === "operaciones",
+    pin: tipo === "gerencia" || tipo === "admin" || tipo === "operaciones" || tipo === "central",
+    // Central (0494, Carlos 15-10): su código sirve solo para los cierres emitidos.
+    pinPara: tipo === "central" ? "Solo para autorizar que corrijan un cierre emitido o le agreguen documentos." : undefined,
   };
   return (
     <div className={cn("propuesta flex min-h-screen flex-1 bg-app-bg", oscuro && "dark")} data-tema={oscuro ? "oscuro" : "claro"}>
