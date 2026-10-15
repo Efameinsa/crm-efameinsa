@@ -1,6 +1,6 @@
 # Bitácora del CRM Efameinsa: historia de las decisiones
 
-Vigente al 14-10-2026 (16:30). Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
+Vigente al 15-10-2026. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
 
 Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién decidió que postventa no vea precios?», «¿esto siempre fue así?» o «¿qué pasó con el caso X?».
 
@@ -18,12 +18,38 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 14-10 (tarde) · Lo que resolvió el buzón y otros ajustes (Central, Jhon, Rubí, Brenda, Santos)
+- **Anular un cierre: ahora también puede quien lo emitió, con código** (Santos, a raíz de un cierre de Ariana).
+  - El código es el de operaciones o gerencia y se usa una sola vez. «Pedir la anulación» sigue existiendo.
+  - Antes era (Carlos, 04-09): «el comercial no anula, pide». Ahora el código es la autorización.
+- **Aviso cuando se anula un cierre** (buzón de Central: «el CRM se actualizó y se borró el cierre de hoy»).
+  - Caso: el cierre EFAMEINSA 010-2026 de AGROCASAGRANDE (servicio de puesta en marcha) no lo borró ninguna actualización. Lo anuló Ariana a las 17:47, con código, motivo «mala coordinación». Está en la pestaña «Anulados» con su motivo y su pedido se cerró solo. El cierre de agosto (005-2026) sigue igual.
+  - Lo que falló fue el aviso. Ahora, si anula alguien que no es Central, Central recibe en la campana quién lo anuló y el motivo; Finanzas también, si ya tenía el pedido.
+  - **Pendiente:** si la venta del servicio sigue en pie, Central coordina con Ariana para emitir un cierre nuevo.
+- **Un segundo anticipo vuelve a «Por facturar»** (buzón de Jhon, caso PRODECO). Si un pedido ya facturado recibe otro pago a cuenta y Finanzas sube una liquidación nueva con «factura pendiente», el pedido vuelve a la lista de Facturación con el aviso «Nuevo anticipo por facturar». Antes era: «Por facturar» solo mostraba pedidos sin ninguna factura, y el 2.º adelanto de PRODECO no le aparecía a Facturación.
+- **Visitas a la planta: mensaje grande en pantalla** (buzón de Central: la notificación no sonó).
+  - Antes salía una ventanita chica que se iba sola. Ahora sale un mensaje grande al centro, con campanada triple, que se queda hasta pulsar «Entendido» o «Imprimir para vigilancia».
+  - El almacén también lo ve, con el botón «Ver las visitas». Antes tenía un aviso de pocos segundos y las visitas de COFACO y MANDARA nunca se abrieron.
+  - Si el CRM estaba cerrado, el mensaje aparece al entrar (visitas de las últimas 12 horas sin leer).
+  - Sobre la lentitud que se reportó: ese día hubo varias publicaciones del CRM. Si se repite, avisar por el buzón con la hora y la pantalla.
+- **Informe de puesta en marcha por partes** (buzón de Rubí): cuadros separados y en este orden: detalle del trabajo realizado, puesta en marcha, contador de ciclos, observaciones, solución y recomendaciones. Lo que se deja vacío no sale en la hoja impresa. Los informes ya guardados no cambian.
+- **Hojas de chequeo para las demás máquinas** (Santos pasó las fotos de los papeles): secadora, desmanchadora, prensa de planchado, rodillo (calandria) y calderín. Prensa, rodillo y calderín se marcan por tipo de energía (gas, eléctrico, vapor). Con hoja en el sistema ya no se pide el Word. Siguen sin hoja la centrífuga, el ablandador y otras. Esto resuelve el pendiente de los protocolos que iba a compartir Ariana.
+- **Fichas unidas:**
+  - **PERUBAR** (pedido de Brenda): sus cuatro fichas sin RUC se unieron a la que tiene RUC. Los expedientes siguen con quien los atiende.
+  - **Abzul** (Santos): Rubí no veía la cotización Presu_1153-26 que hizo Ariana. No era un permiso: el cliente tenía dos fichas y la cotización estaba en la otra. Se unieron en una sola, por decisión de Santos. Lección: cuando alguien «no ve» algo de un cliente, buscar primero fichas partidas.
+  - **Operador Nacional de Hoteles del Perú (Decameron)** (lo detectó Brenda): sus tres fichas sin RUC se unieron. La ficha con RUC está en otra cartera y espera decisión de gerencia; mientras tanto, la cotización sale sin RUC.
+- **Regularizar con fotos:** las fotos de documentos que llegan por WhatsApp sirven para leer los datos. Al expediente de un cierre van solo los PDF correctos (presupuesto e informe). Caso: Seventh Heaven, al que se adjuntaron fotos por error. Santos: «te di las fotos para que las regularices, obviamente no para que lo almacenes».
+- **Asistente Efamein más cómodo** (Santos; los usuarios decían que la X borraba todo):
+  - La bolita se arrastra a cualquier parte y recuerda el lugar de cada persona.
+  - La ventana se minimiza con «—», con la bolita o con Escape, sin perder la conversación. Solo la X la termina.
+
 ### 14-10 15:05 · Llamada con el ingeniero: cierre del servicio de AGROCASAGRANDE (Santos, Ariana)
 - **Qué se decidió:** la puesta en marcha de las 2 secadoras UNIMAC UT075 de AGROCASAGRANDE (series 2505034118 y 2505050812) se vendió como **servicio aparte**. Se cotizó (Presu_2345-26, aprobada por gerencia el 14-10) y **postventa hace el cierre de ese servicio** para que Finanzas facture y el cliente pague.
 - **Por qué:** el cliente ya aprobó esos equipos desde su cierre inicial. El informe de servicio no se hizo entonces porque no se sabía si haría falta. No se espera otra aprobación del cliente: solo falta el cierre. Sea crédito o contado, a estos clientes **primero se les factura y después pagan**.
 - **Tropiezo:** Ariana decía que el cierre no la dejaba seguir sin voucher (comprobante de pago), aunque la venta es a crédito 30 días. Se había hablado con Katerine. El ingeniero pidió verificarlo: un cierre a crédito no debe exigir voucher.
 - **Resultado:** Ariana emitió el cierre **EFAMEINSA 010-2026** el 14-10 a las 15:12 (crédito 30 días, factura, garantía 36 meses, sin voucher). Sigue el procedimiento regular: Central genera el pedido y Finanzas factura.
 - Antes era: la puesta en marcha iba dentro del cierre de venta (EFAMEINSA 005-2026 REG). Este servicio es una venta nueva.
+- **Después:** ese mismo día, a las 17:47, Ariana anuló el cierre 010-2026 con código (motivo «mala coordinación»). Ver la entrada de la tarde.
 
 ### 14-10 · Ajustes de almacén, Finanzas y cotizaciones (Santos con Lesly, Ariana, Katerine y Jhon)
 - **Crédito con letras: sin visto bueno de Finanzas no sale nada** (orden de Santos, a raíz de COFACO).
@@ -55,7 +81,7 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
   - Jhon da el visto bueno tardío de COFACO.
   - Carlos decide si el visto bueno de Finanzas aplica a todo crédito o solo a letras.
   - Hay 58 pedidos por regularizar.
-  - Faltan los protocolos de calandria, secadora y prensa (los comparte Ariana).
+  - ~~Faltan los protocolos de calandria, secadora y prensa~~: resuelto el mismo 14-10 (ver arriba).
 
 ### 13-10 · Reunión de postventa (Carlos, Santos, Rubí, Ariana, Lesly)
 - **Agenda de postventa: solo lo abierto.**
@@ -628,7 +654,7 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 - **Numeración propia para las cotizaciones de postventa** (hoy comparten serie con los comerciales).
 - **Fin de la «postventa en capacitación»**, que es cuando las cotizaciones de postventa dejan de ir todas a gerencia.
 - **Visto bueno de Finanzas:** si aplica a todo crédito o solo a letras.
-- **Carteras en disputa:** la tercera ficha de Caravedo, el grupo Costa del Sol / Hotelera Cusco y otros pares en carteras distintas.
+- **Carteras en disputa:** la tercera ficha de Caravedo, el grupo Costa del Sol / Hotelera Cusco, la ficha con RUC de Operador Nacional de Hoteles (Decameron) y otros pares en carteras distintas.
 - **Unir las dos pantallas de preventivos** (Ventas de la empresa y campaña): se retoma en otra reunión.
 - **Ventana de validez de una aprobación de precio** (propuesta desde el 01-09).
 - **Reseñas de Google por parte del personal:** en revisión. Google prohíbe reseñas de empleados con incentivo; se recomendó premiar que el personal pida reseñas a clientes. Consulte a gerencia antes de dejar o pedir reseñas.
@@ -643,8 +669,8 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 **Depende de otras áreas**
 - **Lesly:** lista de stock y sin stock, códigos propios que faltan (por ejemplo FX180 y UY240), y pedidos y cierres en físico con fotos para regularizar.
-- **Ariana:** protocolos de calandria, secadora y prensa; depuración de «sin stock»; fotos de Herrera.
-- **Central:** generar el pedido de Vidawasi (OPEN 058) y pulsar «Pedir al almacén».
+- **Ariana:** depuración de «sin stock»; fotos de Herrera.
+- **Central:** generar el pedido de Vidawasi (OPEN 058) y pulsar «Pedir al almacén»; coordinar con Ariana si se rehace el cierre del servicio de AGROCASAGRANDE (anulado el 14-10).
 - **Jhon (Finanzas):** visto bueno tardío de COFACO; 58 pedidos por regularizar.
 - **Postventa:** cargar los cierres Word reservados (OPEN 030-036 y 038-040, de Rubí); Rubí envía las etapas que propone para su bandeja.
 - **Fichas por unir:** AGROCASAGRANDE (3), Cristo Vive (4), Grupo Santa Elena, Lavipronto y Malvich.

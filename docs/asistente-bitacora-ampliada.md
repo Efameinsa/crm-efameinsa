@@ -1,6 +1,6 @@
 # Bitácora ampliada (gerencia, administración, Central y operaciones)
 
-Vigente al 14-10-2026 (tarde). Complementa la «Bitácora del CRM» general (asistente-bitacora-general.md). Santos, 14-10: Central y operaciones (Lesly) deben tener el mismo contexto que gerencia —estados, montos, dinero— para continuar lo que se habló en las reuniones. Aquí va:
+Vigente al 15-10-2026. Complementa la «Bitácora del CRM» general (asistente-bitacora-general.md). Santos, 14-10: Central y operaciones (Lesly) deben tener el mismo contexto que gerencia —estados, montos, dinero— para continuar lo que se habló en las reuniones. Aquí va:
 - estrategia, presupuestos de publicidad y marketing;
 - web y campañas;
 - desempeño por comercial y metas;
@@ -18,6 +18,9 @@ Vigente al 14-10-2026 (tarde). Complementa la «Bitácora del CRM» general (asi
 ## Cronología
 
 ### 14-10
+- **Fichas unidas que cambian cartera:**
+  - **Abzul:** tenía una ficha en C1 (Brenda, con la venta de agosto y los casos de postventa) y otra con RUC en C5 (Katerine, con notas de 2024 y los equipos de la guía). Santos decidió unirlas en la de Brenda; **Katerine pierde esa ficha** de su cartera. Origen: Rubí no veía la cotización de Ariana.
+  - **Operador Nacional de Hoteles del Perú (Decameron):** las tres fichas sin RUC de C1 (Brenda) se unieron. La ficha con RUC está en C4 (Ariana, ventas de postventa 2023-24) y **no se unió: espera decisión de gerencia** sobre la cartera. Blue Marlin Beach Club (C1) es del mismo grupo.
 - **Cartera y campaña de C6.**
   - Su campaña de Meta «Torre LG para hoteles» pasó a **Brenda (C1)**. Los 12 chats de esa noche se movieron a Brenda.
   - **Pendiente de gerencia:** a quién va el resto de su cartera (unas 80 fichas y 77 chats de una campaña anterior).
@@ -326,7 +329,7 @@ Vigente al 14-10-2026 (tarde). Complementa la «Bitácora del CRM» general (asi
 13. **Cartera de C6** (~80 fichas y 77 chats) y corrección del anuncio que nombra a su asesor.
 14. **Metas** propuestas el 30-09 (gestiones, visitas, videollamadas, tiempos de WhatsApp): aprobar o ajustar.
 15. **Dueño del prospecto** (15 días / 6 meses / permanente) y plazo sin gestión para perder un cliente.
-16. **Carteras en disputa:** Caravedo, Costa del Sol / Hotelera Cusco y otros pares.
+16. **Carteras en disputa:** Caravedo, Costa del Sol / Hotelera Cusco, Operador Nacional de Hoteles (Decameron: C1 o C4) y otros pares.
 17. **WhatsApp fuera de horario:** anuncios solo en horario de oficina o repartir entre más comerciales.
 18. **Pasantía:** computadora, correo de postulación y fecha límite.
 19. **Crece:** indicadores por puesto (reducirían puntos) y estrategia de certificados.

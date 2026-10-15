@@ -1,6 +1,6 @@
 # Bitácora de Finanzas y Contabilidad: lo que se decidió alrededor del dinero
 
-Vigente al 14-10-2026 (16:30). Para Finanzas (Jhon) y Contabilidad/Facturación. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md, en especial 1.7 a 1.12, 2.6, 2.7 y 3.6) y la «Bitácora del CRM» (asistente-bitacora-general.md). Aquí no se repite cómo se usa cada pantalla: se cuenta **qué se decidió, cuándo, quién lo pidió y qué quedó en el aire**, para que pueda retomar el trabajo sin depender de la memoria de una reunión.
+Vigente al 15-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md, en especial 1.7 a 1.12, 2.6, 2.7 y 3.6) y la «Bitácora del CRM» (asistente-bitacora-general.md). Aquí no se repite cómo se usa cada pantalla: se cuenta **qué se decidió, cuándo, quién lo pidió y qué quedó en el aire**, para que pueda retomar el trabajo sin depender de la memoria de una reunión.
 
 ## Cómo leer esto
 
@@ -12,11 +12,19 @@ Vigente al 14-10-2026 (16:30). Para Finanzas (Jhon) y Contabilidad/Facturación.
 
 ## Cronología de decisiones que tocan su trabajo
 
+### 14-10 (tarde) · Nuevo anticipo por facturar y cierre anulado de AGROCASAGRANDE
+- **Un pedido puede facturarse una vez por anticipo** (buzón de Jhon). Caso: PRODECO (PED-0010-2026) pagó un primer adelanto el 30-09, se liquidó y se facturó (E001-826). Luego hizo dos pagos a cuenta más, para facturar como 2.º adelanto, pero la liquidación nueva no le aparecía a Facturación.
+  - Ahora, si Finanzas sube una liquidación con «factura pendiente» **después** de la última factura del pedido, el pedido vuelve a «Por facturar» con el aviso «Nuevo anticipo por facturar» y la nota de Finanzas. A Facturación también le llega a la campana.
+  - Mientras tanto, ese pedido no sale como «liquidación por actualizar»: le toca a Facturación. Cuando registren la factura nueva, Finanzas actualiza la liquidación con el número, como siempre.
+  - Antes era: «Por facturar» solo mostraba pedidos sin ninguna factura.
+- **El cierre del servicio de AGROCASAGRANDE (EFAMEINSA 010-2026) se anuló** a las 17:47: lo anuló Ariana con código, motivo «mala coordinación». Su pedido (PED-0028-2026) se cerró solo. **No hay que facturarlo** mientras no se emita un cierre nuevo. A Jhon se le avisó.
+  - Desde ese día, quien emitió un cierre también puede anularlo con código. Si lo anula alguien que no es Central, le llega aviso a Central y también a Finanzas si ya tenía el pedido.
+
 ### 14-10 15:05 · AGROCASAGRANDE: facturar el servicio de puesta en marcha (llamada con el ingeniero)
 - Se vendió aparte el servicio de instalación, puesta en marcha y capacitación de sus 2 secadoras: cotización Presu_2345-26, US$ 450 + IGV (US$ 531), crédito 30 días, aprobada por gerencia.
 - Postventa (Ariana) emitió el cierre **EFAMEINSA 010-2026** a las 15:12, con factura y transferencia a 30 días. El cliente necesita la factura para poder pagar: **primero se factura, después cobra** (vale igual si fuera contado).
 - Un cierre a crédito no debe pedir voucher. Ariana reportó que se lo pedía; el ingeniero pidió verificarlo.
-- Pendiente: Central genera el pedido y Finanzas emite la factura.
+- ~~Pendiente: Central genera el pedido y Finanzas emite la factura.~~ El cierre se anuló esa misma tarde (ver arriba).
 
 ### 14-10 · Crédito con letras, visto bueno de Finanzas y motivo de la guía
 - **Ninguna venta a crédito o con letras sale sin el visto bueno de Finanzas.**
