@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 16-10 · Buzón: accesorios en la generación de código (Lesly)
+- **Qué se pidió:** Lesly pidió que, en la generación de código, Central tenga la regla de indicar si los equipos incluyen algún accesorio, sobre todo los industriales como las lavadoras (caso: pedido de PRODECO DEL SUR con calandria, lavadora y secadora industriales).
+- **Qué se hizo:** al pedir las series al almacén, Central responde «¿Los equipos incluyen accesorios?» (no incluye / sí incluye y cuáles, con qué máquina). Sin responder no se pide el código. El almacén lo ve en el pedido, en la hoja de la solicitud y en el aviso; Central puede corregirlo después.
+
 ### 16-10 · Buzón: lo que se hizo a cada máquina de un caso (Rubí)
 - **Qué se pidió:** Rubí pidió que, cuando un caso tiene más de un equipo, «Qué se hizo en el cliente», «Repuestos usados» y «Ciclos» se puedan registrar por cada equipo (antes había un solo juego de campos y las otras máquinas quedaban sin nada escrito ni lectura del contador).
 - **Qué se hizo:** el paso muestra un recuadro por máquina del caso, con su serie y tipo. Los ciclos de cada una van a su propia ficha y el registro de la etapa muestra lo de cada máquina.
