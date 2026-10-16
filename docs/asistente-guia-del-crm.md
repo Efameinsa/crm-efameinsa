@@ -142,6 +142,8 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **«Terminado»:** pago confirmado según lo acordado, o visto bueno dado.
 - **Bloqueos típicos y por qué:**
   - **El pago se confirma con Finanzas aunque el voucher esté adjunto.** Hay vouchers falsos y depósitos con comisión descontada.
+  - **Dónde ve el comercial sus abonos y la comisión del banco** (desde el 16-10, Katerine): cada cierre emitido tiene un botón **«Pagos»**, en la ficha del cliente (pestaña «Ventas» → «Cierres») y dentro del cierre. Muestra los abonos que Finanzas confirmó y, si el banco descontó una comisión (por ejemplo interplaza), cuánto, por qué y la evidencia: esa diferencia la cobra el comercial. Antes solo se llegaba desde el aviso de Finanzas en la campana.
+  - **Dónde sube el comercial un voucher que llegó después:** en el mismo cierre, recuadro «Expediente», botón «Voucher». Como el cierre ya está emitido, pide el código de Central (lo dicta Central). Igual Finanzas tiene que confirmar el pago.
   - **Venta a crédito sin visto bueno de Finanzas no sale** (desde el 14-10). Ver 3.6.
   - Un pedido sin número de pedido no aparece en «Liquidar».
 
