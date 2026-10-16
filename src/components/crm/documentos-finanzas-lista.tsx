@@ -19,6 +19,11 @@ const TONO_PAGO: Record<string, string> = {
  * Yasmín, 25-09: después de liberar el pedido «ya no tengo acceso a verla».
  * Gerencia: Central imprime la liquidación y la factura para el expediente
  * físico. La vigente va primero y marcada; las anteriores quedan debajo.
+ *
+ * Central, 16-10 (ABACHI PED-0023-2026): Finanzas subió la de «operación
+ * cancelada» y parecía que la anterior se había borrado. No se borra nada:
+ * cada una lleva su número en la secuencia (N.º 1 la primera que subió
+ * Finanzas) para que se lea el camino del pago.
  */
 export function DocumentosFinanzasLista({ docs, titulo = true }: { docs: DocumentosDeFinanzas | undefined; titulo?: boolean }) {
   const liq = docs?.liquidaciones ?? [];
@@ -41,7 +46,12 @@ export function DocumentosFinanzasLista({ docs, titulo = true }: { docs: Documen
             {liq.map((l, k) => (
               <li key={l.id} className={cn("rounded-md border border-border p-2", k === 0 && "border-primary/40")}>
                 <div className="flex flex-wrap items-center gap-1.5">
-                  {k === 0 && <span className="rounded bg-primary px-1.5 text-[10px] font-bold uppercase text-primary-foreground">Vigente</span>}
+                  {liq.length > 1 && <span className="font-mono text-[11px] font-bold text-foreground">N.º {liq.length - k}</span>}
+                  {k === 0 ? (
+                    <span className="rounded bg-primary px-1.5 text-[10px] font-bold uppercase text-primary-foreground">Vigente</span>
+                  ) : (
+                    <span className="rounded bg-secondary px-1.5 text-[10px] font-bold uppercase text-muted-foreground">Anterior</span>
+                  )}
                   <span className={cn("rounded px-1.5 py-0.5 text-[11px] font-semibold", TONO_PAGO[l.estadoPago] ?? TONO_PAGO.sin_dato)}>
                     {etiquetaEstadoPago(l.estadoPago)}
                   </span>

@@ -438,6 +438,9 @@ export default async function CierresCentralPage({
             const yaLiberado = liberado(f.id);
             const estaAnulado = anulado(f);
             const documentos = adjuntosPorInforme.get(f.id) ?? [];
+            // Las liquidaciones y facturas del pedido, todas (Central 16-10: «que
+            // quede acoplado para ver la secuencia»).
+            const docsPedido = pedido?.id ? docsFinanzas.get(pedido.id as string) : undefined;
             return (
               <article
                 key={f.id}
@@ -554,7 +557,14 @@ export default async function CierresCentralPage({
                       adjuntos={documentos}
                       compendio={compendios.get(f.id) ?? null}
                       cotizacion={f.cotizaciones}
-                    />
+                    >
+                      {docsPedido && (
+                        <div className="rounded-md border border-border p-3">
+                          <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">De Finanzas y Facturación, en el orden en que se subieron</p>
+                          <DocumentosFinanzasLista docs={docsPedido} />
+                        </div>
+                      )}
+                    </ExpedienteCierre>
                     {/* EL PEDIDO YA GENERADO, A UN CLIC (Central 06-10, San Fernando:
                         «quiero ver el pedido pero ya está liberado, ¿dónde lo veo?»).
                         Central no entra a la ficha del pedido: abre su hoja. */}
@@ -618,6 +628,7 @@ export default async function CierresCentralPage({
                       series={{ con: eqs.filter((e) => e.serie).length, total: eqs.length }}
                       liquidacionAt={(pedido?.liquidacion_at as string | null) ?? null}
                       liquidacionPdf={liquidacionPdfPorInforme.get(f.id) ?? null}
+                      liquidaciones={docsPedido?.liquidaciones ?? []}
                       liquidacionRechazo={
                         pedido?.liquidacion_rechazada_at
                           ? { at: pedido.liquidacion_rechazada_at as string, motivo: (pedido.liquidacion_rechazada_motivo as string | null) ?? "" }
