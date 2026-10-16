@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import { TextoAsistente } from "@/components/crm/texto-asistente";
 import { AvatarEfamein } from "@/components/crm/avatar-efamein";
+import { PREGUNTA_PROCESOS, respuestaProcesos } from "@/lib/procesos";
 
 /** Lo mismo que acepta el servidor (lib/asistente/adjuntos.ts). */
 const ACEPTA = "image/jpeg,image/png,image/webp,image/gif,application/pdf,.docx,.xlsx,.xls,.csv,.txt";
@@ -113,6 +114,7 @@ type Evento =
 const CLAVE_HILO = "crm:asistente-conversacion";
 
 const SUGERENCIAS_GENERALES = [
+  PREGUNTA_PROCESOS,
   "¿Cómo funciona la aprobación de una cotización?",
   "¿Qué pasa con un pedido después del cierre?",
   "¿De quién es el cliente Sierra Travel?",
@@ -236,6 +238,14 @@ export function AsistenteChat({
     const pregunta = texto.trim();
     const enviados = archivos;
     if ((!pregunta && enviados.length === 0) || pensando) return;
+
+    // «¿Quiere repasar los procesos de la empresa?» (16-10): la lista de diagramas sale en el
+    // acto, sin gastar una consulta; cada enlace abre el proceso en una pestaña nueva.
+    if (pregunta === PREGUNTA_PROCESOS && enviados.length === 0) {
+      setMensajes((prev) => [...prev, { texto: pregunta, mio: true }, { texto: respuestaProcesos(), mio: false }]);
+      setEntrada("");
+      return;
+    }
 
     // La respuesta es la última burbuja y se va llenando mientras llega.
     setMensajes((prev) => [

@@ -5,6 +5,7 @@ import { usePendientesWhatsapp } from "@/lib/pendientes-whatsapp";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
+  Workflow,
   BarChart3, Boxes, Building2, CalendarDays, CheckCircle2, ClipboardList, Eye, FileText, Gauge, HandCoins, Inbox,
   KanbanSquare, KeyRound, Landmark, LogOut, Megaphone, MessageCircle, Package, ReceiptText, Route, ShieldCheck, Sun,
   Users, Wrench, BookMarked, type LucideIcon,
@@ -45,6 +46,7 @@ export const ICONOS: Record<Icono, LucideIcon> = {
   observaciones: MessageSquareWarning,
   tasking: ListChecks,
   directorio: Contact,
+  procesos: Workflow,
 };
 
 /* Los iconos van en un solo tono (25-09, Santos: «tienen muchos colores»); el

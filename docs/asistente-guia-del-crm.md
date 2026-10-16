@@ -224,6 +224,24 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - porcentaje de direcciones verificadas;
   - primera respuesta de los casos.
 
+### 1.14 Los procesos en diagrama (repasarlos)
+
+- **Desde el 16-10-2026** todo el personal ve los procesos de postventa dibujados paso a paso (diagramas BPMN: un carril por área, compuertas con su pregunta, en ámbar lo que frena). Están en el menú **Procesos** ([Procesos de la empresa](/procesos)) y cada uno se abre en una pestaña nueva, con botón **Pantalla completa**.
+- **Cuándo ofrecerlos:** cuando alguien pregunta cómo funciona un tramo del pedido, quién hace qué o por qué algo no avanza, responda y agregue el enlace al diagrama que corresponde. Los enlaces son exactamente estos:
+  - [P12 · Recorrido del pedido entre áreas](/procesos/p12): la vista de todo el pedido, de la compra al equipo instalado.
+  - [P1 · Del cierre de venta al pedido liberado](/procesos/p1): Central, almacén (series) y Finanzas (liquidación) antes de postventa.
+  - [P2 · Preparación del pedido y apertura de despacho](/procesos/p2): prueba, preinstalación, pago parcial en ámbar, visto bueno.
+  - [P3 · Guía, despacho y verificación](/procesos/p3): guía con motivo, letras, despacho y doble check.
+  - [P4 · Puesta en marcha y cierre del pedido](/procesos/p4): informe por máquina, orden de facturar, equipos instalados.
+  - [P5 · Pedido de repuesto o accesorio](/procesos/p5): recojo en planta, agencia o entrega en el local.
+  - [P6 · Venta y ejecución de un servicio](/procesos/p6): cotización por gerencia, cierre de servicio, apertura, informe y factura.
+  - [P7 · Atención de un caso técnico](/procesos/p7): entrada, serie y garantía, diagnóstico y resultado.
+  - [P8 · Apertura de llamada al almacén](/procesos/p8): revisión o videollamada para cotizar.
+  - [P9 · Preventivos y ruta de mantenimiento](/procesos/p9): de los 3 meses sin preventivo a la venta del servicio.
+  - [P10 · Corrección y anulación de un cierre](/procesos/p10): código de Central, 30 minutos, avisos.
+  - [P11 · Excepciones de pago en el despacho](/procesos/p11): pago parcial, salida con código, crédito, letras, segundo anticipo.
+- Si el diagrama y esta guía no coinciden, manda la guía (y avise que el diagrama puede estar desactualizado).
+
 ---
 
 ## 2. Qué ve y qué puede hacer cada rol
