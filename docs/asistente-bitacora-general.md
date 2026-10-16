@@ -485,6 +485,8 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 **Cotización sin TOTAL (05-10).** El PDF borraba una hoja que solo tenía el total. Se corrigió y se revisaron todas las cotizaciones afectadas.
 
+**Instalación que pedía serie (16-10).** En un pedido de repuestos, el servicio de instalación de la secadora que el cliente ya tenía entró a la lista como una máquina más y el almacén no podía darle código ni serie; Central le puso un código de relleno para salir del paso. Lesly pidió una opción «no corresponde». Desde entonces cada fila trae «No corresponde: es un servicio» y sale de la lista con constancia en el pedido.
+
 **Pedidos que no abrían (24-09).** El almacén probó máquinas sin fotos y la pantalla del pedido fallaba (Bungarena, Rivera, Ecolav, Herrera). Se corrigió y se limpiaron.
 
 ---
