@@ -111,7 +111,7 @@ export default async function OportunidadDetallePage({
       supabase
         .from("cotizaciones")
         .select(
-          "id, codigo, serie, estado, estado_aprobacion, observacion_estado, total, moneda, nota_gerencia, condiciones, vigencia_dias, enviada_at, created_at, entrega_lugar, version, anulada_at, anulada_motivo, cliente_snapshot, facturar_a_cuenta_id",
+          "id, codigo, serie, estado, estado_aprobacion, observacion_estado, total, moneda, nota_gerencia, condiciones, vigencia_dias, enviada_at, created_at, entrega_lugar, version, anulada_at, anulada_motivo, cliente_snapshot, facturar_a_cuenta_id, hizo:perfiles!cotizaciones_creada_por_fkey(nombre), confirmo:perfiles!cotizaciones_enviada_por_fkey(nombre)",
         )
         .eq("oportunidad_id", id)
         .order("created_at", { ascending: false }),
@@ -293,6 +293,8 @@ export default async function OportunidadDetallePage({
         (snap.tipo_doc ?? null) !== (cuenta.tipo_doc ?? null));
     return {
       ...c,
+      hizo: c.hizo as unknown as { nombre: string } | null,
+      confirmo: c.confirmo as unknown as { nombre: string } | null,
       total_con_igv: conIgvExacto.get(c.id as string) ?? null,
       version: Number(c.version ?? 1),
       versionesAnteriores: anteriores.get(c.id as string) ?? [],
