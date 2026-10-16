@@ -54,9 +54,16 @@ export interface CotizacionResumen {
   version?: number;
   /** Las archivadas, con quién corrigió, quién autorizó y por qué. */
   versionesAnteriores?: VersionAnterior[];
+  /** Quién la armó y quién la confirmó (0522): en postventa cualquiera del
+   *  área confirma la de otra, y tiene que quedar a la vista quién fue. */
+  hizo?: { nombre: string } | null;
+  confirmo?: { nombre: string } | null;
   /** 0472: lo que imprime el PDF no es lo que dice hoy la ficha (nombre o RUC). */
   clienteDesactualizado?: { sale: string; ficha: string } | null;
 }
+
+// «Ariana Flores (Postventa)» → «Ariana Flores»: el área ya se sabe.
+const nombreCorto = (nombre: string) => nombre.replace(/\s*\([^)]*\)\s*$/, "");
 
 const ESTADO_APROBACION: Record<string, { etiqueta: string; clases: string }> = {
   auto_aprobada: { etiqueta: "Aprobada", clases: "bg-[#1E7F4F]/10 text-[#1E7F4F]" },
@@ -379,7 +386,9 @@ El número, los equipos, los precios y las condiciones no cambian.`,
 
               <p className="mt-1 text-[11px] text-muted-foreground">
                 {fechaHoraLima(c.created_at)}
+                {c.hizo?.nombre ? ` · la hizo ${nombreCorto(c.hizo.nombre)}` : ""}
                 {c.enviada_at ? ` · confirmada ${fechaHoraLima(c.enviada_at)}` : ""}
+                {c.enviada_at && c.confirmo?.nombre ? ` por ${nombreCorto(c.confirmo.nombre)}` : ""}
                 {esUltima ? " · la más reciente" : ""}
                 {esAnulada && c.anulada_at ? ` · anulada ${fechaHoraLima(c.anulada_at)}` : ""}
               </p>

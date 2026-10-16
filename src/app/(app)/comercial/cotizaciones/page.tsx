@@ -141,7 +141,7 @@ export default async function MisCotizacionesPage({
       ? supabase
           .from("cotizaciones")
           .select(
-            "id, codigo, total, moneda, estado, estado_aprobacion, nota_gerencia, aprobada_at, updated_at, enviada_at, oportunidad_id, autor:perfiles!cotizaciones_creada_por_fkey(nombre), oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))",
+            "id, codigo, total, moneda, estado, estado_aprobacion, nota_gerencia, aprobada_at, updated_at, enviada_at, oportunidad_id, autor:perfiles!cotizaciones_creada_por_fkey(nombre), confirmo:perfiles!cotizaciones_enviada_por_fkey(nombre), oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))",
           )
           .in("oportunidades.comercial_id", duenos)
           .in("estado_aprobacion", ["pendiente_gerencia", "aprobada_gerencia", "rechazada_gerencia"])
@@ -427,6 +427,7 @@ export default async function MisCotizacionesPage({
             {porGerenciaVisibles.map((c) => {
               const estado = c.estado_aprobacion as string;
               const autor = (c.autor as unknown as { nombre: string } | null)?.nombre;
+              const confirmo = (c.confirmo as unknown as { nombre: string } | null)?.nombre;
               const sello =
                 estado === "pendiente_gerencia"
                   ? { texto: "Esperando a gerencia", clase: "bg-amber-500/10 text-amber-800" }
@@ -447,6 +448,7 @@ export default async function MisCotizacionesPage({
                             monto final (Ariana buscaba 300.90 y acá decía 255). */}
                         {` (${(Math.round(Number(c.total) * (1 + IGV) * 100) / 100).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} con IGV)`}
                         {c.aprobada_at ? ` · gerencia contestó el ${fechaLima(c.aprobada_at as string)}` : ` · ${fechaLima(c.updated_at as string)}`}
+                        {confirmo ? ` · la confirmó ${confirmo}` : ""}
                       </p>
                     </div>
                     <span className="flex items-center gap-2">
