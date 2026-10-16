@@ -18,6 +18,8 @@ import { VistoBuenoSalida } from "@/components/crm/visto-bueno-salida";
 import { LetrasDelPedido } from "@/components/crm/letras-del-pedido";
 import { pideVistoBuenoFinanzas, type EstadoLetras, type ServicioPostventa } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
+import { consultasDelPedido } from "@/lib/consultas-pago";
+import { ListaConsultasPago } from "@/components/crm/consultas-pago";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +48,7 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
       .maybeSingle(),
   ]);
   const misDocs = docs.get(id);
+  const consultas = await consultasDelPedido(id, p.moneda);
   const evidenciaObs = p.observadoAdjunto
     ? ((await supabase.storage.from("adjuntos").createSignedUrl(p.observadoAdjunto, 3600)).data?.signedUrl ?? null)
     : null;
@@ -87,6 +90,15 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
           </span>
           {!p.ordenFacturarAtendidaAt && <AtenderOrdenFacturar servicioId={p.id} />}
         </div>
+      )}
+
+      {/* Lo que el comercial consulta con el voucher (0520; Katerine 16-10). */}
+      {consultas.length > 0 && (
+        <SeccionPanel titulo={`Consultas del comercial${consultas.some((c) => !c.respondidaAt) ? " · por responder" : ""}`}>
+          <div className="-m-5">
+            <ListaConsultasPago consultas={consultas} servicioId={id} responder />
+          </div>
+        </SeccionPanel>
       )}
 
       {vb && (

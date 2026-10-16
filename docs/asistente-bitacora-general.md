@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 16-10 · La consulta del pago a Finanzas ya no va por correo (Katerine)
+- **Qué contó Katerine:** el comercial le pregunta a Contabilidad si el abono tuvo comisión interplaza y, al final, le avisa que el cliente ya canceló, las dos cosas por correo y con el voucher. Gerencia indicó que ahora se hace por el CRM. El comercial no termina la operación hasta que el cliente termina de pagar (antes lo veía postventa).
+- **Qué se hizo:** en «Pagos» del pedido, el comercial adjunta el voucher y elige «Preguntar si hubo comisión» o «Avisar que el cliente canceló». Finanzas contesta en el mismo pedido (si hubo comisión, con el monto y el pantallazo del banco para el cliente) y la respuesta le llega al comercial a la campana.
+
 ### 16-10 · Almacén: el pedido de repuestos se protocoliza como kit completo (Ariana)
 - **Qué pidió Ariana (buzón, «es con urgencia»):** que en el pedido de repuestos de LINO ESPIRITU (kit de instalación a gas de una secadora: 14 piezas entre válvulas, manómetro, manguera, niples, bush, codo y tee) el protocolo salga como **kit completo** y no con foto detallada de cada repuesto.
 - **Qué se hizo:** en todo pedido de repuestos con más de una pieza, el almacén sube una sola vez las fotos del kit armado, el técnico y la fecha, y marca **«Kit completo probado y embalado»**. El informe sale en una sola hoja con la lista de piezas, códigos y cantidades, y todas las fotos juntas. Las fotos que ya se habían subido pieza por pieza siguen valiendo. La regla vive en el sistema, así que también vale si se entra por la copia de respaldo.

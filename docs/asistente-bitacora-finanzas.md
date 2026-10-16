@@ -1,6 +1,6 @@
 # Bitácora de Finanzas y Contabilidad: lo que se decidió alrededor del dinero
 
-Vigente al 15-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md, en especial 1.7 a 1.12, 2.6, 2.7 y 3.6) y la «Bitácora del CRM» (asistente-bitacora-general.md). Aquí no se repite cómo se usa cada pantalla: se cuenta **qué se decidió, cuándo, quién lo pidió y qué quedó en el aire**, para que pueda retomar el trabajo sin depender de la memoria de una reunión.
+Vigente al 16-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md, en especial 1.7 a 1.12, 2.6, 2.7 y 3.6) y la «Bitácora del CRM» (asistente-bitacora-general.md). Aquí no se repite cómo se usa cada pantalla: se cuenta **qué se decidió, cuándo, quién lo pidió y qué quedó en el aire**, para que pueda retomar el trabajo sin depender de la memoria de una reunión.
 
 ## Cómo leer esto
 
@@ -11,6 +11,10 @@ Vigente al 15-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 ---
 
 ## Cronología de decisiones que tocan su trabajo
+
+### 16-10 · Las consultas del comercial sobre el pago llegan por el CRM, con el voucher (Katerine)
+- **Qué contó Katerine:** el comercial le pregunta a Contabilidad si el abono del cliente tuvo comisión interplaza; normalmente le contesta Jhon y, si la hubo, le manda un pantallazo del monto para cobrárselo al cliente. Y cuando el cliente cancela el saldo, el comercial registraba una llamada y mandaba un correo a Contabilidad con el voucher. Todo eso iba por correo; gerencia indicó que ahora va por el CRM.
+- **Qué se hizo:** el comercial tiene en «Pagos» del pedido dos botones con el voucher adjunto: «Preguntar si hubo comisión» y «Avisar que el cliente canceló». A Finanzas le llega el aviso y lo contesta en el pedido, en «Consultas del comercial»: «No hubo comisión» o «Hubo comisión» con el monto y el pantallazo. Confirmar u observar el abono también contesta la consulta. Lo que se confirma sigue siendo lo acreditado en el banco, no el voucher.
 
 ### 15-10 (tarde) · Facturación: volver a ver el expediente en las aperturas
 - **Qué pidió:** Facturación quería volver a ver el expediente de la venta al confirmar una apertura, como cuando Finanzas hacía la validación. Solo aparecía dentro de «Ver la validación del crédito», así que en las ventas al contado no había cómo verlo.
