@@ -3,11 +3,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Ban, Check, Pencil, Printer } from "lucide-react";
-import { cancelarVisitaPlanta, marcarVisita, marcarVisitaImpresa, reprogramarVisitaPlanta } from "@/lib/acciones/visitas-planta";
+import { Ban, Check, Pencil, Printer, UserPlus } from "lucide-react";
+import { cambiarAcompanantesVisita, cancelarVisitaPlanta, marcarVisita, marcarVisitaImpresa, reprogramarVisitaPlanta } from "@/lib/acciones/visitas-planta";
+import { TipoDocBotones } from "@/components/crm/visita-planta-boton";
 import { CircuitoVisita, CerrarVisitaBoton, ETIQUETA_RESULTADO } from "@/components/crm/circuito-visita";
 import { cn } from "@/lib/utils";
-import { docVisita } from "@/lib/visitas-planta-columnas";
+import { docVisita, errorDocVisita, esCarneExtranjeria, guardarDocVisita, type TipoDocVisita } from "@/lib/visitas-planta-columnas";
 import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 
 export interface VisitaFila {
@@ -163,7 +164,10 @@ export function ListaVisitasPlanta({
                   </p>
                   <p className="text-xs tabular-nums text-muted-foreground">{hora(v.hora)}</p>
                   {!pasadas && !v.cancelada_at && !v.cerrada_at && !v.llego_at && (modo === "comercial" || modo === "central") && (
-                    <CambiarHoraVisita visita={v} hoy={hoy} />
+                    <>
+                      <CambiarHoraVisita visita={v} hoy={hoy} />
+                      {v.tipo_visitante !== "videollamada" && <EditarAcompanantes visita={v} />}
+                    </>
                   )}
                   {v.llego_at && <p className="text-[11px] font-semibold text-[#1E7F4F]">Llegó {horaDe(v.llego_at)}</p>}
                   {v.no_vino_at && <p className="text-[11px] font-semibold text-destructive">No vino</p>}
@@ -453,6 +457,102 @@ function CambiarHoraVisita({ visita: v, hoy }: { visita: VisitaFila; hoy: string
           }}
           className="rounded-md px-2 py-0.5 text-[11px] text-muted-foreground hover:text-foreground"
         >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Sumar o quitar acompañantes de una visita ya anunciada (0511). Katerine,
+ * 16-10: «me acaba de avisar que al final viene con dos personas, ¿cómo
+ * edito?». Central recibe el aviso y, si vigilancia ya tenía la hoja, el check
+ * se apaga para que la vuelva a imprimir.
+ */
+function EditarAcompanantes({ visita: v }: { visita: VisitaFila }) {
+  const router = useRouter();
+  const inicial = () =>
+    (v.acompanantes ?? []).map((a) => {
+      const ce = esCarneExtranjeria(a.dni);
+      return { nombre: a.nombre, dni: (a.dni ?? "").replace(ce ? /^C\.?\s*E\.?\s*/i : /^$/, ""), tipo: (ce ? "ce" : "dni") as TipoDocVisita };
+    });
+  const [abierto, setAbierto] = useState(false);
+  const [filas, setFilas] = useState(inicial);
+  const [pendiente, startTransition] = useTransition();
+
+  if (!abierto) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setFilas(inicial().length ? inicial() : [{ nombre: "", dni: "", tipo: "dni" }]);
+          setAbierto(true);
+        }}
+        className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+      >
+        <UserPlus className="size-3" /> Acompañantes
+      </button>
+    );
+  }
+
+  function guardar() {
+    const mal = filas.map((a) => a.nombre.trim() && errorDocVisita(a.dni, a.tipo) && `${a.nombre.trim()}: ${errorDocVisita(a.dni, a.tipo)}`).find(Boolean);
+    if (mal) {
+      toast.error(mal, { duration: 8000 });
+      return;
+    }
+    startTransition(async () => {
+      const r = await cambiarAcompanantesVisita(v.id, filas.map((a) => ({ nombre: a.nombre, dni: guardarDocVisita(a.dni, a.tipo) })));
+      if (r.error) {
+        toast.error(r.error, { duration: 8000 });
+        return;
+      }
+      toast.success(v.impreso_at ? "Acompañantes guardados. Central ya fue avisada para volver a avisar a vigilancia." : "Acompañantes guardados. Central ya fue avisada.");
+      setAbierto(false);
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="mt-1 w-72 max-w-[calc(100vw-2rem)] space-y-1.5 rounded-md border border-border bg-card p-2 shadow-sm">
+      <p className="text-[11px] font-semibold text-foreground">Acompañantes: nombre y DNI o C.E. (vigilancia los pide)</p>
+      {filas.map((a, i) => (
+        <div key={i} className="grid gap-1 rounded bg-muted/40 p-1.5">
+          <input
+            value={a.nombre}
+            onChange={(e) => setFilas((xs) => xs.map((x, j) => (j === i ? { ...x, nombre: e.target.value } : x)))}
+            placeholder="Nombre y apellido"
+            className="w-full rounded-md border border-border bg-card px-1.5 py-0.5 text-xs"
+          />
+          <div className="flex items-center gap-1">
+            <TipoDocBotones tipo={a.tipo} onChange={(t) => setFilas((xs) => xs.map((x, j) => (j === i ? { ...x, tipo: t } : x)))} />
+            <input
+              value={a.dni}
+              onChange={(e) => setFilas((xs) => xs.map((x, j) => (j === i ? { ...x, dni: e.target.value } : x)))}
+              placeholder={a.tipo === "ce" ? "C.E." : "DNI"}
+              inputMode={a.tipo === "ce" ? "text" : "numeric"}
+              className="min-w-0 flex-1 rounded-md border border-border bg-card px-1.5 py-0.5 text-xs tabular-nums"
+            />
+            <button type="button" onClick={() => setFilas((xs) => xs.filter((_, j) => j !== i))} className="text-[11px] text-muted-foreground hover:text-destructive">
+              Quitar
+            </button>
+          </div>
+        </div>
+      ))}
+      <button type="button" onClick={() => setFilas((xs) => [...xs, { nombre: "", dni: "", tipo: "dni" }])} className="text-[11px] font-medium text-primary hover:underline">
+        + Acompañante
+      </button>
+      <div className="flex gap-1">
+        <button
+          type="button"
+          disabled={pendiente}
+          onClick={guardar}
+          className="rounded-md bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+        >
+          {pendiente ? "Guardando…" : "Guardar"}
+        </button>
+        <button type="button" disabled={pendiente} onClick={() => setAbierto(false)} className="rounded-md px-2 py-0.5 text-[11px] text-muted-foreground hover:text-foreground">
           Cancelar
         </button>
       </div>

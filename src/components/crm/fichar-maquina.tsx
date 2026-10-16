@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, TriangleAlert } from "lucide-react";
 import { buscarClientes } from "@/lib/acciones/casos";
 import { modelosDelCatalogo, registrarEquipo } from "@/lib/acciones/equipos";
 import { ficharEquipoDeLaAtencion } from "@/lib/acciones/atenciones";
@@ -85,6 +85,9 @@ export function FicharMaquina({
   // ni garantía nuestra: se pide desde cuándo la conocemos (la primera vez
   // que llegó a la planta) y queda anotado en la máquina.
   const [origen, setOrigen] = useState<"nuestra" | "servicio">("nuestra");
+  // 0512 (Ariana, 16-10): cuando la serie ya está en OTRA ficha la base frena
+  // y explica qué hacer. Un toast se va en segundos; esto queda a la vista.
+  const [aviso, setAviso] = useState<string | null>(null);
 
   function mirarClientes() {
     if (texto.trim().length < 3) {
@@ -99,6 +102,7 @@ export function FicharMaquina({
   }
 
   function guardar() {
+    setAviso(null);
     empezar(async () => {
       const deAfuera = origen === "servicio";
       const observaciones = deAfuera
@@ -121,7 +125,8 @@ export function FicharMaquina({
           ? await ficharEquipoDeLaAtencion({ atencionId, ...comun, observaciones })
           : await registrarEquipo({ cuentaId: elegida?.id ?? "", ...comun });
         if (r.error) {
-          toast.error(`${m.serie.trim() || m.modelo}: ${r.error}`);
+          if (r.error.includes("ya está registrada en otra ficha")) setAviso(r.error);
+          else toast.error(`${m.serie.trim() || m.modelo}: ${r.error}`);
           // Lo que ya se guardó no se repite: quedan en el formulario solo las que faltan.
           setMaquinas(aGuardar.slice(hechas));
           if (hechas) router.refresh();
@@ -327,6 +332,13 @@ export function FicharMaquina({
           ? "Como no la vendimos, no tiene garantía nuestra: queda anotado que vino solo por servicio técnico y desde cuándo la conocemos."
           : "Sin la fecha de la guía la garantía queda sin calcular: la máquina se ficha igual y la fecha se completa cuando aparezca su guía de remisión."}
       </p>
+
+      {aviso && (
+        <p role="alert" className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm leading-snug text-amber-900">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+          <span>{aviso}</span>
+        </p>
+      )}
 
       <button
         type="button"
