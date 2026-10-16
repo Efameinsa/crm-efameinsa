@@ -1000,37 +1000,55 @@ export function PedidoPostventa({
               }
               fotos.push({ path, nombre: f.name, tipo: f.type, tamano: f.size });
             }
-            // De qué equipo es: el elegido, con su serie; «todos» = el pedido entero.
-            const elegido = datos.equipo && datos.equipo !== "todos" ? equiposConSerie[Number(datos.equipo)] : null;
-            const r = await guardarInformeServicio({
-              fotos,
-              servicioId: servicio.id,
-              cuentaId: servicio.cuenta_id,
-              clienteTexto: servicio.cliente_texto,
-              equipoId: elegido?.equipoId ?? null,
-              equipoTexto: elegido
-                ? `${elegido.descripcion}${elegido.serie ? ` · serie ${elegido.serie}` : ""}`
-                : equiposTexto || servicio.equipo,
-              tipo: "puesta_en_marcha",
-              modalidad: servicio.modalidad === "provincia" ? "videollamada" : "in_situ",
-              ejecutadoAt: new Date(`${datos.fecha}T${datos.hora || "12:00"}:00-05:00`).toISOString(),
-              tecnico: datos.tecnico,
-              // Cada parte en su propio bloque (Rubí 14-10: «quiero que esté
-              // separado»): van como secciones, que la hoja imprimible ya pone
-              // una debajo de otra con su título. «detalle» se queda con el
-              // trabajo realizado para los resúmenes de las listas.
-              detalle: datos.detalle,
-              secciones: SECCIONES_PUESTA.map((s) => ({ titulo: s.titulo, texto: datos[s.nombre] ?? "" })),
-              ciclos: datos.ciclos ? Number(datos.ciclos) : null,
-              capacitacion: { uso: true, cuidado: true, mantenimiento_diario: true },
-              conformeNombre: datos.conforme,
-              conformeDoc: datos.conformeDoc,
-            });
-            if (r.error) {
-              setFallo(r.error);
-              return;
+            // De qué equipo es: el elegido, con su serie; «todos» = el pedido
+            // entero en una hoja; «cada» = una ficha por equipo con lo mismo
+            // escrito y sus propios ciclos (Ariana 16-10, BENEFICENCIA DE
+            // HUANCAYO: «necesitamos que salgan 2 fichas porque son 2 equipos»).
+            const cada = datos.equipo === "cada";
+            const elegido = datos.equipo && datos.equipo !== "todos" && !cada ? equiposConSerie[Number(datos.equipo)] : null;
+            const destinos: { equipo: (typeof equiposConSerie)[number] | null; ciclos: string | undefined }[] = cada
+              ? equiposConSerie.map((e, i) => ({ equipo: e, ciclos: datos[`ciclos_${i}`] }))
+              : [{ equipo: elegido, ciclos: datos.ciclos }];
+            for (const [n, d] of destinos.entries()) {
+              const r = await guardarInformeServicio({
+                fotos,
+                servicioId: servicio.id,
+                cuentaId: servicio.cuenta_id,
+                clienteTexto: servicio.cliente_texto,
+                equipoId: d.equipo?.equipoId ?? null,
+                equipoTexto: d.equipo
+                  ? `${d.equipo.descripcion}${d.equipo.serie ? ` · serie ${d.equipo.serie}` : ""}`
+                  : equiposTexto || servicio.equipo,
+                tipo: "puesta_en_marcha",
+                modalidad: servicio.modalidad === "provincia" ? "videollamada" : "in_situ",
+                ejecutadoAt: new Date(`${datos.fecha}T${datos.hora || "12:00"}:00-05:00`).toISOString(),
+                tecnico: datos.tecnico,
+                // Cada parte en su propio bloque (Rubí 14-10: «quiero que esté
+                // separado»): van como secciones, que la hoja imprimible ya pone
+                // una debajo de otra con su título. «detalle» se queda con el
+                // trabajo realizado para los resúmenes de las listas.
+                detalle: datos.detalle,
+                secciones: SECCIONES_PUESTA.map((s) => ({ titulo: s.titulo, texto: datos[s.nombre] ?? "" })),
+                ciclos: d.ciclos ? Number(d.ciclos) : null,
+                capacitacion: { uso: true, cuidado: true, mantenimiento_diario: true },
+                conformeNombre: datos.conforme,
+                conformeDoc: datos.conformeDoc,
+              });
+              if (r.error) {
+                // Las que ya se guardaron quedan en «Informes del pedido»: se
+                // dice cuál falló para no repetirlas con «Otro informe».
+                setFallo(n > 0 ? `Se guardaron ${n} de ${destinos.length} fichas; la del equipo ${n + 1} no: ${r.error}` : r.error);
+                if (n > 0) router.refresh();
+                return;
+              }
             }
-            toast.success(elegido?.serie ? `Informe de la serie ${elegido.serie} guardado` : "Informe guardado y puesta en marcha registrada");
+            toast.success(
+              cada
+                ? `${destinos.length} fichas guardadas, una por equipo`
+                : elegido?.serie
+                  ? `Informe de la serie ${elegido.serie} guardado`
+                  : "Informe guardado y puesta en marcha registrada",
+            );
             setForm(null);
             router.refresh();
           });
@@ -1042,13 +1060,11 @@ export function PedidoPostventa({
                   nombre: "equipo",
                   etiqueta: "¿De qué equipo es este informe?",
                   requerido: true,
-                  inicial: "0",
+                  inicial: "cada",
                   opciones: [
-                    ...equiposConSerie.map((e, i) => ({
-                      valor: String(i),
-                      etiqueta: `${e.serie ? `Serie ${e.serie}` : `Equipo ${i + 1} (sin serie)`} · ${e.descripcion.split("\n")[0].slice(0, 60)}`,
-                    })),
-                    { valor: "todos", etiqueta: "Todos los equipos del pedido (un solo informe)" },
+                    { valor: "cada", etiqueta: `Los ${equiposConSerie.length} equipos, cada uno con su ficha (${equiposConSerie.length} informes)` },
+                    ...equiposConSerie.map((e, i) => ({ valor: String(i), etiqueta: `Solo ${etiquetaEquipoPuesta(e, i)}` })),
+                    { valor: "todos", etiqueta: "Todos los equipos en una sola hoja" },
                   ],
                 },
               ]
@@ -1057,7 +1073,25 @@ export function PedidoPostventa({
           { nombre: "hora", etiqueta: "Hora", tipo: "time", requerido: false },
           { nombre: "tecnico", etiqueta: "Técnico a cargo", requerido: false },
           ...SECCIONES_PUESTA.slice(0, 2).map((s) => ({ nombre: s.nombre, etiqueta: s.titulo, area: true, requerido: false })),
-          { nombre: "ciclos", etiqueta: "Contador de ciclos (con los que queda el equipo)", tipo: "number", inicial: "5", requerido: false },
+          {
+            nombre: "ciclos",
+            etiqueta: "Contador de ciclos (con los que queda el equipo)",
+            tipo: "number",
+            inicial: "5",
+            requerido: false,
+            soloSi: (d: Record<string, string>) => d.equipo !== "cada",
+          },
+          // Una ficha por equipo: cada máquina con su propio contador.
+          ...(equiposConSerie.length > 1
+            ? equiposConSerie.map((e, i) => ({
+                nombre: `ciclos_${i}`,
+                etiqueta: `Ciclos de ${etiquetaEquipoPuesta(e, i)}`,
+                tipo: "number",
+                inicial: "5",
+                requerido: false,
+                soloSi: (d: Record<string, string>) => d.equipo === "cada",
+              }))
+            : []),
           ...SECCIONES_PUESTA.slice(2).map((s) => ({ nombre: s.nombre, etiqueta: s.titulo, area: true, requerido: false })),
           { nombre: "conforme", etiqueta: "Cliente que da conformidad", requerido: false },
           { nombre: "conformeDoc", etiqueta: "Su DNI", requerido: false },
@@ -1090,6 +1124,11 @@ export function PedidoPostventa({
       />
     </div>
   );
+}
+
+/** «Serie X · LAVADORA …» o «Equipo 2 (sin serie) · …»: cómo se nombra cada máquina en el informe de puesta en marcha. */
+function etiquetaEquipoPuesta(e: { serie: string | null; descripcion: string }, i: number): string {
+  return `${e.serie ? `Serie ${e.serie}` : `Equipo ${i + 1} (sin serie)`} · ${e.descripcion.split("\n")[0].slice(0, 60)}`;
 }
 
 /** Los bloques del informe de puesta en marcha, en el orden en que Rubí los llena (14-10). */
