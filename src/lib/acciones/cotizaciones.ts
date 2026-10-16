@@ -120,6 +120,32 @@ async function estadoAprobacionDe(
   return data?.estado_aprobacion ?? undefined;
 }
 
+/** El descuento al final del total tal como lo escribió la comercial (0521). */
+export interface DescuentoBorrador {
+  escrito: number | null;
+  conIgv: boolean;
+  motivo: string | null;
+}
+
+/**
+ * DESCUENTO AL FINAL DEL TOTAL (0521; Katerine 16-10, pedido de gerencia):
+ * «descuento» o «descuento por paquete especial» debajo del subtotal. Siempre
+ * pasa por gerencia; el que ya firmó no se vuelve a pedir mientras no cambie.
+ */
+async function fijarDescuento(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  cotizacionId: string,
+  d: DescuentoBorrador,
+): Promise<string | null> {
+  const { error } = await supabase.rpc("fijar_descuento_cotizacion", {
+    p_cotizacion_id: cotizacionId,
+    p_escrito: Number(d.escrito ?? 0) > 0 ? Number(d.escrito) : 0,
+    p_con_igv: d.conIgv,
+    p_motivo: d.motivo?.trim() || null,
+  });
+  return error ? limpiarError(error.message) : null;
+}
+
 /**
  * Autoguarda la cotización que se está armando.
  *
@@ -156,6 +182,8 @@ export async function guardarBorradorCotizacion(datos: {
   tipoCambio?: number | null;
   /** A nombre de qué empresa del grupo nace el borrador (0310); después se cambia con cotizarANombreDe. */
   facturarA?: string | null;
+  /** Descuento al final del total (0521), en la moneda del papel; undefined = no se toca. */
+  descuento?: DescuentoBorrador;
 }): Promise<{ error: string | null; cotizacionId: string | null; estadoAprobacion?: string }> {
   const supabase = await createClient();
 
@@ -189,6 +217,10 @@ export async function guardarBorradorCotizacion(datos: {
     if (datos.facturarA) {
       await supabase.rpc("cotizar_a_nombre_de", { p_cotizacion: cotizacionId, p_cuenta: datos.facturarA });
     }
+    if (datos.descuento && Number(datos.descuento.escrito ?? 0) > 0) {
+      const errorDescuento = await fijarDescuento(supabase, cotizacionId, datos.descuento);
+      if (errorDescuento) return { error: errorDescuento, cotizacionId };
+    }
     // NO se revalida nada acá. Se hacía al nacer el borrador —para que
     // apareciera en la lista de la oportunidad— y costaba caro: `revalidatePath`
     // dentro de una Server Action refresca EL ÁRBOL DE LA RUTA ACTUAL, y como
@@ -199,6 +231,13 @@ export async function guardarBorradorCotizacion(datos: {
     // el borrador). La lista de la oportunidad se refresca igual al volver:
     // `volver()` hace router.refresh().
     return { error: null, cotizacionId, estadoAprobacion: await estadoAprobacionDe(supabase, cotizacionId) };
+  }
+
+  // El descuento va ANTES que los renglones: editar_cotizacion lo vuelve a
+  // calcular con la moneda que queda y decide si pasa por gerencia (0521).
+  if (datos.descuento) {
+    const errorDescuento = await fijarDescuento(supabase, datos.cotizacionId, datos.descuento);
+    if (errorDescuento) return { error: errorDescuento, cotizacionId: datos.cotizacionId };
   }
 
   const { error } = await supabase.rpc("editar_cotizacion", {
@@ -293,7 +332,7 @@ export async function cambiarSerieBorrador(datos: {
   const { data: original } = await supabase
     .from("cotizaciones")
     .select(
-      "estado, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, facturar_a_cuenta_id, atencion_pdf, tiempo_entrega, garantia, forma_pago, saldo, notas_pdf, tiempo_ejecucion, moneda_impresa, tipo_cambio, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color, nombre_impreso, detalle_kit)",
+      "estado, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, facturar_a_cuenta_id, atencion_pdf, tiempo_entrega, garantia, forma_pago, saldo, notas_pdf, tiempo_ejecucion, moneda_impresa, tipo_cambio, descuento_escrito, descuento_con_igv, descuento_motivo, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color, nombre_impreso, detalle_kit)",
     )
     .eq("id", datos.cotizacionId)
     .maybeSingle();
@@ -365,6 +404,14 @@ export async function cambiarSerieBorrador(datos: {
   if (original.atencion_pdf) {
     await supabase.from("cotizaciones").update({ atencion_pdf: original.atencion_pdf }).eq("id", nuevoId);
   }
+  // Ni el descuento al final (0521).
+  if (Number(original.descuento_escrito ?? 0) > 0) {
+    await fijarDescuento(supabase, nuevoId, {
+      escrito: Number(original.descuento_escrito),
+      conIgv: Boolean(original.descuento_con_igv),
+      motivo: original.descuento_motivo,
+    });
+  }
 
   // Primero se crea y recién después se borra: si el borrado fallara, queda un
   // borrador de más —visible y borrable— en vez de perder el trabajo.
@@ -391,7 +438,7 @@ export async function duplicarCotizacion(
 
   const { data: original, error: errorOriginal } = await supabase
     .from("cotizaciones")
-    .select("codigo, oportunidad_id, serie, motivo_serie, condiciones, vigencia_dias, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color, nombre_impreso, detalle_kit)")
+    .select("codigo, oportunidad_id, serie, motivo_serie, condiciones, vigencia_dias, facturar_a_cuenta_id, moneda_impresa, descuento_escrito, descuento_con_igv, descuento_motivo, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, tier_aplicado, color, nombre_impreso, detalle_kit)")
     .eq("id", cotizacionId)
     .maybeSingle();
   if (errorOriginal) return { error: errorOriginal.message };
@@ -443,6 +490,15 @@ export async function duplicarCotizacion(
   // Y sale a nombre de la misma empresa del grupo (0310).
   if (copiaId && original.facturar_a_cuenta_id) {
     await supabase.rpc("cotizar_a_nombre_de", { p_cotizacion: copiaId as string, p_cuenta: original.facturar_a_cuenta_id });
+  }
+  // Y con el mismo descuento al final (0521), que vuelve a pasar por gerencia.
+  // La copia nace en dólares: un descuento escrito en soles no se copia.
+  if (copiaId && Number(original.descuento_escrito ?? 0) > 0 && (original.moneda_impresa ?? "USD") === "USD") {
+    await fijarDescuento(supabase, copiaId as string, {
+      escrito: Number(original.descuento_escrito),
+      conIgv: Boolean(original.descuento_con_igv),
+      motivo: original.descuento_motivo,
+    });
   }
 
   revalidatePath(`/comercial/oportunidades/${original.oportunidad_id}`);

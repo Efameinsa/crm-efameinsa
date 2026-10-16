@@ -38,7 +38,7 @@ export default async function AprobacionesPage() {
   const { data: cotizaciones } = await supabase
     .from("cotizaciones")
     .select(
-      `id, codigo, serie, total, moneda, created_at, oportunidad_id, version, observacion_estado,
+      `id, codigo, serie, total, subtotal, descuento_monto, descuento_motivo, moneda, created_at, oportunidad_id, version, observacion_estado,
        autor:perfiles!cotizaciones_creada_por_fkey(nombre, codigo_comercial, es_postventa, rol),
        oportunidades!cotizaciones_oportunidad_id_fkey(cuenta_id, cuentas(razon_social), perfiles(nombre)),
        cotizacion_items(id, cantidad, precio_lista, precio_unitario, precio_con_igv, bajo_lista, requiere_aprobacion, aprobado, descripcion, detalle_kit, productos(marca, modelo, nombre, segmento, foto_path, ficha))`,
@@ -147,6 +147,9 @@ export default async function AprobacionesPage() {
             // 0440: líneas escritas a mano con precio (sin catálogo) de un comercial.
             const aMano = items.filter((i) => i.requiere_aprobacion && !i.productos).length;
             const porLineaAMano = !porCapacitacion && aMano > 0 && aMano === porDecidir;
+            // 0521: descuento al final del total (Katerine 16-10, pedido de gerencia).
+            const descuentoFinal = Number(c.descuento_monto ?? 0);
+            const motivoDescuento = c.descuento_motivo || "Descuento";
             const cedido = items
               .filter((i) => i.bajo_lista && i.precio_lista != null)
               .reduce((s, i) => s + (Number(i.precio_lista) - Number(i.precio_unitario)) * i.cantidad, 0);
@@ -182,12 +185,16 @@ export default async function AprobacionesPage() {
                           borrador puede esperar días (NEWREST, 07-10). */}
                       Hecha el {fechaHoraLima(c.created_at)} ·{" "}
                       <span className="font-semibold text-amber-700">
-                        {porCapacitacion
+                        {porDecidir === 0 && descuentoFinal > 0
+                          ? `${motivoDescuento} al final del total`
+                          : porCapacitacion
                           ? `Postventa en capacitación · ${porDecidir} de ${items.length} por aprobar`
                           : porLineaAMano
                             ? `${porDecidir} de ${items.length} escritas a mano con precio`
                             : `${porDecidir} de ${items.length} por debajo de la referencia`}
                         {cedido > 0 && ` · se ceden ${c.moneda} ${Math.round(cedido).toLocaleString("es-PE")}`}
+                        {descuentoFinal > 0 &&
+                          ` · ${porDecidir === 0 ? "" : `${motivoDescuento.toLowerCase()} `}− ${c.moneda} ${descuentoFinal.toLocaleString("es-PE", { minimumFractionDigits: 2 })} sin IGV`}
                       </span>
                     </p>
                   </div>
@@ -259,6 +266,11 @@ export default async function AprobacionesPage() {
                     moneda={c.moneda}
                     porCapacitacion={porCapacitacion}
                     porLineaAMano={porLineaAMano}
+                    descuento={
+                      descuentoFinal > 0
+                        ? { monto: descuentoFinal, motivo: motivoDescuento, subtotal: Number(c.subtotal ?? 0) }
+                        : null
+                    }
                     items={items.map((i) => ({
                       id: i.id,
                       nombre: i.productos

@@ -42,13 +42,75 @@ export function importeConIgv(r: RenglonConIgv): number {
   return redondear2(r.cantidad * Number(r.precio_unitario) * (1 + IGV));
 }
 
-export function totalesConIgv(renglones: RenglonConIgv[]): { subtotal: number; igv: number; total: number } {
+/**
+ * DESCUENTO AL FINAL DEL TOTAL (0521; Katerine 16-10, pedido de gerencia):
+ * «descuento» o «descuento por paquete especial», escrito en la moneda del
+ * papel, con o sin IGV, igual que el precio de un renglón.
+ */
+export interface DescuentoFinal {
+  escrito: number;
+  conIgv: boolean;
+}
+
+/** El descuento sin IGV, a dos decimales (0 si no hay). */
+export function descuentoNeto(d: DescuentoFinal | null | undefined): number {
+  const escrito = Number(d?.escrito ?? 0);
+  if (!(escrito > 0)) return 0;
+  return d!.conIgv ? netoDeBruto(escrito) : redondear2(escrito);
+}
+
+export function totalesConIgv(
+  renglones: RenglonConIgv[],
+  descuento?: DescuentoFinal | null,
+): { subtotal: number; descuento: number; base: number; igv: number; total: number } {
   const subtotal = redondear2(renglones.reduce((a, r) => a + r.cantidad * Number(r.precio_unitario), 0));
   const hayBruto = renglones.some((r) => r.precio_con_igv != null);
-  // Sin renglones pactados con IGV el cálculo es el de siempre, centavo por
-  // centavo: las cotizaciones ya emitidas no cambian ni un decimal.
-  const total = hayBruto
-    ? redondear2(renglones.reduce((a, r) => a + importeConIgv(r), 0))
-    : redondear2(subtotal * (1 + IGV));
-  return { subtotal, igv: redondear2(total - subtotal), total };
+  const neto = descuentoNeto(descuento);
+  const base = redondear2(subtotal - neto);
+  // Sin renglones pactados con IGV ni descuento con IGV el cálculo es el de
+  // siempre, centavo por centavo: las cotizaciones ya emitidas no cambian ni
+  // un decimal.
+  const conIgvDescuento = neto > 0 && descuento!.conIgv;
+  const total =
+    hayBruto || conIgvDescuento
+      ? redondear2(
+          renglones.reduce((a, r) => a + importeConIgv(r), 0) -
+            (neto > 0 ? (conIgvDescuento ? redondear2(Number(descuento!.escrito)) : redondear2(neto * (1 + IGV))) : 0),
+        )
+      : redondear2(base * (1 + IGV));
+  return { subtotal, descuento: neto, base, igv: redondear2(total - base), total };
+}
+
+/**
+ * EL DESCUENTO AL FINAL, REPARTIDO EN LOS RENGLONES (0521).
+ *
+ * El cierre de venta no tiene renglón de descuento: copia los renglones de la
+ * cotización. Sin esto, una cotización de 24,423.64 con 423.64 de descuento
+ * por paquete llegaba al cierre por 24,423.64. Cada precio baja en la misma
+ * proporción y el centavo que sobre del redondeo lo absorbe un renglón de
+ * cantidad 1, para que el total del cierre sea el mismo que el del PDF.
+ */
+export function repartirDescuento<T extends RenglonConIgv>(renglones: T[], descuento: DescuentoFinal | null | undefined): T[] {
+  const objetivo = totalesConIgv(renglones, descuento);
+  if (objetivo.descuento <= 0 || objetivo.subtotal <= 0) return renglones;
+  const factor = objetivo.base / objetivo.subtotal;
+  const repartidos = renglones.map((r) =>
+    r.precio_con_igv != null
+      ? { ...r, precio_con_igv: redondear2(Number(r.precio_con_igv) * factor), precio_unitario: netoDeBruto(Number(r.precio_con_igv) * factor) }
+      : { ...r, precio_unitario: redondear2(Number(r.precio_unitario) * factor) },
+  );
+  // Lo que sobre o falte del redondeo, en un renglón de cantidad 1.
+  const i = repartidos.findIndex((r) => r.cantidad === 1);
+  if (i >= 0) {
+    const r = repartidos[i];
+    if (r.precio_con_igv != null) {
+      const falta = redondear2(objetivo.total - totalesConIgv(repartidos).total);
+      const bruto = redondear2(Number(r.precio_con_igv) + falta);
+      repartidos[i] = { ...r, precio_con_igv: bruto, precio_unitario: netoDeBruto(bruto) };
+    } else {
+      const falta = redondear2(objetivo.base - totalesConIgv(repartidos).subtotal);
+      repartidos[i] = { ...r, precio_unitario: redondear2(Number(r.precio_unitario) + falta) };
+    }
+  }
+  return repartidos;
 }

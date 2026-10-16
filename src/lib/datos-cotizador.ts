@@ -339,7 +339,7 @@ export async function cargarContextoCotizador(
     const { data: cot } = await supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, motivo_serie, moneda_impresa, tipo_cambio, version, estado, estado_aprobacion, observacion_estado, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, notas_pdf, atencion_pdf, tiempo_ejecucion, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, precio_lista, color, nombre_impreso, detalle_kit, productos(marca, modelo, nombre))",
+        "id, codigo, serie, motivo_serie, moneda_impresa, tipo_cambio, version, estado, estado_aprobacion, observacion_estado, nota_gerencia, enviada_at, oportunidad_id, condiciones, vigencia_dias, entrega_lugar, tiempo_entrega, garantia, forma_pago, saldo, notas_pdf, atencion_pdf, tiempo_ejecucion, descuento_escrito, descuento_con_igv, descuento_motivo, facturar_a_cuenta_id, cotizacion_items(producto_id, descripcion, cantidad, precio_unitario, precio_con_igv, precio_impreso, precio_lista, color, nombre_impreso, detalle_kit, productos(marca, modelo, nombre))",
       )
       .eq("id", cotizacionId)
       .maybeSingle();
@@ -408,6 +408,10 @@ export async function cargarContextoCotizador(
       saldo: cot.saldo,
       notasPdf: (cot.notas_pdf as string[] | null) ?? null,
       tiempoEjecucion: cot.tiempo_ejecucion ?? null,
+      descuento:
+        Number(cot.descuento_escrito ?? 0) > 0
+          ? { escrito: Number(cot.descuento_escrito), conIgv: Boolean(cot.descuento_con_igv), motivo: cot.descuento_motivo ?? null }
+          : null,
       atencionPdf: (cot.atencion_pdf as { nombre: string | null; telefono: string | null; email: string | null } | null) ?? null,
       estadoAprobacion: cot.estado_aprobacion,
       notaGerencia: cot.nota_gerencia,

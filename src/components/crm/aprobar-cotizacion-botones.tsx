@@ -65,10 +65,13 @@ export function AprobarCotizacionBotones({
   items,
   porCapacitacion = false,
   porLineaAMano = false,
+  descuento = null,
 }: {
   cotizacionId: string;
   moneda: string;
   items: ItemAprobacion[];
+  /** Descuento al final del total (0521), sin IGV y en dólares: se aprueba con la cotización. */
+  descuento?: { monto: number; motivo: string; subtotal: number } | null;
   /** Cotización de postventa en capacitación (0396): todo pasa por gerencia. */
   porCapacitacion?: boolean;
   /** Líneas escritas a mano con precio (0440): no tienen lista contra la que medirse. */
@@ -165,6 +168,19 @@ export function AprobarCotizacionBotones({
             )}
           </DialogDescription>
         </DialogHeader>
+
+        {descuento && descuento.monto > 0 && (
+          <div className="rounded-lg border-2 border-amber-500/60 bg-amber-500/10 p-3 text-sm">
+            <p className="font-semibold text-amber-900">
+              {descuento.motivo}: − {moneda} {descuento.monto.toLocaleString("es-PE", { minimumFractionDigits: 2 })} sin IGV
+              {descuento.subtotal > 0 && ` (${((descuento.monto / descuento.subtotal) * 100).toFixed(1)} % del subtotal)`}
+            </p>
+            <p className="mt-0.5 text-xs text-amber-900/80">
+              Descuento al final del total: sale en el PDF debajo del SUB TOTAL. Al aprobar, queda aprobado junto
+              con la cotización; si no está de acuerdo, use «Observar» y dígale a la comercial cuánto sí.
+            </p>
+          </div>
+        )}
 
         <div className="max-h-[50vh] space-y-2 overflow-y-auto">
           {items.map((i) => {

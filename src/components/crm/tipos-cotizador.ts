@@ -112,6 +112,8 @@ export interface BorradorEnEdicion {
   notasPdf?: string[] | null;
   /** Cuánto dura el trabajo, en el PDF de postventa después de la forma de pago (0442). */
   tiempoEjecucion?: string | null;
+  /** Descuento al final del total (0521), en la moneda del papel; null = sin descuento. */
+  descuento?: { escrito: number; conIgv: boolean; motivo: string | null } | null;
   /** A quién va dirigida esta cotización (0443); null = el contacto principal de la ficha. */
   atencionPdf?: { nombre: string | null; telefono: string | null; email: string | null } | null;
   /** Lo que dice la BASE sobre la aprobación del precio. Manda sobre el cálculo

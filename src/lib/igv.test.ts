@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { importeConIgv, netoDeBruto, totalesConIgv } from "./igv";
+import { importeConIgv, netoDeBruto, redondear2, repartirDescuento, totalesConIgv } from "./igv";
 
 // El caso del 14-09: 2 lavadoras a 3.600 y una secadora a 1.600, con IGV.
 // A mano salía 8.799,99 (un dedazo en el neto). Acá tiene que dar 8.800,00.
@@ -49,5 +49,48 @@ describe("precio pactado con IGV (0233)", () => {
     expect(t.total).toBe(7436);
     expect(t.subtotal).toBe(6301.7);
     expect(t.igv).toBe(1134.3);
+  });
+});
+
+describe("descuento al final del total (0521, Katerine 16-10)", () => {
+  // La captura: lavadora UCT040 13,199 + secadora UG050 7,499 = 20,698.00.
+  const paquete = [
+    { cantidad: 1, precio_unitario: 13199 },
+    { cantidad: 1, precio_unitario: 7499 },
+  ];
+
+  it("sin descuento, todo igual que antes", () => {
+    expect(totalesConIgv(paquete)).toEqual(totalesConIgv(paquete, null));
+    expect(totalesConIgv(paquete).total).toBe(24423.64);
+  });
+
+  it("descuento sin IGV: resta antes del IGV", () => {
+    const t = totalesConIgv(paquete, { escrito: 698, conIgv: false });
+    expect(t).toEqual({ subtotal: 20698, descuento: 698, base: 20000, igv: 3600, total: 23600 });
+  });
+
+  it("descuento con IGV: el total baja exactamente lo escrito", () => {
+    const t = totalesConIgv(paquete, { escrito: 423.64, conIgv: true });
+    expect(t.total).toBe(24000);
+    expect(t.descuento).toBe(359.02);
+    expect(redondear2(t.base + t.igv)).toBe(t.total);
+  });
+
+  it("repartido en los renglones, el cierre da el mismo total", () => {
+    for (const d of [
+      { escrito: 698, conIgv: false },
+      { escrito: 423.64, conIgv: true },
+      { escrito: 1000.01, conIgv: false },
+    ]) {
+      const objetivo = totalesConIgv(paquete, d);
+      const r = repartirDescuento(paquete, d);
+      expect(totalesConIgv(r).subtotal).toBe(objetivo.base);
+    }
+    const conBruto = [
+      { cantidad: 2, precio_unitario: 3050.85, precio_con_igv: 3600 },
+      { cantidad: 1, precio_unitario: 1355.93, precio_con_igv: 1600 },
+    ];
+    const d = { escrito: 300, conIgv: true };
+    expect(totalesConIgv(repartirDescuento(conBruto, d)).total).toBe(totalesConIgv(conBruto, d).total);
   });
 });

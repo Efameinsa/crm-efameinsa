@@ -61,7 +61,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { data: cotizacion, error } = await supabase
     .from("cotizaciones")
     .select(
-      `oportunidad_id, codigo, correlativo, serie, moneda, notas_pdf, atencion_pdf, tiempo_ejecucion, cliente_snapshot, created_at, version,
+      `oportunidad_id, codigo, correlativo, serie, moneda, notas_pdf, atencion_pdf, tiempo_ejecucion, descuento_escrito, descuento_con_igv, descuento_motivo, cliente_snapshot, created_at, version,
        oportunidades!cotizaciones_oportunidad_id_fkey(cuentas(contactos(nombre, telefono, email, es_principal))),
        perfiles!cotizaciones_creada_por_fkey(nombre, cargo, telefono, celular, email_contacto, email_open)`,
     )

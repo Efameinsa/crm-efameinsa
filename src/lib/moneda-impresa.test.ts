@@ -20,7 +20,7 @@ describe("precio escrito en soles (0366)", () => {
 
   it("los totales en soles cuadran: 16,450 + 2,961 = 19,411", () => {
     const t = totalesConIgv(renglones.map((r) => renglonEnSoles(r, TC)));
-    expect(t).toEqual({ subtotal: 16450, igv: 2961, total: 19411 });
+    expect(t).toEqual({ subtotal: 16450, descuento: 0, base: 16450, igv: 2961, total: 19411 });
   });
 
   it("sin lo escrito se convierte como antes (lo emitido no cambia)", () => {
