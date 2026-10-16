@@ -23,12 +23,16 @@ export function CerrarPedidoAnterior({ servicioId, fechaSugerida }: { servicioId
   const [quien, setQuien] = useState("");
   const [nota, setNota] = useState("");
   const [enviando, startTransition] = useTransition();
+  // Lo que el servidor no dejó cerrar queda a la vista en el recuadro (16-10).
+  const [problema, setProblema] = useState<string | null>(null);
+  const falta = [!fecha && "la fecha de entrega", quien.trim().length < 3 && "quién lo gestionó"].filter(Boolean);
 
   function cerrar() {
+    setProblema(null);
     startTransition(async () => {
       const r = await cerrarPedidoAnteriorEntregado({ servicioId, fecha, quien, nota });
       if (r.error) {
-        toast.error(r.error, { duration: 9000 });
+        setProblema(r.error);
         return;
       }
       toast.success("Pedido cerrado como entregado. Ya aparece en Pedidos › Cerrados.");
@@ -87,11 +91,28 @@ export function CerrarPedidoAnterior({ servicioId, fechaSugerida }: { servicioId
               className="mt-1 w-full rounded-md border border-border bg-background p-2.5 text-sm placeholder:text-muted-foreground"
             />
           </label>
-          <div className="flex gap-2 sm:col-span-2">
-            <Button size="sm" disabled={enviando || quien.trim().length < 3 || !fecha} onClick={cerrar}>
+          {problema && (
+            <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive sm:col-span-2">
+              {problema}
+            </p>
+          )}
+          <div className="flex items-start gap-2 sm:col-span-2">
+            <Button
+              size="sm"
+              disabled={enviando || quien.trim().length < 3 || !fecha}
+              porQue={falta.length > 0 ? `Falta: ${falta.join(" · ")}.` : null}
+              onClick={cerrar}
+            >
               {enviando ? "Cerrando…" : "Cerrar como entregado"}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setAbierto(false)}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setAbierto(false);
+                setProblema(null);
+              }}
+            >
               Cancelar
             </Button>
           </div>

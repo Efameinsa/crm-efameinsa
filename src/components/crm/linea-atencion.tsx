@@ -199,11 +199,15 @@ export function LineaAtencion({
   const [vista, setVista] = useState<string | null>(null);
   const etapaVista = vista ?? a.etapa;
 
+  // Lo que el servidor no dejó hacer queda FIJO arriba de la etapa (Santos,
+  // 16-10): un toast se iba en 4 segundos y no decía qué corregir.
+  const [problema, setProblema] = useState<string | null>(null);
   const correr = (fn: () => Promise<{ error: string | null }>, exito: string) =>
     empezar(async () => {
+      setProblema(null);
       const r = await fn();
       if (r.error) {
-        toast.error(r.error);
+        setProblema(r.error);
         return;
       }
       toast.success(exito);
@@ -441,6 +445,11 @@ export function LineaAtencion({
       )}
 
       {/* ── La caja: la etapa seleccionada, o el paso que toca ────────── */}
+      {problema && etapaVista === a.etapa && (
+        <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+          {problema}
+        </p>
+      )}
       {etapaVista !== a.etapa ? (
         <ActaEtapa
           etapa={etapaVista as EtapaAtencion}
@@ -598,6 +607,7 @@ function SaltearEtapa({
           size="sm"
           variant="outline"
           disabled={enviando || motivo.trim().length < 5}
+          porQue={motivo.trim().length < 5 ? "Escriba por qué no aplica (al menos unas palabras)." : null}
           onClick={() =>
             correr(
               () => omitirEtapa({ atencionId: a.id, etapa: siguiente, motivo }),
@@ -706,6 +716,7 @@ function CerrarAntesDeTiempo({
           <Button
             size="sm"
             disabled={enviando || !resultado || motivo.trim().length < 10}
+          porQue={faltaParaCerrar(resultado, motivo)}
             onClick={() =>
               resultado && correr(() => cerrarAtencion({ atencionId: a.id, resultado, motivo, noFacturado }), "Atención cerrada.")
             }
@@ -770,6 +781,7 @@ function PasoCerrada({
             <Button
               size="sm"
               disabled={enviando || nota.trim().length < 10}
+              porQue={nota.trim().length < 10 ? "Escriba qué queda pendiente (al menos una frase)." : null}
               onClick={() =>
                 correr(() => avanzarAtencion({ atencionId: a.id, hasta: "seguimiento", seguimientoNota: nota }), "Quedó en seguimiento.")
               }
@@ -791,6 +803,15 @@ function PasoCerrada({
       )}
     </Caja>
   );
+}
+
+/** Lo que falta para cerrar, dicho a la vista bajo el botón (Santos, 16-10). */
+function faltaParaCerrar(resultado: string | null, motivo: string): string | null {
+  const falta = [
+    !resultado && "cómo terminó (Resuelto, No procede o Derivado)",
+    motivo.trim().length < 10 && "en qué quedó (al menos una frase)",
+  ].filter(Boolean);
+  return falta.length > 0 ? `Falta: ${falta.join(" · ")}.` : null;
 }
 
 function Caja({ titulo, children }: { titulo: string; children: React.ReactNode }) {
@@ -1099,6 +1120,11 @@ function PasoRegistro({
           <Button
             size="sm"
             disabled={enviando || !clasificacion || detalle.trim().length < 5}
+            porQue={
+              !clasificacion || detalle.trim().length < 5
+                ? `Falta: ${[!clasificacion && "la clasificación", detalle.trim().length < 5 && "los antecedentes (unas palabras)"].filter(Boolean).join(" · ")}.`
+                : null
+            }
             onClick={() =>
               correr(
                 () => diagnosticar({ atencionId: a.id, clasificacion: clasificacion as ClasificacionAtencion, detalle }),
@@ -1197,6 +1223,11 @@ function PasoPlanificar({
         <Button
           size="sm"
           disabled={enviando || !fecha || !tecnico.trim()}
+          porQue={
+            !fecha || !tecnico.trim()
+              ? `Falta: ${[!fecha && "el día", !tecnico.trim() && "el técnico"].filter(Boolean).join(" · ")}.`
+              : null
+          }
           onClick={() => {
             correr(
               () => programarAtencion({ atencionId: a.id, fecha, hora: hora || null, tecnico }),
@@ -1285,6 +1316,7 @@ function PasoSimple({
       <Button
         size="sm"
         disabled={enviando || (esConformidad && !nombre.trim())}
+        porQue={esConformidad && !nombre.trim() ? "Falta quién firma la conformidad." : null}
         onClick={() =>
           correr(
             () =>
@@ -1387,6 +1419,7 @@ function PasoTrabajo({
         <Button
           size="sm"
           disabled={enviando || trabajo.trim().length < 10}
+          porQue={trabajo.trim().length < 10 ? "Escriba qué se hizo (al menos una frase)." : null}
           onClick={() =>
             correr(
               () =>
@@ -1558,6 +1591,11 @@ function PasoPruebas({
         <Button
           size="sm"
           disabled={enviando || detalle.trim().length < 10 || (conforme && !nombre.trim())}
+          porQue={
+            detalle.trim().length < 10 || (conforme && !nombre.trim())
+              ? `Falta: ${[detalle.trim().length < 10 && "cómo salieron las pruebas (al menos una frase)", conforme && !nombre.trim() && "quién firma la conformidad"].filter(Boolean).join(" · ")}.`
+              : null
+          }
           onClick={() =>
             correr(
               () =>
@@ -1672,6 +1710,7 @@ function AvisarQueHayVenta({
           size="sm"
           variant="outline"
           disabled={enviando || detalle.trim().length < 10}
+          porQue={detalle.trim().length < 10 ? "Escriba qué vio y qué haría falta (al menos una frase)." : null}
           onClick={() =>
             correr(
               () => avisarVentaDeLaAtencion({ atencionId, tipo, detalle }),
@@ -1739,6 +1778,7 @@ function SeguirSinIdentificar({
           size="sm"
           variant="outline"
           disabled={enviando || motivo.trim().length < 5}
+          porQue={motivo.trim().length < 5 ? "Escriba por qué no se puede identificar (una línea)." : null}
           onClick={() =>
             correr(() => seguirSinIdentificarEquipo({ atencionId, motivo }), "Se sigue sin identificar la máquina.")
           }
@@ -1826,6 +1866,7 @@ function PasoCerrar({
         <Button
           size="sm"
           disabled={enviando || !resultado || motivo.trim().length < 10}
+          porQue={faltaParaCerrar(resultado, motivo)}
           onClick={() =>
             resultado && correr(() => cerrarAtencion({ atencionId: a.id, resultado, motivo, noFacturado }), "Atención cerrada.")
           }

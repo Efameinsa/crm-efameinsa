@@ -42,16 +42,19 @@ export function AccionesExpedientePostventa({
   const otras = companeras.filter((c) => c.id !== duenoId);
   const [destino, setDestino] = useState(otras[0]?.id ?? "");
   const [motivo, setMotivo] = useState("");
+  // Lo que el servidor no dejó hacer queda a la vista en el diálogo (16-10).
+  const [problema, setProblema] = useState<string | null>(null);
 
   function enviar() {
+    setProblema(null);
     startTransition(async () => {
       if (abierto === "caso") {
         const r = await catalogarExpediente(oportunidadId, nuevoTipo, motivo);
-        if (r.error) return void toast.error(r.error);
+        if (r.error) return void setProblema(r.error);
         toast.success(`Catalogado como ${r.etiqueta}. Quedó escrito en el expediente.`);
       } else {
         const r = await pasarACompanera(oportunidadId, destino, motivo);
-        if (r.error) return void toast.error(r.error);
+        if (r.error) return void setProblema(r.error);
         toast.success(`Ahora lo atiende ${r.quien}. Le llegó el aviso.`);
       }
       setAbierto(null);
@@ -71,7 +74,15 @@ export function AccionesExpedientePostventa({
           <ArrowRightLeft className="size-3.5" /> Lo atiende mi compañera
         </button>
       )}
-      <Dialog open={abierto !== null} onOpenChange={(v) => !v && setAbierto(null)}>
+      <Dialog
+        open={abierto !== null}
+        onOpenChange={(v) => {
+          if (!v) {
+            setAbierto(null);
+            setProblema(null);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{abierto === "pasar" ? "Lo atiende mi compañera" : "Catalogar el expediente"}</DialogTitle>
@@ -118,11 +129,24 @@ export function AccionesExpedientePostventa({
               />
             </div>
           </div>
+          {problema && (
+            <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+              {problema}
+            </p>
+          )}
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAbierto(null)}>
               Cancelar
             </Button>
-            <Button onClick={enviar} disabled={pendiente || motivo.trim().length < 5 || (abierto === "pasar" && !destino)}>
+            <Button onClick={enviar} disabled={pendiente || motivo.trim().length < 5 || (abierto === "pasar" && !destino)}
+              porQue={
+                abierto === "pasar" && !destino
+                  ? "Elija quién lo atiende."
+                  : motivo.trim().length < 5
+                    ? "Escriba por qué (al menos unas palabras)."
+                    : null
+              }
+            >
               {pendiente && <Loader2 className="size-4 animate-spin" />}
               {abierto === "pasar" ? "Pasárselo" : "Catalogar"}
             </Button>

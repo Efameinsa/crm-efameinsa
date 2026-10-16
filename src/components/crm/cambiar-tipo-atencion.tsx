@@ -75,17 +75,26 @@ export function CambiarTipoAtencion({
   // «Otro» pide el texto antes de cambiar: es el título del caso.
   const [escribiendoOtro, setEscribiendoOtro] = useState(false);
   const [textoOtro, setTextoOtro] = useState(detalle ?? "");
+  // Lo que el servidor no dejó cambiar queda escrito al lado (16-10).
+  const [problema, setProblema] = useState<string | null>(null);
   if (cerrada) return null;
+
+  const aviso = problema && (
+    <span role="alert" className="basis-full rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+      {problema}
+    </span>
+  );
 
   function cambiar(otro: TipoAtencion) {
     if (otro === "otro" && !textoOtro.trim()) {
       setEscribiendoOtro(true);
       return;
     }
+    setProblema(null);
     startTransition(async () => {
       const r = await cambiarTipoAtencion({ atencionId, tipo: otro, detalle: otro === "otro" ? textoOtro : null });
       if (r.error) {
-        toast.error(r.error, { duration: 8000 });
+        setProblema(r.error);
         return;
       }
       toast.success(`Queda como ${ETIQUETA_TIPO_ATENCION[otro].toLowerCase()}: ${resumenDelCircuito(otro)}.`, { duration: 7000 });
@@ -123,6 +132,10 @@ export function CambiarTipoAtencion({
         <button type="button" onClick={() => setEscribiendoOtro(false)} className="text-[11px] text-muted-foreground hover:underline">
           Volver
         </button>
+        {!textoOtro.trim() && (
+          <span className="basis-full text-[11px] leading-snug text-muted-foreground">Escriba qué es: será el título del caso.</span>
+        )}
+        {aviso}
       </span>
     );
   }
@@ -156,9 +169,17 @@ export function CambiarTipoAtencion({
           {enviando ? "Cambiando…" : valor === "otro" && tipo === "otro" ? "Corregir el texto de «Otro»" : ETIQUETA_TIPO_ATENCION[valor]}
         </button>
       ))}
-      <button type="button" onClick={() => setAbierto(false)} className="text-[11px] text-muted-foreground hover:underline">
+      <button
+        type="button"
+        onClick={() => {
+          setAbierto(false);
+          setProblema(null);
+        }}
+        className="text-[11px] text-muted-foreground hover:underline"
+      >
         Cancelar
       </button>
+      {aviso}
     </span>
   );
 }
