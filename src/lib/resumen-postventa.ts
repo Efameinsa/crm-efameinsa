@@ -1,4 +1,5 @@
 import type { FilaTabla } from "@/lib/pedidos-por-paso";
+import { PASOS_QUE_FALTAN } from "@/lib/lo-que-falta-por-paso";
 import type { PanoramaPendientes } from "@/lib/panorama-pendientes";
 import type { ProblemasTecnicos } from "@/lib/problemas-tecnicos-reporte";
 import type { RepuestosDelReporte } from "@/lib/repuestos-reporte";
@@ -36,6 +37,13 @@ export interface GrupoPedidos {
   pedidos: PedidoCompacto[];
 }
 
+/** Lo que FALTA, dicho como falta: «Despacho programado» o «Pedido cerrado» se leían como ya hechos. */
+function queFalta(clave: string, etiqueta: string): string {
+  if (clave === "cerrado") return "Falta cerrar el pedido";
+  const t = PASOS_QUE_FALTAN.find((p) => p.clave === clave)?.titulo;
+  return t ?? `Falta: ${etiqueta.charAt(0).toLowerCase()}${etiqueta.slice(1)}`;
+}
+
 const ORDEN_RESPONSABLE = ["Postventa", "Finanzas", "Almacén", "Central", "El cliente", "Técnico"];
 
 export function pedidosPorResponsable(filas: FilaTabla[]): GrupoPedidos[] {
@@ -52,7 +60,7 @@ export function pedidosPorResponsable(filas: FilaTabla[]): GrupoPedidos[] {
       {
         cliente: f.cliente,
         equipo: f.equipo,
-        paso: siguiente?.etiqueta ?? "Todo hecho: falta cerrarlo",
+        paso: siguiente ? queFalta(siguiente.clave, siguiente.etiqueta) : "Todo hecho: falta cerrarlo",
         detalle: siguiente?.trabado ?? null,
         avisos,
       },

@@ -178,7 +178,7 @@ export const e = StyleSheet.create({
   tarjetas: { flexDirection: "row", gap: 6, marginBottom: 12 },
   tarjeta: { flex: 1, borderWidth: 1, borderColor: BORDE, borderRadius: 4, padding: 7 },
   tarjetaEtiqueta: { fontSize: 6.5, color: GRIS, textTransform: "uppercase", letterSpacing: 0.3 },
-  tarjetaValor: { fontSize: 14, fontFamily: "Helvetica-Bold", marginTop: 2 },
+  tarjetaValor: { fontSize: 14, lineHeight: 1, height: 16, fontFamily: "Helvetica-Bold", marginTop: 2, marginBottom: 2 },
   tarjetaSub: { fontSize: 6.5, color: GRIS, marginTop: 1 },
 
   seccion: { marginTop: 10 },
@@ -375,7 +375,7 @@ function CasosYSolicitudesPdf({ problemas, repuestos }: { problemas?: ProblemasT
       </Text>
       <Leyenda />
       {problemas && (
-        <Seccion titulo={`PROBLEMAS TÉCNICOS · ${problemas.abiertos} ABIERTOS · ${problemas.cerradosHoy} CERRADOS HOY`} total={problemas.filas.length}>
+        <Seccion titulo={`PROBLEMAS TÉCNICOS · ${problemas.abiertos} ${problemas.abiertos === 1 ? "ABIERTO" : "ABIERTOS"} · ${problemas.cerradosHoy} ${problemas.cerradosHoy === 1 ? "CERRADO" : "CERRADOS"} HOY`} total={problemas.filas.length}>
           {problemas.porEtapa.length > 0 && (
             <Text style={{ fontSize: 7, color: GRIS, paddingHorizontal: 5, paddingTop: 4 }}>
               Abiertos por paso: {problemas.porEtapa.map((x) => `${x.etapa} ${x.total}`).join(" · ")}
@@ -412,7 +412,7 @@ function CasosYSolicitudesPdf({ problemas, repuestos }: { problemas?: ProblemasT
       )}
       {repuestos && (
         <Seccion
-          titulo={`SOLICITUDES DE REPUESTO · ${repuestos.abiertas.length} ABIERTAS · ${repuestos.cerradas.length} CERRADAS HOY`}
+          titulo={`SOLICITUDES DE REPUESTO · ${repuestos.abiertas.length} ${repuestos.abiertas.length === 1 ? "ABIERTA" : "ABIERTAS"} · ${repuestos.cerradas.length} ${repuestos.cerradas.length === 1 ? "CERRADA" : "CERRADAS"} HOY`}
           total={repuestos.abiertas.length + repuestos.cerradas.length}
         >
           {repuestos.abiertas.length + repuestos.cerradas.length === 0 ? (
@@ -464,7 +464,7 @@ function PedidosPorResponsablePdf({ grupos }: { grupos: GrupoPedidos[] }) {
               <Text style={{ width: "5%", color: GRIS }}>{i + 1}</Text>
               <View style={{ width: "45%", paddingRight: 6 }}>
                 <Text style={{ fontFamily: "Helvetica-Bold" }}>{corta(p.cliente, 50)}</Text>
-                <Text style={{ fontSize: 7, color: GRIS }}>{corta(enOracion(p.equipo), 70)}</Text>
+                <Text style={{ fontSize: 7, color: GRIS }}>{corta(p.equipo, 70)}</Text>
               </View>
               <View style={{ width: "50%" }}>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 3, alignItems: "center" }}>
