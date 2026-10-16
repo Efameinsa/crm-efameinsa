@@ -441,6 +441,15 @@ export function VistaCierre({
           {puedeAnularConCodigo && !editando && informe.codigo && (
             <AnularCierreBoton informeId={informe.id} codigo={informe.codigo} propio />
           )}
+          {/* Abonos confirmados y comisión del banco (Katerine, 16-10). */}
+          {emitido && !informe.anuladoAt && !editando && (
+            <Link
+              href={`/comercial/cierres/${informe.id}/pagos`}
+              className="inline-flex h-11 items-center gap-2 rounded-md border border-border bg-background px-5 text-sm font-semibold text-foreground shadow-sm hover:bg-accent"
+            >
+              <Wallet className="size-4" /> Pagos
+            </Link>
+          )}
           <VerPdfEnLaApp
             url={`/api/informes/${informe.id}/pdf`}
             titulo={informe.codigo ?? "Informe de cierre"}
