@@ -15,6 +15,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   // ?version=1 abre una versión ARCHIVADA de una cotización corregida (0123).
   // Sin el parámetro, la vigente: la final, que es lo que se manda.
   const pedida = Number(new URL(request.url).searchParams.get("version") ?? "");
+  // ?descargar=1 lo baja como archivo en vez de abrirlo en el visor (Moisés, 16-10).
+  const descargar = new URL(request.url).searchParams.get("descargar") === "1";
   const supabase = await createClient();
 
   const {
@@ -128,6 +130,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       // correo», sin renombrarlo a mano. El borrador todavía no tiene número.
       "Content-Disposition": cabeceraArchivo(
         `${nombreCodigo ?? "Presupuesto BORRADOR"}, ${snapshot.razon_social}`,
+        "pdf",
+        descargar,
       ),
     },
   });
