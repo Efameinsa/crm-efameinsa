@@ -611,6 +611,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **«Se le factura a»** se edita en su propio cuadro, solo para ese documento; no cambia la ficha. Avisa si el RUC es distinto.
 - **Correo del cliente y N.º de operación (desde el 15-10, pedido de Gabriela):** dentro de «Se le factura a» está el correo del cliente a la vista («Editar» para escribirlo o cambiarlo; si falta, sale un aviso). Debajo de «Forma de pago» hay un campo «N.º de operación»: si el cliente ya pagó, se escribe el número del voucher; si todavía no paga, se deja vacío. Los dos datos salen en el cierre, en su PDF y en el «Expediente» que abren Finanzas y Facturación, listos para copiar. En un cierre ya emitido se agregan con la corrección (código de Central).
 - **Condición de pago obligatoria:** porcentaje antes del despacho y días de crédito. Las pastillas Contado, Crédito y 50 % adelanto la proponen. La política general de la empresa es un adelanto más el saldo antes del despacho, aunque la venta a crédito es normal en la casa. **Ese porcentaje es lo que postventa mira para despachar.** Si la forma de pago escrita describe un adelanto con saldo posterior («20 % adelanto, 80 % a fin de mes») y el porcentaje dice 100, el formulario avisa en ámbar (desde el 15-10): si el equipo sale con el adelanto, hay que poner ese porcentaje y los días del saldo; si sale recién con todo pagado, se deja en 100.
+- **Quién recibe (desde el 16-10):** se elige un contacto de la ficha u «Otra persona…» con nombre, DNI/CE y teléfono. Con «+ Agregar otra persona que puede recibir» se suman más personas autorizadas a recibir el despacho (hasta 10). Salen como «También recibe» en el cierre, en su PDF y en la hoja del pedido, y quedan guardadas como contactos del cliente para la próxima entrega. En un cierre ya emitido se agregan con la corrección.
 - **Documentos:** voucher(s), OC y otros acuerdos. Si se eligió «¿De qué presupuesto copio los equipos?», la cotización enlazada ya cuenta como documento y no hace falta adjuntarla.
 - **Al emitir, el cierre se ata a su venta.** La venta se registra sin IGV y con el importe del cierre. Si el cierre llega después, la venta se corrige y la diferencia queda anotada.
 
@@ -741,6 +742,11 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - El tipo se corrige con «Cambiar tipo».
 - **Clasificación del caso** (paso 2, Antecedentes): Garantía, Preventivo, Correctivo, Servicio facturable, Revisión y, desde el 15-10, **«Capacitación · no se cobra»** (visita para enseñarle al personal del cliente a usar la máquina). Si la capacitación se cobra, se elige «Servicio facturable». El aviso «el equipo está en garantía y lo está clasificando como cobrable» solo sale con opciones que se cobran.
 - «Servicio técnico» no es un tipo de caso: es un encabezado de apertura.
+
+**La serie ya está en otra ficha** (desde el 16-10, caso de Ariana)
+- Si al fichar la máquina de un caso se escribe una serie que ya está registrada en **otra ficha** (otro cliente que no es sede del mismo grupo), el CRM **no deja seguir** y muestra un aviso con el nombre y el RUC de esa ficha.
+- Casi siempre es el mismo cliente partido en dos fichas (por ejemplo, una sin RUC y con el nombre mal escrito). Hay que avisar por el buzón del CRM para que unan las fichas. Después, la máquina aparece en la lista del caso y se elige con «Es esta», con la garantía que corresponde a su guía.
+- Antes, el CRM usaba en silencio la máquina de la otra ficha y el caso quedaba con la garantía de esa guía, sin tomar la fecha que se escribía.
 
 **Cómo entra un caso**
 - Llega derivado por Central (que necesita código para derivar a postventa) o lo registra postventa ella misma como autoderivado.
