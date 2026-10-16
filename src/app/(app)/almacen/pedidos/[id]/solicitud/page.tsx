@@ -45,6 +45,12 @@ type Unidad = {
  * parecían dos torres. Ahora la parte va en la MISMA fila de su unidad:
  * «Lavadora: …» y «Secadora: …» dentro de la celda de la serie. La torre que
  * aún no tiene la secadora registrada deja los dos renglones para anotar.
+ *
+ * Lesly, 16-10: los repuestos de varias unidades (4 niples con el mismo
+ * código) salían en una fila por unidad. Las unidades iguales —mismo artículo,
+ * mismo código sin serie (o todas pendientes), misma procedencia y stock, sin
+ * partes de torre— van en UNA fila con la columna «Cant.». Las que llevan
+ * serie de placa siguen una por fila: cada serie es una máquina.
  */
 export default async function SolicitudDeCodigoPage({
   params,
@@ -98,6 +104,28 @@ export default async function SolicitudDeCodigoPage({
   const MOTIVO: Record<string, string> = { importacion: "por importar", compra_local: "compra local", fabricacion: "en fabricación" };
   const stockDe = (u: Unidad) =>
     u.serie && !u.sin_stock_motivo ? "Hay stock" : `Sin stock${u.sin_stock_motivo ? ` · ${MOTIVO[u.sin_stock_motivo] ?? u.sin_stock_motivo}` : ""}`;
+  // Lesly, 16-10: unidades iguales en una sola fila con su cantidad.
+  const claveDe = (u: Unidad) =>
+    lineasDe(u).length > 1 || (u.serie && !u.sin_serie)
+      ? `u:${u.id}`
+      : [u.descripcion.trim(), u.serie ?? "", u.procedencia ?? "", u.sin_stock_motivo ?? ""].join(" | ");
+  const grupos: { u: Unidad; ordenes: number[] }[] = [];
+  const porClave = new Map<string, { u: Unidad; ordenes: number[] }>();
+  for (const u of unidades) {
+    const k = claveDe(u);
+    const g = porClave.get(k);
+    if (g) {
+      g.ordenes.push(u.orden);
+      // El registro que se muestra es el último del grupo.
+      if ((u.serie_registrada_at ?? "") > (g.u.serie_registrada_at ?? "")) g.u = { ...u, orden: g.u.orden };
+    } else {
+      const nuevo = { u, ordenes: [u.orden] };
+      porClave.set(k, nuevo);
+      grupos.push(nuevo);
+    }
+  }
+  const numeros = (o: number[]) =>
+    o.length === 1 ? String(o[0]) : o.every((n, i) => !i || n === o[i - 1] + 1) ? `${o[0]}–${o[o.length - 1]}` : o.join(", ");
   const hoy = new Date().toLocaleDateString("es-PE", { timeZone: "America/Lima" });
   const cierre = pedido.informes_cierre;
   const titulo = respuesta ? "Respuesta del almacén · series y códigos" : "Solicitud de código al almacén";
@@ -154,16 +182,17 @@ export default async function SolicitudDeCodigoPage({
       <table className="mt-4 w-full border-collapse text-[12px]">
         <thead>
           <tr>
-            <th className={`${cabecera} w-10`}>N.º</th>
+            <th className={`${cabecera} w-14`}>N.º</th>
             <th className={cabecera}>Artículo</th>
-            <th className={`${cabecera} w-48`}>Serie o código</th>
+            <th className={`${cabecera} w-12 text-center`}>Cant.</th>
+            <th className={`${cabecera} w-40`}>Serie o código</th>
             <th className={`${cabecera} w-32`}>Procedencia</th>
             {respuesta && <th className={`${cabecera} w-28`}>Stock</th>}
             {respuesta && <th className={`${cabecera} w-48`}>Registró</th>}
           </tr>
         </thead>
         <tbody>
-          {unidades.map((u) => {
+          {grupos.map(({ u, ordenes }) => {
             const lineas = lineasDe(u);
             const varias = lineas.length > 1;
             const serieDe = (f: Unidad | null) =>
@@ -172,11 +201,12 @@ export default async function SolicitudDeCodigoPage({
               f?.serie ? (f.serie_registrada_at ? <>{quien(f.perfiles)}<span className="block text-[10px]">{fechaHora(f.serie_registrada_at)}</span></> : "antes del 28-09") : "—";
             return (
               <tr key={u.id}>
-                <td className={celda}>{u.orden}</td>
+                <td className={celda}>{numeros(ordenes)}</td>
                 <td className={`${celda} whitespace-pre-line`}>
                   {u.descripcion}
                   {varias && <span className="mt-1 block text-[10.5px] font-semibold">1 torre: {lineas.map((l) => l.nombre?.toLowerCase()).join(" + ")}</span>}
                 </td>
+                <td className={`${celda} text-center font-semibold`}>{ordenes.length}</td>
                 <td className={celda}>
                   {varias ? (
                     lineas.map((l, i) => (
