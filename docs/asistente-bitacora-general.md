@@ -18,6 +18,16 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 16-10 (17:57) · Reunión de gerencia con Ariana y Santos: la agenda y el reporte de postventa
+- **Agenda de postventa:** todas ven el panorama completo del área (el «macro»), pero tiene que quedar a la vista **quién está gestionando qué**. Si Rubí ayuda en algo que tiene Ariana, se ve y queda registrada su acción. Las gestiones de cada una son las suyas; lo derivado a cada una, lo suyo.
+- **Central deriva a cada persona de postventa** (PV1, PV2, PV3). Lo que no está derivado a nadie es del área. El reparto lo decide gerencia según cuánto avanza cada una («si eres rápida, te voy a dar más»).
+- **El reporte de postventa tiene que contestar:** problemas técnicos abiertos y cerrados, cotizaciones, y repuestos pedidos con su estado (abiertos y cerrados, «simple, como manzanita»; el detalle, al entrar). Caso visto: Hotelera Turística Amazonas, que Ariana atendió y cerró (el cliente lo arregló con un técnico particular), no salía como problema técnico.
+- **Procedimiento de repuestos:** requerimiento → stock y foto del almacén → cotizar (abierto); cerrado si se vende o si no corresponde (ya se le cotizó al mismo cliente).
+- **Lino Espíritu:** Ariana tiene que hacer el seguimiento al técnico hasta el final; puede salir una venta adicional.
+- **Vidawasi:** a Ariana solo le tocaba enviar el Word del cierre; la llamada del reporte era el lead derivado y lo atendió Rubí.
+- **Hecho el mismo día:** hojas «Problemas técnicos y su estado» (con los casos «Otro» y los que tomó cada una) y «Solicitudes de repuesto · abiertas y cerradas» en el reporte diario de postventa.
+- **Pendiente:** que la agenda muestre quién gestiona cada cosa; Santos lo evalúa el 17-10 y lo muestra a primera hora para recoger opiniones.
+
 ### 16-10 · El reporte diario ya no confunde los leads con gestiones, y suma los problemas técnicos (Ariana, Santos)
 - **Qué pasó:** en el reporte de Ariana aparecía Vidawasi con «Llamada», y ella no había hecho ninguna gestión. Era un lead que Central le derivó (el cliente llamó para reclamar su repuesto); lo atendió y lo cerró Rubí, que ya llevaba ese repuesto. Vidawasi además tiene dos fichas con el mismo nombre.
 - **Qué se hizo:** la sección «Leads recibidos de Central» dice ahora «Entró por» (cómo llegó el cliente) y «En qué quedó» (sin gestión, gestionado por usted, o quién lo atendió y cerró). Y el reporte de postventa trae una hoja nueva, «Problemas técnicos y su estado», con los casos técnicos de cada una, el paso, lo que falta y a quién le toca.

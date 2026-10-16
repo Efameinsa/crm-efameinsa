@@ -22,6 +22,7 @@ import { cargarPanorama, type PanoramaPendientes } from "@/lib/panorama-pendient
 import { cargarFilasPorPaso, filtrarPedidosQueTrabajo } from "@/lib/pedidos-por-paso";
 import { cargarProblemasTecnicos, type ProblemasTecnicos } from "@/lib/problemas-tecnicos-reporte";
 import { estadoDeLosLeads } from "@/lib/leads-del-reporte";
+import { cargarRepuestos, type RepuestosDelReporte } from "@/lib/repuestos-reporte";
 import { loQueFaltaPorPaso } from "@/lib/lo-que-falta-por-paso";
 import type { PendienteAnotado } from "@/lib/pendientes-anotados";
 
@@ -125,6 +126,7 @@ export async function GET(request: Request) {
   let panorama: PanoramaPendientes | undefined;
   let loQueFalta: ReturnType<typeof loQueFaltaPorPaso> | undefined;
   let problemasTecnicos: ProblemasTecnicos | undefined;
+  let repuestos: RepuestosDelReporte | undefined;
   try {
     const { data: perfil } = await supabase
       .from("perfiles")
@@ -318,6 +320,11 @@ export async function GET(request: Request) {
         problemasTecnicos = undefined;
       }
       try {
+        repuestos = await cargarRepuestos(createAdminClient(), comercialId, fecha);
+      } catch {
+        repuestos = undefined;
+      }
+      try {
         panorama = await cargarPanorama(createAdminClient(), comercialId, fecha, hoyLima(), anotadosCrudos, tareasSinHacer);
       } catch {
         panorama = undefined;
@@ -392,6 +399,7 @@ export async function GET(request: Request) {
       panorama={panorama}
       loQueFalta={loQueFalta}
       problemasTecnicos={problemasTecnicos}
+      repuestos={repuestos}
     />,
   );
 

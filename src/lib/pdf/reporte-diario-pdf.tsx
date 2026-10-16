@@ -10,6 +10,7 @@ import { LoQueFaltaPdf } from "@/lib/pdf/lo-que-falta-pdf";
 import type { SeccionQueFalta } from "@/lib/lo-que-falta-por-paso";
 import type { PanoramaPendientes } from "@/lib/panorama-pendientes";
 import type { ProblemasTecnicos } from "@/lib/problemas-tecnicos-reporte";
+import type { RepuestosDelReporte, RepuestoFila } from "@/lib/repuestos-reporte";
 
 // Reporte diario de gestión del comercial. Reemplaza la agenda que hoy se
 // arma a mano en Excel y se exporta a PDF (ejemplo del ing. Carlos:
@@ -127,6 +128,8 @@ export interface ReporteDiarioProps {
   loQueFalta?: { abiertos: number; historia: number; secciones: SeccionQueFalta[] };
   /** «Problemas técnicos y su estado» (Santos, 16-10): su hoja, antes de los pedidos. */
   problemasTecnicos?: ProblemasTecnicos;
+  /** «Solicitudes de repuesto · abiertas y cerradas» (reunión 16-10 17:57). */
+  repuestos?: RepuestosDelReporte;
   indicadores?: IndicadoresDocumento & {
     /** Las marcas de un botón en los chats: salen de la lista de seguimientos y van aparte. */
     marcas: { hora: string | null; cliente: string; nota: string | null }[];
@@ -215,11 +218,11 @@ function ProblemasTecnicosPdf({ p }: { p: ProblemasTecnicos }) {
       <View style={{ flexDirection: "row", alignItems: "flex-end", marginBottom: 4 }}>
         <Text style={{ fontSize: 22, lineHeight: 1, height: 24, fontFamily: "Helvetica-Bold", color: GRANATE, marginRight: 6 }}>{p.abiertos}</Text>
         <Text style={{ fontSize: 9, color: CARBON, marginBottom: 3 }}>
-          problemas técnicos abiertos a su cargo{p.cerradosHoy ? ` · ${p.cerradosHoy} cerrado${p.cerradosHoy === 1 ? "" : "s"} este día` : ""}
+          problemas técnicos abiertos que usted lleva{p.cerradosHoy ? ` · ${p.cerradosHoy} cerrado${p.cerradosHoy === 1 ? "" : "s"} este día` : ""}
         </Text>
       </View>
       <Text style={{ fontSize: 7, color: GRIS, marginBottom: 6 }}>
-        Los casos de problema técnico asignados a usted, con el paso en que están, lo que falta y a quién le toca. Primero lo urgente y lo más antiguo. Estado al generar el reporte.
+        Los casos técnicos que usted tomó (o tiene asignados y nadie tomó): problema técnico, revisión por garantía, soporte y «Otro». Con el paso en que están, lo que falta y a quién le toca; primero lo urgente y lo más antiguo; al final, los que cerró este día. Estado al generar el reporte.
       </Text>
       {p.porEtapa.length > 0 && (
         <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 8 }} wrap={false}>
@@ -232,7 +235,7 @@ function ProblemasTecnicosPdf({ p }: { p: ProblemasTecnicos }) {
         </View>
       )}
       {p.filas.length === 0 ? (
-        <Text style={e.vacio}>No tiene problemas técnicos abiertos a su cargo.</Text>
+        <Text style={e.vacio}>No lleva problemas técnicos abiertos ni cerró ninguno este día.</Text>
       ) : (
         <>
           <View style={[e.fila, { borderBottomColor: GRIS }]}>
@@ -244,7 +247,7 @@ function ProblemasTecnicosPdf({ p }: { p: ProblemasTecnicos }) {
             <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
               <View style={{ width: "38%", paddingRight: 6 }}>
                 <Text>{corta(f.cliente, 44)}</Text>
-                {f.equipo ? <Text style={{ fontSize: 7, color: GRIS }}>{corta(f.equipo, 60)}</Text> : null}
+                {f.tipo || f.equipo ? <Text style={{ fontSize: 7, color: GRIS }}>{corta([f.tipo, f.equipo].filter(Boolean).join(" · "), 60)}</Text> : null}
               </View>
               <Text style={{ width: "14%", color: f.cerradoHoy ? VERDE : CARBON }}>{f.etapa}</Text>
               <Text style={{ width: "28%", color: f.urgente ? GRANATE : CARBON, fontFamily: f.urgente ? "Helvetica-Bold" : "Helvetica" }}>{f.falta}</Text>
@@ -254,6 +257,50 @@ function ProblemasTecnicosPdf({ p }: { p: ProblemasTecnicos }) {
           ))}
         </>
       )}
+    </View>
+  );
+}
+
+/** La hoja de repuestos (reunión 16-10 17:57: «abierto y cerrado, simple, así como manzanita»). */
+function RepuestosPdf({ r }: { r: RepuestosDelReporte }) {
+  const tabla = (titulo: string, filas: RepuestoFila[], vacio: string) => (
+    <Seccion titulo={titulo} total={filas.length}>
+      {filas.length === 0 ? (
+        <Text style={e.vacio}>{vacio}</Text>
+      ) : (
+        <>
+          <View style={[e.fila, { borderBottomColor: GRIS }]}>
+            {["Llegó", "Cliente y qué pidió", "Estado"].map((t, k) => (
+              <Text key={t} style={{ width: ["9%", "59%", "32%"][k], fontSize: 7, fontFamily: "Helvetica-Bold", color: GRIS }}>{t}</Text>
+            ))}
+          </View>
+          {filas.map((f, i) => (
+            <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+              <Text style={{ width: "9%", fontFamily: f.nuevo ? "Helvetica-Bold" : "Helvetica" }}>{f.recibido}</Text>
+              <View style={{ width: "59%", paddingRight: 6 }}>
+                <Text>{corta(f.cliente, 60)}</Text>
+                {f.pedido ? <Text style={{ fontSize: 7, color: GRIS }}>{corta(f.pedido, 110)}</Text> : null}
+              </View>
+              <Text style={{ width: "32%", color: f.abierto ? (f.estado.startsWith("Sin gestión") ? GRANATE : CARBON) : VERDE }}>{corta(f.estado, 70)}</Text>
+            </View>
+          ))}
+        </>
+      )}
+    </Seccion>
+  );
+  return (
+    <View>
+      <View style={{ flexDirection: "row", alignItems: "flex-end", marginBottom: 4 }}>
+        <Text style={{ fontSize: 22, lineHeight: 1, height: 24, fontFamily: "Helvetica-Bold", color: GRANATE, marginRight: 6 }}>{r.abiertas.length}</Text>
+        <Text style={{ fontSize: 9, color: CARBON, marginBottom: 3 }}>
+          abiertas · {r.cerradas.length} cerrada{r.cerradas.length === 1 ? "" : "s"} este día · {r.nuevasHoy} llegaron este día
+        </Text>
+      </View>
+      <Text style={{ fontSize: 7, color: GRIS, marginBottom: 6 }}>
+        Sus expedientes de repuesto. Abierta: sin gestión, en gestión (por ejemplo, consultando stock al almacén) o cotizada. Cerrada: vendida o cerrada con su motivo. En negrita, las que llegaron este día. Estado al generar el reporte.
+      </Text>
+      {tabla("ABIERTAS", r.abiertas, "No tiene solicitudes de repuesto abiertas.")}
+      {tabla("CERRADAS ESTE DÍA", r.cerradas, "No cerró solicitudes de repuesto este día.")}
     </View>
   );
 }
@@ -344,7 +391,7 @@ export function Tarjeta({ etiqueta, valor, sub }: { etiqueta: string; valor: str
 
 export function ReporteDiarioPdf({
   logoBuffer, fecha, fechaCorta, comercial, resumen, seguimientos, cotizaciones, ventas, leads, complementarias, agenda, planificacion_manana, proyeccion,
-  pendientesPostventa, tituloPendientes, pendientesAnotados, movimientoDelArea, rutasPostventa, indicadores, panelPostventa, panorama, loQueFalta, problemasTecnicos,
+  pendientesPostventa, tituloPendientes, pendientesAnotados, movimientoDelArea, rutasPostventa, indicadores, panelPostventa, panorama, loQueFalta, problemasTecnicos, repuestos,
 }: ReporteDiarioProps) {
   const pct = resumen.meta_seguimientos > 0
     ? Math.min((resumen.seguimientos_efectivos / resumen.meta_seguimientos) * 100, 100)
@@ -415,6 +462,13 @@ export function ReporteDiarioPdf({
         <Page size="A4" style={e.pagina}>
           {cabecera("PROBLEMAS TÉCNICOS Y SU ESTADO")}
           <ProblemasTecnicosPdf p={problemasTecnicos} />
+          {pie}
+        </Page>
+      )}
+      {repuestos && (
+        <Page size="A4" style={e.pagina}>
+          {cabecera("SOLICITUDES DE REPUESTO · ABIERTAS Y CERRADAS")}
+          <RepuestosPdf r={repuestos} />
           {pie}
         </Page>
       )}
