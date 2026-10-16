@@ -1,6 +1,6 @@
 # Bitácora del CRM Efameinsa: historia de las decisiones
 
-Vigente al 15-10-2026. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
+Vigente al 16-10-2026. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
 
 Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién decidió que postventa no vea precios?», «¿esto siempre fue así?» o «¿qué pasó con el caso X?».
 
@@ -17,6 +17,14 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 ---
 
 ## Cronología de reuniones y decisiones
+
+### 15-10 (noche) · Buzón: seis pedidos resueltos (Rubí, Moisés y Central)
+- **Visita a la planta: equipos del cliente, DNI o C.E. y «Recogió equipo»** (pedido de Rubí). Al elegir el cliente salen sus equipos con su serie para solo marcar «Lo recoge» o «Prepararlo para la visita» (este pasa al almacén). El documento de quien viene se elige con un botón DNI o C.E., también para los acompañantes. Al cerrar la visita existe «Recogió equipo», que anota en la gestión del cliente qué equipos se llevó.
+- **«Capacitación · no se cobra» en la clasificación del caso** (pedido de Rubí): para visitas donde se le enseña al personal del cliente a usar la máquina. Si se cobra, va como «Servicio facturable».
+- **Los equipos regalados también piden serie** (Central, pedido del OPEN 059-2026 de VITALIAN): la plancha venía en el bloque gratuito del cierre y solo se pedía la serie del calderín. Ahora todo equipo que se entrega, aunque sea regalado, pide su serie al almacén. Los servicios sin costo siguen sin pedirla. Antes solo se pedía la serie de lo que se vendía.
+- **Aviso en la agenda cuando el cliente ya se atendió en otro expediente** (Moisés): una tarea de «Seguimiento de cartera» salía vencida porque sus gestiones de «Sin interés» habían quedado en el expediente rechazado. Se archivó el expediente vacío, y ahora un aviso ámbar con «Archivar esta ficha» lo resuelve en el momento.
+- **Derivación por error** (Central): se envió a C5 por error un contacto de G.M. TRAMAS. Se devolvió a la bandeja sin derivar, se quitó el expediente vacío y se le avisó a C5. Si es un repuesto, el contacto va a postventa, aunque el cliente esté en la cartera de un comercial.
+- **TERRANOVA REPRESENTACIONES** quedó en el CRM como empresa del grupo de MANDARA (ver la entrada siguiente). Se cotiza desde el expediente de MANDARA con «A nombre de».
 
 ### 15-10 (tarde) · TERRANOVA y MANDARA: grupo empresarial; regla para clientes que no figuran en el CRM
 - **Qué pasó:** Central no podía abrir el expediente de TERRANOVA REPRESENTACIONES S.A.C. En el CRM solo había dos llamadas de 2019 sin ficha (venían del Excel de Central). Primero se respondió que no era cliente, pero **eso fue un error**: Brenda confirmó que TERRANOVA ya compró antes y que es del mismo grupo empresarial que MANDARA S.A.C. (mismo contacto). Además, su file físico está en el inventario de EFAMEINSA.
@@ -421,170 +429,52 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 - **C9 es Desiree Salinas** (se reutilizó el perfil de reserva).
 
 ### 24-09 · Prueba en vivo del pedido desde Central (Santos y Carlos)
-- **Central convierte el cierre en pedido.**
-  - El CRM numera los pedidos. Se retiró el paso por el ERP.
-  - Central acepta o rechaza la liquidación viendo el PDF de Finanzas.
-  - Central pide las series al almacén desde el sistema. Antes las pedía por WhatsApp.
-- **Salida del almacén con saldo pendiente** solo con autorización. El técnico de la apertura lo pone postventa.
-- **Cada documento sigue la empresa con la que empezó su cadena:** OPEN sin nada de Efameinsa; EFAMEINSA con su logo.
-- **Alerta «Urgencia a Finanzas»** para Central. El segundo aviso por el mismo pedido llega a gerencia.
-- **Pedidos que no abrían:** el almacén había probado máquinas sin fotos y la pantalla fallaba. Se limpiaron 4 pedidos: Ecolav, Bungarena, Herrera y Rivera.
+- Resumen: Central convierte el cierre en pedido (numera el CRM, sin el ERP), acepta o rechaza la liquidación con el PDF de Finanzas y pide las series desde el sistema (antes por WhatsApp); salir del almacén con saldo pendiente pide autorización; cada documento sigue la empresa de su cadena (OPEN o EFAMEINSA); alerta «Urgencia a Finanzas», cuyo segundo aviso llega a gerencia; se limpiaron 4 pedidos que no abrían por máquinas probadas sin fotos.
 
 ### 23-09 · Decisiones de gerencia y reunión de postventa (aperturas)
-- **Open Investments es la primera opción de facturación.**
-  - Clientes nuevos van a Open.
-  - Si un cliente antiguo pide Efameinsa, se intenta mantener Open y se le explica. Si insiste, se factura con Efameinsa.
-- **Cartera: 3 meses sin venta** y se redistribuye cada 3 meses. Antes eran 6 meses.
-- **Finanzas tiene cuenta propia** (Jhon confirma los pagos él mismo).
-- **Preventivo cada 4 meses**, con alerta a los 3 para enviar propuestas y cerrar antes de los 4. Aplica a máquinas nuevas. Antes la referencia era de 6 meses.
-- **Postventa ve la OC y el voucher.** Los montos siguen fuera de sus pantallas.
-- **A C4 (Ariana como comercial) se le quita vender mantenimiento:** vende solo lavadoras. Se creó «Seguimiento» en la cartera para todos los comerciales.
-- **Cotización corregida:** el PDF dice «v2». Toda corrección se sustenta y debe quedar claro cuál es la final.
-- **Acceso solo desde la oficina.** Por ahora no hay acceso remoto.
-- **Las aprobaciones siguen firmadas como «Gerencia Comercial».**
-- **Oportunidades viejas del Excel:** gerencia autorizó cerrarlas en bloque. No se archivaron las que tenían gestión en los últimos 30 días.
-- **Apertura de llamada en el CRM.**
-  - Postventa la envía desde el pedido o desde la ficha.
-  - El almacén da el check y sube su informe (con faltantes para cotizar y fotos).
-  - Postventa arma la versión para el cliente.
-- **Ficha del cliente:** «Pendiente con este cliente», equipos y los 2 últimos cierres arriba.
-- **Botones en el expediente de postventa:** «Es un caso» y «Lo atiende mi compañera».
-- **Mismo cliente con otra razón social** (caso de Katerine: Inversiones Crisolito y otra empresa de la misma dueña). No se fusiona: se hace una ficha aparte colgada de la principal como grupo económico.
-- **Pruebas de series:** OPEN 028 y 029 fueron cierres de prueba y quedaron anulados. El siguiente cierre real de Open fue el 030.
+- Resumen: Open Investments es la primera opción de facturación (Efameinsa solo si el cliente antiguo insiste); cartera: 3 meses sin venta (antes 6) y redistribución cada 3 meses; Finanzas con cuenta propia; preventivo cada 4 meses con alerta a los 3 (antes 6); postventa ve la OC y el voucher sin montos; C4 vende solo lavadoras y nace «Seguimiento» en la cartera; la cotización corregida dice «v2»; acceso solo desde la oficina; aprobaciones firmadas «Gerencia Comercial»; cierre en bloque de oportunidades viejas del Excel; nace la apertura de llamada en el CRM (postventa → almacén → versión para el cliente); ficha con «Pendiente con este cliente»; botones «Es un caso» y «Lo atiende mi compañera»; mismo cliente con otra razón social = ficha aparte colgada como grupo (Crisolito); OPEN 028 y 029 fueron pruebas anuladas y el primer cierre real fue el 030.
 
 ### 22-09 · Reuniones de Carlos (caso Huamán Ruiz, postventa y comerciales)
-- **Postventa también acumula en un mismo expediente:** mismo cliente, mismo tipo, abierto y con movimiento reciente. Antes postventa siempre abría uno nuevo. Carlos: «ese es un error». Caso: Inversiones Huamán Ruiz, que pidió el mismo repuesto dos veces y quedó dos días sin respuesta.
-- **La alerta de derivado sin atender bajó de 24 a 4 horas.** Carlos: «no días, horas… nuestro trabajo como Central es supervisar».
-- **«Lo que mandé a Central» muestra una semana.** Antes, 24 horas.
-- **Pedidos:**
-  - El comercial ve el estado del pedido, sin montos. Se había pedido en varias reuniones.
-  - El despacho lleva hora.
-  - Cada gestión dice quién la registró.
-  - Central ingresa las series antes de dar el visto bueno. Carlos: «ese es nuestro punto de partida».
-  - Equipo sin serie significa sin stock.
-- **Doble filtro del despacho:** postventa programa, pero el almacén lo ve en rojo hasta que estén todos los pasos.
-- **Postventa clasifica lo que llega** (triaje). Una llamada sobre un pedido en curso no abre un caso suelto. Caso: Titan.
-- **En Lima, antes de la puesta en marcha, hay videollamada de preinstalación.** Caso: Titan, 7 días sin contacto.
-- **Los contactos se eligen, no se reescriben.** Si dos personas comparten teléfono, no se cambia el nombre en automático.
-- **Se descartó un chat entre comercial y postventa.** Carlos: «se van a jalar los pelos».
-- **WhatsApp con los comerciales:**
-  - Ventana de 72 h si el cliente vino de un anuncio.
-  - Se ve el anuncio que vio el cliente.
-  - «Sin respuesta» pasó a llamarse «No contesta».
-  - Reparto por dueño de campaña.
-  - Pendiente: la tipificación en 3 opciones. Carlos: «déjame pensarlo».
+- Resumen: postventa también acumula en un mismo expediente (caso Huamán Ruiz); la alerta de derivado sin atender bajó de 24 a 4 horas; «Lo que mandé a Central» muestra una semana; el comercial ve el estado del pedido sin montos; Central ingresa las series antes del visto bueno (sin serie = sin stock); doble filtro del despacho; postventa hace el triaje y en Lima hay videollamada de preinstalación (caso Titan); los contactos se eligen, no se reescriben; se descartó un chat comercial–postventa; WhatsApp: ventana de 72 h por anuncio, «No contesta» y reparto por dueño de campaña.
 
 ### 21-09 · Carlos revisa el CRM en vivo con postventa
-- **Un repuesto o accesorio puede ir sin plano**, con motivo. Caso: el calderín de Malvich.
-- **La apertura indica entrega a domicilio o en agencia, y cuál** (Cusco tiene seis). El DNI de quien recibe es obligatorio porque la agencia lo pide.
-- **Con la apertura emitida, cambiar entrega o fecha pide código** de operaciones o gerencia.
-- **Postventa programa el despacho.** El almacén solo confirma. Carlos y Rubí: «todo lo programamos unilateralmente».
-- **Postventa abre el PDF del cierre** («están ciegos»), pero las cifras siguen ocultas.
-- **Equipos del pedido:** una fila por unidad vendida y despacho parcial por equipo. Caso: Ecolav, con la lavadora en stock y la secadora sin stock.
-- Carlos: «no quiero que trabajemos con el Word». El reporte de postventa se hace en el CRM.
+- Resumen: un repuesto o accesorio puede ir sin plano, con motivo (Malvich); la apertura indica domicilio o agencia y cuál, con DNI de quien recibe; con la apertura emitida, cambiar entrega o fecha pide código; postventa programa el despacho y el almacén confirma; postventa abre el PDF del cierre sin cifras; una fila por unidad y despacho parcial por equipo (Ecolav); el reporte de postventa se hace en el CRM, no en Word.
 
 ### 18-09 y 19-09 · Carlos (casos con varias máquinas)
-- **Un caso lleva varias máquinas.** Carlos: «tengo que relacionar la serie con el problema». Caso: Gary Group, con 4 máquinas. Nadie había registrado las series en el despacho.
-- **Informes técnicos del almacén ordenados por cliente y luego por máquina.**
-- **Vigilancia no se flexibiliza:** sin DNI no entra.
-- **19-09:** cualquiera de postventa puede cerrar un caso del área. Caso: Gabriela no podía cerrar la garantía rechazada de Beso de Sal.
+- Resumen: un caso lleva varias máquinas, relacionadas por serie (Gary Group); informes técnicos ordenados por cliente y máquina; vigilancia no se flexibiliza, sin DNI no entra; cualquiera de postventa cierra un caso del área (Beso de Sal).
 
 ### 16-09 y 17-09 · Carlos y Lesly (módulo de almacén)
-- **Postventa entra directo a «El macro».**
-- **Nace el módulo de almacén** (se llama «almacén», no «logística»).
-  - Prueba y protocolo.
-  - Confirmación de «listo para el despacho».
-  - Salida con fotos y video.
-  - Foto de la guía en la agencia.
-  - Postventa da el doble visto bueno.
-- La cuenta de almacén pasó a uso real el 18-09.
-- **Formatos de Lesly en el CRM** (16-09): «Viene a la planta» manda el correo de visita, la orden de trabajo sale al programar y los informes de servicio salen con su formato.
+- Resumen: nace el módulo de almacén (prueba y protocolo, «listo para el despacho», salida con fotos y video, foto de la guía, doble visto bueno de postventa), en uso real desde el 18-09; los formatos de Lesly (correo de visita, orden de trabajo, informes de servicio) pasan al CRM.
 
 ### 15-09 · Carlos (siete audios)
-- **Si Central anula un cierre, se avisa al comercial con el motivo.**
-- **Rechazo de gerencia:** se indica qué cotización y el motivo queda en el historial. La rechazada no se edita; se hace otra. Esto cambió el 13-10 con el rechazo por ítem.
-- **Ejecutar un pedido sin liquidación pide código.** Postventa no ve el pedido hasta el check de Central.
-- **Postventa puede registrar un seguimiento sin abrir caso** ni pasar por Central. Caso: Lavipronto.
-- **Visitas a planta:** se avisa a Central (RUC, empresa, persona, DNI, motivo, fecha) y Central imprime la lista para vigilancia.
-- **El circuito del pedido depende de lo vendido:** equipo, repuesto, mantenimiento o revisión.
-- **Plataforma de inducción aprobada y obligatoria** (Crece). Las tareas se quedan en el CRM.
+- Resumen: si Central anula un cierre se avisa al comercial con motivo; la cotización rechazada no se edita, se hace otra (cambió el 13-10 con el rechazo por ítem); ejecutar sin liquidación pide código; postventa registra seguimientos sin abrir caso (Lavipronto); visitas a planta avisadas a Central con lista para vigilancia; el circuito depende de lo vendido; inducción en Crece obligatoria.
 
 ### 14-09 · Precio con IGV y condición de pago
-- **Check «incluye IGV» por renglón** (Carlos, audio). Un comercial dividió a mano entre 1,18 y salió un centavo de menos. Uso: cotizar neto como siempre y usar el check solo cuando la venta se cerró en cifra redonda.
-- **«Quién autorizó» solo se pide si entró menos de lo acordado antes del despacho.** Carlos aclaró que vender a crédito es lo normal de la casa. Caso: V y P ICE. Antes se comparaba lo pagado con el total.
-- **El correo del lead llega a la ficha aunque no deje teléfono** (calculadora web).
+- Resumen: check «incluye IGV» por renglón, solo para ventas cerradas en cifra redonda; «Quién autorizó» solo si entró menos de lo acordado antes del despacho, porque vender a crédito es lo normal (V y P ICE); el correo del lead llega a la ficha aunque no deje teléfono.
 
 ### 10-09 · Reunión de gerencia con Ariana y reglas de catálogo
-- **El catálogo lo gestiona Lesly desde el CRM** (Santos). El maestro de Excel deja de ser la referencia. El precio válido es el que Lesly carga en el CRM. Ante una discrepancia se pregunta a Lesly o a Carlos.
-- **Postventa ve «Las ventas de la empresa»**, sin montos. La lista arranca de las ventas, no solo de las máquinas registradas.
-- **Central tiene su vista de Clientes:** la cartera entera y la ficha en solo lectura, para saber de quién es cada cliente.
-- **«Lo que mandé a Central»:** postventa ve lo que registró y aún espera. Caso: Hostal La Arboleda, registrado dos veces porque no lo veía.
-- **Botón «Avisarle al comercial»** cuando vuelve a escribir un cliente ya cotizado. «Descartar» solo significa que el contacto no procedía.
-- **Formularios de Google Ads sin RUC creaban fichas «cascarón».** Ahora teléfono y correo exactos cuentan como la misma persona.
-- **Cotizaciones históricas:** en el archivo manda el PDF.
+- Resumen: el catálogo lo gestiona Lesly en el CRM y ese es el precio válido; postventa ve «Las ventas de la empresa» sin montos; Central tiene su vista de Clientes en solo lectura; «Lo que mandé a Central» (Hostal La Arboleda); botón «Avisarle al comercial»; teléfono y correo exactos cuentan como la misma persona (fichas «cascarón» de Ads); en las cotizaciones históricas manda el PDF.
 
 ### 09-09 · Reunión de postventa y Central
-- **Las guías de remisión fijan el inicio de la garantía.** Las máquinas registradas pasaron de unas 300 a unas 550.
-- **Un teléfono mal tipeado ya no abre una ficha nueva.** Casos: Grupo Santa Elena y NEWREST.
-- **«Es un cliente que ya tenemos»:** Central une el contacto a la ficha existente. Si elige «cliente nuevo» habiendo coincidencias, debe escribir la razón (11-09, caso Gate Gourmet).
-- **Pedir la cartera con código del supervisor** (Santos, caso Rivera Trigoso). Se traspasa la ficha con todos sus expedientes y se avisa a quien la pierde. No aplica a instituciones con sedes (ESSALUD, Marina, MINSA).
-- **Pedir un expediente con código para trabajarlo**, sin mover la cartera.
-- **No marcar «sin gestión» a quien atendió en otra ficha del mismo cliente.** Casos de Ariana: Joel Ortega, Eli Farfán y Vilma García. Las notas automáticas no cuentan como gestión.
+- Resumen: las guías de remisión fijan el inicio de la garantía; un teléfono mal tipeado ya no abre ficha nueva (Santa Elena, NEWREST); Central une el contacto a la ficha existente y debe justificar un «cliente nuevo» con coincidencias (Gate Gourmet); pedir la cartera o un expediente con código del supervisor (Rivera Trigoso), salvo instituciones con sedes; no marcar «sin gestión» a quien atendió en otra ficha del mismo cliente.
 
 ### 07-09 · Postventa
-- **Forma de pago desplegable en el cotizador.**
-- **En la clasificación que elige Central, «Garantía» pasó a llamarse «Soporte técnico».**
+- Resumen: forma de pago desplegable en el cotizador; en la clasificación de Central, «Garantía» pasó a llamarse «Soporte técnico».
 
 ### 03-09 y 04-09 · Correlativos (Carlos)
-- **Los huecos de numeración se anulan, no se rellenan.** Carlos: «todo lo vacío queda anulado».
-  - El hueco se originó porque se indicó cotizar a mano «desde el 2186» sin saber que el CRM ya iba más adelante.
-  - Carlos: «hemos cometido un error nosotros». El CRM es la verdad.
-- **Los cierres Word de agosto quedan como referencia** en el servidor; sus ventas ya están en el CRM.
-- **Cierres de postventa en Word, numerados desde el 30** de la serie OPEN, sin prefijo PV (decisión del 04-09; antes se había dicho desde el 34).
-- **Al derivar a postventa no se lleva el histórico de gestión ni de ventas del comercial**, ni se ven precios. Sí se ven los datos generales y las máquinas instaladas.
-- **Los comerciales pueden agregar rubros** (03-09). Según la regla de «la última reunión manda», Carlos revirtió esa apertura al día siguiente. Por confirmar.
-- **Borradores editables sin código.** El código solo se pide cuando ya hay numeración.
+- Resumen: los huecos de numeración se anulan, no se rellenan, y el CRM es la verdad; los cierres Word de agosto quedan como referencia; cierres de postventa en Word desde el 30 de la serie OPEN; al derivar a postventa no viaja el histórico comercial ni los precios; los rubros los agregan los comerciales (por confirmar, Carlos lo revirtió al día siguiente); borradores editables sin código.
 
 ### 02-09 · Observaciones de gerencia
-- **«Mi día» muestra solo lo real** (lo nacido o trabajado en el CRM). Las oportunidades fósiles del Excel quedan plegadas con un botón «Retomar».
-- **Editar un cierre pide motivo y código** y guarda la versión anterior.
-- **Anular un cierre duplicado pasa la venta al cierre que lo reemplaza.** Caso: Brenda emitió dos veces el cierre de Inversiones Nacionales de Turismo y de Grupo Alimenticio San José.
-- **ESSALUD, la Marina de Guerra y MINSA:** una ficha madre con sedes hijas. Central elige la sede al derivar.
-- **Primer cierre con repuestos y servicios:** Fancavel, de Ariana. Trajo el renglón por tipo y el «Se le factura a» editable.
+- Resumen: «Mi día» muestra solo lo real; editar un cierre pide motivo y código; anular un cierre duplicado pasa la venta al que lo reemplaza; ESSALUD, Marina y MINSA con ficha madre y sedes; primer cierre con repuestos y servicios (Fancavel).
 
 ### 01-09 · Carlos: expedientes y cierre de postventa
-- **Un expediente por cliente y comercial.** Si hay uno abierto, se acumula ahí. Analogía de Carlos: el historial clínico.
-- **Cierre emitido = sellado.** Para corregirlo, Central observa y el gestor pide autorización.
-- **La aprobación de precio queda pegada al equipo y al precio**, y sobrevive a la edición del borrador. Caso: Gavina.
-- **Circuito de provincia** (lo relató postventa):
-  1. Confirmar el pago con Finanzas (ha habido vouchers falsos).
-  2. Prueba en el almacén.
-  3. Plano de preinstalación.
-  4. Despacho. La garantía corre desde la guía.
-  5. Puesta en marcha por videollamada.
-  6. Alerta de preventivo.
-- **La venta se registra por lo que dice el informe de cierre.** Caso: Sierra Travel, donde se cotizaron dos lavadoras y se vendió una.
-- **Cuentas de práctica con numeración aparte (PRUEBA).** Causa: Katerine reclamó un salto en sus presupuestos provocado por pruebas internas.
-- **Pendiente:** decidir el plazo de garantía y cuánto vale una aprobación de precio.
+- Resumen: un expediente por cliente y comercial («el historial clínico»); cierre emitido = sellado; la aprobación de precio queda pegada al equipo (Gavina); circuito de provincia (pago, prueba, plano, despacho, videollamada, preventivo); la venta se registra por el informe de cierre (Sierra Travel); cuentas de práctica con numeración PRUEBA. Quedó pendiente el plazo de garantía y la vigencia de una aprobación.
 
 ### 31-08 · Carlos (mañana y tarde) y Lesly
-- **Todo lo que registra postventa pasa por Central,** que decide a quién va. Esto se matizó el 15-09 con los seguimientos.
-- **Nuevo destino «Finanzas» al derivar.** Caso: un cliente pidió su factura a un comercial; eso no es gestión comercial.
-- **El RUC manda:** no se registra un cliente con un RUC que ya existe.
-- **Al redirigir un cliente, el comercial que lo pierde conserva su historial** hasta la fecha del corte.
-- **Postventa tiene dos ejes:** tipo de atención (puesta en marcha, problema técnico, repuesto, mantenimiento) y clasificación (garantía, preventivo, correctivo, facturable).
-- **Gerencia ve a cualquier comercial desde su propia cuenta**, sin entrar con la clave ajena.
-- **Cuadro de visitas generado por el CRM.** Cada acompañante va con su DNI. Carlos: «llegan tres, en tu registro hay uno».
+- Resumen: lo que registra postventa pasa por Central (matizado el 15-09); destino «Finanzas» al derivar; el RUC manda; quien pierde un cliente conserva su historial hasta el corte; postventa con dos ejes (tipo y clasificación); gerencia ve a cualquier comercial desde su cuenta; cuadro de visitas con DNI de cada acompañante.
 
 ### 27-08 al 29-08 · Postventa y códigos de supervisor
-- **Carlos explicó el circuito:** comercial → Central → Finanzas → postventa → almacén. Antes eran Excel personal, papel y WhatsApp.
-- **Ni postventa ni almacén ven precios** (Carlos, 27-08). Se reafirmó el 21-09, el 23-09 y el 28-09.
-- **La serie es el eje de la trazabilidad** (Carlos).
-- **Código del supervisor para correcciones de Central.** Analogía de Carlos con la caja de Plaza Vea: nada se corrige en silencio, «si no, no vamos a poder medir». El código dura 10 minutos.
-- **Lesly tiene el rol de operaciones** (Santos: «ella no es comercial»). Autoriza con código, mantiene el catálogo y no traspasa cartera.
-- **Ruta de mantenimiento por tandas**, con tres filtros. «Nunca se le hizo» y «no registrado» no son lo mismo.
-- **Reporte diario grabado.** Gerencia ve quién no cerró el día.
-- **El cierre semanal y la proyección usan la misma fuente.** Desde el 12-09 el cierre semanal se guarda como histórico.
+- Resumen: circuito comercial → Central → Finanzas → postventa → almacén; ni postventa ni almacén ven precios; la serie es el eje; código del supervisor para correcciones de Central («si no, no vamos a poder medir»); Lesly en el rol de operaciones; Ruta de mantenimiento por tandas; reporte diario grabado; el cierre semanal y la proyección usan la misma fuente.
 
 ### 24-08 · Lunes de arranque
 - Capacitación; los comerciales trabajan solo en el CRM desde el 22-08. El número de cotización se asigna al confirmar, aprobación por ítem, y a un comercial no se le muestran datos de otro.
