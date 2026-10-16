@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 16-10 · Buzón: lo que se hizo a cada máquina de un caso (Rubí)
+- **Qué se pidió:** Rubí pidió que, cuando un caso tiene más de un equipo, «Qué se hizo en el cliente», «Repuestos usados» y «Ciclos» se puedan registrar por cada equipo (antes había un solo juego de campos y las otras máquinas quedaban sin nada escrito ni lectura del contador).
+- **Qué se hizo:** el paso muestra un recuadro por máquina del caso, con su serie y tipo. Los ciclos de cada una van a su propia ficha y el registro de la etapa muestra lo de cada máquina.
+
 ### 16-10 · Buzón: orden de compra u orden de servicio en la apertura (Rubí)
 - **Qué se pidió:** Rubí pidió que, después de «Servicio a realizar», la apertura tenga para elegir ORDEN DE COMPRA u ORDEN DE SERVICIO (caso: apertura de la secadora de Hortifrut).
 - **Qué se hizo:** la apertura tiene ahora una fila 2 con la orden del cliente: de compra, de servicio o «el cliente no emitió orden», con su número. Se elige en «Datos que se coordinan». Si no se elige y el cierre trae orden de compra, sale esa. Las demás filas corrieron un número.
