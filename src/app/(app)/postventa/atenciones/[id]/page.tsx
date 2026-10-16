@@ -90,7 +90,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
   // Las otras máquinas del caso (0253) y, si el cliente no tiene ninguna en el
   // parque, el pedido que salió sin series: es lo que le pasó a Gary Group.
   const [{ data: adicionales }, { data: pedidosSinSeries }, { data: pedidosAbiertos }] = await Promise.all([
-    supabase.from("atencion_equipos").select("equipo_id").eq("atencion_id", a.id),
+    supabase.from("atencion_equipos").select("equipo_id, trabajo_realizado, repuestos_usados, ciclos, equipos_instalados(serie, modelo_texto)").eq("atencion_id", a.id).order("agregado_at"),
     a.cuenta_id && (equiposDelCliente ?? []).length === 0
       ? supabase.from("servicios_postventa").select("id, equipo, despachado_at, guia").eq("cuenta_id", a.cuenta_id).not("despachado_at", "is", null).is("cerrado_at", null).order("despachado_at", { ascending: false }).limit(3)
       : Promise.resolve({ data: [] as { id: string; equipo: string | null; despachado_at: string | null; guia: string | null }[] }),
@@ -112,6 +112,21 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
       : Promise.resolve({ data: [] as { id: string; equipo: string | null; cliente_texto: string | null; fecha_despacho: string | null; despachado_at: string | null; puesta_en_marcha: string | null }[] }),
   ]);
   const adicionalesIds = (adicionales ?? []).map((x) => x.equipo_id as string);
+  // Lo que se hizo a cada una de esas máquinas (0509; Rubí, buzón 16-10).
+  const otrasMaquinas = (adicionales ?? []).map((x) => {
+    const m = x as unknown as {
+      equipo_id: string; trabajo_realizado: string | null; repuestos_usados: string | null; ciclos: number | null;
+      equipos_instalados: { serie: string | null; modelo_texto: string | null } | null;
+    };
+    return {
+      equipoId: m.equipo_id,
+      serie: m.equipos_instalados?.serie ?? null,
+      modelo: m.equipos_instalados?.modelo_texto ?? null,
+      trabajo: m.trabajo_realizado,
+      repuestos: m.repuestos_usados,
+      ciclos: m.ciclos,
+    };
+  });
   const listaPedidosAbiertos = pedidosAbiertos ?? [];
   // «¿ES EL MISMO CLIENTE?» (0272, ítem 9 de la reunión del 22-09): «también a
   // postventa» — Carlos vio el panel de relacionados solo del lado comercial.
@@ -410,6 +425,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
               garantia={garantia}
               hayMaquinas={(equiposDelCliente ?? []).length > 0}
               equipos={equiposDelCliente ?? []}
+              otrasMaquinas={otrasMaquinas}
               cuenta={a.cuenta_id ? { id: a.cuenta_id, razonSocial: a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente" } : null}
               autoderivado={autoderivado}
               pedidoSinSeries={(pedidosSinSeries ?? [])[0] ?? null}
