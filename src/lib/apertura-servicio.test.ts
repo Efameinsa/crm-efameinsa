@@ -94,11 +94,12 @@ describe("los tres formatos son el mismo, y solo cambia el encabezado", () => {
     expect(a).toEqual(b);
   });
 
-  it("son once filas: primer destino y destino final separados (Lesly, 02-10)", () => {
+  it("son doce filas: la orden en la 2 (Rubí, 16-10), primer destino y destino final separados (Lesly, 02-10)", () => {
     const filas = filasApertura(PERU_VACATION);
-    expect(filas).toHaveLength(11);
+    expect(filas).toHaveLength(12);
     expect(filas.map((f) => f.descripcion)).toEqual([
       "SERVICIO A REALIZAR",
+      "ORDEN DE COMPRA / SERVICIO",
       "CLIENTE",
       "PRIMER DESTINO",
       "DESTINO FINAL",
@@ -114,11 +115,11 @@ describe("los tres formatos son el mismo, y solo cambia el encabezado", () => {
 
   it("con quién se coordina se escribe; ya no es «Sara Campos» fijo (Lesly, 02-10)", () => {
     const filas = filasApertura({ ...PERU_VACATION, coordinaContabilidad: "Jhon Kalsin Sulca" });
-    expect(filas[8]).toMatchObject({ informacion: "Gestión de Contabilidad", observaciones: "Jhon Kalsin Sulca" });
     expect(filas[9]).toMatchObject({ informacion: "Gestión de Contabilidad", observaciones: "Jhon Kalsin Sulca" });
-    expect(filas[10]).toMatchObject({ informacion: "Herramientas, repuestos traídos anteriormente y EPP", observaciones: "Almacén" });
-    expect(filasApertura({ ...PERU_VACATION, coordinaLogistica: "Abdías · 987 654 321" })[10].observaciones).toBe("Abdías · 987 654 321");
-    expect(filasApertura(PERU_VACATION)[8].observaciones).toBe("—");
+    expect(filas[10]).toMatchObject({ informacion: "Gestión de Contabilidad", observaciones: "Jhon Kalsin Sulca" });
+    expect(filas[11]).toMatchObject({ informacion: "Herramientas, repuestos traídos anteriormente y EPP", observaciones: "Almacén" });
+    expect(filasApertura({ ...PERU_VACATION, coordinaLogistica: "Abdías · 987 654 321" })[11].observaciones).toBe("Abdías · 987 654 321");
+    expect(filasApertura(PERU_VACATION)[9].observaciones).toBe("—");
     expect(faltantesApertura(PERU_VACATION)).toContain("con quién coordina contabilidad (movilidad y viáticos)");
     expect(faltantesApertura({ ...PERU_VACATION, coordinaContabilidad: "Jhon" })).not.toContain("con quién coordina contabilidad (movilidad y viáticos)");
   });
@@ -166,33 +167,33 @@ describe("las filas llevan lo que el correo lleva", () => {
   });
 
   it("el cliente va con su RUC", () => {
-    expect(filasApertura(MOTORGAS)[1].informacion).toBe("MOTORGAS MULTISERVICIOS SAC\nRUC: 20452702119");
+    expect(filasApertura(MOTORGAS)[2].informacion).toBe("MOTORGAS MULTISERVICIOS SAC\nRUC: 20452702119");
   });
 
   it("cuando la entrega es en nuestras instalaciones, la dirección final es el destino final", () => {
     const filas = filasApertura(MOTORGAS);
-    expect(filas[2].informacion).toBe("EN NUESTRAS INSTALACIONES");
-    expect(filas[3].informacion).toBe("LOTE 14 TOMA DE BAUTISTA GROCIO PRADO – CHINCHA - ICA");
+    expect(filas[3].informacion).toBe("EN NUESTRAS INSTALACIONES");
+    expect(filas[4].informacion).toBe("LOTE 14 TOMA DE BAUTISTA GROCIO PRADO – CHINCHA - ICA");
   });
 
   it("dice si la entrega es a domicilio o en agencia, y cuál (0259)", () => {
-    const agencia = filasApertura({ ...MOTORGAS, entregaModo: "agencia", agenciaDestino: "Marvisur, agencia Cusco – Wanchaq" })[2].informacion;
+    const agencia = filasApertura({ ...MOTORGAS, entregaModo: "agencia", agenciaDestino: "Marvisur, agencia Cusco – Wanchaq" })[3].informacion;
     expect(agencia).toContain("AGENCIA Marvisur, agencia Cusco – Wanchaq");
     const domicilio = filasApertura({ ...PERU_VACATION, entregaModo: "domicilio" });
-    expect(domicilio[2].informacion).toBe("ENTREGA A DOMICILIO\nCalle Bolívar 150 Miraflores");
-    expect(domicilio[3].informacion).toBe("EL MISMO (se entrega directo al cliente)");
+    expect(domicilio[3].informacion).toBe("ENTREGA A DOMICILIO\nCalle Bolívar 150 Miraflores");
+    expect(domicilio[4].informacion).toBe("EL MISMO (se entrega directo al cliente)");
   });
 
   it("por agencia: la agencia es el primer destino y el cliente el destino final (0345; Lesly, 02-10)", () => {
     const d = { ...PERU_VACATION, entregaModo: "agencia" as const, agenciaDestino: "Marvisur, agencia Ica", agenciaDireccion: "Av. Paseo de la República 3570, San Isidro" };
     const filas = filasApertura(d);
-    expect(filas[2].informacion).toBe("AGENCIA Marvisur, agencia Ica\nAv. Paseo de la República 3570, San Isidro");
-    expect(filas[3].informacion).toBe("Calle Bolívar 150 Miraflores");
+    expect(filas[3].informacion).toBe("AGENCIA Marvisur, agencia Ica\nAv. Paseo de la República 3570, San Isidro");
+    expect(filas[4].informacion).toBe("Calle Bolívar 150 Miraflores");
     // Si la agencia lo lleva hasta el cliente, la nota del modelo (en observaciones).
-    expect(filasApertura({ ...d, direccionFinal: "Abtao 951 – Hotel Brancaccio" })[3].informacion).toBe("Calle Bolívar 150 Miraflores\nAbtao 951 – Hotel Brancaccio");
-    expect(filasApertura({ ...d, direccionFinal: "Abtao 951 – Hotel Brancaccio" })[3].observaciones).toBe("EQUIPO DEBERÁ LLEGAR A DOMICILIO");
-    expect(filasApertura({ ...d, agenciaDestino: "AGENCIA SHALOM" })[2].informacion.startsWith("AGENCIA SHALOM\n")).toBe(true);
-    expect(filasApertura({ ...d, agenciaDestino: "ANGENCIA MARVISUR" })[2].informacion.startsWith("ANGENCIA MARVISUR\n")).toBe(true);
+    expect(filasApertura({ ...d, direccionFinal: "Abtao 951 – Hotel Brancaccio" })[4].informacion).toBe("Calle Bolívar 150 Miraflores\nAbtao 951 – Hotel Brancaccio");
+    expect(filasApertura({ ...d, direccionFinal: "Abtao 951 – Hotel Brancaccio" })[4].observaciones).toBe("EQUIPO DEBERÁ LLEGAR A DOMICILIO");
+    expect(filasApertura({ ...d, agenciaDestino: "AGENCIA SHALOM" })[3].informacion.startsWith("AGENCIA SHALOM\n")).toBe(true);
+    expect(filasApertura({ ...d, agenciaDestino: "ANGENCIA MARVISUR" })[3].informacion.startsWith("ANGENCIA MARVISUR\n")).toBe(true);
     expect(faltantesApertura(d)).not.toContain("la dirección de la agencia (primer destino)");
     expect(faltantesApertura({ ...d, agenciaDireccion: null })).toContain("la dirección de la agencia (primer destino)");
   });
@@ -201,7 +202,7 @@ describe("las filas llevan lo que el correo lleva", () => {
     const d = { ...PERU_VACATION, entregaModo: "agencia" as const, agenciaDestino: "Marvisur, agencia Ica", agenciaDireccion: "Av. Paseo de la República 3570, San Isidro" };
     expect(faltantesApertura(d)).toContain("el horario de atención de la agencia (en «Dirección y quién recibe»)");
     const con = { ...d, agenciaHorario: " L-V 8:00 a 18:00 · Sáb 8:00 a 13:00 " };
-    expect(filasApertura(con)[2].informacion.split("\n")).toEqual([
+    expect(filasApertura(con)[3].informacion.split("\n")).toEqual([
       "AGENCIA Marvisur, agencia Ica",
       "Av. Paseo de la República 3570, San Isidro",
       "HORARIO DE ATENCIÓN: L-V 8:00 a 18:00 · Sáb 8:00 a 13:00",
@@ -213,12 +214,12 @@ describe("las filas llevan lo que el correo lleva", () => {
 
   it("las observaciones de las filas se escriben a mano (Rubí, 12-10; 0445)", () => {
     const f = filasApertura({ ...PERU_VACATION, obsFilas: { "6": "  Si no está, recibe el Sr. Pérez ", "2": "", "4": "no va", "11": "no va" } });
-    expect(f[5].observaciones).toBe("Si no está, recibe el Sr. Pérez");
-    expect(f[1].observaciones).toBe("");
+    expect(f[6].observaciones).toBe("Si no está, recibe el Sr. Pérez");
+    expect(f[2].observaciones).toBe("");
     // Solo las filas sin campo propio: destino final y logística tienen los suyos.
-    expect(f[3].observaciones).not.toContain("no va");
-    expect(f[10].observaciones).not.toContain("no va");
-    expect(cuerpoApertura({ ...PERU_VACATION, obsFilas: { "6": "Llamar antes" } })).toContain("6. PERSONA QUE RECIBE   [Llamar antes]");
+    expect(f[4].observaciones).not.toContain("no va");
+    expect(f[11].observaciones).not.toContain("no va");
+    expect(cuerpoApertura({ ...PERU_VACATION, obsFilas: { "6": "Llamar antes" } })).toContain("7. PERSONA QUE RECIBE   [Llamar antes]");
     expect(limpiarObsFilas({ "2": " ", "6": "x" })).toEqual({ "6": "x" });
     expect(limpiarObsFilas({ "2": " " })).toBeNull();
   });
@@ -227,17 +228,17 @@ describe("las filas llevan lo que el correo lleva", () => {
     const d = { ...PERU_VACATION, entregaModo: "agencia" as const, agenciaDestino: "EXPRESO LOS CHANKAS", agenciaDireccion: "Jr. Luna Pizarro 459 - La Victoria", direccionFinal: "Av. José María Arguedas 112 - Andahuaylas" };
     const base = "Calle Bolívar 150 Miraflores\nAv. José María Arguedas 112 - Andahuaylas";
     // En la columna de observaciones (Rubí, 12-10); la información queda solo con las direcciones.
-    expect(filasApertura({ ...d, destinoNota: null })[3].informacion).toBe(base);
-    expect(filasApertura({ ...d, destinoNota: null })[3].observaciones).toBe("EQUIPO DEBERÁ LLEGAR A DOMICILIO");
-    expect(filasApertura({ ...d, destinoNota: "  EL CLIENTE RECOGE EN LA AGENCIA DE ANDAHUAYLAS " })[3].observaciones).toBe("EL CLIENTE RECOGE EN LA AGENCIA DE ANDAHUAYLAS");
-    expect(filasApertura({ ...d, destinoNota: "" })[3].observaciones).toBe("");
+    expect(filasApertura({ ...d, destinoNota: null })[4].informacion).toBe(base);
+    expect(filasApertura({ ...d, destinoNota: null })[4].observaciones).toBe("EQUIPO DEBERÁ LLEGAR A DOMICILIO");
+    expect(filasApertura({ ...d, destinoNota: "  EL CLIENTE RECOGE EN LA AGENCIA DE ANDAHUAYLAS " })[4].observaciones).toBe("EL CLIENTE RECOGE EN LA AGENCIA DE ANDAHUAYLAS");
+    expect(filasApertura({ ...d, destinoNota: "" })[4].observaciones).toBe("");
     // Debajo de la observación del destino, si la hay.
-    expect(filasApertura({ ...d, destinoNota: "LLAMAR 1 HORA ANTES", destinoObservacion: "Sede Andahuaylas" })[3].observaciones).toBe("Sede Andahuaylas\nLLAMAR 1 HORA ANTES");
+    expect(filasApertura({ ...d, destinoNota: "LLAMAR 1 HORA ANTES", destinoObservacion: "Sede Andahuaylas" })[4].observaciones).toBe("Sede Andahuaylas\nLLAMAR 1 HORA ANTES");
     // Sin resaltar (Rubí, 12-10): no en amarillo.
-    expect(filasApertura({ ...d, destinoNota: null })[3].resaltado ?? null).toBeNull();
+    expect(filasApertura({ ...d, destinoNota: null })[4].resaltado ?? null).toBeNull();
     // También a domicilio, donde antes no había nota.
-    expect(filasApertura({ ...PERU_VACATION, entregaModo: "domicilio", destinoNota: "LLAMAR 1 HORA ANTES" })[3].observaciones).toBe("LLAMAR 1 HORA ANTES");
-    expect(cuerpoApertura({ ...d, destinoNota: "LLAMAR 1 HORA ANTES" })).toContain("4. DESTINO FINAL   [LLAMAR 1 HORA ANTES]");
+    expect(filasApertura({ ...PERU_VACATION, entregaModo: "domicilio", destinoNota: "LLAMAR 1 HORA ANTES" })[4].observaciones).toBe("LLAMAR 1 HORA ANTES");
+    expect(cuerpoApertura({ ...d, destinoNota: "LLAMAR 1 HORA ANTES" })).toContain("5. DESTINO FINAL   [LLAMAR 1 HORA ANTES]");
     expect(cuerpoApertura({ ...d, destinoNota: "EL CLIENTE RECOGE EN LA AGENCIA DE ANDAHUAYLAS" })).toContain("   Observaciones:\n   EL CLIENTE RECOGE EN LA AGENCIA DE ANDAHUAYLAS");
     expect(cuerpoApertura({ ...d, destinoNota: "LLAMAR 1 HORA ANTES" })).not.toContain("NOTA: LLAMAR");
     expect(notaDestinoAutomatica(d)).toBe("EQUIPO DEBERÁ LLEGAR A DOMICILIO");
@@ -246,8 +247,8 @@ describe("las filas llevan lo que el correo lleva", () => {
 
   it("recojo en nuestras instalaciones: el cliente lo recoge y la dirección es el destino final (Ariana, 10-10; 0434)", () => {
     const filas = filasApertura({ ...PERU_VACATION, entregaModo: "planta" });
-    expect(filas[2].informacion).toBe("RECOJO EN NUESTRAS INSTALACIONES\n(el cliente lo recoge en planta con su transporte)");
-    expect(filas[3].informacion).toBe("Calle Bolívar 150 Miraflores");
+    expect(filas[3].informacion).toBe("RECOJO EN NUESTRAS INSTALACIONES\n(el cliente lo recoge en planta con su transporte)");
+    expect(filas[4].informacion).toBe("Calle Bolívar 150 Miraflores");
     expect(faltantesApertura({ ...PERU_VACATION, entregaModo: "planta" })).not.toContain("la dirección de la agencia (primer destino)");
   });
 
@@ -260,29 +261,29 @@ describe("las filas llevan lo que el correo lleva", () => {
       direccion: "NOTA: LA CLIENTE SOLICITA CON ENTREGA A DOMICILIO A NRO. 103 INT. D URB. SANTA MARIA DE SARAJA (ESPALDA CHIFA CENTRAL) ICA - ICA - ICA.",
       direccionFinal: "NRO. 103 INT. D URB. SANTA MARIA DE SARAJA (ESPALDA CHIFA CENTRAL) ICA - ICA - ICA",
     };
-    expect(filasApertura(d)[3].informacion).not.toContain("SANTA MARIA DE SARAJA (ESPALDA CHIFA CENTRAL) ICA - ICA - ICA\nNRO.");
-    expect(filasApertura({ ...d, direccionFinal: "Calle Otra 123, Pisco" })[3].informacion).toContain("Calle Otra 123, Pisco");
+    expect(filasApertura(d)[4].informacion).not.toContain("SANTA MARIA DE SARAJA (ESPALDA CHIFA CENTRAL) ICA - ICA - ICA\nNRO.");
+    expect(filasApertura({ ...d, direccionFinal: "Calle Otra 123, Pisco" })[4].informacion).toContain("Calle Otra 123, Pisco");
   });
 
   it("sin dirección final, el primer destino es solo la dirección", () => {
-    expect(filasApertura(PERU_VACATION)[2].informacion).toBe("Calle Bolívar 150 Miraflores");
+    expect(filasApertura(PERU_VACATION)[3].informacion).toBe("Calle Bolívar 150 Miraflores");
   });
 
   it("el día va en formato peruano", () => {
-    expect(filasApertura(MOTORGAS)[4].informacion).toBe("25/08/2026");
+    expect(filasApertura(MOTORGAS)[5].informacion).toBe("25/08/2026");
   });
 
   it("quien recibe va con DNI y celular cuando se tienen", () => {
-    expect(filasApertura(MOTORGAS)[5].informacion).toBe("Felix Alejandro Reyes Ortiz\nDNI: 43538088\nCel: 904895898");
-    expect(filasApertura(PERU_VACATION)[5].informacion).toBe("ANA CARDENAS\nCel: 996 155 115");
+    expect(filasApertura(MOTORGAS)[6].informacion).toBe("Felix Alejandro Reyes Ortiz\nDNI: 43538088\nCel: 904895898");
+    expect(filasApertura(PERU_VACATION)[6].informacion).toBe("ANA CARDENAS\nCel: 996 155 115");
     // Recibe una empresa (Rubí, 15-10): con 11 dígitos va como RUC, no como DNI.
-    expect(filasApertura({ ...MOTORGAS, recibeNombre: "CONSORCIO EL PORTAL DEL MARQUÉS SAC", recibeDoc: "20100047218" })[5].informacion).toBe(
+    expect(filasApertura({ ...MOTORGAS, recibeNombre: "CONSORCIO EL PORTAL DEL MARQUÉS SAC", recibeDoc: "20100047218" })[6].informacion).toBe(
       "CONSORCIO EL PORTAL DEL MARQUÉS SAC\nRUC: 20100047218\nCel: 904895898",
     );
   });
 
   it("lo que falta se marca, no se inventa", () => {
-    expect(filasApertura(MOTORGAS)[6].informacion).toBe("—");
+    expect(filasApertura(MOTORGAS)[7].informacion).toBe("—");
   });
 });
 
@@ -317,7 +318,7 @@ describe("la hora se escribe como en el correo", () => {
 
 describe("avisa qué falta antes de mandarlo", () => {
   it("no pide técnico cuando el equipo va por agencia", () => {
-    expect(faltantesApertura(MOTORGAS)).toEqual([]);
+    expect(faltantesApertura({ ...MOTORGAS, ordenTipo: "sin" })).toEqual([]);
   });
 
   it("sí lo pide cuando alguien tiene que ir", () => {
@@ -380,5 +381,22 @@ describe("entrega de repuestos por garantía (buzón Rubí 12-10, 0441)", () => 
   });
   it("queda como despacho en el correo", () => {
     expect(cuerpoApertura(GARANTIA)).toContain("el siguiente despacho");
+  });
+});
+
+describe("orden de compra u orden de servicio en la fila 2 (buzón Rubí 16-10)", () => {
+  it("va después de «Servicio a realizar» y dice cuál es", () => {
+    const oc = filasApertura({ ...PERU_VACATION, ordenTipo: "compra", ordenNumero: " 4500012345 " });
+    expect(oc[1]).toMatchObject({ n: 2, descripcion: "ORDEN DE COMPRA", informacion: "N° 4500012345" });
+    expect(filasApertura({ ...PERU_VACATION, ordenTipo: "servicio", ordenNumero: "OS-77" })[1].descripcion).toBe("ORDEN DE SERVICIO");
+    expect(filasApertura({ ...PERU_VACATION, ordenTipo: "sin" })[1].informacion).toBe("EL CLIENTE NO EMITIÓ ORDEN");
+    expect(filasApertura(PERU_VACATION)[1].informacion).toBe("—");
+    expect(cuerpoApertura({ ...PERU_VACATION, ordenTipo: "compra", ordenNumero: "4500012345" })).toContain("2. ORDEN DE COMPRA\n   N° 4500012345");
+  });
+  it("sin elegir se avisa; lo escrito en aperturas anteriores sigue en su fila", () => {
+    expect(faltantesApertura(PERU_VACATION)).toContain("si hay orden de compra u orden de servicio");
+    const f = filasApertura({ ...PERU_VACATION, obsFilas: { "2": "Facturar a la sede Cusco", oc: "Copia de la OC con la guía" } });
+    expect(f[2]).toMatchObject({ n: 3, descripcion: "CLIENTE", observaciones: "Facturar a la sede Cusco" });
+    expect(f[1].observaciones).toBe("Copia de la OC con la guía");
   });
 });

@@ -1416,6 +1416,9 @@ export async function guardarAperturaServicio(
     coordinaLogistica?: string | null;
     /** Solo en un pedido sin cierre: con cierre manda la serie del cierre (0421). */
     empresa?: "EFAMEINSA" | "OPEN" | null;
+    /** Fila 2: orden de compra, de servicio o ninguna, y su número (0508; buzón Rubí 16-10). */
+    ordenTipo?: string | null;
+    ordenNumero?: string | null;
   },
 ) {
   await requerirPerfil();
@@ -1431,13 +1434,16 @@ export async function guardarAperturaServicio(
   if (datos.guia && !["traslado", "materiales", "repuestos", "ambas"].includes(datos.guia)) {
     return falla("Esa no es una de las guías que se pueden pedir");
   }
+  if (datos.ordenTipo && !["compra", "servicio", "sin"].includes(datos.ordenTipo)) {
+    return falla("La orden es de compra, de servicio o no hay");
+  }
   if (datos.empresa && !["EFAMEINSA", "OPEN"].includes(datos.empresa)) {
     return falla("La apertura sale a nombre de EFAMEINSA o de OPEN");
   }
   // Con la apertura emitida, lo que cambie de esto va a Finanzas y al almacén (0406).
   const { data: antes } = await supabase
     .from("servicios_postventa")
-    .select("apertura_despacho_at, apertura_tipo, apertura_fecha, apertura_hora, direccion_final, destino_nota, apertura_obs_filas, apertura_guia, apertura_guia_detalle, informe_cierre_id, apertura_empresa")
+    .select("apertura_despacho_at, apertura_tipo, apertura_fecha, apertura_hora, direccion_final, destino_nota, apertura_obs_filas, apertura_guia, apertura_guia_detalle, informe_cierre_id, apertura_empresa, apertura_orden_tipo, apertura_orden_numero")
     .eq("id", servicioId)
     .maybeSingle();
   const mismasObs = (a: Record<string, string> | null, b: Record<string, string> | null) =>
@@ -1455,6 +1461,9 @@ export async function guardarAperturaServicio(
           ["la guía que se pide", antes.apertura_guia, datos.guia],
           ["el detalle de la guía", antes.apertura_guia_detalle, datos.guiaDetalle],
           ["la empresa", antes.apertura_empresa ?? "EFAMEINSA", antes.informe_cierre_id ? undefined : datos.empresa],
+          // Elegirla por primera vez no es corregir: antes salía sola la OC del cierre o «—».
+          ["la orden de compra o de servicio", antes.apertura_orden_tipo, antes.apertura_orden_tipo ? datos.ordenTipo : undefined],
+          ["el número de la orden", antes.apertura_orden_numero, antes.apertura_orden_tipo ? datos.ordenNumero : undefined],
         ] as [string, unknown, string | null | undefined][]
       )
         .filter(([, a, d]) => d !== undefined && String(a ?? "").trim() !== (limpio(d) ?? ""))
@@ -1487,6 +1496,8 @@ export async function guardarAperturaServicio(
       ...(datos.coordinaLogistica !== undefined ? { apertura_coordina_logistica: limpio(datos.coordinaLogistica) } : {}),
       // Con cierre, la empresa es la de su serie: no se cambia acá.
       ...(datos.empresa !== undefined && !antes?.informe_cierre_id ? { apertura_empresa: datos.empresa } : {}),
+      ...(datos.ordenTipo !== undefined ? { apertura_orden_tipo: limpio(datos.ordenTipo) } : {}),
+      ...(datos.ordenNumero !== undefined ? { apertura_orden_numero: limpio(datos.ordenNumero) } : {}),
     })
     .eq("id", servicioId);
   if (error) return falla(error.message);

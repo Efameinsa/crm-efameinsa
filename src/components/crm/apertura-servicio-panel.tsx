@@ -10,7 +10,7 @@ import { esCorreoDeLaEmpresa, type Destinatario } from "@/lib/directorio";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { FILAS_CON_OBSERVACION_LIBRE, GUIAS_APERTURA, LOGISTICA_POR_DEFECTO, TIPOS_APERTURA, type GuiaApertura, type TipoApertura } from "@/lib/apertura-servicio";
+import { FILAS_CON_OBSERVACION_LIBRE, GUIAS_APERTURA, LOGISTICA_POR_DEFECTO, ORDENES_APERTURA, TIPOS_APERTURA, type GuiaApertura, type OrdenApertura, type TipoApertura } from "@/lib/apertura-servicio";
 import { fechaHoraLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnicos";
@@ -59,6 +59,9 @@ export function AperturaServicioPanel({
     guiaDetalle: string | null;
     coordinaContabilidad: string | null;
     coordinaLogistica: string | null;
+    /** Fila 2: orden de compra, de servicio o ninguna (buzón Rubí 16-10). */
+    ordenTipo: OrdenApertura | null;
+    ordenNumero: string | null;
   };
   asunto: string;
   cuerpo: string;
@@ -161,6 +164,8 @@ export function AperturaServicioPanel({
         guiaDetalle: v.guia ? v.guiaDetalle : null,
         coordinaContabilidad: v.coordinaContabilidad,
         coordinaLogistica: v.coordinaLogistica,
+        ordenTipo: v.ordenTipo,
+        ordenNumero: v.ordenTipo === "compra" || v.ordenTipo === "servicio" ? v.ordenNumero : null,
         ...(empresaElegible ? { empresa } : {}),
       });
       if (r.error) {
@@ -218,6 +223,40 @@ export function AperturaServicioPanel({
               </label>
             ))}
           </div>
+        </fieldset>
+
+        {/* Rubí, 16-10: «después de "SERVICIO A REALIZAR" debe estar para seleccionar ORDEN DE COMPRA U ORDEN DE SERVICIO». */}
+        <fieldset className="mt-3">
+          <legend className="mb-1.5 text-xs font-medium text-foreground">¿El cliente mandó orden de compra u orden de servicio?</legend>
+          <div className="flex flex-wrap gap-1.5">
+            {ORDENES_APERTURA.map((o) => (
+              <label
+                key={o.clave}
+                className={cn(
+                  "cursor-pointer rounded-md border px-2.5 py-1.5 text-xs transition-colors",
+                  v.ordenTipo === o.clave ? "border-primary bg-primary/5 font-semibold text-foreground" : "border-border text-muted-foreground hover:bg-accent",
+                )}
+              >
+                <input
+                  type="radio"
+                  name="orden-apertura"
+                  className="sr-only"
+                  checked={v.ordenTipo === o.clave}
+                  onChange={() => setV((x) => ({ ...x, ordenTipo: o.clave }))}
+                />
+                {o.etiqueta}
+              </label>
+            ))}
+          </div>
+          {(v.ordenTipo === "compra" || v.ordenTipo === "servicio") && (
+            <input
+              value={v.ordenNumero ?? ""}
+              onChange={cambiar("ordenNumero")}
+              placeholder={v.ordenTipo === "compra" ? "N° de la orden de compra, ej. OC-2026-0457" : "N° de la orden de servicio, ej. OS-0123"}
+              className={cn(ENTRADA, "mt-1.5 sm:max-w-sm")}
+            />
+          )}
+          <p className="mt-1 text-[11px] text-muted-foreground">Sale en la fila 2 de la hoja, debajo de «Servicio a realizar».</p>
         </fieldset>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -383,10 +422,10 @@ export function AperturaServicioPanel({
         </p>
         <div className="mt-2 grid gap-3 sm:grid-cols-2">
           {FILAS_CON_OBSERVACION_LIBRE.map((f) => (
-            <Campo key={f.n} etiqueta={`${f.n}. ${f.etiqueta}`}>
+            <Campo key={f.clave} etiqueta={`${f.n}. ${f.etiqueta}`}>
               <textarea
-                value={v.obsFilas[String(f.n)] ?? ""}
-                onChange={(e) => setV((x) => ({ ...x, obsFilas: { ...x.obsFilas, [String(f.n)]: e.target.value } }))}
+                value={v.obsFilas[f.clave] ?? ""}
+                onChange={(e) => setV((x) => ({ ...x, obsFilas: { ...x.obsFilas, [f.clave]: e.target.value } }))}
                 rows={2}
                 placeholder={f.ejemplo}
                 className={ENTRADA}
