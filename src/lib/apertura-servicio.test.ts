@@ -4,6 +4,7 @@ import {
   notaDestinoAutomatica,
   TIPOS_APERTURA,
   tituloDe,
+  queQuedaEnAgenda,
   tipoSugerido,
   horaAmPm,
   filasApertura,
@@ -79,6 +80,8 @@ describe("los tres formatos son el mismo, y solo cambia el encabezado", () => {
     expect(tituloDe("entrega_puesta_marcha")).toBe("ENTREGA Y PUESTA EN MARCHA DE:");
     expect(tituloDe("mantenimiento")).toBe("SERVICIO DE MANTENIMIENTO:");
     expect(tituloDe("puesta_marcha")).toBe("PUESTA EN MARCHA DE:");
+    expect(tituloDe("servicio_instalacion")).toBe("SERVICIO E INSTALACIÓN DE:");
+    expect(queQuedaEnAgenda("servicio_instalacion")).toBe("servicio");
   });
 
   it("solo puesta en marcha: el técnico va sin equipo y queda en agenda un servicio (Rubí, 05-10)", () => {
@@ -352,6 +355,7 @@ describe("el correo listo para pegar", () => {
       "entrega",
       "entrega_puesta_marcha",
       "puesta_marcha",
+      "servicio_instalacion",
       "mantenimiento",
       "entrega_garantia",
       "servicio_tecnico",
