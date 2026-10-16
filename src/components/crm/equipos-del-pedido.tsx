@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2, PackageX, ScanBarcode, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { abrirOtroCircuito, agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarProcedencia, marcarSinStock, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
+import { abrirOtroCircuito, agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarProcedencia, marcarSinStock, quitarLineaQueNoCorresponde, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
 import { probarEquipoDelPedido, tecnicoYFechaDeLaPrueba } from "@/lib/acciones/almacen";
 import { corregirSerie } from "@/lib/acciones/pedido-central";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
@@ -158,6 +158,7 @@ export function EquiposDelPedido({
               partes={partesDe(e.id)}
               candado={candado}
               repuesto={repuesto}
+              unica={equipos.length === 1}
             />
           );
         })}
@@ -239,6 +240,59 @@ function OtroCircuito({ servicioId, equipos, despachado }: { servicioId: string;
   );
 }
 
+/** Un renglón de servicio (instalación, mantenimiento) no es una máquina que sale del almacén. */
+const pareceServicio = (descripcion: string) => /^\s*SERVICIO\s/i.test(descripcion);
+
+function NoCorresponde({ e, servicioId }: { e: EquipoDelPedido; servicioId: string }) {
+  const router = useRouter();
+  const [abierto, setAbierto] = useState(false);
+  const [pendiente, startTransition] = useTransition();
+  const [problema, setProblema] = useState<string | null>(null);
+  const servicio = pareceServicio(e.descripcion);
+  const quitar = () => {
+    setProblema(null);
+    startTransition(async () => {
+      const r = await quitarLineaQueNoCorresponde(e.id, servicioId);
+      if (r.error) {
+        setProblema(r.error);
+        return;
+      }
+      toast.success("Listo: ya no está en la lista del pedido");
+      router.refresh();
+    });
+  };
+  return (
+    <div className={cn("mt-1.5 text-[11px]", servicio && "rounded-md border border-amber-400/60 bg-amber-500/10 p-2")}>
+      {servicio && !abierto && (
+        <p className="mb-1 leading-snug text-amber-900">
+          Esto es un servicio, no una máquina que sale del almacén: no lleva código ni serie, ni prueba y embalaje.
+        </p>
+      )}
+      {!abierto ? (
+        <button type="button" className="font-medium text-primary hover:underline" onClick={() => setAbierto(true)}>
+          No corresponde: es un servicio, no lleva código ni serie
+        </button>
+      ) : (
+        <div className="space-y-1.5">
+          <p className="leading-snug text-foreground">
+            «{e.descripcion.split("\n")[0]}» sale de la lista de equipos de este pedido: ya no pedirá serie, prueba ni fotos. Queda escrito en las
+            observaciones del pedido quién lo quitó.
+          </p>
+          {problema && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2 leading-snug text-destructive">{problema}</p>}
+          <div className="flex gap-2">
+            <Button size="sm" className="h-7 text-xs" onClick={quitar} disabled={pendiente}>
+              {pendiente && <Loader2 className="size-3 animate-spin" />} Sí, no corresponde
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAbierto(false)} disabled={pendiente}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Fila({
   e,
   servicioId,
@@ -250,6 +304,7 @@ function Fila({
   partes,
   candado,
   repuesto,
+  unica,
 }: {
   e: EquipoDelPedido;
   servicioId: string;
@@ -263,6 +318,8 @@ function Fila({
   partes: EquipoDelPedido[];
   candado: boolean;
   repuesto: boolean;
+  /** Es lo único en la lista: no se puede quitar como «no corresponde» (0515). */
+  unica: boolean;
 }) {
   const router = useRouter();
   const [abrirParte, setAbrirParte] = useState(false);
@@ -777,6 +834,12 @@ function Fila({
             </div>
           )}
         </div>
+      )}
+
+      {/* «NO CORRESPONDE» (Lesly, 16-10; 0515): un servicio que vino del cierre
+          como equipo no tiene código ni serie que darle; sale de la lista. */}
+      {!despachado && !unica && !e.prueba_lista_at && (!e.serie || e.sin_serie) && archivosGuardados.length === 0 && partes.length === 0 && (
+        <NoCorresponde e={e} servicioId={servicioId} />
       )}
 
       {/* El almacén prueba esta máquina y sube SU protocolo. */}
