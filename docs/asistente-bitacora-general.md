@@ -18,6 +18,14 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 16-10 · Cierre: más de una persona puede recibir el despacho
+- **Qué se pidió:** en «Quién recibe» del cierre solo cabía una persona; se pidió poder agregar más.
+- **Qué se hizo:** botón «+ Agregar otra persona que puede recibir» (nombre, DNI/CE y teléfono). Salen como «También recibe» en el cierre, el PDF y la hoja del pedido, y quedan como contactos del cliente.
+
+### 16-10 · Postventa: la serie que ya está en otra ficha frena y explica (Ariana)
+- **Caso:** un problema técnico de un hotel derivado por Central. La ficha del caso (sin RUC, con el nombre mal escrito) no tenía máquinas; la lavadora estaba en la otra ficha del mismo cliente, con RUC. Al escribir la serie, el CRM usó en silencio la máquina de la otra ficha y el caso quedó «fuera de garantía» sin explicar por qué. Se deshizo ese clic y se unieron las fichas.
+- **Qué se hizo (pedido de Santos: «que le aparezca un aviso… para que sepa y no se frustre»):** ahora el CRM no deja seguir y dice en qué ficha está la serie y qué hacer: avisar por el buzón para unir las fichas y después elegir la máquina con «Es esta».
+
 ### 16-10 · Visitas a planta: los acompañantes se editan después de anunciar (Katerine)
 - **Qué se pidió:** Katerine tenía una visita a las 12:00 y el cliente avisó a última hora que venía con dos personas más. Solo se podía cambiar la fecha o la hora, no los acompañantes.
 - **Qué se hizo:** en «Visitas a planta» cada visita tiene «Acompañantes», debajo de «Cambiar fecha u hora». Se suman, corrigen o quitan con nombre y DNI o C.E. Lo hace quien registró la visita, o Central, mientras el cliente no haya llegado. Central recibe el aviso y el correo de visitas sale con los nombres. Si vigilancia ya tenía la hoja, el check «Vigilancia avisada» se apaga para que Central la vuelva a imprimir.

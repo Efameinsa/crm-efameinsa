@@ -31,6 +31,13 @@ export interface ItemInformeEntrada {
   precio_con_igv?: number | null;
 }
 
+/** Otra persona autorizada a recibir el despacho, además de la principal (16-10). */
+export interface PersonaQueRecibe {
+  nombre: string;
+  documento?: string | null;
+  telefono?: string | null;
+}
+
 export interface ContactoEntrada {
   area?: string | null;
   nombre?: string | null;
@@ -40,6 +47,8 @@ export interface ContactoEntrada {
   documento?: string | null;
   /** Dirección de este contacto/sede (migración 0086). */
   direccion?: string | null;
+  /** Solo en el de despacho: otras personas que también pueden recibir (16-10). */
+  otros?: PersonaQueRecibe[] | null;
 }
 
 export interface DatosInforme {

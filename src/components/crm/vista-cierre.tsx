@@ -341,6 +341,10 @@ export function VistaCierre({
     ["Venta", informe.contacto_venta],
     ["Contabilidad", informe.contacto_contabilidad],
     ["Despacho", informe.contacto_despacho],
+    // Más personas que pueden recibir (16-10).
+    ...(informe.contacto_despacho?.otros ?? []).map(
+      (o) => ["También recibe el despacho", { nombre: o.nombre, telefono: o.telefono, area: o.documento ? `DNI/CE ${o.documento}` : null }] as [string, ContactoInforme],
+    ),
   ]);
 
   return (
