@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -40,18 +40,33 @@ const buttonVariants = cva(
   }
 )
 
+/**
+ * `porQue` (Santos, 16-10): «siempre que algo evite hacer un botón esté
+ * desactivado… debe salir algo que explique la razón». Si el botón está
+ * desactivado y trae `porQue`, la razón se escribe debajo, a la vista (un
+ * `title` solo se ve pasando el mouse, y en el celular nunca). Sin `porQue`,
+ * o habilitado, el botón es el de siempre.
+ */
 function Button({
   className,
   variant = "default",
   size = "default",
+  porQue,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
-  return (
+}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants> & { porQue?: string | null }) {
+  const boton = (
     <ButtonPrimitive
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
+  )
+  if (!props.disabled || !porQue) return boton
+  return (
+    <span data-slot="boton-con-razon" className="inline-flex max-w-full flex-col items-stretch gap-1 align-top">
+      {boton}
+      <span className="text-[11px] leading-snug whitespace-normal text-muted-foreground">{porQue}</span>
+    </span>
   )
 }
 

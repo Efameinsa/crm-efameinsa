@@ -1,4 +1,5 @@
 import { ChipOrigen } from "@/components/crm/chip-origen";
+import { DevolverABandejaBoton } from "@/components/crm/devolver-a-bandeja-boton";
 import Link from "@/components/enlace";
 import { AlertTriangle, FileDown, MessageSquareText, Phone, Siren } from "lucide-react";
 import { fechaHoraLima } from "@/lib/fechas";
@@ -289,6 +290,14 @@ export function TarjetaDerivado({
             />
           )}
         </div>
+        {/* Derivado por error: vuelve a «por repartir» (0514, Central 15 y 16-10). */}
+        {fila.asignadoA && (
+          <DevolverABandejaBoton
+            leadId={fila.id}
+            contacto={contacto}
+            comercial={com ? `${com.codigo_comercial ? `${com.codigo_comercial} · ` : ""}${com.nombre}` : "el comercial"}
+          />
+        )}
       </div>
 
       {/* El enlace va al final del DOM y cubre la tarjeta: toda ella navega,
