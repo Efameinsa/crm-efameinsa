@@ -201,7 +201,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Pasos:**
   1. **«Despacho verificado por postventa».** Es el doble check. No se da si las letras siguen pendientes de entrega, y **el código de gerencia no lo salta**.
   2. **«Letras entregadas al cliente»**, con fotos y con quién las recibió.
-  3. **Puesta en marcha** con su informe por equipo («¿De qué equipo es este informe?»), fotos y lectura de ciclos. Desde el 14-10 el informe se llena por partes: detalle del trabajo realizado, puesta en marcha, contador de ciclos, observaciones, solución y recomendaciones (lo vacío no se imprime). En repuestos: «Repuesto instalado». En servicios: «Mantenimiento/Revisión ejecutado, con informe».
+  3. **Puesta en marcha** con su informe por equipo («¿De qué equipo es este informe?»), fotos y lectura de ciclos. Con dos o más equipos, la opción que sale primero es «Los N equipos, cada uno con su ficha»: se llena una sola vez y se guarda un informe (una hoja) por cada serie, cada uno con su propio contador de ciclos; también se puede elegir un solo equipo o «Todos los equipos en una sola hoja», y después del primero queda «Otro informe» (Ariana, 16-10). Desde el 14-10 el informe se llena por partes: detalle del trabajo realizado, puesta en marcha, contador de ciclos, observaciones, solución y recomendaciones (lo vacío no se imprime). En repuestos: «Repuesto instalado». En servicios: «Mantenimiento/Revisión ejecutado, con informe».
   4. **«Informe enviado» al cliente.** Para marcarlo hay que subir una constancia.
   5. **«Orden a Finanzas para facturar y cobrar».** Aparece cuando se pagó menos del 100 % antes del despacho (crédito o saldo). Finanzas la marca «atendida».
   6. **«Pedido cerrado».**
