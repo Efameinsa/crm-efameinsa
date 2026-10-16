@@ -927,7 +927,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Código (del supervisor, de operaciones, de gerencia):** autorización de un solo uso, con motivo. Nunca se comparte.
 - **Files:** archivadores físicos de los clientes.
 - **Directorio:** la pantalla con los correos internos de cada persona (OPEN y EFAMEINSA) y la lista de técnicos.
-- **Crece:** la plataforma interna de capacitación y puntos. El CRM le envía puntos por gestiones, cotizaciones, cierres, leads y sugerencias.
+- **Crece:** la plataforma interna de capacitación y puntos. El CRM le envía puntos por gestiones, cotizaciones, cierres, leads y sugerencias. Los puntos de gestión comercial tienen un tope de **2.500 al mes por persona** (desde el 16-10; antes era 1.000). Cuando alguien llega al tope, sus actividades se siguen registrando en el CRM pero salen con «+0» en Crece hasta el 1 del mes siguiente. Las sugerencias no tienen tope.
 
 ### 4.2 Directorio de personas y códigos (solo nombres y funciones)
 
