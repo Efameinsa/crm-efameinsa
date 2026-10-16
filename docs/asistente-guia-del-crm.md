@@ -454,6 +454,8 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 **Un expediente por cliente y por comercial**
 - Si el cliente vuelve a escribir y ya tiene un expediente abierto con ese comercial, se suma ahí («El cliente volvió a escribir por…»). Gerencia lo comparó con una historia clínica.
+- **Desde el 16-10, también si estaba rechazado:** si ese comercial le cerró al cliente un expediente como rechazado en los últimos 30 días y Central se lo vuelve a derivar, se reabre ese mismo expediente en «Seguimiento», con una nota, en vez de abrir otro. Y si se envía una cotización desde un expediente rechazado, pasa solo a «Cotizada».
+- Caso (Moisés, 16-10): un cliente rechazado el 15-10 volvió a escribir «Hola» al día siguiente y le salió dos veces en Oportunidades, uno «Asignada» y otro «Rechazada» con la cotización. Se unieron en uno solo.
 - En postventa, un caso nuevo se suma al expediente de postventa del mismo cliente y del mismo tipo si sigue abierto y se movió en los últimos 30 días. Si no, abre uno propio. Nunca se funde con uno comercial.
 
 **Pedir un expediente que es de otro** (botón «Pedir el expediente»)
