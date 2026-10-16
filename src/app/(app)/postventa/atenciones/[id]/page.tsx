@@ -374,7 +374,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
       )}
 
       {a.cuenta_id && candidatasRelacionadas.length > 0 && (
-        <FichasRelacionadas cuentaId={a.cuenta_id} candidatas={candidatasRelacionadas} supervisores={supervisoresFusion} />
+        <FichasRelacionadas cuentaId={a.cuenta_id} cuentaNombre={a.cuentas?.razon_social ?? "Esta ficha"} candidatas={candidatasRelacionadas} supervisores={supervisoresFusion} />
       )}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
