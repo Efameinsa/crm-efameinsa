@@ -19,7 +19,7 @@ import { pendientesPropios, presupuestosPropios, ventasPropias } from "@/lib/tra
 import { pendientesAnotados, bloquesPendientesAnotados, tareasPendientesDelCalendario } from "@/lib/pendientes-anotados";
 import { cargarPanelPostventa, type PanelPostventa } from "@/lib/panel-postventa";
 import { cargarPanorama, type PanoramaPendientes } from "@/lib/panorama-pendientes";
-import { cargarFilasPorPaso } from "@/lib/pedidos-por-paso";
+import { cargarFilasPorPaso, filtrarPedidosQueTrabajo } from "@/lib/pedidos-por-paso";
 import { loQueFaltaPorPaso } from "@/lib/lo-que-falta-por-paso";
 import type { PendienteAnotado } from "@/lib/pendientes-anotados";
 
@@ -295,7 +295,8 @@ export async function GET(request: Request) {
       // debe aparecer… exportado en su PDF de su reporte con detalle»). Es la lista
       // de la agenda, del área entera; si falla, el reporte sale sin esa hoja.
       try {
-        loQueFalta = loQueFaltaPorPaso(await cargarFilasPorPaso(supabase, false));
+        // Solo los pedidos en los que trabajó (Santos 16-10): antes iba el área entera.
+        loQueFalta = loQueFaltaPorPaso(await filtrarPedidosQueTrabajo(createAdminClient(), comercialId, await cargarFilasPorPaso(supabase, false)));
       } catch {
         loQueFalta = undefined;
       }
