@@ -1084,6 +1084,20 @@ export async function registrarCodigoSinSerie(itemId: string, servicioId: string
 }
 
 /**
+ * «NO CORRESPONDE» (0515; Lesly, 16-10: «en caso de servicio almacén no brinda
+ * código ni serie»). Un renglón que es un servicio pero vino del cierre como
+ * equipo sale de la lista del pedido y queda escrito en sus observaciones.
+ */
+export async function quitarLineaQueNoCorresponde(itemId: string, servicioId: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("quitar_linea_que_no_corresponde", { p_item: itemId });
+  if (error) return falla(enCastellano(error.message));
+  revalidatePath("/almacen/pedidos");
+  revalidatePath("/postventa/control");
+  return avisarSiYaEstanTodas(supabase, servicioId);
+}
+
+/**
  * Por qué una máquina del pedido sigue sin serie (reunión 02-10, 0378): lo
  * marca el almacén y deja filtrar «sin stock» en el control de pedidos.
  * Motivo vacío lo quita.
