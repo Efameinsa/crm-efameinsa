@@ -31,10 +31,10 @@ export function LoQueFaltaPdf({ abiertos, historia, secciones }: { abiertos: num
       <View style={{ flexDirection: "row", alignItems: "flex-end", marginBottom: 6 }}>
         {/* lineHeight y alto fijos: el interlineado de la hoja del reporte lo montaba sobre el texto de abajo. */}
         <Text style={{ fontSize: 22, lineHeight: 1, height: 24, fontFamily: "Helvetica-Bold", color: GRANATE, marginRight: 6 }}>{abiertos}</Text>
-        <Text style={{ fontSize: 9, color: CARBON, marginBottom: 3 }}>pedidos abiertos en el área, en curso</Text>
+        <Text style={{ fontSize: 9, color: CARBON, marginBottom: 3 }}>pedidos abiertos en los que usted trabajó, en curso</Text>
       </View>
       <Text style={{ fontSize: 7, color: GRIS, marginBottom: 8 }}>
-        La misma lista de «Lo que falta» de la agenda: cada paso con sus pedidos. Primero va a quién le toca ahora; en gris, los que todavía esperan un paso anterior.
+        Los pedidos en los que firmó algún paso o gestionó al cliente en los últimos 90 días, cada paso con sus pedidos. La lista de toda el área está en Control y en la agenda. Primero va a quién le toca ahora; en gris, los que todavía esperan un paso anterior.
         {historia > 0 ? ` No suman ${historia} pedidos del Excel de antes del CRM (ya salieron o nadie los movió).` : ""} Estado al momento de generar el reporte.
       </Text>
 

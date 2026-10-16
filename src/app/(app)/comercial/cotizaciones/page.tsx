@@ -1,3 +1,4 @@
+import { IGV } from "@/lib/pdf/series";
 import Link from "@/components/enlace";
 import { EtiquetaVersion } from "@/components/crm/etiqueta-version";
 import { codigoConVersion } from "@/lib/version-cotizacion";
@@ -413,6 +414,9 @@ export default async function MisCotizacionesPage({
                       <p className="text-xs text-muted-foreground">
                         <span className="font-mono">{c.codigo ?? "Borrador"}</span>
                         {autor ? ` · de ${autor}` : ""} · {c.moneda} {Number(c.total).toLocaleString("es-PE")}
+                        {/* Con IGV también: el cliente y la comercial hablan del
+                            monto final (Ariana buscaba 300.90 y acá decía 255). */}
+                        {` (${(Math.round(Number(c.total) * (1 + IGV) * 100) / 100).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} con IGV)`}
                         {c.aprobada_at ? ` · gerencia contestó el ${fechaLima(c.aprobada_at as string)}` : ` · ${fechaLima(c.updated_at as string)}`}
                       </p>
                     </div>
@@ -420,10 +424,15 @@ export default async function MisCotizacionesPage({
                       <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", sello.clase)}>{sello.texto}</span>
                       {c.estado === "borrador" ? (
                         <Link
-                          href={`/comercial/oportunidades/${c.oportunidad_id}/cotizar/${c.id}`}
-                          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                          href={`/comercial/oportunidades/${c.oportunidad_id}/cotizar/${c.id}${siguePorConfirmar ? "?confirmar=1" : ""}`}
+                          className={cn(
+                            "inline-flex items-center gap-1 text-xs font-medium",
+                            siguePorConfirmar
+                              ? "rounded-md bg-[#1E7F4F] px-2.5 py-1 text-white hover:bg-[#1E7F4F]/90"
+                              : "text-primary hover:underline",
+                          )}
                         >
-                          <PencilLine className="size-3" /> {siguePorConfirmar ? "Confirmar" : "Abrir"}
+                          <PencilLine className="size-3" /> {siguePorConfirmar ? "Ir a confirmar" : "Abrir"}
                         </Link>
                       ) : (
                         <VerPdfEnLaApp

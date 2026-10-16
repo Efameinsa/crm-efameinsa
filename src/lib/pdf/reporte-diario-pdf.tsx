@@ -353,7 +353,7 @@ export function ReporteDiarioPdf({
       )}
       {loQueFalta && (
         <Page size="A4" style={e.pagina}>
-          {cabecera("PEDIDOS ABIERTOS · LO QUE FALTA, PASO POR PASO")}
+          {cabecera("SUS PEDIDOS ABIERTOS · LO QUE FALTA, PASO POR PASO")}
           <LoQueFaltaPdf abiertos={loQueFalta.abiertos} historia={loQueFalta.historia} secciones={loQueFalta.secciones} />
           {pie}
         </Page>

@@ -814,7 +814,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - Para marcar un informe como enviado al cliente hay que subir una constancia.
 
 **Agenda y reportes de postventa**
-- **Agenda** (desde el 13-10): abre en «Lo que falta, paso por paso», solo con pedidos abiertos, y cada pendiente enlaza a su pedido. El calendario está en otra pestaña. El PDF del reporte diario incluye esa misma hoja.
+- **Agenda** (desde el 13-10): abre en «Lo que falta, paso por paso», solo con pedidos abiertos, y cada pendiente enlaza a su pedido. El calendario está en otra pestaña. El PDF del reporte diario de cada persona de postventa trae esa hoja **solo con sus pedidos** (desde el 16-10): los que firmó en algún paso o en los que gestionó al cliente en los últimos 90 días. La lista de toda el área sigue en la agenda y en Control.
 - **Reportes por autor** (desde el 13-10): cada persona de postventa ve solo lo suyo, separado por línea (repuestos, mantenimiento y correctivo, garantía y soporte, despacho y puesta en marcha, seguimiento).
   - Un presupuesto es de quien lo armó.
   - Una venta es del autor de su cotización.

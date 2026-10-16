@@ -187,3 +187,46 @@ export async function cargarFilasPorPaso(supabase: SupabaseClient, verPrecios: b
   const filas = ((data ?? []) as unknown as ServicioPostventa[]).map((s) => filaDe(s, verPrecios, hoy));
   return complementarFilas(supabase, filas);
 }
+
+/** Hasta cuánto atrás una gestión al cliente hace «suyo» el pedido en el reporte. */
+const DIAS_GESTION_PROPIA = 90;
+
+/**
+ * LOS PEDIDOS QUE TRABAJÓ UNA PERSONA (Santos, 16-10: «a Ariana solo le debe
+ * aparecer lo de Ariana, a Rubí solo lo de Rubí, a Gabriela solo lo de
+ * Gabriela»). La hoja «paso por paso» del reporte diario traía el área
+ * entera: las tres recibían las mismas 25 hojas. `responsable_id` no sirve
+ * para separar (146 de 152 abiertos dicen Rubí, por cómo se cargaron), así
+ * que un pedido es de quien firmó alguno de sus pasos (las columnas `_por`,
+ * 0473) o gestionó al cliente en los últimos 90 días. La lista completa del
+ * área sigue en Control y en la agenda. Llave de servicio: la ruta ya
+ * autorizó a quien pide el reporte.
+ */
+export async function filtrarPedidosQueTrabajo(admin: SupabaseClient, personaId: string, filas: FilaTabla[]): Promise<FilaTabla[]> {
+  if (!filas.length) return filas;
+  const desde = new Date(Date.now() - DIAS_GESTION_PROPIA * 86_400_000).toISOString();
+  const cuentas = [...new Set(filas.map((f) => f.cuentaId).filter(Boolean))] as string[];
+  const [{ data: pedidos }, { data: gestiones }] = await Promise.all([
+    admin.from("servicios_postventa").select("*").in("id", filas.map((f) => f.id)),
+    cuentas.length
+      ? admin
+          .from("actividades")
+          .select("oportunidades!inner(cuenta_id)")
+          .eq("realizada_por", personaId)
+          .gte("realizada_at", desde)
+          .in("oportunidades.cuenta_id", cuentas)
+          .limit(2000)
+      : Promise.resolve({ data: [] as unknown[] }),
+  ]);
+  const firmados = new Set(
+    ((pedidos ?? []) as Record<string, unknown>[])
+      .filter((s) => Object.entries(s).some(([k, v]) => k.endsWith("_por") && v === personaId))
+      .map((s) => s.id as string),
+  );
+  const gestionadas = new Set(
+    ((gestiones ?? []) as { oportunidades: { cuenta_id: string } | { cuenta_id: string }[] | null }[]).flatMap((g) =>
+      (Array.isArray(g.oportunidades) ? g.oportunidades : g.oportunidades ? [g.oportunidades] : []).map((o) => o.cuenta_id),
+    ),
+  );
+  return filas.filter((f) => firmados.has(f.id) || (f.cuentaId != null && gestionadas.has(f.cuentaId)));
+}

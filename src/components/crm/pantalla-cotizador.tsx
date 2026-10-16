@@ -443,6 +443,8 @@ export function PantallaCotizador({
   const [confirmando, setConfirmando] = useState(false);
   const [confirmada, setConfirmada] = useState<{ codigo: string | null } | null>(null);
   const [ocupado, startTransition] = useTransition();
+  const cajaAprobadaRef = useRef<HTMLDivElement>(null);
+  const [resaltarAprobada, setResaltarAprobada] = useState(false);
   // A nombre de qué empresa del grupo sale (0310, Katerine 25-09). null = la
   // del expediente. El primer guardado la lleva; después se cambia al toque.
   const [facturarA, setFacturarA] = useState<string | null>(edicion?.facturarA ?? null);
@@ -972,6 +974,18 @@ export function PantallaCotizador({
   const hayLineaLibreVacia = carrito.some((i) => i.producto_id === null && i.nombre.trim() === "");
   // Un descuento que gerencia ya firmó no se vuelve a pedir.
   const yaAprobada = estadoAprobacion === "aprobada_gerencia";
+  // Llegó desde el aviso «gerencia aprobó… falta confirmarla»: se lleva la
+  // vista al botón y se marca un momento, para que no tenga que buscarlo.
+  useEffect(() => {
+    if (!yaAprobada || !new URLSearchParams(window.location.search).has("confirmar")) return;
+    const caja = cajaAprobadaRef.current;
+    if (!caja) return;
+    caja.scrollIntoView({ behavior: "smooth", block: "center" });
+    caja.focus({ preventScroll: true });
+    setResaltarAprobada(true);
+    const t = window.setTimeout(() => setResaltarAprobada(false), 2500);
+    return () => window.clearTimeout(t);
+  }, [yaAprobada]);
   // POSTVENTA EN CAPACITACIÓN (gerencia, 05-10; 0396): toda cotización de
   // postventa pasa por gerencia, a cualquier precio. Lo decide la base al
   // guardar; acá se lee lo que dijo.
@@ -1214,12 +1228,38 @@ export function PantallaCotizador({
                 conversacion={edicion.conversacion ?? []}
               />
             )}
+          {/* APROBADA, FALTA CONFIRMAR: el botón va acá arriba y no solo al pie
+              (Ariana, ECOLAV 16-10: gerencia la aprobó y ella no encontraba qué
+              apretar). El aviso de la campana trae `?confirmar=1` y aterriza acá. */}
           {yaAprobada && (
-            <p className="flex items-center gap-1.5 rounded-lg border border-[#1E7F4F]/40 bg-[#1E7F4F]/5 p-3 text-xs font-medium text-[#1E7F4F]">
-              <Check className="size-3.5" />
-              Gerencia aprobó estos precios: ya se puede confirmar. Si cambia un precio, vuelve a hacer falta su
-              visto bueno.
-            </p>
+            <div
+              ref={cajaAprobadaRef}
+              tabIndex={-1}
+              className={cn(
+                "flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#1E7F4F]/40 bg-[#1E7F4F]/5 p-3 outline-none transition-shadow",
+                resaltarAprobada && "ring-2 ring-[#1E7F4F] ring-offset-2",
+              )}
+            >
+              <div className="min-w-0 text-xs text-[#1E7F4F]">
+                <p className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Check className="size-4" />
+                  Gerencia aprobó esta cotización: falta confirmarla
+                </p>
+                <p className="mt-0.5">
+                  Al confirmarla recibe su número y ya se puede mandar al cliente. Si cambia un precio, vuelve a hacer
+                  falta el visto bueno de gerencia.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                className="bg-[#1E7F4F] text-white hover:bg-[#1E7F4F]/90"
+                onClick={accionPrincipal}
+                disabled={ocupado || carrito.length === 0 || hayLineaLibreVacia || iraAGerencia}
+              >
+                <Check className="size-3.5" />
+                Confirmar
+              </Button>
+            </div>
           )}
 
           {/* DE QUÉ CASO VIENE. Va visible y no plegado: es el contexto por el

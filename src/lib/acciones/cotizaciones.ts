@@ -629,15 +629,30 @@ export async function registrarVenta(
 async function comercialDeCotizacion(
   supabase: Awaited<ReturnType<typeof createClient>>,
   cotizacionId: string,
-): Promise<{ comercialId: string | null; codigo: string | null; oportunidadId: string | null; cliente: string | null }> {
+): Promise<{
+  comercialId: string | null;
+  destinatarios: string[];
+  codigo: string | null;
+  oportunidadId: string | null;
+  cliente: string | null;
+}> {
   const { data } = await supabase
     .from("cotizaciones")
-    .select("codigo, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey(comercial_id, cuentas(razon_social))")
+    .select("codigo, oportunidad_id, creada_por, oportunidades!cotizaciones_oportunidad_id_fkey(comercial_id, cuentas(razon_social))")
     .eq("id", cotizacionId)
     .maybeSingle();
   const oportunidad = data?.oportunidades as unknown as { comercial_id: string; cuentas: { razon_social: string } | null } | null;
+  const comercialId = oportunidad?.comercial_id ?? null;
+  // LO QUE DICE GERENCIA LE LLEGA A QUIEN LA ARMÓ (Ariana, ECOLAV 16-10): en
+  // postventa el expediente suele estar a nombre de otra (Rubí) y el aviso de
+  // «aprobada» se iba solo a la dueña del expediente; la autora no se enteraba
+  // y no encontraba qué confirmar. Va a la autora y, si es otra, a la dueña.
+  const destinatarios = [...new Set([(data?.creada_por as string | null) ?? null, comercialId])].filter(
+    (x): x is string => !!x,
+  );
   return {
-    comercialId: oportunidad?.comercial_id ?? null,
+    comercialId,
+    destinatarios,
     codigo: data?.codigo ?? null,
     oportunidadId: (data?.oportunidad_id as string | null) ?? null,
     cliente: oportunidad?.cuentas?.razon_social ?? null,
@@ -698,7 +713,7 @@ export async function resolverAprobacionCotizacion(datos: {
     };
   }
 
-  const { comercialId, codigo, oportunidadId, cliente } = await comercialDeCotizacion(supabase, datos.cotizacionId);
+  const { destinatarios, codigo, oportunidadId, cliente } = await comercialDeCotizacion(supabase, datos.cotizacionId);
 
   const { data, error } = await supabase.rpc("resolver_aprobacion_cotizacion", {
     p_cotizacion_id: datos.cotizacionId,
@@ -709,19 +724,27 @@ export async function resolverAprobacionCotizacion(datos: {
   if (error) return { error: limpiarError(error.message) };
 
   const rechazada = data === "rechazada_gerencia";
-  if (comercialId) {
+  for (const destinatario of destinatarios) {
     // EL AVISO DICE CUÁL (Carlos, 15-09; 0237): «gerencia rechazó un equipo de
     // su cotización, pero no le sale de qué cotización». Va con número, cliente
     // y el enlace a esa cotización, donde queda el motivo como histórico.
     const cual = [codigo ? `la cotización ${codigo}` : "su cotización", cliente].filter(Boolean).join(" · ");
+    // APROBADA = FALTA CONFIRMARLA. Gerencia no la numera ni la manda: el aviso
+    // lo dice y su enlace abre la cotización con el botón «Confirmar» a la
+    // vista (`?confirmar=1`), sin tener que buscarla (Ariana, ECOLAV 16-10).
+    const urlCotizacion = oportunidadId
+      ? `/comercial/oportunidades/${oportunidadId}/cotizar/${datos.cotizacionId}`
+      : "/comercial/cotizaciones";
     await notificar({
-      userId: comercialId,
+      userId: destinatario,
       tipo: rechazada ? "cotizacion_rechazada" : "cotizacion_aprobada",
       titulo: rechazada
         ? `Gerencia rechazó ${cual} (${datos.rechazados.length} ${datos.rechazados.length === 1 ? "equipo" : "equipos"})`
-        : `Gerencia aprobó los precios de ${cual}`,
-      cuerpo: datos.nota || (rechazada ? "Queda como histórico con el motivo: haga una cotización nueva." : "Ya puede enviarla al cliente."),
-      url: oportunidadId ? `/comercial/oportunidades/${oportunidadId}/cotizar/${datos.cotizacionId}` : "/comercial/oportunidades",
+        : `Gerencia aprobó ${cual}: falta confirmarla`,
+      cuerpo: rechazada
+        ? datos.nota || "Queda como histórico con el motivo: haga una cotización nueva."
+        : `${datos.nota ? `${datos.nota} — ` : ""}Toque aquí: se abre con el botón «Confirmar» arriba. Al confirmarla recibe su número y ya se puede mandar al cliente.`,
+      url: rechazada || !oportunidadId ? urlCotizacion : `${urlCotizacion}?confirmar=1`,
     });
   }
 
@@ -750,7 +773,7 @@ export async function devolverCotizacionPorItems(datos: {
     return { error: "Escriba qué hay que corregir en cada renglón marcado" };
   }
   const supabase = await createClient();
-  const { comercialId, codigo, oportunidadId, cliente } = await comercialDeCotizacion(supabase, datos.cotizacionId);
+  const { destinatarios, codigo, oportunidadId, cliente } = await comercialDeCotizacion(supabase, datos.cotizacionId);
   const { error } = await supabase.rpc("devolver_cotizacion_por_items", {
     p_cotizacion_id: datos.cotizacionId,
     p_aprobados: datos.aprobados,
@@ -759,11 +782,11 @@ export async function devolverCotizacionPorItems(datos: {
   });
   if (error) return { error: limpiarError(error.message) };
 
-  if (comercialId) {
+  for (const destinatario of destinatarios) {
     const cual = [codigo ? `la cotización ${codigo}` : "su cotización", cliente].filter(Boolean).join(" · ");
     const n = datos.corregir.length;
     await notificar({
-      userId: comercialId,
+      userId: destinatario,
       tipo: "cotizacion_observada",
       titulo: `Gerencia devolvió ${cual}: ${n} ${n === 1 ? "renglón" : "renglones"} por corregir`,
       cuerpo: `${datos.corregir.map((c) => c.nota.trim()).join(" · ")} — No se borró: corrija lo marcado en la misma cotización y responda a gerencia.`,
@@ -785,14 +808,14 @@ export async function devolverCotizacionPorItems(datos: {
 export async function observarCotizacion(datos: { cotizacionId: string; nota: string }): Promise<{ error: string | null }> {
   if (datos.nota.trim().length < 5) return { error: "Escriba qué observa, para que la comercial sepa qué corregir o responder." };
   const supabase = await createClient();
-  const { comercialId, codigo, oportunidadId, cliente } = await comercialDeCotizacion(supabase, datos.cotizacionId);
+  const { destinatarios, codigo, oportunidadId, cliente } = await comercialDeCotizacion(supabase, datos.cotizacionId);
   const { error } = await supabase.rpc("observar_cotizacion", { p_cotizacion_id: datos.cotizacionId, p_nota: datos.nota });
   if (error) return { error: limpiarError(error.message) };
 
-  if (comercialId) {
+  for (const destinatario of destinatarios) {
     const cual = [codigo ? `la cotización ${codigo}` : "su cotización", cliente].filter(Boolean).join(" · ");
     await notificar({
-      userId: comercialId,
+      userId: destinatario,
       tipo: "cotizacion_observada",
       titulo: `Gerencia observó ${cual}`,
       cuerpo: `${datos.nota.trim()} — No se rechazó: responda a gerencia o actualice la misma cotización.`,

@@ -18,6 +18,11 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 16-10 · El reporte diario de postventa: cada una solo lo suyo (Ariana, Rubí, Gabriela)
+- **Qué dijeron:** en su reporte diario «salen las gestiones de todos»; a Ariana solo le debe aparecer lo de Ariana, a Rubí lo de Rubí y a Gabriela lo de Gabriela.
+- **Qué se encontró:** las gestiones, presupuestos y pendientes ya eran de cada una, pero la hoja «Pedidos abiertos, paso por paso» traía todos los pedidos del área (unas 25 hojas iguales en los tres reportes).
+- **Qué se hizo:** esa hoja ahora trae solo los pedidos en los que la persona firmó algún paso o gestionó al cliente en los últimos 90 días. La lista completa del área queda en la agenda y en Control.
+
 ### 16-10 · La consulta del pago a Finanzas ya no va por correo (Katerine)
 - **Qué contó Katerine:** el comercial le pregunta a Contabilidad si el abono tuvo comisión interplaza y, al final, le avisa que el cliente ya canceló, las dos cosas por correo y con el voucher. Gerencia indicó que ahora se hace por el CRM. El comercial no termina la operación hasta que el cliente termina de pagar (antes lo veía postventa).
 - **Qué se hizo:** en «Pagos» del pedido, el comercial adjunta el voucher y elige «Preguntar si hubo comisión» o «Avisar que el cliente canceló». Finanzas contesta en el mismo pedido (si hubo comisión, con el monto y el pantallazo del banco para el cliente) y la respuesta le llega al comercial a la campana.
