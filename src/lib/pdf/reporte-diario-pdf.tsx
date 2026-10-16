@@ -9,6 +9,7 @@ import { PanoramaPendientesPdf } from "@/lib/pdf/panorama-pendientes-pdf";
 import { LoQueFaltaPdf } from "@/lib/pdf/lo-que-falta-pdf";
 import type { SeccionQueFalta } from "@/lib/lo-que-falta-por-paso";
 import type { PanoramaPendientes } from "@/lib/panorama-pendientes";
+import type { ProblemasTecnicos } from "@/lib/problemas-tecnicos-reporte";
 
 // Reporte diario de gestión del comercial. Reemplaza la agenda que hoy se
 // arma a mano en Excel y se exporta a PDF (ejemplo del ing. Carlos:
@@ -70,7 +71,8 @@ export interface ReporteDiarioProps {
   /** `estado_texto` lo trae postventa (12-10): «En gerencia», «Observado por gerencia»… */
   cotizaciones: { codigo: string | null; cliente: string; total: number; moneda: string; enviada: boolean; aprobacion: string; estado_texto?: string }[];
   ventas: { cliente: string; monto: number; moneda: string }[];
-  leads: { codigo: string | null; nombre: string; canal: string; hora: string | null }[];
+  /** `estado`: en qué quedó y quién lo atendió (Santos 16-10, Vidawasi). */
+  leads: { codigo: string | null; nombre: string; canal: string; hora: string | null; estado?: string | null }[];
   complementarias: { titulo: string; hora: string | null }[];
   agenda: { pendiente_hoy: number; vencidas: number; manana: number };
   /** Reunión 25-08 (ing. Carlos): el reporte debe mostrar QUÉ hay planificado
@@ -123,6 +125,8 @@ export interface ReporteDiarioProps {
   panorama?: PanoramaPendientes;
   /** Los pedidos abiertos del área por paso, con detalle (Santos, 13-10): su hoja, después de «Lo que falta gestionar». */
   loQueFalta?: { abiertos: number; historia: number; secciones: SeccionQueFalta[] };
+  /** «Problemas técnicos y su estado» (Santos, 16-10): su hoja, antes de los pedidos. */
+  problemasTecnicos?: ProblemasTecnicos;
   indicadores?: IndicadoresDocumento & {
     /** Las marcas de un botón en los chats: salen de la lista de seguimientos y van aparte. */
     marcas: { hora: string | null; cliente: string; nota: string | null }[];
@@ -198,6 +202,62 @@ const CANAL: Record<string, string> = {
   whatsapp: "WhatsApp", llamada: "Llamada", formulario_web: "Web", facebook: "Facebook",
   instagram: "Instagram", email: "Correo", presencial: "Presencial", referido: "Referido", otro: "Otro",
 };
+// Cómo llegó el cliente, dicho como lo que es (Vidawasi 16-10: «Llamada» a secas parecía una gestión).
+const CANAL_CLIENTE: Record<string, string> = {
+  whatsapp: "WhatsApp del cliente", llamada: "El cliente llamó", formulario_web: "Formulario web", email: "Correo del cliente",
+  presencial: "Vino a la oficina", referido: "Referido",
+};
+
+/** La hoja «Problemas técnicos y su estado» (Santos, 16-10). */
+function ProblemasTecnicosPdf({ p }: { p: ProblemasTecnicos }) {
+  return (
+    <View>
+      <View style={{ flexDirection: "row", alignItems: "flex-end", marginBottom: 4 }}>
+        <Text style={{ fontSize: 22, lineHeight: 1, height: 24, fontFamily: "Helvetica-Bold", color: GRANATE, marginRight: 6 }}>{p.abiertos}</Text>
+        <Text style={{ fontSize: 9, color: CARBON, marginBottom: 3 }}>
+          problemas técnicos abiertos a su cargo{p.cerradosHoy ? ` · ${p.cerradosHoy} cerrado${p.cerradosHoy === 1 ? "" : "s"} este día` : ""}
+        </Text>
+      </View>
+      <Text style={{ fontSize: 7, color: GRIS, marginBottom: 6 }}>
+        Los casos de problema técnico asignados a usted, con el paso en que están, lo que falta y a quién le toca. Primero lo urgente y lo más antiguo. Estado al generar el reporte.
+      </Text>
+      {p.porEtapa.length > 0 && (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 8 }} wrap={false}>
+          {p.porEtapa.map((x) => (
+            <View key={x.etapa} style={{ flexDirection: "row", borderWidth: 0.5, borderColor: BORDE, borderRadius: 3, paddingVertical: 2, paddingHorizontal: 5, marginRight: 4, marginBottom: 4 }}>
+              <Text style={{ fontSize: 7, color: CARBON }}>{x.etapa}</Text>
+              <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: GRANATE, marginLeft: 4 }}>{x.total}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+      {p.filas.length === 0 ? (
+        <Text style={e.vacio}>No tiene problemas técnicos abiertos a su cargo.</Text>
+      ) : (
+        <>
+          <View style={[e.fila, { borderBottomColor: GRIS }]}>
+            {["Cliente y equipo", "Paso", "Qué falta", "Le toca", "Días"].map((t, k) => (
+              <Text key={t} style={{ width: ["38%", "14%", "28%", "12%", "8%"][k], fontSize: 7, fontFamily: "Helvetica-Bold", color: GRIS, textAlign: k === 4 ? "right" : "left" }}>{t}</Text>
+            ))}
+          </View>
+          {p.filas.map((f, i) => (
+            <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+              <View style={{ width: "38%", paddingRight: 6 }}>
+                <Text>{corta(f.cliente, 44)}</Text>
+                {f.equipo ? <Text style={{ fontSize: 7, color: GRIS }}>{corta(f.equipo, 60)}</Text> : null}
+              </View>
+              <Text style={{ width: "14%", color: f.cerradoHoy ? VERDE : CARBON }}>{f.etapa}</Text>
+              <Text style={{ width: "28%", color: f.urgente ? GRANATE : CARBON, fontFamily: f.urgente ? "Helvetica-Bold" : "Helvetica" }}>{f.falta}</Text>
+              <Text style={{ width: "12%", color: GRIS }}>{f.leToca}</Text>
+              <Text style={{ width: "8%", textAlign: "right", color: GRIS }}>{f.dias}</Text>
+            </View>
+          ))}
+        </>
+      )}
+    </View>
+  );
+}
+
 // Los saltos de línea se aplanan (buzón, Gabriela 12-10): una nota que es un
 // correo pegado entero, con decenas de renglones en blanco, hacía una fila
 // altísima y react-pdf reventaba («unsupported number») al caer en el corte de
@@ -284,7 +344,7 @@ export function Tarjeta({ etiqueta, valor, sub }: { etiqueta: string; valor: str
 
 export function ReporteDiarioPdf({
   logoBuffer, fecha, fechaCorta, comercial, resumen, seguimientos, cotizaciones, ventas, leads, complementarias, agenda, planificacion_manana, proyeccion,
-  pendientesPostventa, tituloPendientes, pendientesAnotados, movimientoDelArea, rutasPostventa, indicadores, panelPostventa, panorama, loQueFalta,
+  pendientesPostventa, tituloPendientes, pendientesAnotados, movimientoDelArea, rutasPostventa, indicadores, panelPostventa, panorama, loQueFalta, problemasTecnicos,
 }: ReporteDiarioProps) {
   const pct = resumen.meta_seguimientos > 0
     ? Math.min((resumen.seguimientos_efectivos / resumen.meta_seguimientos) * 100, 100)
@@ -348,6 +408,13 @@ export function ReporteDiarioPdf({
         <Page size="A4" style={e.pagina}>
           {cabecera(fechaCorta && fechaCorta < hoyIso() ? "LO QUE FALTABA GESTIONAR AL CIERRE" : "LO QUE FALTA GESTIONAR")}
           <PanoramaPendientesPdf p={panorama} esHoy={!fechaCorta || fechaCorta >= hoyIso()} />
+          {pie}
+        </Page>
+      )}
+      {problemasTecnicos && (
+        <Page size="A4" style={e.pagina}>
+          {cabecera("PROBLEMAS TÉCNICOS Y SU ESTADO")}
+          <ProblemasTecnicosPdf p={problemasTecnicos} />
           {pie}
         </Page>
       )}
@@ -539,14 +606,26 @@ export function ReporteDiarioPdf({
           {leads.length === 0 ? (
             <Text style={e.vacio}>Central no derivó contactos este día.</Text>
           ) : (
-            leads.map((l, i) => (
-              <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
-                <Text style={{ width: "12%" }}>{l.hora ?? "—"}</Text>
-                <Text style={{ width: "16%", color: GRIS }}>{l.codigo ?? "—"}</Text>
-                <Text style={{ width: "54%", paddingRight: 6 }}>{corta(l.nombre, 56)}</Text>
-                <Text style={{ width: "18%", color: GRIS }}>{CANAL[l.canal] ?? l.canal}</Text>
+            <>
+              {/* Vidawasi, 16-10: «Llamada» se leía como una gestión de quien recibe el lead. */}
+              <Text style={{ fontSize: 7, color: GRIS, paddingHorizontal: 5, paddingVertical: 3 }}>
+                «Entró por» es cómo se comunicó el cliente con Central, no una gestión suya: sus gestiones están en la sección 1.
+              </Text>
+              <View style={[e.fila, { borderBottomColor: GRIS }]}>
+                {["Derivado", "Código", "Cliente", "Entró por", "En qué quedó"].map((t, k) => (
+                  <Text key={t} style={{ width: ["10%", "13%", "35%", "16%", "26%"][k], fontSize: 7, fontFamily: "Helvetica-Bold", color: GRIS }}>{t}</Text>
+                ))}
               </View>
-            ))
+              {leads.map((l, i) => (
+                <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+                  <Text style={{ width: "10%" }}>{l.hora ?? "—"}</Text>
+                  <Text style={{ width: "13%", color: GRIS }}>{l.codigo ?? "—"}</Text>
+                  <Text style={{ width: "35%", paddingRight: 6 }}>{corta(l.nombre, 40)}</Text>
+                  <Text style={{ width: "16%", color: GRIS }}>{CANAL_CLIENTE[l.canal] ?? CANAL[l.canal] ?? l.canal}</Text>
+                  <Text style={{ width: "26%", color: l.estado?.startsWith("Lo atendió") ? GRANATE : CARBON }}>{l.estado ?? "—"}</Text>
+                </View>
+              ))}
+            </>
           )}
         </Seccion>
 

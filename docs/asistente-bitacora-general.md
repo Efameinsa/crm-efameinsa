@@ -18,6 +18,11 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 16-10 · El reporte diario ya no confunde los leads con gestiones, y suma los problemas técnicos (Ariana, Santos)
+- **Qué pasó:** en el reporte de Ariana aparecía Vidawasi con «Llamada», y ella no había hecho ninguna gestión. Era un lead que Central le derivó (el cliente llamó para reclamar su repuesto); lo atendió y lo cerró Rubí, que ya llevaba ese repuesto. Vidawasi además tiene dos fichas con el mismo nombre.
+- **Qué se hizo:** la sección «Leads recibidos de Central» dice ahora «Entró por» (cómo llegó el cliente) y «En qué quedó» (sin gestión, gestionado por usted, o quién lo atendió y cerró). Y el reporte de postventa trae una hoja nueva, «Problemas técnicos y su estado», con los casos técnicos de cada una, el paso, lo que falta y a quién le toca.
+- **Pendiente:** unir las dos fichas de Vidawasi (por confirmar con Santos).
+
 ### 16-10 · El reporte diario de postventa: cada una solo lo suyo (Ariana, Rubí, Gabriela)
 - **Qué dijeron:** en su reporte diario «salen las gestiones de todos»; a Ariana solo le debe aparecer lo de Ariana, a Rubí lo de Rubí y a Gabriela lo de Gabriela.
 - **Qué se encontró:** las gestiones, presupuestos y pendientes ya eran de cada una, pero la hoja «Pedidos abiertos, paso por paso» traía todos los pedidos del área (unas 25 hojas iguales en los tres reportes).

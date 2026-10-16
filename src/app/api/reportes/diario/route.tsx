@@ -20,6 +20,8 @@ import { pendientesAnotados, bloquesPendientesAnotados, tareasPendientesDelCalen
 import { cargarPanelPostventa, type PanelPostventa } from "@/lib/panel-postventa";
 import { cargarPanorama, type PanoramaPendientes } from "@/lib/panorama-pendientes";
 import { cargarFilasPorPaso, filtrarPedidosQueTrabajo } from "@/lib/pedidos-por-paso";
+import { cargarProblemasTecnicos, type ProblemasTecnicos } from "@/lib/problemas-tecnicos-reporte";
+import { estadoDeLosLeads } from "@/lib/leads-del-reporte";
 import { loQueFaltaPorPaso } from "@/lib/lo-que-falta-por-paso";
 import type { PendienteAnotado } from "@/lib/pendientes-anotados";
 
@@ -74,6 +76,15 @@ export async function GET(request: Request) {
     };
   }
 
+  // En qué quedó cada lead y quién lo atendió (Santos 16-10, Vidawasi): sin
+  // esto, «Llamada» se leía como una gestión de quien recibió el lead.
+  try {
+    const estados = await estadoDeLosLeads(createAdminClient(), comercialId, r.leads.map((l) => l.codigo ?? ""));
+    r.leads = r.leads.map((l) => ({ ...l, estado: l.codigo ? (estados.get(l.codigo) ?? null) : null }));
+  } catch {
+    // La sección sale como antes.
+  }
+
   // WhatsApp de campaña, visitas y videollamadas (ing. Carlos, 30-09: «esos
   // dos puntos tienen que estar en su reporte diario»). Si algo falla, el
   // reporte sale igual sin la sección.
@@ -113,6 +124,7 @@ export async function GET(request: Request) {
   let panelPostventa: PanelPostventa | undefined;
   let panorama: PanoramaPendientes | undefined;
   let loQueFalta: ReturnType<typeof loQueFaltaPorPaso> | undefined;
+  let problemasTecnicos: ProblemasTecnicos | undefined;
   try {
     const { data: perfil } = await supabase
       .from("perfiles")
@@ -301,6 +313,11 @@ export async function GET(request: Request) {
         loQueFalta = undefined;
       }
       try {
+        problemasTecnicos = await cargarProblemasTecnicos(createAdminClient(), comercialId, fecha);
+      } catch {
+        problemasTecnicos = undefined;
+      }
+      try {
         panorama = await cargarPanorama(createAdminClient(), comercialId, fecha, hoyLima(), anotadosCrudos, tareasSinHacer);
       } catch {
         panorama = undefined;
@@ -374,6 +391,7 @@ export async function GET(request: Request) {
       panelPostventa={panelPostventa}
       panorama={panorama}
       loQueFalta={loQueFalta}
+      problemasTecnicos={problemasTecnicos}
     />,
   );
 
