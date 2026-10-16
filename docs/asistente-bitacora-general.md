@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 16-10 · Visitas a planta: los acompañantes se editan después de anunciar (Katerine)
+- **Qué se pidió:** Katerine tenía una visita a las 12:00 y el cliente avisó a última hora que venía con dos personas más. Solo se podía cambiar la fecha o la hora, no los acompañantes.
+- **Qué se hizo:** en «Visitas a planta» cada visita tiene «Acompañantes», debajo de «Cambiar fecha u hora». Se suman, corrigen o quitan con nombre y DNI o C.E. Lo hace quien registró la visita, o Central, mientras el cliente no haya llegado. Central recibe el aviso y el correo de visitas sale con los nombres. Si vigilancia ya tenía la hoja, el check «Vigilancia avisada» se apaga para que Central la vuelva a imprimir.
+
 ### 16-10 · Crece: el tope de puntos por gestión comercial sube a 2.500 al mes (Santos)
 - **Qué se pidió:** Katerine preguntó por qué desde el 15-10 sus actividades salían con +0. Había llegado al tope de 1.000 puntos del mes. Moisés y Brenda ya habían llegado el 13-10. Santos ordenó subir el tope a 2.500 para todos.
 - **Qué se hizo:** los puntos que el CRM envía a Crece (gestiones, cotizaciones, cierres y leads) tienen un tope de **2.500 al mes por persona**. Antes era 1.000. Cada actividad vale lo mismo que antes: llamada, WhatsApp o correo 1; reunión virtual 3; filtro 2; showroom 5; visita 6; cotización 3, o 6 si es de US$ 10.000 o más; cierre 25, 40 o 60 según el monto; lead respondido 8 en menos de 5 minutos, 5 en 10, 2 en 30 y 1 si pasa de eso. Desde el cambio vuelven a sumar. Las actividades que salieron con +0 antes del cambio no se recalcularon. Las sugerencias siguen sin límite. El tope se reinicia el 1 de cada mes.

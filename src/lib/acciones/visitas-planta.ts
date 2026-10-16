@@ -261,6 +261,60 @@ export async function reprogramarVisitaPlanta(visitaId: string, fecha: string, h
 }
 
 /**
+ * Sumar o quitar acompañantes de una visita ya anunciada (0511). Katerine,
+ * 16-10: «me acaba de avisar que al final viene con dos personas, ¿cómo
+ * edito?». Avisa a Central y al mismo correo de la visita, porque vigilancia
+ * pide el DNI de cada uno.
+ */
+export async function cambiarAcompanantesVisita(
+  visitaId: string,
+  acompanantes: { nombre: string; dni?: string | null }[],
+): Promise<{ error: string | null }> {
+  const perfil = await requerirPerfil();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("cambiar_acompanantes_visita", {
+    p_visita: visitaId,
+    p_acompanantes: acompanantes
+      .filter((a) => a.nombre?.trim())
+      .map((a) => ({ nombre: a.nombre.trim().slice(0, 120), dni: a.dni?.trim().slice(0, 20) || null })),
+  });
+  if (error) return { error: limpiar(error.message) };
+  const r = data as { cambio: boolean; acompanantes?: { nombre: string; dni: string | null }[]; vigilancia_avisada?: boolean; es_prueba?: boolean } | null;
+  for (const p of ["/comercial/visitas", "/central/visitas", "/almacen/visitas", "/almacen/agenda", "/postventa/visitas", "/postventa/agenda"]) revalidatePath(p);
+  if (!r?.cambio) return { error: null };
+
+  const { data: v } = await supabase.from("visitas_planta").select("empresa, persona, fecha, hora").eq("id", visitaId).maybeSingle();
+  const empresa = (v?.empresa as string | undefined) ?? "";
+  const persona = (v?.persona as string | undefined) ?? "";
+  const cuando = v?.fecha ? `${String(v.fecha).slice(8, 10)}-${String(v.fecha).slice(5, 7)}${v.hora ? ` ${String(v.hora).slice(0, 5)}` : ""}` : "";
+  const lista = r.acompanantes ?? [];
+  const texto = lista.length ? lista.map((a) => `${a.nombre}${a.dni ? ` (${docVisita(a.dni)})` : ""}`).join(", ") : "ninguno";
+  const titulo = `Visita: cambian los acompañantes · ${empresa}${cuando ? ` · ${cuando}` : ""}`;
+  const cuerpo = `${persona} viene con: ${texto}. Cambió ${perfil.nombre}.${r.vigilancia_avisada ? " Hay que volver a avisar a vigilancia." : ""}`;
+  await notificarCentral({ titulo, cuerpo, url: "/central/visitas", esPrueba: r.es_prueba === true });
+
+  if (!r.es_prueba && !perfil.es_prueba) {
+    const para =
+      process.env.AVISOS_VISITA_PARA ??
+      "central@efameinsa.com, contabilidad1@efameinsa.com, logistica2@efameinsa.com, sistemas@efameinsa.com, almacen@efameinsa.com, almacen1@efameinsa.com, crcabrejos@efameinsa.com, kycabrejos@efameinsa.com";
+    const esc = (x: string | null | undefined) => (x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    await enviarCorreoN8n({
+      para,
+      asunto: `CAMBIO DE ACOMPAÑANTES - VISITA A PLANTA-${esc(empresa).toUpperCase()}-${esc(persona).toUpperCase()}`,
+      html: armarCorreo({ pretitulo: "Cambio de acompañantes", titulo: "Cambiaron los acompañantes de una visita a planta", contenidoHtml:
+        `<div style="font-family:Calibri,Arial,sans-serif;font-size:14px">` +
+        `<p>Buenos días, <b>${esc(persona)}</b> (${esc(empresa)})${cuando ? `, visita del ${esc(cuando)},` : ""} viene acompañado de:</p>` +
+        `<p style="background:#ffff00;display:inline-block">${lista.length ? lista.map((a) => `${a.dni ? `${esc(docVisita(a.dni))} - ` : ""}${esc(a.nombre)}`).join("<br>") : "Nadie (se quitaron los acompañantes)"}</p>` +
+        (r.vigilancia_avisada ? `<p>Vigilancia ya tenía la hoja anterior: hay que volver a avisarle.</p>` : "") +
+        `<p>Gracias,</p>` +
+        `<p style="color:#666;font-size:12px">${esc(perfil.codigo_comercial ? `${perfil.codigo_comercial} · ` : "")}${esc(perfil.nombre)} · registrado en el CRM.</p></div>`, firma: null }),
+      responderA: null,
+    });
+  }
+  return { error: null };
+}
+
+/**
  * LA EMPRESA DE LA VISITA, DESDE LAS FICHAS (reunión 23-09): «hay que lo llame
  * a la data que tenemos… para ya escribir y que aparezca, que se vaya
  * autorrellenando… con el RUC». Busca por nombre o por RUC/DNI entre las
