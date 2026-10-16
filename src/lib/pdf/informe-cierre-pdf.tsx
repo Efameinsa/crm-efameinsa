@@ -50,6 +50,8 @@ export interface ContactoInforme {
   nombre?: string | null;
   telefono?: string | null;
   correo?: string | null;
+  /** Solo en el de despacho: otras personas que también pueden recibir (16-10). */
+  otros?: { nombre: string; documento?: string | null; telefono?: string | null }[] | null;
 }
 
 export interface InformeCierrePdfProps {
@@ -277,6 +279,11 @@ function Contacto({ estilos, titulo, c }: { estilos: Estilos; titulo: string; c:
       <Text style={estilos.cajaLinea}>Nombres: {c.nombre || "—"}</Text>
       <Text style={estilos.cajaLinea}>Teléfono: {c.telefono || "—"}</Text>
       <Text style={estilos.cajaLinea}>Correo: {c.correo || "—"}</Text>
+      {(c.otros ?? []).map((o, i) => (
+        <Text key={i} style={estilos.cajaLinea}>
+          También recibe: {[o.nombre, o.documento ? `DNI/CE ${o.documento}` : null, o.telefono].filter(Boolean).join(" · ")}
+        </Text>
+      ))}
     </View>
   );
 }

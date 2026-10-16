@@ -35,6 +35,7 @@ import {
   type PrellenadoInforme,
   type PresupuestoDisponible,
   type ContactoEntrada,
+  type PersonaQueRecibe,
 } from "@/lib/acciones/informes";
 import { ChipAdjunto, PastillasAdjuntar, subirArchivosCierre, type AdjuntoPendiente } from "@/components/crm/adjuntos-cierre";
 import { MAX_ADJUNTOS, type TipoAdjunto } from "@/lib/adjuntos-cierre";
@@ -159,7 +160,7 @@ function aCorreccion(d: DatosInforme): Record<string, unknown> {
     entrega_lugar: d.entregaLugar ?? "",
     entrega_direccion: d.entregaDireccion ?? "",
     nota_despacho: d.notaDespacho ?? "",
-    contacto_despacho: { area: c.area ?? null, nombre: c.nombre ?? null, telefono: c.telefono ?? null, correo: c.correo ?? null },
+    contacto_despacho: { area: c.area ?? null, nombre: c.nombre ?? null, telefono: c.telefono ?? null, correo: c.correo ?? null, otros: c.otros?.length ? c.otros : null },
     items: d.items,
     incluye: d.incluye,
     gratis: d.gratis ?? "",
@@ -391,6 +392,14 @@ export function FormularioInforme({
   const [otroNombre, setOtroNombre] = useState(otroGuardado ? (b?.contactoDespacho.nombre ?? "") : "");
   const [otroDocumento, setOtroDocumento] = useState(otroGuardado ? (b?.contactoDespacho.documento ?? "") : "");
   const [otroTelefono, setOtroTelefono] = useState(otroGuardado ? (b?.contactoDespacho.telefono ?? "") : "");
+  // Más de una persona puede recibir (16-10): «que en este campo se pueda
+  // agregar más personas». La principal sigue siendo la de arriba; estas van
+  // como «También recibe» en el cierre, el PDF y la hoja del pedido.
+  const [otrosRecibe, setOtrosRecibe] = useState<PersonaQueRecibe[]>(() =>
+    (b?.contactoDespacho.otros ?? []).map((o) => ({ nombre: o.nombre ?? "", documento: o.documento ?? "", telefono: o.telefono ?? "" })),
+  );
+  const cambiarOtroRecibe = (i: number, campo: keyof PersonaQueRecibe, valor: string) =>
+    setOtrosRecibe((xs) => xs.map((x, j) => (j === i ? { ...x, [campo]: valor } : x)));
 
   const [incluye, setIncluye] = useState<string[]>(b ? b.incluye : INCLUYE_POR_DEFECTO);
   // Los beneficios por defecto son de VENTA DE EQUIPO (manuales, planos,
@@ -466,14 +475,20 @@ export function FormularioInforme({
   }
 
   function datos(): DatosInforme {
-    const contactoDespacho: ContactoEntrada = otroRecibe
-      ? {
-          nombre: otroNombre.trim() || null,
-          documento: otroDocumento.trim() || null,
-          telefono: otroTelefono.trim() || null,
-          area: "Recepción de despacho",
-        }
-      : contactos[contactoDespachoIdx] ?? principal;
+    const otros = otrosRecibe
+      .filter((o) => o.nombre.trim())
+      .map((o) => ({ nombre: o.nombre.trim(), documento: o.documento?.trim() || null, telefono: o.telefono?.trim() || null }));
+    const contactoDespacho: ContactoEntrada = {
+      ...(otroRecibe
+        ? {
+            nombre: otroNombre.trim() || null,
+            documento: otroDocumento.trim() || null,
+            telefono: otroTelefono.trim() || null,
+            area: "Recepción de despacho",
+          }
+        : contactos[contactoDespachoIdx] ?? principal),
+      otros: otros.length ? otros : null,
+    };
     return {
       serie,
       // Si la cotización ya trae el motivo, la acción del servidor lo copia.
@@ -541,7 +556,7 @@ export function FormularioInforme({
   // volver se ofrece recuperarlo. Se borra al guardar, emitir o corregir.
   const claveLocal = `crm:cierre-en-curso:${b?.id ?? `nuevo:${cuenta.id}`}`;
   const inicial = useRef<string | null>(null);
-  const extrasRecibe = { otroRecibe, otroNombre, otroDocumento, otroTelefono };
+  const extrasRecibe = { otroRecibe, otroNombre, otroDocumento, otroTelefono, otrosRecibe };
   const foto = JSON.stringify({ d: datos(), x: extrasRecibe });
   if (inicial.current === null) inicial.current = foto;
   const hayCambios = foto !== inicial.current || pendientes.length > 0;
@@ -643,6 +658,7 @@ export function FormularioInforme({
     setOtroNombre(recuperable.x.otroNombre);
     setOtroDocumento(recuperable.x.otroDocumento);
     setOtroTelefono(recuperable.x.otroTelefono);
+    setOtrosRecibe(recuperable.x.otrosRecibe ?? []);
     setRecuperable(null);
     toast.success("Listo: está todo lo que había escrito. Revíselo y guárdelo.");
   }
@@ -671,10 +687,7 @@ export function FormularioInforme({
       return;
     }
     startTransition(async () => {
-      if (otroRecibe && otroNombre.trim() && "contacto_despacho" in cambios) {
-        const rc = await guardarContactoEntrega({ cuentaId: cuenta.id, nombre: otroNombre, documento: otroDocumento, telefono: otroTelefono });
-        if (rc.error) toast.error(`No se pudo guardar el contacto: ${rc.error}`);
-      }
+      if ("contacto_despacho" in cambios) await guardarQuienesReciben();
       if (pendientes.length) {
         const ra = await subirArchivosCierre(b.id, pendientes);
         if (ra.error) {
@@ -705,20 +718,25 @@ export function FormularioInforme({
     });
   }
 
+  // Quien recibe y no estaba en la cuenta queda como contacto del cliente,
+  // para no volver a escribirlo la próxima vez (B4). También los adicionales.
+  async function guardarQuienesReciben() {
+    const nuevos = [
+      ...(otroRecibe && otroNombre.trim() ? [{ nombre: otroNombre, documento: otroDocumento, telefono: otroTelefono }] : []),
+      ...otrosRecibe.filter((o) => o.nombre.trim() && !contactos.some((c) => c.nombre?.trim().toLowerCase() === o.nombre.trim().toLowerCase())),
+    ];
+    for (const n of nuevos) {
+      const rc = await guardarContactoEntrega({ cuentaId: cuenta.id, nombre: n.nombre, documento: n.documento ?? "", telefono: n.telefono ?? "" });
+      if (rc.error) toast.error(`No se pudo guardar el contacto ${n.nombre}: ${rc.error}`);
+    }
+  }
+
   function guardar(): Promise<string | null> {
     return new Promise((resolver) => {
       startTransition(async () => {
         // Si la entrega la recibe alguien nuevo, queda como contacto del
         // cliente antes de guardar el informe (B4).
-        if (otroRecibe && otroNombre.trim()) {
-          const rc = await guardarContactoEntrega({
-            cuentaId: cuenta.id,
-            nombre: otroNombre,
-            documento: otroDocumento,
-            telefono: otroTelefono,
-          });
-          if (rc.error) toast.error(`No se pudo guardar el contacto: ${rc.error}`);
-        }
+        await guardarQuienesReciben();
         const r = await guardarBorradorInforme(cuenta.id, datos(), informeId ?? undefined);
         if (r.error) {
           toast.error(r.error);
@@ -1745,6 +1763,50 @@ export function FormularioInforme({
                   Se guardará como contacto de {cuenta.razon_social} para la próxima entrega.
                 </p>
               </div>
+            )}
+            {otrosRecibe.map((o, i) => (
+              <div key={i} className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
+                <Input
+                  value={o.nombre}
+                  onChange={(e) => cambiarOtroRecibe(i, "nombre", e.target.value)}
+                  placeholder="También recibe: nombre y apellidos"
+                  aria-label={`Nombre de otra persona que recibe (${i + 1})`}
+                />
+                <Input
+                  value={o.documento ?? ""}
+                  onChange={(e) => cambiarOtroRecibe(i, "documento", e.target.value)}
+                  placeholder="DNI / CE"
+                  aria-label={`Documento de otra persona que recibe (${i + 1})`}
+                />
+                <Input
+                  value={o.telefono ?? ""}
+                  onChange={(e) => cambiarOtroRecibe(i, "telefono", e.target.value)}
+                  placeholder="Teléfono"
+                  aria-label={`Teléfono de otra persona que recibe (${i + 1})`}
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setOtrosRecibe((xs) => xs.filter((_, j) => j !== i));
+                  }}
+                  className="cursor-pointer rounded-md border border-border px-2.5 text-xs text-muted-foreground hover:bg-accent"
+                >
+                  Quitar
+                </button>
+              </div>
+            ))}
+            {otrosRecibe.length < 10 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOtrosRecibe((xs) => [...xs, { nombre: "", documento: "", telefono: "" }]);
+                }}
+                className="cursor-pointer text-xs font-medium text-primary hover:underline"
+              >
+                + Agregar otra persona que puede recibir
+              </button>
             )}
           </div>
         </Campo>

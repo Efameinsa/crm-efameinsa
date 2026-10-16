@@ -25,6 +25,17 @@ const esquemaContacto = z
     nombre: z.string().trim().max(160).nullish(),
     telefono: z.string().trim().max(60).nullish(),
     correo: z.string().trim().max(160).nullish(),
+    // Solo el de despacho: otras personas que también pueden recibir (16-10).
+    otros: z
+      .array(
+        z.object({
+          nombre: z.string().trim().min(1).max(160),
+          documento: z.string().trim().max(30).nullish(),
+          telefono: z.string().trim().max(60).nullish(),
+        }),
+      )
+      .max(10)
+      .nullish(),
   })
   .strict();
 

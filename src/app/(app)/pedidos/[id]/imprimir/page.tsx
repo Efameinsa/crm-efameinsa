@@ -11,9 +11,22 @@ export const dynamic = "force-dynamic";
 const fecha = (iso: string | null | undefined) =>
   iso ? new Date(iso.length === 10 ? `${iso}T12:00:00-05:00` : iso).toLocaleDateString("es-PE", { timeZone: "America/Lima" }) : "—";
 
-type Contacto = { nombre?: string | null; telefono?: string | null; area?: string | null; correo?: string | null } | string | null;
+type Contacto =
+  | { nombre?: string | null; telefono?: string | null; area?: string | null; correo?: string | null; otros?: { nombre: string; documento?: string | null; telefono?: string | null }[] | null }
+  | string
+  | null;
 const textoContacto = (c: Contacto) =>
-  !c ? null : typeof c === "string" ? c : [c.nombre, c.telefono, c.area, c.correo].filter(Boolean).join(" · ") || null;
+  !c
+    ? null
+    : typeof c === "string"
+      ? c
+      : [
+          [c.nombre, c.telefono, c.area, c.correo].filter(Boolean).join(" · "),
+          // Más personas que pueden recibir (16-10).
+          ...(c.otros ?? []).map((o) => `También: ${[o.nombre, o.documento ? `DNI/CE ${o.documento}` : null, o.telefono].filter(Boolean).join(" · ")}`),
+        ]
+          .filter(Boolean)
+          .join(" / ") || null;
 
 /**
  * EL PEDIDO (0290; Santos con el Ing. Carlos, 23-09 14:58).
