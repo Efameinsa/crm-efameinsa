@@ -1441,7 +1441,7 @@ export async function guardarAperturaServicio(
   const limpio = (v: string | null | undefined) => (v?.trim() ? v.trim() : null);
   if (
     datos.tipo &&
-    !["entrega", "entrega_puesta_marcha", "puesta_marcha", "mantenimiento", "entrega_garantia", "servicio_tecnico", "revision_garantia", "capacitacion"].includes(datos.tipo)
+    !["entrega", "entrega_puesta_marcha", "puesta_marcha", "servicio_instalacion", "mantenimiento", "entrega_garantia", "servicio_tecnico", "revision_garantia", "capacitacion"].includes(datos.tipo)
   ) {
     return falla("Ese no es uno de los formatos de apertura");
   }

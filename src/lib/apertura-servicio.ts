@@ -25,6 +25,7 @@ export type TipoApertura =
   | "entrega"
   | "entrega_puesta_marcha"
   | "puesta_marcha"
+  | "servicio_instalacion"
   | "mantenimiento"
   | "entrega_garantia"
   | "servicio_tecnico"
@@ -48,6 +49,14 @@ export const TIPOS_APERTURA: { clave: TipoApertura; titulo: string; ayuda: strin
     clave: "puesta_marcha",
     titulo: "PUESTA EN MARCHA DE:",
     ayuda: "El equipo ya está con el cliente. El técnico va sin equipo a instalarlo.",
+  },
+  // SERVICIO E INSTALACIÓN (buzón Rubí 16-10, 0518): lo que se vendió es el
+  // servicio de instalación —el kit, las conexiones, la obra—, no solo poner
+  // en marcha una máquina.
+  {
+    clave: "servicio_instalacion",
+    titulo: "SERVICIO E INSTALACIÓN DE:",
+    ayuda: "El técnico va a hacer el servicio y la instalación que se vendió.",
   },
   {
     clave: "mantenimiento",
@@ -255,7 +264,7 @@ export interface FilaApertura {
 
 /** «despacho» para las entregas, «servicio» cuando no sale equipo: como dice el correo de siempre. */
 export function queQuedaEnAgenda(tipo: TipoApertura | null | undefined): string {
-  return tipo === "mantenimiento" || tipo === "puesta_marcha" ? "servicio" : "despacho";
+  return tipo === "mantenimiento" || tipo === "puesta_marcha" || tipo === "servicio_instalacion" ? "servicio" : "despacho";
 }
 
 /** Las filas que no tienen campo propio para sus observaciones: se escriben en la apertura (0445). */
