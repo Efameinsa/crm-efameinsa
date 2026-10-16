@@ -147,6 +147,10 @@ export interface CotizacionParaPdf {
   notas_pdf?: string[] | null;
   /** Cuánto dura el trabajo (0442), solo en el PDF de postventa. */
   tiempo_ejecucion?: string | null;
+  /** Descuento al final del total (0521): lo escrito en la moneda del papel, si incluye IGV y su rótulo. */
+  descuento_escrito?: number | string | null;
+  descuento_con_igv?: boolean | null;
+  descuento_motivo?: string | null;
   /** A quién va dirigida ESTA cotización (0443); null = el contacto principal de la ficha. */
   atencion_pdf?: unknown;
   cliente_snapshot: unknown;
@@ -432,6 +436,14 @@ export async function renderizarCotizacionPdf(
     saldo: cotizacion.saldo,
     notasPdf: cotizacion.notas_pdf ?? null,
     tiempoEjecucion: cotizacion.tiempo_ejecucion ?? null,
+    descuento:
+      Number(cotizacion.descuento_escrito ?? 0) > 0
+        ? {
+            escrito: Number(cotizacion.descuento_escrito),
+            conIgv: Boolean(cotizacion.descuento_con_igv),
+            motivo: cotizacion.descuento_motivo || "DESCUENTO",
+          }
+        : null,
     firma: {
       nombre: perfilComercial?.nombre ?? "Área Comercial",
       cargo: perfilComercial?.cargo ?? null,

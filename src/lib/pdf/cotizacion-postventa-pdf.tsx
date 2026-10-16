@@ -151,6 +151,7 @@ export function CotizacionPostventaPdf({
   notaVersion = null,
   reemplazada = false,
   sinMontos = false,
+  descuento = null,
   notasPdf = null,
   tiempoEjecucion = null,
 }: CotizacionPdfProps & { variante: VariantePostventa }) {
@@ -191,7 +192,7 @@ export function CotizacionPostventaPdf({
   const monto = (v: number) => `${simbolo} ${sinMontos ? "*****" : formatoMonto(v)}`;
   // La misma regla de plata que el PDF de equipos: con renglones pactados CON
   // IGV, el total es la suma de sus brutos y el IGV la diferencia (0233).
-  const { subtotal, igv, total } = totalesConIgv(items);
+  const { subtotal, descuento: rebaja, base, igv, total } = totalesConIgv(items, descuento);
   // Repuestos numera 1, 2, 3; mantenimiento I, II (los dos Word).
   const numero = (i: number) => (esMantenimiento ? (ROMANOS[i] ?? String(i + 1)) : String(i + 1));
 
@@ -365,13 +366,20 @@ export function CotizacionPostventaPdf({
           {(
             [
               ["SUB TOTAL", subtotal],
+              // Descuento al final (0521): resta antes del IGV.
+              ...(rebaja > 0
+                ? ([
+                    [(descuento?.motivo || "DESCUENTO").toUpperCase(), -rebaja],
+                    ["SUB TOTAL CON DESCUENTO", base],
+                  ] as [string, number][])
+                : []),
               ["I.G.V. (18%)", igv],
               ["TOTAL", total],
             ] as [string, number][]
           ).map(([rotulo, valor]) => (
             <View key={rotulo} style={[pv.fila, { backgroundColor: GRIS_TABLA }]} wrap={false}>
               <Text style={pv.totalEtiqueta}>{rotulo}</Text>
-              <Text style={[pv.totalValor, pv.divisor]}>{monto(valor)}</Text>
+              <Text style={[pv.totalValor, pv.divisor]}>{valor < 0 ? `- ${monto(-valor)}` : monto(valor)}</Text>
             </View>
           ))}
           <View style={pv.tablaFin} />

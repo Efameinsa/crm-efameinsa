@@ -1,6 +1,6 @@
 import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
 import { IDENTIDAD_SERIE, PUNTOS_IMPORTANTES, notasDe, IGV, ENTREGA_POR_DEFECTO, esSinGarantia, type IdentidadSerie } from "./series";
-import { totalesConIgv } from "@/lib/igv";
+import { totalesConIgv, type DescuentoFinal } from "@/lib/igv";
 import { clasificarFicha } from "@/lib/ficha-tecnica";
 import { encajarEnCaja } from "./medir-imagen";
 import { ajustarEspecificaciones } from "./ajustar-especificaciones";
@@ -286,6 +286,8 @@ export interface CotizacionPdfProps {
   tiempoEjecucion?: string | null;
   /** Postventa: la cotización entera, con las cifras tapadas (gerencia, 28-09). */
   sinMontos?: boolean;
+  /** Descuento al final del total (0521), en la moneda del papel; null = sin descuento. */
+  descuento?: (DescuentoFinal & { motivo: string }) | null;
   logoBuffer: Buffer;
   serie: "EFAMEINSA" | "OPEN";
   /** "5-26" (correlativo-año corto, como los modelos). NULL en un borrador:
@@ -661,6 +663,7 @@ export function CotizacionPdf({
   notaVersion = null,
   reemplazada = false,
   sinMontos = false,
+  descuento = null,
 }: CotizacionPdfProps) {
   // «X, X, X, asterisco, asterisco… para tapar los números» (gerencia, 28-09).
   const monto = (v: number) => (sinMontos ? "*****" : formatoMonto(v));
@@ -683,7 +686,9 @@ export function CotizacionPdf({
 
   // Con renglones pactados CON IGV, el total es la suma de sus importes
   // brutos y el IGV la diferencia (0233); sin ellos, lo de siempre.
-  const { subtotal, igv, total } = totalesConIgv(items);
+  // El descuento al final (0521) resta antes del IGV: SUB TOTAL, DESCUENTO,
+  // el valor que queda, IGV y TOTAL, como lo pidió gerencia (Katerine 16-10).
+  const { subtotal, descuento: rebaja, base, igv, total } = totalesConIgv(items, descuento);
   const simbolo = moneda === "USD" ? "US$" : "S/";
 
   const membrete = membreteDe(estilos, identidad, logoBuffer);
@@ -805,6 +810,20 @@ export function CotizacionPdf({
               <Text style={estilos.totalEtiqueta}>SUB TOTAL {simbolo}</Text>
               <Text style={estilos.totalValor}>{monto(subtotal)}</Text>
             </View>
+            {rebaja > 0 && (
+              <>
+                <View style={estilos.totalFila}>
+                  <Text style={estilos.totalEtiqueta}>
+                    {(descuento?.motivo || "DESCUENTO").toUpperCase()} {simbolo}
+                  </Text>
+                  <Text style={estilos.totalValor}>- {monto(rebaja)}</Text>
+                </View>
+                <View style={estilos.totalFila}>
+                  <Text style={estilos.totalEtiqueta}>SUB TOTAL CON DESCUENTO {simbolo}</Text>
+                  <Text style={estilos.totalValor}>{monto(base)}</Text>
+                </View>
+              </>
+            )}
             <View style={estilos.totalFila}>
               <Text style={estilos.totalEtiqueta}>I.G.V. (18%) {simbolo}</Text>
               <Text style={estilos.totalValor}>{monto(igv)}</Text>

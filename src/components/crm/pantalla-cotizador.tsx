@@ -99,6 +99,8 @@ function tierInicial(producto: ProductoCotizable): string {
 }
 
 const monto = (n: number) => n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/** Los rótulos del descuento al final que pidió gerencia (Katerine 16-10; 0521). */
+const MOTIVOS_DESCUENTO = ["Descuento", "Descuento por paquete especial"];
 
 // VACÍO a propósito desde el 28-08. Decía «Entrega: 15 días útiles. Garantía de
 // fábrica.» y las dos cosas ya tienen su campo y su renglón impreso: dejarlas
@@ -386,6 +388,13 @@ export function PantallaCotizador({
   // Cuánto dura el trabajo («1 día»), aparte de cuándo se atiende (Gabriela,
   // 12-10; 0442). Solo postventa lo escribe.
   const [tiempoEjecucion, setTiempoEjecucion] = useState(edicion?.tiempoEjecucion ?? "");
+  // DESCUENTO AL FINAL DEL TOTAL (0521; Katerine 16-10, pedido de gerencia):
+  // «descuento» o «descuento por paquete especial», escrito en la moneda del
+  // papel. Siempre pasa por gerencia.
+  const [descuentoAbierto, setDescuentoAbierto] = useState(Boolean(edicion?.descuento));
+  const [descuentoTexto, setDescuentoTexto] = useState(edicion?.descuento ? String(edicion.descuento.escrito) : "");
+  const [descuentoConIgv, setDescuentoConIgv] = useState(edicion?.descuento?.conIgv ?? false);
+  const [descuentoMotivo, setDescuentoMotivo] = useState(edicion?.descuento?.motivo ?? MOTIVOS_DESCUENTO[0]);
   // Una cotización nueva copia las condiciones de la anterior; si aquella iba
   // al contado (saldo vacío), el vacío caía en el 70 % por defecto y salía
   // «Contado» con «70 % antes del despacho» (Gabriela, 05-10). El saldo sale
@@ -533,8 +542,13 @@ export function PantallaCotizador({
         tcDelDocumento,
         // El motivo de ir con Efameinsa (0275) se autoguarda como el resto.
         motivoSerie,
+        descuento: {
+          escrito: Number(descuentoTexto) > 0 ? dosDecimales(Number(descuentoTexto)) : null,
+          conIgv: descuentoConIgv,
+          motivo: descuentoMotivo,
+        },
       }),
-    [carrito, condiciones, vigenciaDias, entregaLugar, tiempoEntrega, garantia, formaPago, saldo, notasTexto, atencion, tiempoEjecucion, esPostventa, monedaImpresa, enSoles, tcDelDocumento, motivoSerie],
+    [carrito, condiciones, vigenciaDias, entregaLugar, tiempoEntrega, garantia, formaPago, saldo, notasTexto, atencion, tiempoEjecucion, esPostventa, monedaImpresa, enSoles, tcDelDocumento, motivoSerie, descuentoTexto, descuentoConIgv, descuentoMotivo],
   );
 
   const payloadRef = useRef(payload);
@@ -564,6 +578,7 @@ export function PantallaCotizador({
       tiempoEjecucion?: string;
       atencionPdf: { nombre: string; telefono: string; email: string } | null;
       motivoSerie: string;
+      descuento: { escrito: number | null; conIgv: boolean; motivo: string | null };
     };
     // Una línea a mano sin concepto todavía (el botón «+ Agregar una línea»
     // recién apretado) no se manda: la base la rechaza entera y el sello se
@@ -593,6 +608,7 @@ export function PantallaCotizador({
       monedaImpresa,
       tipoCambio: tcDelDocumento,
       facturarA: facturarARef.current,
+      descuento: datos.descuento,
     });
 
     if (r.error) {
@@ -914,11 +930,17 @@ export function PantallaCotizador({
   // Con renglones pactados CON IGV el total es la suma de sus importes
   // brutos y el IGV es la diferencia (0233): 2 × 3.600 + 1.600 = 8.800, no
   // 8.799,99. Sin renglones así, es subtotal × 1,18 como siempre.
-  const totales = totalesConIgv(carrito);
+  const descuentoVista = Number(descuentoTexto) > 0 ? { escrito: dosDecimales(Number(descuentoTexto)), conIgv: descuentoConIgv } : null;
+  const totales = totalesConIgv(
+    carrito,
+    descuentoVista && enSoles ? { ...descuentoVista, escrito: dosDecimales(descuentoVista.escrito / tcDelDocumento) } : descuentoVista,
+  );
   // Lo que se muestra y se imprime en soles se suma EN SOLES, desde lo escrito
   // (0366): convertir el total en dólares daba 16,449.99 en vez de 16,450.
   const carritoVista = enSoles ? carrito.map((r) => renglonEnSoles(r, tcDelDocumento)) : carrito;
-  const totalesVista = totalesConIgv(carritoVista);
+  const totalesVista = totalesConIgv(carritoVista, descuentoVista);
+  // El descuento no puede comerse el subtotal (la base tampoco lo acepta).
+  const descuentoExcede = totalesVista.descuento > 0 && totalesVista.descuento >= totalesVista.subtotal;
   const importeVista = (n: number) => `${simbolo} ${monto(dosDecimales(n))}`;
   // Todas las líneas del catálogo = son máquinas; cualquier línea escrita a
   // mano ya es un ítem, no un equipo.
@@ -954,13 +976,21 @@ export function PantallaCotizador({
   // postventa pasa por gerencia, a cualquier precio. Lo decide la base al
   // guardar; acá se lee lo que dijo.
   const porCapacitacion =
-    esPostventa && estadoAprobacion === "pendiente_gerencia" && !hayBajoLista && !haySinPrecio && !hayAManoConPrecio;
+    esPostventa &&
+    estadoAprobacion === "pendiente_gerencia" &&
+    !hayBajoLista &&
+    !haySinPrecio &&
+    !hayAManoConPrecio &&
+    !(Number(descuentoTexto) > 0);
+  // Todo descuento al final pasa por gerencia (0521); el que ya firmó, no.
+  const hayDescuento = totalesVista.descuento > 0;
   const iraAGerencia =
-    (hayBajoLista || haySinPrecio || hayAManoConPrecio || estadoAprobacion === "pendiente_gerencia") && !yaAprobada;
+    (hayBajoLista || haySinPrecio || hayAManoConPrecio || hayDescuento || estadoAprobacion === "pendiente_gerencia") && !yaAprobada;
   const motivoAprobacion = [
     hayBajoLista && "precio por debajo de la referencia",
     haySinPrecio && "equipo sin precio cargado",
     hayAManoConPrecio && "línea escrita a mano con precio",
+    hayDescuento && "descuento al final del total",
     porCapacitacion && "por ahora toda cotización de postventa pasa por gerencia",
   ]
     .filter(Boolean)
@@ -2277,6 +2307,18 @@ export function PantallaCotizador({
                 </span>
                 <span className="tabular-nums">{importeVista(totalesVista.subtotal)}</span>
               </div>
+              {hayDescuento && (
+                <>
+                  <div className="flex justify-between font-medium text-amber-800">
+                    <span>{descuentoMotivo || "Descuento"}</span>
+                    <span className="tabular-nums">− {importeVista(totalesVista.descuento)}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Sub total con descuento</span>
+                    <span className="tabular-nums">{importeVista(totalesVista.base)}</span>
+                  </div>
+                </>
+              )}
               <div className="flex justify-between text-muted-foreground">
                 <span>IGV {(IGV * 100).toFixed(0)}%</span>
                 <span className="tabular-nums">{importeVista(totalesVista.igv)}</span>
@@ -2286,6 +2328,85 @@ export function PantallaCotizador({
                 <span className="tabular-nums">{importeVista(totalesVista.total)}</span>
               </div>
             </div>
+
+            {carrito.length > 0 &&
+              (descuentoAbierto ? (
+                <div className="space-y-2 rounded-md border border-dashed border-border p-2.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold">Descuento al final del total</Label>
+                    <button
+                      type="button"
+                      className="text-[11px] text-muted-foreground underline-offset-2 hover:underline"
+                      onClick={() => {
+                        setDescuentoTexto("");
+                        setDescuentoConIgv(false);
+                        setDescuentoAbierto(false);
+                      }}
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {MOTIVOS_DESCUENTO.map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        aria-pressed={descuentoMotivo === m}
+                        onClick={() => setDescuentoMotivo(m)}
+                        className={cn(
+                          "rounded-full border px-2.5 py-1 text-[11px]",
+                          descuentoMotivo === m
+                            ? "border-primary bg-primary/10 font-semibold text-foreground"
+                            : "border-border text-muted-foreground hover:bg-secondary",
+                        )}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{simbolo}</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      aria-label="Monto del descuento"
+                      className="h-8 text-right tabular-nums"
+                      value={descuentoTexto}
+                      onChange={(e) => setDescuentoTexto(e.target.value)}
+                    />
+                    <label className="flex shrink-0 items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        className="size-3.5 accent-primary"
+                        checked={descuentoConIgv}
+                        onChange={(e) => setDescuentoConIgv(e.target.checked)}
+                      />
+                      <span className={cn(descuentoConIgv && "font-semibold text-foreground")}>incluye IGV</span>
+                    </label>
+                  </div>
+                  {descuentoExcede ? (
+                    <p className="text-[11px] font-medium text-destructive">
+                      El descuento no puede ser igual o mayor que el subtotal.
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">
+                      Sale en el PDF debajo del SUB TOTAL y se resta antes del IGV. Pasa por gerencia antes de
+                      confirmar.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="text-xs font-medium text-primary underline-offset-2 hover:underline"
+                  onClick={() => setDescuentoAbierto(true)}
+                >
+                  + Agregar descuento o paquete especial
+                </button>
+              ))}
 
             {/* Se dice ANTES de cerrar, no después: si va a quedar esperando a
                 gerencia, la comercial tiene que saberlo mientras todavía está

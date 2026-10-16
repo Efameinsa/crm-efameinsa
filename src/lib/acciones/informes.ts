@@ -4,7 +4,7 @@ import { renglonEnSoles } from "@/lib/moneda-impresa";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { enviarEventoMeta } from "@/lib/meta-capi";
-import { totalesConIgv } from "@/lib/igv";
+import { repartirDescuento, totalesConIgv } from "@/lib/igv";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { INCLUYE_POR_DEFECTO, TIPOS_PEDIDO_CIERRE, tipoItemDelProducto, type TipoItemInforme, type TipoPedidoCierre } from "@/lib/informes";
@@ -207,7 +207,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
     supabase
       .from("cotizaciones")
       .select(
-        "id, codigo, serie, motivo_serie, estado, total, garantia, created_at, enviada_at, facturar_a_cuenta_id, cliente_snapshot, moneda_impresa, tipo_cambio, oportunidades!cotizaciones_oportunidad_id_fkey!inner(cuenta_id), cotizacion_items(cantidad, precio_unitario, precio_con_igv, precio_impreso, descripcion, productos(marca, modelo, nombre, segmento, categoria))",
+        "id, codigo, serie, motivo_serie, estado, total, garantia, created_at, enviada_at, facturar_a_cuenta_id, cliente_snapshot, moneda_impresa, tipo_cambio, descuento_escrito, descuento_con_igv, oportunidades!cotizaciones_oportunidad_id_fkey!inner(cuenta_id), cotizacion_items(cantidad, precio_unitario, precio_con_igv, precio_impreso, descripcion, productos(marca, modelo, nombre, segmento, categoria))",
       )
       .eq("oportunidades.cuenta_id", cuentaId)
       .order("created_at", { ascending: false })
@@ -260,7 +260,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
     // dólares y tenía la moneda fija en USD. Ahora las líneas llegan con los
     // mismos precios en soles que vio el cliente (misma conversión que el PDF).
     const enSoles = c.moneda_impresa === "PEN" && Number(c.tipo_cambio) > 0;
-    const lineas = ((c.cotizacion_items as unknown as ItemCotizado[]) ?? []).map((i) => {
+    const lineasSinDescuento = ((c.cotizacion_items as unknown as ItemCotizado[]) ?? []).map((i) => {
       const prod = i.productos;
       const base = {
         cantidad: i.cantidad,
@@ -281,6 +281,12 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
         tipo: tipoItemDelProducto(prod),
       };
     });
+    // DESCUENTO AL FINAL (0521): el cierre no tiene renglón de descuento, así
+    // que se reparte en los precios y el total queda igual al del PDF.
+    const lineas = repartirDescuento(
+      lineasSinDescuento,
+      Number(c.descuento_escrito ?? 0) > 0 ? { escrito: Number(c.descuento_escrito), conIgv: Boolean(c.descuento_con_igv) } : null,
+    );
     return {
       id: c.id,
       codigo: c.codigo,
