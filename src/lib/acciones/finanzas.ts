@@ -124,6 +124,17 @@ export async function confirmarAbono(datos: {
     }${cubierto ? " Ya cubre lo acordado antes del despacho." : " Todavía falta para lo acordado antes del despacho."}`,
   }), datos.avisar ?? A_AMBOS);
 
+  // El abono confirmado contesta las consultas abiertas del comercial (0520).
+  await responderConsultaPago({
+    servicioId: datos.servicioId,
+    consultaId: null,
+    respuesta: `Abono confirmado (op. ${datos.operacion.trim()}, ${datos.medio.trim()}).${desc ? ` Comisión: ${desc.motivo.trim()}.` : " Sin comisión."}`,
+    comision: desc?.monto ?? null,
+    adjuntoPath: desc?.adjuntoPath ?? null,
+    // Si el comercial no estaba marcado en «Avisar a», la consulta igual le contesta.
+    avisarComercial: (datos.avisar ?? A_AMBOS).comercial === false,
+  });
+
   revalidatePath("/finanzas");
   revalidatePath("/finanzas/cobrar");
   revalidatePath("/finanzas/confirmados");
@@ -149,6 +160,15 @@ export async function observarPago(datos: { servicioId: string; motivo: string; 
     cuerpoPostventa: `${motivo} — el pedido no avanza hasta que se aclare.`,
     cuerpoComercial: `${motivo}${datos.adjuntoPath ? " (la evidencia está en el aviso)" : ""} — hable con el cliente y avísele a Finanzas.`,
   }), datos.avisar ?? A_AMBOS);
+
+  await responderConsultaPago({
+    servicioId: datos.servicioId,
+    consultaId: null,
+    respuesta: `Pago observado: ${motivo}`,
+    adjuntoPath: datos.adjuntoPath ?? null,
+    // Si el comercial no estaba marcado en «Avisar a», la consulta igual le contesta.
+    avisarComercial: (datos.avisar ?? A_AMBOS).comercial === false,
+  });
 
   revalidatePath("/finanzas");
   revalidatePath(`/finanzas/pedidos/${datos.servicioId}`);
@@ -195,6 +215,101 @@ export async function solicitarConfirmacionPago(servicioId: string): Promise<Res
   revalidatePath("/finanzas");
   revalidatePath(`/finanzas/pedidos/${servicioId}`);
   revalidatePath(`/postventa/pedidos/${servicioId}`);
+  return { error: null };
+}
+
+/**
+ * EL COMERCIAL LE CONSULTA EL PAGO A FINANZAS (0520; Katerine, 16-10). Antes
+ * iba por correo a Contabilidad con el voucher adjunto; gerencia pidió que
+ * vaya por el CRM. Dos consultas: «¿este abono tuvo comisión interplaza?» y
+ * «el cliente canceló, aquí está el voucher». El voucher ya está subido en
+ * pagos-comercial/<pedido>/; la respuesta de Finanzas vuelve al comercial.
+ */
+export async function consultarPagoAFinanzas(datos: {
+  servicioId: string;
+  tipo: "comision" | "cancelo";
+  voucherPath: string;
+  nota?: string;
+}): Promise<Resultado> {
+  const perfil = await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("comercial_consultar_pago", {
+    p_servicio: datos.servicioId,
+    p_tipo: datos.tipo,
+    p_voucher: datos.voucherPath,
+    p_nota: datos.nota?.trim() || null,
+  });
+  if (error) return { error: limpiar(error.message) };
+  const { data: s } = await createAdminClient()
+    .from("servicios_postventa")
+    .select("cliente_texto, numero_pedido_erp, es_prueba")
+    .eq("id", datos.servicioId)
+    .maybeSingle();
+  const cliente = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
+  const pedido = s?.numero_pedido_erp ? ` del pedido ${s.numero_pedido_erp}` : "";
+  const quien = perfil.nombre ?? "El comercial";
+  const nota = datos.nota?.trim() ? ` Nota: ${datos.nota.trim()}` : "";
+  await notificarFinanzas({
+    titulo: datos.tipo === "comision" ? `¿Hubo comisión? · ${cliente}` : `El cliente canceló · ${cliente}`,
+    cuerpo:
+      datos.tipo === "comision"
+        ? `${quien} pregunta si el abono${pedido} tuvo comisión interplaza o bancaria. El voucher está en el pedido.${nota}`
+        : `${quien} avisa que el cliente canceló${pedido} y adjunta el voucher: ubíquelo en el banco y confirme el abono.${nota}`,
+    url: `/finanzas/pedidos/${datos.servicioId}`,
+    esPrueba: s?.es_prueba === true,
+  });
+  revalidatePath("/finanzas");
+  revalidatePath(`/finanzas/pedidos/${datos.servicioId}`);
+  revalidatePath(`/pedidos/${datos.servicioId}/pagos`);
+  return { error: null };
+}
+
+/**
+ * FINANZAS CONTESTA LA CONSULTA DEL COMERCIAL (0520). Con comisión, el monto
+ * y el pantallazo: Katerine se lo manda al cliente «para que vea que está
+ * sustentado y que me pague». consultaId null = todas las abiertas del
+ * pedido (lo usan confirmar y observar el abono, que ya son la respuesta).
+ */
+export async function responderConsultaPago(datos: {
+  servicioId: string;
+  consultaId: string | null;
+  respuesta: string;
+  comision?: number | null;
+  adjuntoPath?: string | null;
+  /** false cuando quien llama ya avisó al comercial (confirmar u observar el abono). */
+  avisarComercial?: boolean;
+}): Promise<Resultado> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("finanzas_responder_consulta_pago", {
+    p_servicio: datos.servicioId,
+    p_consulta: datos.consultaId,
+    p_respuesta: datos.respuesta,
+    p_comision: datos.comision ?? null,
+    p_adjunto: datos.adjuntoPath?.trim() || null,
+  });
+  if (error) return { error: limpiar(error.message) };
+  const ids = ((data ?? []) as unknown[]).map((x) => (typeof x === "string" ? x : String(Object.values(x as object)[0])));
+  if (ids.length && datos.avisarComercial !== false) {
+    const admin = createAdminClient();
+    const [{ data: consultas }, { data: s }] = await Promise.all([
+      admin.from("consultas_pago").select("creado_por").in("id", ids),
+      admin.from("servicios_postventa").select("cliente_texto, moneda").eq("id", datos.servicioId).maybeSingle(),
+    ]);
+    const cliente = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
+    const comision = datos.comision && datos.comision > 0
+      ? `Hubo comisión de ${datos.comision.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${datos.adjuntoPath ? ", con el pantallazo para el cliente" : ""}: cóbrela al cliente. `
+      : "";
+    const destinatarios = [...new Set((consultas ?? []).map((c) => c.creado_por as string))];
+    await Promise.all(
+      destinatarios.map((userId) =>
+        notificar({ userId, tipo: "finanzas", titulo: `Finanzas respondió · ${cliente}`, cuerpo: `${comision}${datos.respuesta.trim()}`, url: `/pedidos/${datos.servicioId}/pagos` }),
+      ),
+    );
+  }
+  revalidatePath("/finanzas");
+  revalidatePath(`/finanzas/pedidos/${datos.servicioId}`);
+  revalidatePath(`/pedidos/${datos.servicioId}/pagos`);
   return { error: null };
 }
 

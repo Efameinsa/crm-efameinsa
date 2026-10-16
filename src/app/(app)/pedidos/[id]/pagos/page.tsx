@@ -6,6 +6,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { puedeVerPrecios } from "@/lib/postventa";
 import { formatoMonto } from "@/lib/pagos-finanzas";
 import { fechaHoraLima } from "@/lib/fechas";
+import { consultasDelPedido } from "@/lib/consultas-pago";
+import { ConsultarPagoBotones, ListaConsultasPago } from "@/components/crm/consultas-pago";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +55,8 @@ export default async function PagosDelPedidoPage({ params }: { params: Promise<{
   const { data: firmadas } = rutas.length ? await admin.storage.from("adjuntos").createSignedUrls(rutas, 3600) : { data: [] };
   const url = new Map((firmadas ?? []).filter((x) => x.path && x.signedUrl).map((x) => [x.path as string, x.signedUrl as string]));
   const cliente = (s.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
+  // Las consultas al pago (0520) son del comercial: postventa no las ve (sin cifras).
+  const consultas = conCifras ? await consultasDelPedido(id, (s.moneda as string | null) ?? "PEN") : [];
   const volver = perfil.es_postventa ? `/postventa/pedidos/${id}` : "/comercial/cierres";
 
   return (
@@ -84,6 +88,20 @@ export default async function PagosDelPedidoPage({ params }: { params: Promise<{
             )}
           </div>
         </div>
+      )}
+
+      {/* Katerine, 16-10: lo que antes iba por correo a Contabilidad con el voucher (0520). */}
+      {conCifras && (
+        <section className="rounded-xl border border-border bg-card">
+          <div className="space-y-2 border-b border-border px-4 py-3">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-foreground">Consultar a Finanzas</h2>
+            <p className="text-xs text-muted-foreground">
+              Con el voucher del cliente: pregunte si el banco cobró comisión interplaza o avise que el cliente ya canceló. La respuesta le llega a la campana y queda aquí.
+            </p>
+            <ConsultarPagoBotones servicioId={id} />
+          </div>
+          <ListaConsultasPago consultas={consultas} servicioId={id} />
+        </section>
       )}
 
       <section className="rounded-xl border border-border bg-card">
