@@ -242,6 +242,8 @@ export function VistaCierre({
   const [ventana, setVentana] = useState<VentanaVista | null>(correccionAbierta);
   const [motivo, setMotivo] = useState("");
   const [pin, setPin] = useState("");
+  // Lo que el servidor no dejó (código errado, etc.) queda escrito (16-10).
+  const [problema, setProblema] = useState<string | null>(null);
   const [abriendo, empezarAbrir] = useTransition();
   const [guardando, empezar] = useTransition();
 
@@ -297,14 +299,20 @@ export function VistaCierre({
     if (ventana && new Date(ventana.expiraAt).getTime() > Date.now()) irAlFormulario();
     else {
       setVentana(null);
+      setProblema(null);
       setPidiendoCodigo(true);
     }
   }
+  const faltaAbrir = [
+    motivo.trim().length < MOTIVO_MIN && `qué estaba mal (al menos ${MOTIVO_MIN} caracteres)`,
+    pin.length !== 4 && "el código de 4 dígitos",
+  ].filter((x): x is string => Boolean(x));
   function abrir() {
+    setProblema(null);
     empezarAbrir(async () => {
       const r = await abrirCorreccionInforme(informe.id, motivo, pin);
       if (r.error || !r.ventana) {
-        toast.error(r.error ?? "No se pudo abrir la corrección", { duration: 8000 });
+        setProblema(r.error ?? "No se pudo abrir la corrección.");
         setPin("");
         return;
       }
@@ -316,10 +324,11 @@ export function VistaCierre({
     });
   }
   function guardar() {
+    setProblema(null);
     empezar(async () => {
       const r = await corregirInformeEmitido(informe.id, cambios);
       if (r.error) {
-        toast.error(r.error, { duration: 8000 });
+        setProblema(r.error);
         return;
       }
       // Y a quién le llegó el aviso (0492): Brenda preguntó si Central se entera.
@@ -834,6 +843,11 @@ export function VistaCierre({
       {/* ── Barra de guardar, solo mientras se edita ── */}
       {editando && (
         <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card p-2.5 shadow-lg">
+          {problema && (
+            <p role="alert" className="w-full rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+              {problema}
+            </p>
+          )}
           <p className="text-xs text-muted-foreground">
             {nCambios === 0 ? "Todavía no cambió nada." : `${nCambios} ${nCambios === 1 ? "dato cambiado" : "datos cambiados"} · sin guardar`}
           </p>
@@ -885,12 +899,22 @@ export function VistaCierre({
               </label>
               <CampoCodigo id="codigo-correccion" valor={pin} onChange={setPin} autoFocus={motivo.trim().length >= MOTIVO_MIN} />
             </div>
+            {problema && (
+              <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+                {problema}
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setPidiendoCodigo(false)} disabled={abriendo}>
               Cancelar
             </Button>
-            <Button size="sm" onClick={abrir} disabled={abriendo || motivo.trim().length < MOTIVO_MIN || pin.length !== 4}>
+            <Button
+              size="sm"
+              onClick={abrir}
+              disabled={abriendo || motivo.trim().length < MOTIVO_MIN || pin.length !== 4}
+              porQue={!abriendo && faltaAbrir.length > 0 ? `Falta: ${faltaAbrir.join(" · ")}.` : null}
+            >
               {abriendo ? "Verificando…" : "Abrir la corrección"}
             </Button>
           </DialogFooter>

@@ -32,10 +32,16 @@ export function DevolverCierreBoton({ informeId, codigo }: { informeId: string; 
 
   const pidePin = avance?.avanzo === true;
   const listo = motivo.trim().length >= 15 && (!pidePin || pin.replace(/\D/g, "").length === 4);
+  const falta = [
+    motivo.trim().length < 15 && "qué está mal (al menos 15 caracteres)",
+    pidePin && pin.replace(/\D/g, "").length !== 4 && "el código de 4 dígitos",
+  ].filter((x): x is string => Boolean(x));
+  const [problema, setProblema] = useState<string | null>(null);
 
   async function abrir() {
     setAbierto(true);
     setPin("");
+    setProblema(null);
     setAvance(null);
     setCargandoAvance(true);
     const r = await avanceDelCierre(informeId);
@@ -46,6 +52,7 @@ export function DevolverCierreBoton({ informeId, codigo }: { informeId: string; 
   }
 
   function enviar() {
+    setProblema(null);
     empezar(async () => {
       const r = await devolverCierre(informeId, motivo, pidePin ? pin : undefined);
       if (r.error) {
@@ -55,7 +62,7 @@ export function DevolverCierreBoton({ informeId, codigo }: { informeId: string; 
           const a = await avanceDelCierre(informeId);
           setAvance(a.avance ?? { avanzo: true, enFinanzas: false, pasos: [] });
         }
-        toast.error(r.error);
+        setProblema(r.error);
         return;
       }
       toast.success(
@@ -142,7 +149,16 @@ export function DevolverCierreBoton({ informeId, codigo }: { informeId: string; 
             </div>
           )}
 
+          {problema && (
+            <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+              {problema}
+            </p>
+          )}
+
           <DialogFooter>
+            {!enviando && !cargandoAvance && falta.length > 0 && (
+              <p className="text-[11px] leading-snug text-muted-foreground sm:mr-auto">Falta: {falta.join(" · ")}.</p>
+            )}
             <button
               type="button"
               onClick={() => setAbierto(false)}
@@ -175,14 +191,16 @@ export function DevolverCierreBoton({ informeId, codigo }: { informeId: string; 
 export function ReenviarCierreBoton({ informeId }: { informeId: string }) {
   const [abierto, setAbierto] = useState(false);
   const [nota, setNota] = useState("");
+  const [problema, setProblema] = useState<string | null>(null);
   const [enviando, empezar] = useTransition();
   const router = useRouter();
 
   function enviar() {
+    setProblema(null);
     empezar(async () => {
       const r = await reenviarCierreDevuelto(informeId, nota);
       if (r.error) {
-        toast.error(r.error);
+        setProblema(r.error);
         return;
       }
       toast.success("Listo. Central lo tiene otra vez en su cola.");
@@ -215,6 +233,11 @@ export function ReenviarCierreBoton({ informeId }: { informeId: string }) {
             placeholder="ej. Cambié el voucher por el que corresponde a esta venta."
             className="w-full rounded-md border border-input bg-background p-2.5 text-sm outline-none placeholder:text-muted-foreground"
           />
+          {problema && (
+            <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+              {problema}
+            </p>
+          )}
           <DialogFooter>
             <button
               type="button"

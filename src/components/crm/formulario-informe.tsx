@@ -355,6 +355,9 @@ export function FormularioInforme({
   const [creditoDias, setCreditoDias] = useState<string>(() => (b?.creditoDias != null ? String(b.creditoDias) : "30"));
   // Los papeles que le faltan al expediente al pulsar «Emitir» (null: sin aviso abierto).
   const [avisoFaltantes, setAvisoFaltantes] = useState<{ tipo: string; nombre: string }[] | null>(null);
+  // Lo que el servidor no dejó guardar o emitir queda escrito sobre los
+  // botones (16-10): un toast se iba antes de leerlo.
+  const [problema, setProblema] = useState<string | null>(null);
   function elegirModalidad(m: (typeof MODALIDADES)[number]) {
     setModalidad((xs) => (xs[0] === m ? [] : [m]));
     setPctAntesDespacho(String(PCT_POR_MODALIDAD[m]));
@@ -682,8 +685,9 @@ export function FormularioInforme({
     const nuevo = aCorreccion(datos());
     const cambios: Record<string, unknown> = {};
     for (const k of Object.keys(nuevo)) if (JSON.stringify(viejo[k]) !== JSON.stringify(nuevo[k])) cambios[k] = nuevo[k];
+    setProblema(null);
     if (Object.keys(cambios).length === 0 && pendientes.length === 0) {
-      toast.info("Todavía no cambió nada.");
+      setProblema("Todavía no cambió nada: cambie algún dato o agregue un documento antes de guardar.");
       return;
     }
     startTransition(async () => {
@@ -691,7 +695,7 @@ export function FormularioInforme({
       if (pendientes.length) {
         const ra = await subirArchivosCierre(b.id, pendientes);
         if (ra.error) {
-          toast.error(ra.error, { duration: 8000 });
+          setProblema(ra.error);
           return;
         }
         setSubidos((ra.adjuntos ?? []).map((a) => ({ tipo: a.tipo, nombre: a.nombre, path: a.path })));
@@ -700,7 +704,7 @@ export function FormularioInforme({
       if (Object.keys(cambios).length > 0) {
         const r = await corregirInformeEmitido(b.id, cambios as CorreccionInforme);
         if (r.error) {
-          toast.error(r.error, { duration: 8000 });
+          setProblema(r.error);
           return;
         }
         // Y a quién le llegó el aviso (0492): Brenda, 15-10, «¿a Central le llega un mensaje?».
@@ -733,13 +737,14 @@ export function FormularioInforme({
 
   function guardar(): Promise<string | null> {
     return new Promise((resolver) => {
+      setProblema(null);
       startTransition(async () => {
         // Si la entrega la recibe alguien nuevo, queda como contacto del
         // cliente antes de guardar el informe (B4).
         await guardarQuienesReciben();
         const r = await guardarBorradorInforme(cuenta.id, datos(), informeId ?? undefined);
         if (r.error) {
-          toast.error(r.error);
+          setProblema(r.error);
           resolver(null);
           return;
         }
@@ -752,7 +757,7 @@ export function FormularioInforme({
         if (pendientes.length) {
           const ra = await subirArchivosCierre(r.informeId!, pendientes);
           if (ra.error) {
-            toast.error(ra.error);
+            setProblema(ra.error);
             resolver(null);
             return;
           }
@@ -780,7 +785,7 @@ export function FormularioInforme({
     }
     startTransition(async () => {
       const r = await quitarAdjuntoInforme(informeId, doc.path);
-      if (r.error) toast.error(r.error);
+      if (r.error) setProblema(r.error);
       else setSubidos((xs) => xs.filter((_, i) => i !== indice));
     });
   }
@@ -855,7 +860,7 @@ export function FormularioInforme({
     startTransition(async () => {
       const r = await emitirInforme(id);
       if (r.error) {
-        toast.error(r.error);
+        setProblema(r.error);
         return;
       }
       toast.success(`Informe Nº ${r.codigo} emitido`, { duration: 10000 });
@@ -1421,6 +1426,7 @@ export function FormularioInforme({
                     type="button"
                     size="sm"
                     disabled={renglonesDesdeTexto(textoPegado, pegando).length === 0}
+                    porQue="Pegue al menos un renglón en el recuadro."
                     onClick={() => {
                       const nuevos = renglonesDesdeTexto(textoPegado, pegando).map((r) => ({ bloque: "venta" as const, ...r }));
                       setItems((xs) => [...xs, ...nuevos]);
@@ -1917,6 +1923,11 @@ export function FormularioInforme({
 
       {correccion && b && (
         <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-2 border-t border-border bg-background/95 py-3 backdrop-blur">
+          {problema && (
+            <p role="alert" className="w-full rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+              {problema}
+            </p>
+          )}
           <p className="mr-auto text-xs text-muted-foreground">
             {hayCambios ? "Tiene cambios sin guardar." : "Todavía no cambió nada."}
           </p>
@@ -1927,6 +1938,11 @@ export function FormularioInforme({
         </div>
       )}
       <div className={cn("flex flex-wrap gap-2 border-t border-border pt-4", enCorreccion && "hidden")}>
+        {problema && (
+          <p role="alert" className="w-full rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+            {problema}
+          </p>
+        )}
         <Button type="button" variant="outline" onClick={guardarBorrador} disabled={guardando}>
           <Save className="size-4" /> Guardar borrador
         </Button>
