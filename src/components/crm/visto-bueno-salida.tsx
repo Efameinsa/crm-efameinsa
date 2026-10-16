@@ -59,11 +59,20 @@ export function VistoBuenoSalida({ d }: { d: DatosVistoBueno }) {
   const [compNumero, setCompNumero] = useState("");
   // Una ventana más antes de dar el visto bueno (buzón, Jhon 14-10).
   const [confirmar, setConfirmar] = useState(false);
+  // Lo que el servidor no dejó queda escrito junto al paso (16-10).
+  const [problema, setProblema] = useState<{ donde: "vb" | "letras" | "comprobante"; texto: string } | null>(null);
+  const avisoEn = (donde: "vb" | "letras" | "comprobante") =>
+    problema?.donde === donde ? (
+      <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+        {problema.texto}
+      </p>
+    ) : null;
 
-  function correr(fn: () => Promise<{ error: string | null }>, exito: string) {
+  function correr(fn: () => Promise<{ error: string | null }>, exito: string, donde: "letras" | "comprobante") {
+    setProblema(null);
     startTransition(async () => {
       const r = await fn();
-      if (r.error) return void toast.error(r.error, { duration: 10000 });
+      if (r.error) return void setProblema({ donde, texto: r.error });
       toast.success(exito);
       router.refresh();
     });
@@ -169,10 +178,16 @@ export function VistoBuenoSalida({ d }: { d: DatosVistoBueno }) {
                 placeholder={diceLetras && letras === "no_lleva" ? "La forma de pago dice letras: explique por qué no lleva" : "Nota (opcional): ej. letras a 30, 60 y 90 días; OC firmada recibida"}
                 className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
               />
+              {!pendiente && letras !== "no_lleva" && !cantidad && (
+                <p className="text-[11px] leading-snug text-muted-foreground">Falta cuántas letras son.</p>
+              )}
               <button
                 type="button"
                 disabled={pendiente || (letras !== "no_lleva" && !cantidad)}
-                onClick={() => setConfirmar(true)}
+                onClick={() => {
+                  setProblema(null);
+                  setConfirmar(true);
+                }}
                 className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
               >
                 {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : <BadgeCheck className="size-3.5" />}
@@ -207,6 +222,7 @@ export function VistoBuenoSalida({ d }: { d: DatosVistoBueno }) {
                     )}
                   </dl>
                   <p className="text-[11px] text-muted-foreground">Revise que el adelanto acordado esté acreditado. Una vez dado, no se quita desde aquí.</p>
+                  {avisoEn("vb")}
                   <DialogFooter>
                     <Button variant="ghost" onClick={() => setConfirmar(false)} disabled={pendiente}>
                       Volver a revisar
@@ -215,6 +231,7 @@ export function VistoBuenoSalida({ d }: { d: DatosVistoBueno }) {
                       disabled={pendiente}
                       onClick={() =>
                         startTransition(async () => {
+                          setProblema(null);
                           const r = await darVistoBuenoSalida({
                             servicioId: d.servicioId,
                             letras,
@@ -222,7 +239,7 @@ export function VistoBuenoSalida({ d }: { d: DatosVistoBueno }) {
                             comision: comision ? Number(comision) : null,
                             nota,
                           });
-                          if (r.error) return void toast.error(r.error, { duration: 10000 });
+                          if (r.error) return void setProblema({ donde: "vb", texto: r.error });
                           setConfirmar(false);
                           toast.success("Visto bueno dado: el almacén y postventa ya recibieron el aviso");
                           router.refresh();
@@ -257,13 +274,14 @@ export function VistoBuenoSalida({ d }: { d: DatosVistoBueno }) {
             <button
               type="button"
               disabled={pendiente}
-              onClick={() => correr(() => marcarLetrasFirmadas(d.servicioId, notaFirmadas), "Letras marcadas como firmadas")}
+              onClick={() => correr(() => marcarLetrasFirmadas(d.servicioId, notaFirmadas), "Letras marcadas como firmadas", "letras")}
               className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/5 px-2 py-1 text-[11px] font-semibold text-primary disabled:opacity-60"
             >
               {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : <FileSignature className="size-3.5" />}
               Ya están firmadas
             </button>
           </div>
+          {avisoEn("letras")}
         </div>
       )}
 
@@ -292,13 +310,17 @@ export function VistoBuenoSalida({ d }: { d: DatosVistoBueno }) {
             <button
               type="button"
               disabled={pendiente || !compNumero.trim()}
-              onClick={() => correr(() => anotarComprobanteDeLaGuia(d.servicioId, compTipo, compNumero), "Comprobante anotado")}
+              onClick={() => correr(() => anotarComprobanteDeLaGuia(d.servicioId, compTipo, compNumero), "Comprobante anotado", "comprobante")}
               className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/5 px-2 py-1 text-[11px] font-semibold text-primary disabled:opacity-60"
             >
               {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : <Receipt className="size-3.5" />}
               Anotar
             </button>
           </div>
+          {!pendiente && !compNumero.trim() && (
+            <p className="text-[11px] leading-snug text-muted-foreground">Para anotar falta el número del comprobante.</p>
+          )}
+          {avisoEn("comprobante")}
         </div>
       )}
     </div>

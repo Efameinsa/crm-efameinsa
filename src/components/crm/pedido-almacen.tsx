@@ -131,11 +131,22 @@ export function PedidoAlmacen({
     return salida;
   }
 
-  function correr(fn: () => Promise<{ error: string | null }>, exito: string) {
+  // Lo que el servidor no dejó queda escrito en la tarjeta del paso (16-10):
+  // `donde` dice en cuál, para que no salga en todas.
+  const [problema, setProblema] = useState<{ donde: string; texto: string } | null>(null);
+  const avisoEn = (donde: string) =>
+    problema?.donde === donde ? (
+      <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+        {problema.texto}
+      </p>
+    ) : null;
+
+  function correr(fn: () => Promise<{ error: string | null }>, exito: string, donde: string) {
+    setProblema(null);
     startTransition(async () => {
       const r = await fn();
       if (r.error) {
-        toast.error(r.error, { duration: 9000 });
+        setProblema({ donde, texto: r.error });
         return;
       }
       toast.success(exito);
@@ -157,6 +168,7 @@ export function PedidoAlmacen({
       ...(angulos[claveFoto(m, "video")] ? [{ file: angulos[claveFoto(m, "video")]!, etiqueta: "video", maquina: m }] : []),
     ]);
   const faltaMaquina = porMaquina ? maquinas.find((m) => fotosDe(m) === 0) : undefined;
+  const fotosSalida = porMaquina ? maquinas.reduce((n, m) => n + fotosDe(m), 0) : ANGULOS.filter((a) => angulos[a.etiqueta]).length;
   // En el servicio las fotos (lo que lleva el técnico) son opcionales.
   const salidaLista = esServicio
     ? true
@@ -222,15 +234,16 @@ export function PedidoAlmacen({
             </div>
           </div>
           <TomarOSubirVarias titulo="Protocolo y fotos de la prueba" archivos={fotosProtocolo} onChange={setFotosProtocolo} acepta="image/*,application/pdf" />
+          {avisoEn("prueba")}
           <Button
             size="sm"
             disabled={pendiente}
             onClick={() =>
               correr(async () => {
                 const fotos = await subir(fotosProtocolo.map((f) => ({ file: f, etiqueta: "protocolo" })));
-                if (!fotos) return { error: "No se subieron los archivos" };
+                if (!fotos) return { error: "No se subieron los archivos. Revise la conexión y vuelva a intentar." };
                 return marcarProbado(servicio.id, { protocoloRef: protocolo, fotos, nota: notaPrueba, cliente });
-              }, "Marcado como probado y embalado. Postventa ya lo sabe.")
+              }, "Marcado como probado y embalado. Postventa ya lo sabe.", "prueba")
             }
           >
             {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
@@ -256,7 +269,8 @@ export function PedidoAlmacen({
                 {servicio.despacho_nota ? ` Nota de postventa: ${servicio.despacho_nota}.` : ""}
               </p>
               <Input value={notaListo} onChange={(e) => setNotaListo(e.target.value)} placeholder="ej. montacarga contratado para las 3 pm" />
-              <Button size="sm" disabled={pendiente} onClick={() => correr(() => confirmarListo(servicio.id, { nota: notaListo, cliente, fecha: servicio.fecha_despacho ?? null }), "Confirmado: almacén listo.")}>
+              {avisoEn("listo")}
+              <Button size="sm" disabled={pendiente} onClick={() => correr(() => confirmarListo(servicio.id, { nota: notaListo, cliente, fecha: servicio.fecha_despacho ?? null }), "Confirmado: almacén listo.", "listo")}>
                 {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
                 Estamos listos
               </Button>
@@ -309,10 +323,22 @@ export function PedidoAlmacen({
                 placeholder={faltaVB ? "Por qué sale sin el visto bueno (ej. las letras van con el chofer, lo dijo gerencia)" : "Por qué sale con saldo (ej. el cliente paga el saldo contra entrega)"}
               />
               <CampoCodigo valor={pinSalida} onChange={setPinSalida} tono="amber" id={`pin-salida-${servicio.id}`} />
+              {avisoEn("autorizar")}
               <Button
                 size="sm"
                 disabled={pendiente || motivoSalida.trim().length < 5 || pinSalida.replace(/\D/g, "").length < 4}
-                onClick={() => correr(() => autorizarSalidaConSaldo(servicio.id, pinSalida, motivoSalida, cliente), "Salida autorizada: ya puede registrar la salida")}
+                porQue={
+                  pendiente
+                    ? null
+                    : motivoSalida.trim().length < 5 && pinSalida.replace(/\D/g, "").length < 4
+                      ? "Falta: por qué sale · el código de 4 dígitos."
+                      : motivoSalida.trim().length < 5
+                        ? "Escriba por qué sale (al menos una frase)."
+                        : pinSalida.replace(/\D/g, "").length < 4
+                          ? "Falta el código de 4 dígitos."
+                          : null
+                }
+                onClick={() => correr(() => autorizarSalidaConSaldo(servicio.id, pinSalida, motivoSalida, cliente), "Salida autorizada: ya puede registrar la salida", "autorizar")}
               >
                 {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
                 Autorizar la salida
@@ -359,10 +385,21 @@ export function PedidoAlmacen({
               <Input value={notaSalida} onChange={(e) => setNotaSalida(e.target.value)} placeholder={esServicio ? "ej. salió el técnico Juan a las 8 am con los materiales" : "ej. salió en la camioneta de la empresa a las 4 pm"} />
             </div>
           </div>
+          {avisoEn("salida")}
           <Button
             size="sm"
             disabled={pendiente || !puedeSalir || !salidaLista}
-            title={!salidaLista ? (faltaMaquina ? `Falta al menos una foto de ${faltaMaquina.titulo}${faltaMaquina.serie ? ` (${faltaMaquina.serie})` : ""}` : "Faltan fotos (mínimo 3)") : undefined}
+            porQue={
+              pendiente
+                ? null
+                : !puedeSalir
+                  ? "Falta la apertura de despacho: pídasela a postventa."
+                  : !salidaLista
+                    ? faltaMaquina
+                      ? `Falta al menos una foto de ${faltaMaquina.titulo}${faltaMaquina.serie ? ` (${faltaMaquina.serie})` : ""}.`
+                      : `Faltan fotos: lleva ${fotosSalida} de 3 como mínimo.`
+                    : null
+            }
             onClick={() =>
               correr(async () => {
                 const archivos = porMaquina
@@ -372,9 +409,9 @@ export function PedidoAlmacen({
                       ...(video ? [{ file: video, etiqueta: "video" }] : []),
                     ];
                 const fotos = await subir(archivos);
-                if (!fotos) return { error: "No se subieron los archivos" };
+                if (!fotos) return { error: "No se subieron los archivos. Revise la conexión y vuelva a intentar." };
                 return registrarSalida(servicio.id, { fecha: fechaSalida, fotos, nota: notaSalida, cliente });
-              }, faltanFotosCarga ? "Fotos de la carga subidas. Postventa ya las ve." : esServicio ? "Salida del técnico registrada. El servicio lo cierra postventa con el informe." : servicio.entrega_modo === "planta" ? "Salida registrada. Falta registrar el recojo en nuestras instalaciones." : esProvincia(servicio) ? "Salida registrada. Falta la guía en la agencia." : "Salida registrada. Falta registrar la entrega al cliente.")
+              }, faltanFotosCarga ? "Fotos de la carga subidas. Postventa ya las ve." : esServicio ? "Salida del técnico registrada. El servicio lo cierra postventa con el informe." : servicio.entrega_modo === "planta" ? "Salida registrada. Falta registrar el recojo en nuestras instalaciones." : esProvincia(servicio) ? "Salida registrada. Falta la guía en la agencia." : "Salida registrada. Falta registrar la entrega al cliente.", "salida")
             }
           >
             {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />}
@@ -392,18 +429,20 @@ export function PedidoAlmacen({
             La salida ya está registrada{(servicio.salida_fotos?.length ?? 0) > 0 ? ` con ${servicio.salida_fotos!.length} fotos juntas` : ""}. Si quiere, suba aquí las fotos de cada máquina: quedan con su serie y ordenadas en las fotos del almacén.
           </p>
           <FotosPorMaquina maquinas={maquinas} angulos={angulos} setAngulos={setAngulos} claveFoto={claveFoto} fotosDe={fotosDe} />
+          {avisoEn("por-maquina")}
           <Button
             size="sm"
             variant="outline"
             disabled={pendiente || maquinas.every((m) => fotosDe(m) === 0 && !angulos[claveFoto(m, "video")])}
+            porQue={pendiente ? null : "Elija al menos una foto o un video de alguna máquina."}
             onClick={() =>
               correr(async () => {
                 const fotos = await subir(archivosPorMaquina());
-                if (!fotos) return { error: "No se subieron los archivos" };
+                if (!fotos) return { error: "No se subieron los archivos. Revise la conexión y vuelva a intentar." };
                 const r = await registrarSalida(servicio.id, { fecha: fechaSalida, fotos, nota: "", cliente });
                 if (!r.error) setAngulos({});
                 return r;
-              }, "Fotos subidas, cada una con su serie.")
+              }, "Fotos subidas, cada una con su serie.", "por-maquina")
             }
           >
             {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />}
@@ -483,9 +522,11 @@ export function PedidoAlmacen({
             <TomarOSubir titulo="Foto de la máquina entregada" archivo={fotoMaquina} onChange={setFotoMaquina} compacto />
           </div>
           )}
+          {avisoEn("entrega")}
           <Button
             size="sm"
             disabled={pendiente || !guia.trim()}
+            porQue={pendiente ? null : "Falta el N.º de guía de remisión."}
             onClick={() =>
               correr(async () => {
                 const fotos = await subir(
@@ -501,9 +542,9 @@ export function PedidoAlmacen({
                         ...(fotoMaquina ? [{ file: fotoMaquina, etiqueta: "maquina" }] : []),
                       ],
                 );
-                if (!fotos) return { error: "No se subieron las fotos" };
+                if (!fotos) return { error: "No se subieron los archivos. Revise la conexión y vuelva a intentar." };
                 return registrarAgencia(servicio.id, { transportista, guia, fotos, recibe, cliente, enCliente, enPlanta });
-              }, enPlanta ? "Recojo en nuestras instalaciones registrado. Postventa da el doble check." : enCliente ? "Entrega en el local del cliente registrada. Postventa da el doble check." : "Entrega registrada con su guía. Postventa da el doble check.")
+              }, enPlanta ? "Recojo en nuestras instalaciones registrado. Postventa da el doble check." : enCliente ? "Entrega en el local del cliente registrada. Postventa da el doble check." : "Entrega registrada con su guía. Postventa da el doble check.", "entrega")
             }
           >
             {pendiente ? <Loader2 className="size-4 animate-spin" /> : <PackageCheck className="size-4" />}
