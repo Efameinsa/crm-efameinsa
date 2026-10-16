@@ -1,6 +1,6 @@
 # Base de conocimiento del CRM Efameinsa
 
-Vigente al 15-10-2026. Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
+Vigente al 16-10-2026. Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
 
 ## 0. Cómo usar este documento
 
@@ -488,6 +488,11 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - Carlos: «si no eres agresivo en la parte comercial, vamos a tener un problema». La regla general: si dice «llámame el próximo año», se le llama este año.
 - Caso: una venta se perdió con la competencia porque el comercial esperó la fecha que el cliente le dio.
 
+**Tarea de la agenda de un cliente ya atendido en otro expediente** (desde el 15-10)
+- Si en la agenda se abre una tarea de un cliente que ya se cerró o se siguió atendiendo en otro expediente suyo, sale un aviso ámbar con la fecha del cierre y la última gestión de allá, y el botón «Archivar esta ficha», que la quita del calendario en el momento (no cuenta como perdida). El mismo aviso sale en el expediente.
+- Si la tarea vencida es justo la del cliente sin interés, se registra la gestión desde esa misma tarjeta de la agenda con «Sin interés» y el motivo, y se cierra ahí.
+- Caso (Moisés, 15-10): «Registrar seguimiento» abrió un expediente nuevo, pero sus gestiones de «Sin interés» quedaron en el expediente ya rechazado; el nuevo seguía vacío y salía vencido en su agenda.
+
 **Qué cuenta como gestión**
 - Cuentan como contacto real: llamada, correo, visita y videollamada.
 - **Desde el 30-09, la gestión por WhatsApp no suma a la meta de gestiones** porque inflaba el indicador. Se cuenta aparte.
@@ -634,6 +639,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 **Filas, series y stock**
 - **Una fila por máquina, con su serie.** Si un renglón trae varias series, se separa en filas.
+- **Los equipos regalados también piden serie** (desde el 15-10). Todo equipo que se entrega, aunque venga en un bloque gratuito del cierre (por ejemplo una plancha de regalo), lleva su fila y pide su serie al almacén. Los servicios sin costo siguen sin pedir serie.
 - En un repuesto, la «SERIE:» del renglón es la de la máquina a la que va la pieza. Central debe pulsar «Pedir al almacén».
 - **«No va en este despacho»** marca un despacho parcial.
 - **Otro circuito para el equipo que no salió** (desde 15-10). Si un pedido con varios equipos ya salió y uno se quedó (por ejemplo la secadora que llegó después), postventa abre «Equipos de este pedido» → «¿Algún equipo no salió en este despacho? Abrirle su propio circuito», marca el equipo y escribe el motivo. Nace un pedido nuevo del mismo cierre: el pago confirmado por Finanzas, la aprobación, la condición de pago y el plano ya vienen hechos; empieza de nuevo en prueba y embalaje (se le solicita al almacén), dirección verificada, apertura, despacho, puesta en marcha y cierre. El equipo se muda al pedido nuevo (no queda en los dos) y el pedido nuevo no lleva monto: la venta se cuenta una sola vez, en el pedido original. Cada pedido enlaza al otro en su cabecera. Antes del despacho también sirve para lo marcado «No va en este despacho».
@@ -713,6 +719,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - Al registrar, primero se elige el tipo, que pasa a ser el título de la apertura, y después se escribe el detalle.
 - **Tipos:** Puesta en marcha, Problema técnico, Soporte técnico, Repuesto, Mantenimiento, Revisión por garantía, Refuerzo de capacitación y Otro (con texto libre).
 - El tipo se corrige con «Cambiar tipo».
+- **Clasificación del caso** (paso 2, Antecedentes): Garantía, Preventivo, Correctivo, Servicio facturable, Revisión y, desde el 15-10, **«Capacitación · no se cobra»** (visita para enseñarle al personal del cliente a usar la máquina). Si la capacitación se cobra, se elige «Servicio facturable». El aviso «el equipo está en garantía y lo está clasificando como cobrable» solo sale con opciones que se cobran.
 - «Servicio técnico» no es un tipo de caso: es un encabezado de apertura.
 
 **Cómo entra un caso**
@@ -836,7 +843,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
     1. se le pide a Santos que lo cargue (por el buzón de observaciones o directamente);
     2. cuando ya está en el CRM, el comercial o el área que lo gestiona pide el file en «Files»;
     3. Central entrega el file con el registro del CRM, no por fuera del sistema.
-- **Visitas a planta:** «Viene a la planta» avisa a Central, almacén y logística, y genera la hoja para vigilancia. Desde el 14-10 a Central y al almacén les sale un **mensaje grande** al centro de la pantalla, con campanada, que se queda hasta pulsar «Entendido» (o «Imprimir para vigilancia» / «Ver las visitas»); si el CRM estaba cerrado, aparece al entrar. También existe «Registrar visita de proveedor».
+- **Visitas a planta:** «Viene a la planta» avisa a Central, almacén y logística, y genera la hoja para vigilancia. Desde el 14-10 a Central y al almacén les sale un **mensaje grande** al centro de la pantalla, con campanada, que se queda hasta pulsar «Entendido» (o «Imprimir para vigilancia» / «Ver las visitas»); si el CRM estaba cerrado, aparece al entrar. Desde el 15-10, al elegir el cliente salen **sus equipos con su serie** para solo marcar «Lo recoge» (va en el aviso, el correo y la hoja de vigilancia) o «Prepararlo para la visita» (pasa solo a «Preparación de máquinas» del almacén); el documento de quien viene, y de cada acompañante, se elige con un botón **DNI o C.E.** (carné de extranjería), y así sale en el aviso y en la hoja. Al registrar cómo terminó la visita está **«Recogió equipo»**: si se marcaron equipos con «Lo recoge», sale elegido y la gestión del cliente anota qué equipos se llevó (modelo y serie). También existe «Registrar visita de proveedor».
 
 ### 3.11 Códigos de autorización (cómo funcionan, sin valores)
 
