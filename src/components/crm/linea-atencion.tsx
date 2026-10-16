@@ -202,6 +202,32 @@ export function LineaAtencion({
   // Lo que el servidor no dejó hacer queda FIJO arriba de la etapa (Santos,
   // 16-10): un toast se iba en 4 segundos y no decía qué corregir.
   const [problema, setProblema] = useState<string | null>(null);
+  // EL AVISO LLEVA A DONDE SE CORRIGE (Santos, 16-10, con el caso de Rubí:
+  // «primero hay que programarla» sin decir dónde). Se recarga la atención
+  // —la pestaña puede estar vieja y no mostrar el formulario— y se baja hasta
+  // el paso que falta, con el foco puesto en su primer campo.
+  const irAlPaso = (ancla: string | null) => {
+    setVista(null);
+    router.refresh();
+    if (!ancla) {
+      setProblema(null);
+      return;
+    }
+    let intentos = 0;
+    const buscar = () => {
+      const caja = document.getElementById(ancla);
+      if (!caja) {
+        if (++intentos < 30) setTimeout(buscar, 100);
+        return;
+      }
+      setProblema(null);
+      caja.scrollIntoView({ behavior: "smooth", block: "start" });
+      caja.querySelector<HTMLElement>("input, textarea, button")?.focus({ preventScroll: true });
+      caja.classList.add("ring-2", "ring-primary");
+      setTimeout(() => caja.classList.remove("ring-2", "ring-primary"), 1800);
+    };
+    buscar();
+  };
   const correr = (fn: () => Promise<{ error: string | null }>, exito: string) =>
     empezar(async () => {
       setProblema(null);
@@ -448,6 +474,21 @@ export function LineaAtencion({
       {problema && etapaVista === a.etapa && (
         <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
           {problema}
+          {(() => {
+            const destino = dondeSeCorrige(problema);
+            return destino ? (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  onClick={() => irAlPaso(destino.ancla)}
+                  className="font-semibold underline underline-offset-2 hover:no-underline"
+                >
+                  {destino.texto} →
+                </button>
+              </>
+            ) : null;
+          })()}
         </p>
       )}
       {etapaVista !== a.etapa ? (
@@ -814,9 +855,24 @@ function faltaParaCerrar(resultado: string | null, motivo: string): string | nul
   return falta.length > 0 ? `Falta: ${falta.join(" · ")}.` : null;
 }
 
-function Caja({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+/**
+ * Adónde lleva el enlace del aviso, según lo que el servidor no dejó hacer.
+ * Solo los que se corrigen en OTRO paso: lo que falta en la misma caja ya
+ * está a la vista, bajo su botón.
+ */
+function dondeSeCorrige(error: string): { texto: string; ancla: string | null } | null {
+  if (/programarla/i.test(error)) return { texto: "Ir a programar la visita", ancla: "paso-planificar" };
+  if (/garantía, preventivo|primero van los antecedentes/i.test(error))
+    return { texto: "Ir a los antecedentes", ancla: "paso-antecedentes" };
+  if (/identificar el equipo/i.test(error)) return { texto: "Ir al registro de la máquina", ancla: "paso-registro" };
+  // La pestaña quedó atrás de lo que pasó en la base: otra persona avanzó el caso.
+  if (/ya pasó por esa etapa|de a un paso/i.test(error)) return { texto: "Ver el paso actual", ancla: null };
+  return null;
+}
+
+function Caja({ titulo, id, children }: { titulo: string; id?: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div id={id} className="scroll-mt-20 rounded-lg border border-border bg-card p-4 transition-shadow">
       <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{titulo}</h3>
       {children}
     </div>
@@ -999,7 +1055,7 @@ function PasoRegistro({
       // Las dos salidas de acá abajo son las que faltaban.
       if (!hayMaquinas) {
         return (
-          <Caja titulo="Paso 1 · Registro: ¿de qué máquina habla el cliente?">
+          <Caja id="paso-registro" titulo="Paso 1 · Registro: ¿de qué máquina habla el cliente?">
             {pedidoSinSeries ? (
               // Gary Group, 18-09: el pedido salió con guía y nadie registró
               // las series; el caso decía «no tiene ninguna máquina». Ahora
@@ -1033,7 +1089,7 @@ function PasoRegistro({
       // apretar. Es la regla de esta pantalla: una sola caja, la del paso que
       // toca, con lo que hace falta para cumplirlo adentro.
       return (
-        <Caja titulo="Paso 1 · Registro: ¿de qué máquina habla el cliente?">
+        <Caja id="paso-registro" titulo="Paso 1 · Registro: ¿de qué máquina habla el cliente?">
           <p className="mb-3 text-sm text-muted-foreground">
             Elija la máquina del caso con <b className="text-foreground">«Es esta»</b>, contrastando con la foto de
             la placa: queda vinculada y con la garantía verificada al instante. Si el caso abarca más de una, las
@@ -1048,7 +1104,7 @@ function PasoRegistro({
       );
     }
     return (
-      <Caja titulo="Paso 1 · Registro: verificar la garantía">
+      <Caja id="paso-registro" titulo="Paso 1 · Registro: verificar la garantía">
         <p className="mb-3 text-sm text-muted-foreground">
           Lo primero que se verifica, antes de terminar de escuchar el problema: si está en garantía y si el
           cliente viene haciendo su mantenimiento preventivo. Sale del parque instalado, no hay que preguntarlo.
@@ -1067,7 +1123,7 @@ function PasoRegistro({
   // lo hizo». En la puesta en marcha y el repuesto es opcional.
   const opcional = reglaDelPaso(a.tipo, "diagnostico") === "opcional";
   return (
-    <Caja titulo={`Paso 2 · Antecedentes: qué se sabe del caso y quién paga${opcional ? " (opcional)" : ""}`}>
+    <Caja id="paso-antecedentes" titulo={`Paso 2 · Antecedentes: qué se sabe del caso y quién paga${opcional ? " (opcional)" : ""}`}>
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">
           Lo que el técnico tiene que saber antes de que se programe: el historial de la máquina, qué necesita el
@@ -1180,7 +1236,7 @@ function PasoPlanificar({
   const [orden, setOrden] = useState<string | null>(null);
 
   return (
-    <Caja titulo={puestaEnMarcha ? "Paso 3 · Planificación: programar la puesta en marcha" : "Paso 3 · Planificación: cuándo y con quién"}>
+    <Caja id="paso-planificar" titulo={puestaEnMarcha ? "Paso 3 · Planificación: programar la puesta en marcha" : "Paso 3 · Planificación: cuándo y con quién"}>
       <p className="mb-3 text-sm text-muted-foreground">
         {puestaEnMarcha
           ? "Con día, hora y técnico queda programada y entra al calendario del área. Si es una llamada o videollamada, derívela al almacén con «Derivar llamada al almacén» (arriba): lleva los antecedentes."
