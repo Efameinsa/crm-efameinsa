@@ -119,6 +119,7 @@ export function InformeSoporteApertura({
   const [paraCotizar, setParaCotizar] = useState<FilaCotizar[]>([]);
   const [fotos, setFotos] = useState<File[]>([]);
   const [documentos, setDocumentos] = useState<File[]>([]);
+  const [problema, setProblema] = useState<string | null>(null);
 
   const cambiar = (i: number, campo: keyof Seccion, valor: string) => setSecciones((s) => s.map((x, j) => (j === i ? { ...x, [campo]: valor } : x)));
   const conTexto = secciones.filter((s) => s.titulo.trim() && s.texto.trim());
@@ -137,21 +138,24 @@ export function InformeSoporteApertura({
   }
 
   function guardar() {
-    if (conTexto.length === 0 && documentos.length === 0) return void toast.error("Escriba al menos una sección o adjunte el informe en Word o PDF");
+    setProblema(null);
     const quien = tecnicoInforme.trim();
-    if (!quien) return void toast.error("Escriba el técnico a cargo");
-    if (!informeFin) return void toast.error("Escriba la hora de culminación del informe");
+    const falta: string[] = [];
+    if (conTexto.length === 0 && documentos.length === 0) falta.push("al menos una sección escrita, o el informe en Word o PDF");
+    if (!quien) falta.push("el técnico a cargo");
+    if (!informeFin) falta.push("la hora de culminación del informe");
+    if (falta.length > 0) return void setProblema(`Falta: ${falta.join(" · ")}.`);
     startTransition(async () => {
       if (quien !== (tecnico ?? "").trim()) {
         const rt = await asignarTecnicoApertura(aperturaId, quien);
-        if (rt.error) return void toast.error(rt.error);
+        if (rt.error) return void setProblema(rt.error);
       }
       let fotosSubidas, docsSubidos;
       try {
         fotosSubidas = await subir(fotos, "fotos");
         docsSubidos = await subir(documentos, "documentos");
       } catch (e) {
-        return void toast.error(e instanceof Error ? e.message : "No se pudieron subir los archivos");
+        return void setProblema(e instanceof Error ? e.message : "No se pudieron subir los archivos. Vuelva a intentarlo.");
       }
       const r = await guardarInformeServicio({
         servicioId,
@@ -174,11 +178,11 @@ export function InformeSoporteApertura({
         aperturaId,
       });
       const idInforme = "id" in r ? r.id : undefined;
-      if (r.error || !idInforme) return void toast.error(r.error ?? "No se pudo guardar el informe");
+      if (r.error || !idInforme) return void setProblema(r.error ?? "No se pudo guardar el informe. Vuelva a intentarlo.");
       // El texto que postventa corrige para el cliente: las secciones, tal cual.
       const texto = conTexto.map((s) => `${s.titulo.toUpperCase()}:\n${s.texto.trim()}`).join("\n\n") || "Informe adjunto en Word/PDF.";
       const r2 = await subirInformeApertura({ id: aperturaId, informe: texto, faltantes: filasComoTexto(paraCotizar), fotos: fotosSubidas, informeServicioId: idInforme });
-      if (r2.error) return void toast.error(r2.error);
+      if (r2.error) return void setProblema(r2.error);
       toast.success("Informe guardado y numerado: postventa recibe el aviso para revisarlo");
       router.refresh();
     });
@@ -249,6 +253,8 @@ export function InformeSoporteApertura({
 
       <TomarOSubirVarias titulo="Fotos o capturas de la llamada" archivos={fotos} onChange={setFotos} maximo={100} />
       <Documentos archivos={documentos} onChange={setDocumentos} />
+
+      {problema && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
 
       <Button onClick={guardar} disabled={pendiente}>
         {pendiente && <Loader2 className="size-4 animate-spin" />}

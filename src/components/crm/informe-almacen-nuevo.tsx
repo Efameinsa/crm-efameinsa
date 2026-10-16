@@ -47,6 +47,7 @@ export function InformeAlmacenNuevo({ pedidos, atenciones }: { pedidos: PedidoPa
   const [materiales, setMateriales] = useState<Material[]>([{ descripcion: "", cantidad: "1", costo: "" }]);
   const [fotos, setFotos] = useState<File[]>([]);
   const [subir, setSubir] = useState(true);
+  const [problema, setProblema] = useState<string | null>(null);
 
   const def = CLASES_INFORME_ALMACEN.find((c) => c.clave === clase)!;
   const dePedido = def.de === "pedido";
@@ -63,20 +64,14 @@ export function InformeAlmacenNuevo({ pedidos, atenciones }: { pedidos: PedidoPa
   const totalMateriales = materiales.reduce((t, m) => t + (Number(m.costo) || 0) * (Number(m.cantidad) || 1), 0);
 
   function guardar() {
-    if (!elegido) {
-      toast.error(dePedido ? "Elija de qué pedido es la puesta en marcha" : "Elija de qué atención es el informe");
-      return;
-    }
-    if (!detalle.trim()) {
-      toast.error("Escriba qué se hizo: es lo que lee postventa y lo que queda dos años después");
-      return;
-    }
-    if (clase === "puesta_en_marcha_observaciones" && !observaciones.trim()) {
-      toast.error("Escriba las observaciones: son el motivo de este informe");
-      return;
-    }
-    if (clase === "puesta_en_marcha_accesorios" && !materiales.some((m) => m.descripcion.trim())) {
-      toast.error("Liste los accesorios o materiales que faltan para la instalación");
+    setProblema(null);
+    const falta: string[] = [];
+    if (!elegido) falta.push(dePedido ? "elegir el pedido" : "elegir la atención");
+    if (!detalle.trim()) falta.push("el detalle del trabajo (es lo que lee postventa)");
+    if (clase === "puesta_en_marcha_observaciones" && !observaciones.trim()) falta.push("las observaciones (son el motivo de este informe)");
+    if (clase === "puesta_en_marcha_accesorios" && !materiales.some((m) => m.descripcion.trim())) falta.push("la lista de accesorios o materiales que faltan");
+    if (falta.length > 0 || !elegido) {
+      setProblema(`Falta: ${falta.join(" · ")}.`);
       return;
     }
     startTransition(async () => {
@@ -87,7 +82,7 @@ export function InformeAlmacenNuevo({ pedidos, atenciones }: { pedidos: PedidoPa
           const path = `informes/almacen/${crypto.randomUUID()}-${f.name.replace(/[^\w.\-]+/g, "_").slice(0, 80)}`;
           const { error } = await storage.upload(path, f, { contentType: f.type || "image/jpeg" });
           if (error) {
-            toast.error(`No se pudo subir «${f.name}»: ${error.message}`);
+            setProblema(`No se pudo subir «${f.name}»: ${error.message}. Vuelva a intentarlo.`);
             return;
           }
           subidas.push({ path, nombre: f.name, tipo: f.type, tamano: f.size });
@@ -120,7 +115,7 @@ export function InformeAlmacenNuevo({ pedidos, atenciones }: { pedidos: PedidoPa
             : [],
       });
       if (r.error) {
-        toast.error(r.error, { duration: 8000 });
+        setProblema(r.error);
         return;
       }
       const nuevoId = "id" in r ? r.id : undefined;
@@ -278,6 +273,8 @@ export function InformeAlmacenNuevo({ pedidos, atenciones }: { pedidos: PedidoPa
         <input type="checkbox" checked={subir} onChange={(e) => setSubir(e.target.checked)} className="size-4" />
         Al guardar, subir a postventa (les llega el aviso)
       </label>
+
+      {problema && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
 
       <div className="flex flex-wrap gap-2">
         <Button size="sm" onClick={guardar} disabled={pendiente}>

@@ -102,11 +102,14 @@ export function CambiosApertura({
   const [nuevoTipo, setNuevoTipo] = useState<TipoApertura>(tipo);
   const [motivo, setMotivo] = useState("");
   const [pin, setPin] = useState("");
+  // Lo que el servidor no dejó hacer: queda escrito bajo el panel abierto.
+  const [problema, setProblema] = useState<string | null>(null);
 
   function abrir(p: Panel) {
     setPanel(panel === p ? null : p);
     setMotivo("");
     setPin("");
+    setProblema(null);
   }
   function hecho(mensaje: string) {
     toast.success(mensaje);
@@ -114,23 +117,26 @@ export function CambiosApertura({
     router.refresh();
   }
   function reprogramar() {
+    setProblema(null);
     startTransition(async () => {
       const r = await reprogramarApertura(id, new Date(`${fecha}T${hora}:00-05:00`).toISOString(), motivo);
-      if (r.error) return void toast.error(r.error);
+      if (r.error) return void setProblema(r.error);
       hecho(tomada ? "Reprogramada. El almacén ya recibió el aviso con la fecha nueva" : "Reprogramada");
     });
   }
   function corregirTipo() {
+    setProblema(null);
     startTransition(async () => {
       const r = await corregirTipoApertura(id, nuevoTipo, motivo);
-      if (r.error) return void toast.error(r.error);
+      if (r.error) return void setProblema(r.error);
       hecho(hayInforme ? "Tipo corregido, también en el informe" : "Tipo corregido");
     });
   }
   function anular() {
+    setProblema(null);
     startTransition(async () => {
       const r = await anularApertura(id, motivo, pin);
-      if (r.error) return void toast.error(r.error);
+      if (r.error) return void setProblema(r.error);
       hecho("Apertura anulada; el almacén ya no la ve pendiente");
     });
   }
@@ -202,7 +208,18 @@ export function CambiosApertura({
               <Input className="h-8 max-w-md text-xs" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="U otro motivo…" />
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button size="sm" onClick={reprogramar} disabled={pendiente || !fecha || !hora || !cambioFecha}>
+              <Button
+                size="sm"
+                onClick={reprogramar}
+                disabled={pendiente || !fecha || !hora || !cambioFecha}
+                porQue={
+                  !fecha || !hora
+                    ? `Falta: ${[!fecha && "el día", !hora && "la hora"].filter(Boolean).join(" · ")}.`
+                    : !cambioFecha
+                      ? "Es la misma fecha y hora de ahora: elija otro día u otra hora."
+                      : null
+                }
+              >
                 {pendiente && <Loader2 className="size-4 animate-spin" />}
                 Pasar al {textoFecha(fecha, hora)}
               </Button>
@@ -232,7 +249,12 @@ export function CambiosApertura({
             onChange={(e) => setMotivo(e.target.value)}
             placeholder="Por qué (opcional): se eligió mal al enviarla…"
           />
-          <Button size="sm" onClick={corregirTipo} disabled={pendiente || nuevoTipo === tipo}>
+          <Button
+            size="sm"
+            onClick={corregirTipo}
+            disabled={pendiente || nuevoTipo === tipo}
+            porQue={nuevoTipo === tipo ? "Es el tipo que ya tiene: elija otro arriba." : null}
+          >
             {pendiente && <Loader2 className="size-4 animate-spin" />}
             Cambiar a «{tipos.find((t) => t.valor === nuevoTipo)?.etiqueta}»
           </Button>
@@ -275,6 +297,12 @@ export function CambiosApertura({
             )}
           </div>
         </div>
+      )}
+
+      {panel && problema && (
+        <p role="alert" className="mt-2 rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+          {problema}
+        </p>
       )}
     </div>
   );

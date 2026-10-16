@@ -180,18 +180,22 @@ function OtroCircuito({ servicioId, equipos, despachado }: { servicioId: string;
   const [marcados, setMarcados] = useState<string[]>([]);
   const [motivo, setMotivo] = useState("");
   const [pendiente, startTransition] = useTransition();
+  const [problema, setProblema] = useState<string | null>(null);
   if (equipos.length === 0) return null;
   const alternar = (id: string) => setMarcados((m) => (m.includes(id) ? m.filter((x) => x !== id) : [...m, id]));
-  const abrir = () =>
+  const faltaCircuito = [marcados.length === 0 && "marcar el equipo", !motivo.trim() && "el motivo"].filter(Boolean);
+  const abrir = () => {
+    setProblema(null);
     startTransition(async () => {
       const r = await abrirOtroCircuito(servicioId, marcados, motivo);
       if (r.error) {
-        toast.error(r.error);
+        setProblema(r.error);
         return;
       }
       toast.success("Listo: el equipo tiene su propio circuito");
       router.push(`/postventa/pedidos/${r.nuevoId}`);
     });
+  };
   return (
     <div className="mt-3 rounded-md border border-dashed border-border p-2.5">
       {!abierto ? (
@@ -215,8 +219,14 @@ function OtroCircuito({ servicioId, equipos, despachado }: { servicioId: string;
             </label>
           ))}
           <Input value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Por qué sale aparte (ej. la secadora llegó después)" className="h-8 text-xs" />
+          {problema && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
           <div className="flex gap-2">
-            <Button size="sm" onClick={abrir} disabled={pendiente || marcados.length === 0 || !motivo.trim()}>
+            <Button
+              size="sm"
+              onClick={abrir}
+              disabled={pendiente || marcados.length === 0 || !motivo.trim()}
+              porQue={faltaCircuito.length > 0 ? `Falta: ${faltaCircuito.join(" · ")}.` : null}
+            >
               {pendiente && <Loader2 className="size-3 animate-spin" />} Abrir su circuito
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setAbierto(false)} disabled={pendiente}>
@@ -293,6 +303,8 @@ function Fila({
   // La otra máquina de la torre se prueba con la unidad pero con lo suyo (Lesly, 03-10):
   // «no da la opción para agregar las fotos y el informe de la otra máquina».
   const [dePartes, setDePartes] = useState<Record<string, { protocolo: string; fotos: File[]; docs: File[] }>>({});
+  // Lo que no se pudo hacer con esta máquina queda escrito al pie de su tarjeta.
+  const [problema, setProblema] = useState<string | null>(null);
   const deParte = (id: string) => dePartes[id] ?? { protocolo: "", fotos: [], docs: [] };
   const cambiarParte = (id: string, cambio: Partial<{ protocolo: string; fotos: File[]; docs: File[] }>) =>
     setDePartes((x) => ({ ...x, [id]: { ...deParte(id), ...cambio } }));
@@ -309,10 +321,12 @@ function Fila({
 
   function correr(fn: () => Promise<{ error: string | null; pedidoListo?: boolean }>, exito: string) {
     setSubiendo(null);
+    setProblema(null);
     startTransition(async () => {
       const r = await fn();
       if (r.error) {
-        toast.error(r.error, { duration: 9000 });
+        // Si la subida ya dejó el detalle («No se pudo subir X»), se queda ese.
+        setProblema((x) => x ?? r.error);
         return;
       }
       toast.success(r.pedidoListo ? "Con esta ya están todas: el pedido queda probado y embalado. Postventa ya lo sabe." : exito);
@@ -360,7 +374,7 @@ function Fila({
       const { error } = await subirConProgreso("adjuntos", path, file, tipo, (fraccion) => marcar(i, { fraccion }));
       if (error) {
         marcar(i, { error });
-        toast.error(`No se pudo subir «${file.name}»: ${error}. Lo elegido sigue en pantalla: vuelva a pulsar.`, { duration: 10000 });
+        setProblema(`No se pudo subir «${file.name}»: ${error}. Lo elegido sigue en pantalla: vuelva a pulsar.`);
         return null;
       }
       salida.push({ path, nombre: file.name.slice(0, 120), tipo: tipo.slice(0, 100), etiqueta: documentos.includes(file) ? "documento" : tipo.startsWith("video/") ? "video" : "protocolo" });
@@ -622,7 +636,14 @@ function Fila({
                   {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : null} {confirmando(parteSerie) ? "Sí, registrar así" : "Registrar"}
                 </Button>
                 <button type="button" className="text-[11px] text-muted-foreground hover:underline" onClick={() => setAbrirParte(false)}>Cancelar</button>
-                <div className="basis-full">{avisoDeSerie(parteSerie)}</div>
+                <div className="basis-full">
+                  {(!parteNombre.trim() || !parteSerie.trim()) && (
+                    <p className="text-[11px] leading-snug text-muted-foreground">
+                      Falta: {[!parteNombre.trim() && "qué máquina es", !parteSerie.trim() && "su serie"].filter(Boolean).join(" · ")}.
+                    </p>
+                  )}
+                  {avisoDeSerie(parteSerie)}
+                </div>
               </div>
             ) : (
               <button
@@ -673,6 +694,19 @@ function Fila({
               </div>
               {avisoDeSerie(serieNueva)}
               <CampoCodigo valor={pinSerie} onChange={setPinSerie} tono="amber" id={`pin-serie-${e.id}`} />
+              {(!serieNueva.trim() || motivoSerie.trim().length < 5 || pinSerie.replace(/\D/g, "").length < 4) && (
+                <p className="text-[11px] leading-snug text-muted-foreground">
+                  Falta:{" "}
+                  {[
+                    !serieNueva.trim() && "la serie correcta",
+                    motivoSerie.trim().length < 5 && "el motivo (al menos una frase corta)",
+                    pinSerie.replace(/\D/g, "").length < 4 && "el código de 4 dígitos",
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                  .
+                </p>
+              )}
               <div className="flex gap-1.5">
                 <Button
                   size="sm"
@@ -712,6 +746,7 @@ function Fila({
                 </Button>
                 <button type="button" className="text-[11px] text-muted-foreground hover:underline" onClick={() => setModoCodigo(false)}>Cancelar</button>
               </div>
+              {!serie.trim() && <p className="text-[11px] leading-snug text-muted-foreground">Escriba el código del modelo para poder ponerlo.</p>}
               <p className="text-[11px] text-muted-foreground">Un solo código para todas las unidades de este artículo que no tienen serie. No entran al registro de máquinas.</p>
             </div>
           ) : abrirSerie ? (
@@ -728,6 +763,7 @@ function Fila({
                 </Button>
                 <button type="button" className="text-[11px] text-muted-foreground hover:underline" onClick={() => setAbrirSerie(false)}>Cancelar</button>
               </div>
+              {!serie.trim() && <p className="text-[11px] leading-snug text-muted-foreground">Escriba la serie como se lee en la placa para poder registrarla.</p>}
               {avisoDeSerie(serie)}
             </div>
           ) : (
@@ -807,6 +843,7 @@ function Fila({
             variant={porGuardar > 0 ? "default" : "outline"}
             className={cn("mr-1.5 h-8", porGuardar > 0 && "bg-amber-600 text-white hover:bg-amber-700")}
             disabled={pendiente || (porGuardar === 0 && !datosCambiados)}
+            porQue={porGuardar === 0 && !datosCambiados ? "Nada nuevo que guardar: elija fotos o cambie el técnico o la fecha." : null}
             onClick={() => correr(guardarFotos, porGuardar === 0 ? "Técnico y fecha guardados: ya salen en el informe" : "Fotos guardadas: ya están en el informe de prueba y embalaje")}
           >
             {pendiente && subiendo ? <Loader2 className="size-3.5 animate-spin" /> : null}
@@ -829,11 +866,12 @@ function Fila({
                 else router.push(informe);
                 return;
               }
+              setProblema(null);
               startTransition(async () => {
                 const r = await guardarFotos();
                 if (r.error) {
                   ventana?.close();
-                  toast.error(r.error, { duration: 9000 });
+                  setProblema((x) => x ?? r.error);
                   return;
                 }
                 if (ventana) ventana.location.href = informe;
@@ -929,6 +967,7 @@ function Fila({
                     size="sm"
                     className="h-8"
                     disabled={pendiente || fotos.length + videos.length + docs.length === 0}
+                    porQue={fotos.length + videos.length + docs.length === 0 ? "Elija al menos una foto, video o documento." : null}
                     onClick={() =>
                       correr(async () => {
                         const subidas = await subir([...fotos, ...videos], docs);
@@ -958,6 +997,7 @@ function Fila({
             ))}
         </div>
       )}
+      {problema && <p role="alert" className="mt-2 rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
     </li>
   );
 }
@@ -1049,6 +1089,7 @@ function ArchivosDeParte({ p, servicioId, probada, candado }: { p: EquipoDelPedi
   const [docs, setDocs] = useState<File[]>([]);
   const guardados = (Array.isArray(p.protocolo_fotos) ? p.protocolo_fotos : []) as FotoAlmacen[];
   const nombre = (p.parte_nombre ?? "otra máquina").toLowerCase();
+  const [problema, setProblema] = useState<string | null>(null);
 
   async function abrir(path: string) {
     const { data } = await createClient().storage.from("adjuntos").createSignedUrl(path, 600);
@@ -1057,17 +1098,18 @@ function ArchivosDeParte({ p, servicioId, probada, candado }: { p: EquipoDelPedi
   }
 
   function guardar() {
+    setProblema(null);
     startTransition(async () => {
       const storage = createClient().storage.from("adjuntos");
       const subidas: FotoAlmacen[] = [];
       for (const file of [...fotos, ...docs]) {
         const path = `pedidos/${servicioId}/almacen/protocolo-parte-${p.orden}-${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, "_").slice(0, 60)}`;
         const { error } = await storage.upload(path, file, { contentType: file.type || "image/jpeg" });
-        if (error) return void toast.error(`No se pudo subir «${file.name}»: ${error.message}`);
+        if (error) return void setProblema(`No se pudo subir «${file.name}»: ${error.message}. Vuelva a intentarlo.`);
         subidas.push({ path, nombre: file.name.slice(0, 120), tipo: file.type.slice(0, 100), etiqueta: docs.includes(file) ? "documento" : "protocolo" });
       }
       const r = await agregarArchivosDelEquipo(p.id, servicioId, subidas);
-      if (r.error) return void toast.error(r.error);
+      if (r.error) return void setProblema(r.error);
       toast.success(`Archivos agregados a la ${nombre}`);
       setFotos([]);
       setDocs([]);
@@ -1103,8 +1145,15 @@ function ArchivosDeParte({ p, servicioId, probada, candado }: { p: EquipoDelPedi
           <div className="space-y-1.5 rounded-md bg-muted/40 p-2">
             <TomarOSubirVarias titulo={`Fotos de la ${nombre}`} archivos={fotos} onChange={setFotos} maximo={100} />
             <Documentos archivos={docs} onChange={setDocs} titulo={`Protocolo o informe de la ${nombre} (PDF o Word)`} />
+            {problema && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
             <div className="flex gap-1.5">
-              <Button size="sm" className="h-8" disabled={pendiente || fotos.length + docs.length === 0} onClick={guardar}>
+              <Button
+                size="sm"
+                className="h-8"
+                disabled={pendiente || fotos.length + docs.length === 0}
+                porQue={fotos.length + docs.length === 0 ? "Elija al menos una foto o documento." : null}
+                onClick={guardar}
+              >
                 {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : null} Guardar
               </Button>
               <Button size="sm" variant="ghost" className="h-8" onClick={() => setAbierto(false)}>

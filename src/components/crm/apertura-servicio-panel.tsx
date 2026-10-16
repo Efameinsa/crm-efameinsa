@@ -91,12 +91,17 @@ export function AperturaServicioPanel({
   );
   const [elegidos, setElegidos] = useState<Set<string>>(new Set(destinatarios.map((d) => d.correo)));
   const [otro, setOtro] = useState("");
+  // Lo que no se pudo hacer queda escrito junto a su botón: la hoja, el correo y el aviso.
+  const [problemaHoja, setProblemaHoja] = useState<string | null>(null);
+  const [problemaCorreo, setProblemaCorreo] = useState<string | null>(null);
+  const [problemaEnvio, setProblemaEnvio] = useState<string | null>(null);
 
   function agregarOtro() {
+    setProblemaCorreo(null);
     const c = otro.trim().toLowerCase();
     if (!c) return;
     if (!esCorreoDeLaEmpresa(c)) {
-      toast.error("Solo direcciones de la empresa (@efameinsa.com o @openinvestments.com.pe). Al cliente se le escribe desde su propio correo.");
+      setProblemaCorreo("Solo direcciones de la empresa (@efameinsa.com o @openinvestments.com.pe). Al cliente se le escribe desde su propio correo.");
       return;
     }
     if (!lista.some((x) => x.correo === c)) setLista((l) => [...l, { correo: c, nombre: "Agregado a mano", area: "—" }]);
@@ -105,10 +110,11 @@ export function AperturaServicioPanel({
   }
 
   function enviarPorCorreo() {
+    setProblemaCorreo(null);
     empezarCorreo(async () => {
       const r = await enviarAperturaPorCorreo(servicioId, [...elegidos]);
       if (r.error) {
-        toast.error(r.error);
+        setProblemaCorreo(r.error);
         return;
       }
       setCorreoAbierto(false);
@@ -120,10 +126,11 @@ export function AperturaServicioPanel({
   }
 
   function marcarEnviado(destino: "almacen" | "cliente") {
+    setProblemaEnvio(null);
     empezarEnvio(async () => {
       const r = await marcarAperturaEnviada(servicioId, destino);
       if (r.error) {
-        toast.error(r.error);
+        setProblemaEnvio(r.error);
         return;
       }
       setEnviada((x) => ({ ...x, [destino]: new Date().toISOString() }));
@@ -147,6 +154,7 @@ export function AperturaServicioPanel({
   }
 
   function guardar() {
+    setProblemaHoja(null);
     empezar(async () => {
       const r = await guardarAperturaServicio(servicioId, {
         tipo: v.tipo,
@@ -169,7 +177,7 @@ export function AperturaServicioPanel({
         ...(empresaElegible ? { empresa } : {}),
       });
       if (r.error) {
-        toast.error(r.error);
+        setProblemaHoja(r.error);
         return;
       }
       toast.success("Guardado. La hoja de arriba ya quedó con estos datos.");
@@ -442,6 +450,7 @@ export function AperturaServicioPanel({
         >
           <Save className="size-3.5" /> {guardando ? "Guardando…" : "Guardar"}
         </button>
+        {problemaHoja && <p role="alert" className="mt-2 rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problemaHoja}</p>}
       </div>
 
       {/* ── El correo, listo ── */}
@@ -542,6 +551,7 @@ export function AperturaServicioPanel({
                 Agregar
               </Button>
             </div>
+            {problemaCorreo && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problemaCorreo}</p>}
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-muted-foreground">
                 {elegidos.size} {elegidos.size === 1 ? "destinatario" : "destinatarios"} · copia oculta a gestion1@
@@ -550,7 +560,7 @@ export function AperturaServicioPanel({
                 <Button variant="ghost" onClick={() => setCorreoAbierto(false)} disabled={mandando}>
                   Cancelar
                 </Button>
-                <Button onClick={enviarPorCorreo} disabled={mandando || elegidos.size === 0}>
+                <Button onClick={enviarPorCorreo} disabled={mandando || elegidos.size === 0} porQue={elegidos.size === 0 ? "Marque al menos un destinatario." : null}>
                   {mandando ? "Enviando…" : "Enviar correo"}
                 </Button>
               </div>
@@ -575,6 +585,7 @@ export function AperturaServicioPanel({
             disabled={enviando}
             onClick={() => marcarEnviado("almacen")}
           />
+          {problemaEnvio && <p role="alert" className="mt-2 rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problemaEnvio}</p>}
         </div>
       </div>
     </div>
