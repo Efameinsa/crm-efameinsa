@@ -40,6 +40,8 @@ import {
   MessageSquareWarning,
   ListChecks,
   Sparkles,
+  History,
+  FolderX,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePendientesWhatsapp } from "@/lib/pendientes-whatsapp";
@@ -126,6 +128,9 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/observaciones", etiqueta: "Observaciones del sistema", icono: MessageSquareWarning },
     // Lo que el personal le pregunta a Efamein (Carlos, 15-10).
     { href: "/admin/asistente", etiqueta: "Auditoría del asistente", icono: Sparkles },
+    // Registro de acciones y fichas sueltas (0513, Santos 16-10): deshacer sin tocar la base.
+    { href: "/admin/acciones", etiqueta: "Registro de acciones", icono: History },
+    { href: "/admin/fichas-sueltas", etiqueta: "Fichas sueltas", icono: FolderX },
   ],
   // OPERACIONES (0115). Su día no es vender: es autorizar lo que los demás
   // no pueden corregir solos, repartir los permisos que se dan y se quitan,
@@ -140,6 +145,9 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/operaciones/permisos", etiqueta: "Permisos", icono: ShieldCheck },
     { href: "/operaciones/catalogo", etiqueta: "El catálogo", icono: Package },
     { href: "/admin/catalogos", etiqueta: "Listas del sistema", icono: BookMarked },
+    // Registro de acciones y fichas sueltas (0513, Santos 16-10): deshacer sin tocar la base.
+    { href: "/admin/acciones", etiqueta: "Registro de acciones", icono: History },
+    { href: "/admin/fichas-sueltas", etiqueta: "Fichas sueltas", icono: FolderX },
   ],
   // FINANZAS (0279, gerencia 23-09: «Sí» a que John confirme él mismo los
   // pagos). Tres destinos por la pregunta que responde cada uno: qué tengo
@@ -171,6 +179,9 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/observaciones", etiqueta: "Observaciones del sistema", icono: MessageSquareWarning },
     // Lo que el personal le pregunta al asistente (0479, Santos 14-10).
     { href: "/admin/asistente", etiqueta: "Auditoría del asistente", icono: Sparkles },
+    // Registro de acciones y fichas sueltas (0513, Santos 16-10): deshacer sin tocar la base.
+    { href: "/admin/acciones", etiqueta: "Registro de acciones", icono: History },
+    { href: "/admin/fichas-sueltas", etiqueta: "Fichas sueltas", icono: FolderX },
     { href: "/tasking", etiqueta: "Tasking", icono: ListChecks },
   ],
 };

@@ -3,10 +3,12 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Search, Plus, TriangleAlert } from "lucide-react";
+import { Search, Plus, TriangleAlert, Link2 } from "lucide-react";
 import { buscarClientes } from "@/lib/acciones/casos";
 import { modelosDelCatalogo, registrarEquipo } from "@/lib/acciones/equipos";
 import { ficharEquipoDeLaAtencion } from "@/lib/acciones/atenciones";
+import { unionPorSerie, type UnionPropuesta } from "@/lib/acciones/registro";
+import { DialogoUnirFichas } from "@/components/crm/dialogo-unir-fichas";
 import { ModeloDeMaquina } from "@/components/crm/modelo-de-maquina";
 import type { ModeloCatalogo } from "@/lib/modelos-catalogo";
 import { cn } from "@/lib/utils";
@@ -88,6 +90,9 @@ export function FicharMaquina({
   // 0512 (Ariana, 16-10): cuando la serie ya está en OTRA ficha la base frena
   // y explica qué hacer. Un toast se va en segundos; esto queda a la vista.
   const [aviso, setAviso] = useState<string | null>(null);
+  // …y desde el mismo aviso se pueden unir las dos fichas (Santos, 16-10).
+  const [union, setUnion] = useState<UnionPropuesta | null>(null);
+  const [uniendo, setUniendo] = useState(false);
 
   function mirarClientes() {
     if (texto.trim().length < 3) {
@@ -103,6 +108,7 @@ export function FicharMaquina({
 
   function guardar() {
     setAviso(null);
+    setUnion(null);
     empezar(async () => {
       const deAfuera = origen === "servicio";
       const observaciones = deAfuera
@@ -125,8 +131,10 @@ export function FicharMaquina({
           ? await ficharEquipoDeLaAtencion({ atencionId, ...comun, observaciones })
           : await registrarEquipo({ cuentaId: elegida?.id ?? "", ...comun });
         if (r.error) {
-          if (r.error.includes("ya está registrada en otra ficha")) setAviso(r.error);
-          else toast.error(`${m.serie.trim() || m.modelo}: ${r.error}`);
+          if (r.error.includes("ya está registrada en otra ficha")) {
+            setAviso(r.error);
+            if (atencionId && m.serie.trim()) setUnion(await unionPorSerie(m.serie, atencionId));
+          } else toast.error(`${m.serie.trim() || m.modelo}: ${r.error}`);
           // Lo que ya se guardó no se repite: quedan en el formulario solo las que faltan.
           setMaquinas(aGuardar.slice(hechas));
           if (hechas) router.refresh();
@@ -334,10 +342,40 @@ export function FicharMaquina({
       </p>
 
       {aviso && (
-        <p role="alert" className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm leading-snug text-amber-900">
-          <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-          <span>{aviso}</span>
-        </p>
+        <div role="alert" className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm leading-snug text-amber-900">
+          <p className="flex items-start gap-2">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+            <span>{aviso}</span>
+          </p>
+          {union?.origen ? (
+            <div className="flex flex-wrap items-center gap-2 pl-6">
+              <button
+                type="button"
+                onClick={() => setUniendo(true)}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-amber-400 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100"
+              >
+                <Link2 className="size-3.5" /> Revisar y unir las dos fichas
+              </button>
+              <span className="text-[11px] text-amber-900/80">Con el código de operaciones. Después la máquina aparece en el caso.</span>
+            </div>
+          ) : union?.noSePuede ? (
+            <p className="pl-6 text-xs text-amber-900/80">{union.noSePuede}</p>
+          ) : null}
+        </div>
+      )}
+      {union?.origen && (
+        <DialogoUnirFichas
+          abierto={uniendo}
+          onOpenChange={setUniendo}
+          origen={union.origen}
+          destino={union.destino}
+          motivoInicial={`La serie ${maquinas[0]?.serie.trim() ?? ""} ya estaba en la otra ficha: es el mismo cliente.`}
+          alUnir={() => {
+            setAviso(null);
+            setUnion(null);
+            toast.info("Ya está: la máquina ahora es de esta ficha. Vuelva a pulsar «Fichar la máquina» o elíjala en la lista del caso.", { duration: 10000 });
+          }}
+        />
       )}
 
       <button

@@ -688,7 +688,7 @@ export default async function OportunidadDetallePage({
 
         {cuenta?.id && candidatasRelacionadas.length > 0 && (
           <div className="mt-3">
-            <FichasRelacionadas cuentaId={cuenta.id} candidatas={candidatasRelacionadas} supervisores={supervisoresFusion} />
+            <FichasRelacionadas cuentaId={cuenta.id} cuentaNombre={cuenta.razon_social ?? "Esta ficha"} candidatas={candidatasRelacionadas} supervisores={supervisoresFusion} />
           </div>
         )}
       </div>

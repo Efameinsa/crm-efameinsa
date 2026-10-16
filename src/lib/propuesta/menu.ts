@@ -228,6 +228,9 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Permisos y listas", href: "/nuevo/permisos", icono: "permisos", coincide: ["/nuevo/permisos", "/operaciones/permisos", "/admin/catalogos"] },
     // Como gerencia, pero de Central, comerciales, almacén, Finanzas y Facturación (26-09).
     { etiqueta: "Ver como otra cuenta", href: "/operaciones/ver-como", icono: "control", coincide: ["/operaciones/ver-como"] },
+    // Registro de acciones y fichas sueltas (0513, Santos 16-10): deshacer sin tocar la base.
+    { etiqueta: "Registro de acciones", href: "/admin/acciones", icono: "control", coincide: ["/admin/acciones"] },
+    { etiqueta: "Fichas sueltas", href: "/admin/fichas-sueltas", icono: "clientes", coincide: ["/admin/fichas-sueltas"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
     // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
@@ -250,6 +253,9 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Observaciones", href: "/observaciones", icono: "observaciones", coincide: ["/observaciones", "/sugerencias"] },
     // Lo que el personal le pregunta a Efamein, como un chat (Carlos, 15-10).
     { etiqueta: "Auditoría del asistente", href: "/admin/asistente", icono: "observaciones", coincide: ["/admin/asistente"] },
+    // Registro de acciones y fichas sueltas (0513, Santos 16-10): deshacer sin tocar la base.
+    { etiqueta: "Registro de acciones", href: "/admin/acciones", icono: "control", coincide: ["/admin/acciones"] },
+    { etiqueta: "Fichas sueltas", href: "/admin/fichas-sueltas", icono: "clientes", coincide: ["/admin/fichas-sueltas"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
     // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
@@ -265,6 +271,9 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Observaciones", href: "/observaciones", icono: "observaciones", coincide: ["/observaciones", "/sugerencias"] },
     // Lo que el personal le pregunta al asistente (0479, Santos 14-10).
     { etiqueta: "Auditoría del asistente", href: "/admin/asistente", icono: "observaciones", coincide: ["/admin/asistente"] },
+    // Registro de acciones y fichas sueltas (0513, Santos 16-10): deshacer sin tocar la base.
+    { etiqueta: "Registro de acciones", href: "/admin/acciones", icono: "control", coincide: ["/admin/acciones"] },
+    { etiqueta: "Fichas sueltas", href: "/admin/fichas-sueltas", icono: "clientes", coincide: ["/admin/fichas-sueltas"] },
     // TASKING (Santos, 09-10): actas de reunión, compromisos por WhatsApp y aviso de sugerencias resueltas.
     { etiqueta: "Tasking", href: "/tasking", icono: "tasking", coincide: ["/tasking"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
