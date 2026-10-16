@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { Check, Loader2, PackageX, ScanBarcode, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { abrirOtroCircuito, agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarProcedencia, marcarSinStock, quitarLineaQueNoCorresponde, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
-import { probarEquipoDelPedido, tecnicoYFechaDeLaPrueba } from "@/lib/acciones/almacen";
+import { probarEquipoDelPedido, probarKitDelPedido, tecnicoYFechaDeLaPrueba } from "@/lib/acciones/almacen";
 import { corregirSerie } from "@/lib/acciones/pedido-central";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
 import type { FotoAlmacen } from "@/lib/postventa";
@@ -87,6 +87,8 @@ export function EquiposDelPedido({
   // Cada torre son dos máquinas (Rubí, 06-10: «una torre sería tener 2 ítems,
   // uno por la lavadora y otro por la secadora»).
   const torres = equipos.filter((e) => esTorre(e.descripcion)).length;
+  // Pedido de repuestos con varias piezas: un solo protocolo para el kit (0517; Ariana, 16-10).
+  const kit = repuesto && equipos.length > 1;
 
   return (
     <div className={cn("rounded-lg border p-3", despachado && sinSerie > 0 ? "border-amber-400/60 bg-amber-500/5" : "border-border")}>
@@ -142,6 +144,9 @@ export function EquiposDelPedido({
           ))}
         </p>
       )}
+      {modo === "almacen" && kit && van.some((e) => !e.prueba_lista_at) && (
+        <ProtocoloDelKit servicioId={servicioId} piezas={van} cliente={cliente} />
+      )}
       <ol className="mt-2 space-y-2">
         {equipos.map((e) => {
           const grupo = equipos.filter((x) => x.descripcion.trim() === e.descripcion.trim());
@@ -158,6 +163,7 @@ export function EquiposDelPedido({
               partes={partesDe(e.id)}
               candado={candado}
               repuesto={repuesto}
+              kit={kit}
               unica={equipos.length === 1}
             />
           );
@@ -304,6 +310,7 @@ function Fila({
   partes,
   candado,
   repuesto,
+  kit,
   unica,
 }: {
   e: EquipoDelPedido;
@@ -318,6 +325,8 @@ function Fila({
   partes: EquipoDelPedido[];
   candado: boolean;
   repuesto: boolean;
+  /** Pieza de un kit de repuestos: su protocolo va en el bloque del kit, no en la fila (0517). */
+  kit: boolean;
   /** Es lo único en la lista: no se puede quitar como «no corresponde» (0515). */
   unica: boolean;
 }) {
@@ -510,7 +519,7 @@ function Fila({
 
   const apagado = !e.en_este_despacho;
   // El mismo momento en que sale el bloque de fotos de abajo.
-  const puedeSubirFotos = modo === "almacen" && e.en_este_despacho && !e.prueba_lista_at;
+  const puedeSubirFotos = modo === "almacen" && e.en_este_despacho && !e.prueba_lista_at && !kit;
 
   // Con archivos elegidos sin guardar, o subiendo, el navegador pregunta antes
   // de recargar o cerrar (Ariana, 15-10: recargaba y perdía lo elegido).
@@ -843,7 +852,7 @@ function Fila({
       )}
 
       {/* El almacén prueba esta máquina y sube SU protocolo. */}
-      {modo === "almacen" && e.en_este_despacho && !e.prueba_lista_at && (
+      {modo === "almacen" && e.en_este_despacho && !e.prueba_lista_at && !kit && (
         <div className="mt-2 space-y-1.5 rounded-md bg-muted/40 p-2">
           <div className="grid gap-1.5 sm:grid-cols-[11rem_1fr]">
             <Input value={protocolo} onChange={(x) => setProtocolo(x.target.value)} placeholder={`N.º de protocolo (opcional)`} className="h-8 text-sm" />
@@ -1062,6 +1071,214 @@ function Fila({
       )}
       {problema && <p role="alert" className="mt-2 rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
     </li>
+  );
+}
+
+/**
+ * EL PROTOCOLO DEL KIT COMPLETO (0517; Ariana, almacén, 16-10, LINO ESPIRITU
+ * PED-0032-2026: «verificar que el protocolo salga como kit completo y no como
+ * foto detallada de cada repuesto»). En un pedido de repuestos las piezas se
+ * prueban y se embalan juntas: unas fotos del kit armado, un técnico y una
+ * fecha para todas; un clic las marca. Las fotos que ya se subieron pieza por
+ * pieza también cuentan y salen en la misma hoja del informe.
+ */
+function ProtocoloDelKit({ servicioId, piezas, cliente }: { servicioId: string; piezas: EquipoDelPedido[]; cliente: string }) {
+  const router = useRouter();
+  const [pendiente, startTransition] = useTransition();
+  const pendientes = piezas.filter((e) => !e.prueba_lista_at);
+  const primera = pendientes[0];
+  const guardadas = piezas.flatMap((e) => (Array.isArray(e.protocolo_fotos) ? e.protocolo_fotos : []) as FotoAlmacen[]);
+  const conDatos = piezas.find((e) => e.protocolo_datos?.principal?.tecnico?.trim());
+  const tecnicoGuardado = conDatos?.protocolo_datos?.principal?.tecnico ?? "";
+  const fechaGuardada = piezas.map((e) => e.protocolo_datos?.principal?.fecha_ejecucion ?? e.protocolo_fecha).find(Boolean) ?? null;
+  const [protocolo, setProtocolo] = useState("");
+  const [nota, setNota] = useState("");
+  const [tecnico, setTecnico] = useState(tecnicoGuardado);
+  const [fechaProtocolo, setFechaProtocolo] = useState(() => fechaGuardada ?? hoyLima());
+  const [fotos, setFotos] = useState<File[]>([]);
+  const [videos, setVideos] = useState<File[]>([]);
+  const [docs, setDocs] = useState<File[]>([]);
+  const [subiendo, setSubiendo] = useState<Subida[] | null>(null);
+  const [problema, setProblema] = useState<string | null>(null);
+
+  const porGuardar = fotos.length + videos.length + docs.length;
+  const fechaElegida = fechaProtocolo && (fechaGuardada || fechaProtocolo !== hoyLima()) ? fechaProtocolo : "";
+  const datosCambiados = tecnico.trim() !== tecnicoGuardado || (fechaElegida !== "" && fechaElegida !== fechaGuardada);
+  const esFoto = (a: { tipo?: string | null; path?: string | null }) => (a.tipo ?? "").startsWith("image/") || /\.(jpe?g|png|webp|gif|heic)$/i.test(a.path ?? "");
+  const falta = [
+    !guardadas.some(esFoto) && fotos.length === 0 && "fotos del kit",
+    !tecnico.trim() && "técnico que hizo la prueba",
+  ].filter(Boolean) as string[];
+
+  const sinGuardar = porGuardar > 0 || (pendiente && subiendo !== null);
+  useEffect(() => {
+    if (!sinGuardar) return;
+    const avisar = (ev: BeforeUnloadEvent) => ev.preventDefault();
+    window.addEventListener("beforeunload", avisar);
+    return () => window.removeEventListener("beforeunload", avisar);
+  }, [sinGuardar]);
+
+  if (!primera) return null;
+
+  async function subir(): Promise<FotoAlmacen[] | null> {
+    const todos = [...fotos, ...videos, ...docs];
+    const ids = todos.map(() => crypto.randomUUID());
+    setSubiendo(todos.map((f, i) => ({ id: ids[i], nombre: f.name, fraccion: 0 })));
+    const marcar = (i: number, cambio: Partial<Subida>) => setSubiendo((x) => x && x.map((s) => (s.id === ids[i] ? { ...s, ...cambio } : s)));
+    const salida: FotoAlmacen[] = [];
+    for (const [i, file] of todos.entries()) {
+      const path = `pedidos/${servicioId}/almacen/protocolo-kit-${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, "_").slice(0, 60)}`;
+      const tipo = file.type || tipoDeVideo(file.name) || "image/jpeg";
+      const { error } = await subirConProgreso("adjuntos", path, file, tipo, (fraccion) => marcar(i, { fraccion }));
+      if (error) {
+        marcar(i, { error });
+        setProblema(`No se pudo subir «${file.name}»: ${error}. Lo elegido sigue en pantalla: vuelva a pulsar.`);
+        return null;
+      }
+      salida.push({ path, nombre: file.name.slice(0, 120), tipo: tipo.slice(0, 100), etiqueta: docs.includes(file) ? "documento" : tipo.startsWith("video/") ? "video" : "protocolo" });
+    }
+    return salida;
+  }
+
+  function guardarTecnicoYFecha() {
+    if (!datosCambiados) return Promise.resolve({ error: null });
+    return tecnicoYFechaDeLaPrueba(servicioId, pendientes.map((e) => ({ id: e.id, maquina: "principal" as const })), { tecnico, fecha: fechaElegida });
+  }
+
+  async function guardar(): Promise<{ error: string | null }> {
+    const t = await guardarTecnicoYFecha();
+    if (t.error) return t;
+    if (porGuardar === 0) return { error: null };
+    const subidas = await subir();
+    if (!subidas) return { error: "No se subieron los archivos" };
+    const r = await agregarArchivosDelEquipo(primera.id, servicioId, subidas);
+    if (r.error) return r;
+    setFotos([]);
+    setVideos([]);
+    setDocs([]);
+    return { error: null };
+  }
+
+  function correr(fn: () => Promise<{ error: string | null; pedidoListo?: boolean }>, exito: string) {
+    setProblema(null);
+    startTransition(async () => {
+      const r = await fn();
+      if (r.error) {
+        setProblema((x) => x ?? r.error);
+        return;
+      }
+      toast.success(r.pedidoListo ? "Kit completo probado y embalado. Postventa ya lo sabe." : exito);
+      setSubiendo(null);
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="mt-2 space-y-1.5 rounded-md border border-primary/30 bg-primary/5 p-2.5">
+      <p className="text-sm font-semibold">
+        Protocolo del kit completo · {pendientes.length === piezas.length ? `${piezas.length} piezas` : `faltan ${pendientes.length} de ${piezas.length} piezas`}
+      </p>
+      <p className="text-[11px] text-muted-foreground">
+        Las piezas se prueban y se embalan juntas: suba las fotos del kit armado y el técnico una sola vez. El informe sale en una sola hoja con la lista de piezas y
+        sus cantidades.
+        {guardadas.length > 0 ? ` Ya hay ${guardadas.length === 1 ? "1 archivo subido" : `${guardadas.length} archivos subidos`}: cuentan para el kit.` : ""}
+      </p>
+      <div className="grid gap-1.5 sm:grid-cols-[11rem_1fr]">
+        <Input value={protocolo} onChange={(x) => setProtocolo(x.target.value)} placeholder="N.º de protocolo (opcional)" className="h-8 text-sm" />
+        <Input value={nota} onChange={(x) => setNota(x.target.value)} placeholder="Nota: kit probado y embalado en caja…" className="h-8 text-sm" />
+      </div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground">
+        <label className="flex flex-wrap items-center gap-1.5">
+          Fecha en que se hizo la prueba:
+          <Input type="date" value={fechaProtocolo} max={hoyLima()} onChange={(x) => setFechaProtocolo(x.target.value)} className="h-8 w-40 text-sm" />
+        </label>
+        <label className="flex flex-wrap items-center gap-1.5">
+          Técnico que hizo la prueba:
+          <Input value={tecnico} onChange={(x) => setTecnico(x.target.value)} placeholder="Nombre del técnico" maxLength={120} className="h-8 w-56 text-sm" />
+        </label>
+      </div>
+      <TomarOSubirVarias titulo="Fotos del kit completo" archivos={fotos} onChange={setFotos} maximo={100} />
+      <VideosDeLaPrueba titulo="Video de la prueba (opcional)" archivos={videos} onChange={setVideos} />
+      <Documentos archivos={docs} onChange={setDocs} titulo="Protocolo o informe del kit (PDF o Word, opcional)" />
+      {porGuardar > 0 && !pendiente && (
+        <p className="rounded-md border border-amber-400/70 bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-950">
+          ⚠️ {porGuardar === 1 ? "1 archivo elegido todavía no está guardado" : `${porGuardar} archivos elegidos todavía no están guardados`}. Pulse «Guardar» y espere a
+          que se llenen las barritas.
+        </p>
+      )}
+      {subiendo && <BarrasDeSubida lista={subiendo} />}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Button
+          size="sm"
+          variant={porGuardar > 0 ? "default" : "outline"}
+          className={cn("h-8", porGuardar > 0 && "bg-amber-600 text-white hover:bg-amber-700")}
+          disabled={pendiente || (porGuardar === 0 && !datosCambiados)}
+          porQue={porGuardar === 0 && !datosCambiados ? "Nada nuevo que guardar: elija fotos o cambie el técnico o la fecha." : null}
+          onClick={() => correr(guardar, porGuardar === 0 ? "Técnico y fecha guardados: ya salen en el informe" : "Fotos del kit guardadas: ya están en el informe")}
+        >
+          {pendiente && subiendo ? <Loader2 className="size-3.5 animate-spin" /> : null}
+          {porGuardar > 0 ? `Guardar ${porGuardar === 1 ? "1 archivo" : `${porGuardar} archivos`}` : datosCambiados ? "Guardar técnico y fecha" : "Guardar fotos"}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8"
+          disabled={pendiente}
+          onClick={() => {
+            // La pestaña se abre con el clic (si se abre después de subir, el navegador la bloquea).
+            const ventana = window.open("about:blank", "_blank");
+            const informe = `/pedidos/${servicioId}/protocolo`;
+            if (porGuardar === 0 && !datosCambiados) {
+              if (ventana) ventana.location.href = informe;
+              else router.push(informe);
+              return;
+            }
+            setProblema(null);
+            startTransition(async () => {
+              const r = await guardar();
+              if (r.error) {
+                ventana?.close();
+                setProblema((x) => x ?? r.error);
+                return;
+              }
+              if (ventana) ventana.location.href = informe;
+              toast.success("Guardado. El borrador del informe se abrió en otra pestaña; el kit sigue sin marcar.");
+              router.refresh();
+            });
+          }}
+        >
+          📄 Ver el borrador del informe
+        </Button>
+        <Button
+          size="sm"
+          className="h-8"
+          disabled={pendiente || falta.length > 0}
+          porQue={falta.length > 0 ? `Falta: ${falta.join(" · ")}.` : null}
+          onClick={() =>
+            correr(async () => {
+              const t = await guardarTecnicoYFecha();
+              if (t.error) return t;
+              const subidas = porGuardar > 0 ? await subir() : [];
+              if (!subidas) return { error: "No se subieron los archivos" };
+              return probarKitDelPedido(servicioId, {
+                protocoloRef: protocolo,
+                nota,
+                fotos: subidas,
+                cliente,
+                fecha: fechaProtocolo && fechaProtocolo !== hoyLima() ? fechaProtocolo : null,
+              });
+            }, "Kit probado y embalado")
+          }
+        >
+          {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />} Kit completo probado y embalado
+        </Button>
+      </div>
+      {problema && (
+        <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+          {problema}
+        </p>
+      )}
+    </div>
   );
 }
 

@@ -30,6 +30,7 @@ export function DatosHojaProtocolo({
   valores,
   faltan,
   repuesto = false,
+  kit = false,
   stockId,
 }: {
   itemId: string;
@@ -40,6 +41,8 @@ export function DatosHojaProtocolo({
   faltan: string[];
   /** Pedido de repuestos (0441): la hoja lleva el nombre del repuesto y su código, sin modelo de placa. */
   repuesto?: boolean;
+  /** Kit de repuestos (0517): una hoja para todas las piezas, con su nombre y sin código. */
+  kit?: boolean;
   /** Protocolo de un equipo en stock (0474): se guarda ahí, no en un pedido. */
   stockId?: string;
 }) {
@@ -47,7 +50,11 @@ export function DatosHojaProtocolo({
   const [abierto, setAbierto] = useState(false);
   const [datos, setDatos] = useState<DatosHoja>(valores);
   const [pendiente, startTransition] = useTransition();
-  const campos = repuesto
+  const campos = kit
+    ? CAMPOS.filter((c) => c.clave !== "modelo" && c.clave !== "serie").map((c) =>
+        c.clave === "equipo" ? { ...c, etiqueta: "Nombre del kit (sale en el título)", ayuda: "KIT DE INSTALACIÓN A GAS SECADORA GIANT C MAX" } : c,
+      )
+    : repuesto
     ? CAMPOS.filter((c) => c.clave !== "modelo").map((c) =>
         c.clave === "equipo"
           ? { ...c, etiqueta: "Nombre del repuesto (sale en el título)", ayuda: "VALVULA SOLENOIDE 24V" }

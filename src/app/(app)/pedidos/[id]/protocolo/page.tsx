@@ -102,6 +102,11 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
   const serieEmpresa = cierre?.serie === "OPEN" ? "OPEN" : "EFAMEINSA";
   // Pedido de repuestos (0441): una hoja por repuesto, con su nombre y su código (Almacén, 12-10).
   const deRepuestos = s.tipo_pedido === "repuesto";
+  // Con varias piezas es un KIT: una sola hoja con la lista de piezas y todas las
+  // fotos juntas (0517; Ariana, 16-10, LINO PED-0032-2026: «que el protocolo salga
+  // como kit completo y no como foto detallada de cada repuesto»).
+  const piezas = equipos.filter((e) => !e.parte_de);
+  const kit = deRepuestos && piezas.length > 1;
 
   // Las hojas: lo que el almacén completó (0417) y, si no, lo que se lee del pedido.
   type Hoja = { clave: string; item: (typeof equipos)[number] | null; maquina: Maquina; datos: DatosHoja; faltan: string[]; indices: number[] };
@@ -153,6 +158,33 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
       indices: sueltos,
     });
   else if (sueltos.length > 0) hojas[hojas.length - 1].indices.push(...sueltos);
+  if (kit) {
+    // Los datos de la hoja (técnico, fechas, nombre) van en la primera pieza que los tenga.
+    const base = piezas.find((e) => Object.keys((e.protocolo_datos ?? {}).principal ?? {}).length > 0) ?? piezas[0];
+    const hoja = hojas.find((h) => h.item?.id === base.id)!;
+    const conFecha = piezas.find((e) => e.prueba_lista_at) ?? base;
+    hoja.datos = {
+      ...hoja.datos,
+      equipo: base.protocolo_datos?.principal?.equipo ?? "KIT DE REPUESTOS",
+      serie: undefined,
+      fecha_ejecucion: hoja.datos.fecha_ejecucion ?? diaLima(conFecha.prueba_lista_at),
+      elaborado: hoja.datos.elaborado ?? nombre(conFecha.prueba_lista_por) ?? undefined,
+    };
+    hoja.faltan = hoja.faltan.filter((f) => (f === "fecha de ejecución" ? !hoja.datos.fecha_ejecucion : f === "quién elaboró" ? !hoja.datos.elaborado : true));
+    hoja.indices = archivos.map((_, i) => i);
+    hojas.splice(0, hojas.length, hoja);
+  }
+  // La lista de piezas del kit: las iguales (mismo artículo y código) en una fila con su cantidad.
+  const listaKit = kit
+    ? piezas.reduce<{ descripcion: string; codigo: string | null; cantidad: number }[]>((acc, e) => {
+        const descripcion = e.descripcion.split("\n")[0].replace(/\s+/g, " ").trim();
+        const codigo = e.serie?.trim() || null;
+        const igual = acc.find((x) => x.descripcion === descripcion && x.codigo === codigo);
+        if (igual) igual.cantidad += 1;
+        else acc.push({ descripcion, codigo, cantidad: 1 });
+        return acc;
+      }, [])
+    : [];
 
   const refs = [...new Set([s.protocolo_prueba_ref, ...equipos.map((e) => e.protocolo_ref)].map((r) => r?.trim()).filter(Boolean) as string[])];
   const titulo = "INFORME DE PROTOCOLO DE PRUEBA";
@@ -202,7 +234,7 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
 
             <h1 className="mt-4 text-center text-[15px] font-bold uppercase underline">INFORME DE PROTOCOLO DE PRUEBA DE {h.datos.equipo}</h1>
             {modelo && <p className="mt-1 text-center text-[14px] font-bold uppercase underline">MODELO: {modelo}</p>}
-            {deRepuestos && h.datos.serie && <p className="mt-1 text-center text-[14px] font-bold uppercase underline">CÓDIGO: {h.datos.serie}</p>}
+            {deRepuestos && !kit && h.datos.serie && <p className="mt-1 text-center text-[14px] font-bold uppercase underline">CÓDIGO: {h.datos.serie}</p>}
 
             <div className="mt-4 border-y border-black py-2 text-[13px]">
               {filas.map(([k, v]) => (
@@ -212,11 +244,38 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
               ))}
             </div>
 
-            {e && puedeEditar && !cerrada(e) && <DatosHojaProtocolo itemId={e.id} servicioId={id} maquina={h.maquina} valores={h.datos} faltan={h.faltan} repuesto={deRepuestos} />}
+            {e && puedeEditar && !cerrada(e) && <DatosHojaProtocolo itemId={e.id} servicioId={id} maquina={h.maquina} valores={h.datos} faltan={h.faltan} repuesto={deRepuestos} kit={kit} />}
 
-            {h.maquina === "principal" && e?.protocolo_nota && (
+            {kit && (
+              <table className="mt-3 w-full border-collapse text-[12px]">
+                <thead>
+                  <tr className="bg-neutral-100">
+                    <th className="border border-black px-1.5 py-0.5 text-center">N.º</th>
+                    <th className="border border-black px-1.5 py-0.5 text-left">Pieza del kit</th>
+                    <th className="border border-black px-1.5 py-0.5 text-left">Código</th>
+                    <th className="border border-black px-1.5 py-0.5 text-center">Cant.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {listaKit.map((x, i) => (
+                    <tr key={`${x.descripcion}-${x.codigo}`}>
+                      <td className="border border-black px-1.5 py-0.5 text-center">{i + 1}</td>
+                      <td className="border border-black px-1.5 py-0.5">{x.descripcion}</td>
+                      <td className="border border-black px-1.5 py-0.5 font-mono">{x.codigo ?? "—"}</td>
+                      <td className="border border-black px-1.5 py-0.5 text-center">{x.cantidad}</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td colSpan={3} className="border border-black px-1.5 py-0.5 text-right font-semibold">Total de piezas</td>
+                    <td className="border border-black px-1.5 py-0.5 text-center font-semibold">{piezas.length}</td>
+                  </tr>
+                </tbody>
+              </table>
+            )}
+
+            {(kit ? [...new Set(piezas.map((x) => x.protocolo_nota?.trim()).filter(Boolean))].join(" · ") : h.maquina === "principal" && e?.protocolo_nota) && (
               <p className="mt-3 text-[12px]">
-                <b>Nota:</b> {e.protocolo_nota}
+                <b>Nota:</b> {kit ? [...new Set(piezas.map((x) => x.protocolo_nota?.trim()).filter(Boolean))].join(" · ") : e?.protocolo_nota}
               </p>
             )}
 
@@ -261,8 +320,8 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
             ) : (
               <p className="no-imprimir mt-4 text-[12px] italic text-neutral-600">
                 {e?.prueba_lista_at || (!e && s.prueba_lista_at)
-                  ? "Se marcó la prueba sin subir fotos de esta máquina."
-                  : "Todavía no hay fotos de esta máquina: se suben desde el pedido del almacén."}
+                  ? `Se marcó la prueba sin subir fotos de ${kit ? "este kit" : "esta máquina"}.`
+                  : `Todavía no hay fotos de ${kit ? "este kit" : "esta máquina"}: se suben desde el pedido del almacén.`}
               </p>
             )}
           </section>
