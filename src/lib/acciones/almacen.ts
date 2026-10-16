@@ -139,6 +139,46 @@ export async function probarEquipoDelPedido(
   return { ...ok(servicioId), pedidoListo };
 }
 
+/**
+ * EL KIT COMPLETO DE UNA VEZ (0517; Ariana, almacén, 16-10, LINO ESPIRITU
+ * PED-0032-2026: «que el protocolo salga como kit completo y no como foto
+ * detallada de cada repuesto»). En un pedido de repuestos las piezas se
+ * prueban y embalan juntas: unas fotos del kit y un técnico marcan todas las
+ * que van en este despacho. Lo subido con el clic queda en la primera pieza.
+ */
+export async function probarKitDelPedido(
+  servicioId: string,
+  datos: { protocoloRef?: string; fotos?: Foto[]; nota?: string; cliente: string; fecha?: string | null },
+): Promise<{ error: string | null; pedidoListo?: boolean }> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("almacen_probar_kit", {
+    p_servicio: servicioId,
+    p_protocolo_ref: datos.protocoloRef?.trim() || null,
+    p_fotos: datos.fotos ?? [],
+    p_nota: datos.nota?.trim() || null,
+  });
+  if (error) return { error: limpiar(error.message) };
+  if (datos.fecha) {
+    const { data: piezas } = await supabase.from("pedido_equipos").select("id").eq("servicio_id", servicioId).is("parte_de", null);
+    for (const p of piezas ?? []) {
+      const r = await supabase.rpc("fecha_del_protocolo", { p_item: p.id, p_fecha: datos.fecha });
+      if (r.error) return { error: `Quedó probado, pero no se guardó la fecha: ${limpiar(r.error.message)}` };
+    }
+  }
+  const pedidoListo = data === true;
+  if (pedidoListo) {
+    await avisarPostventa(
+      `Probado y embalado · ${datos.cliente}`,
+      `El almacén ya probó y embaló el kit completo de repuestos${datos.protocoloRef ? ` (protocolo ${datos.protocoloRef})` : ""}. Se puede programar el despacho.`,
+      `/postventa/pedidos/${servicioId}`,
+    );
+    await avisarFinanzasSiFaltaVistoBueno(servicioId, "listo");
+  }
+  revalidatePath(`/pedidos/${servicioId}/protocolo`);
+  return { ...ok(servicioId), pedidoListo };
+}
+
 export async function confirmarListo(servicioId: string, datos: { nota?: string; cliente: string; fecha: string | null }) {
   const supabase = await createClient();
   const { error } = await supabase.rpc("almacen_confirmar_listo", { p_servicio: servicioId, p_nota: datos.nota?.trim() || null });
