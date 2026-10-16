@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 16-10 · Buzón: orden de compra u orden de servicio en la apertura (Rubí)
+- **Qué se pidió:** Rubí pidió que, después de «Servicio a realizar», la apertura tenga para elegir ORDEN DE COMPRA u ORDEN DE SERVICIO (caso: apertura de la secadora de Hortifrut).
+- **Qué se hizo:** la apertura tiene ahora una fila 2 con la orden del cliente: de compra, de servicio o «el cliente no emitió orden», con su número. Se elige en «Datos que se coordinan». Si no se elige y el cierre trae orden de compra, sale esa. Las demás filas corrieron un número.
+
 ### 15-10 (noche) · Buzón: seis pedidos resueltos (Rubí, Moisés y Central)
 - **Visita a la planta: equipos del cliente, DNI o C.E. y «Recogió equipo»** (pedido de Rubí). Al elegir el cliente salen sus equipos con su serie para solo marcar «Lo recoge» o «Prepararlo para la visita» (este pasa al almacén). El documento de quien viene se elige con un botón DNI o C.E., también para los acompañantes. Al cerrar la visita existe «Recogió equipo», que anota en la gestión del cliente qué equipos se llevó.
 - **«Capacitación · no se cobra» en la clasificación del caso** (pedido de Rubí): para visitas donde se le enseña al personal del cliente a usar la máquina. Si se cobra, va como «Servicio facturable».
