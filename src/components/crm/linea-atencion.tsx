@@ -113,7 +113,10 @@ export interface OtraMaquinaDelCasoTrabajo {
 
 /** «Serie X · modelo» para encabezar el recuadro de cada máquina. */
 function nombreMaquina(serie: string | null | undefined, modelo: string | null | undefined): string {
-  return [serie ? `Serie ${serie}` : null, modelo].filter(Boolean).join(" · ") || "Máquina sin serie";
+  // El modelo suele traer la descripción entera del cierre («LAVADORA SEMI
+  // INDUSTRIAL / APILABLE - MARCA: LG - …»): basta con lo primero.
+  const corto = modelo?.split(/\s[-/]\s/)[0]?.trim().slice(0, 50) || null;
+  return [serie ? `Serie ${serie}` : null, corto].filter(Boolean).join(" · ") || "Máquina sin serie";
 }
 
 export function LineaAtencion({
