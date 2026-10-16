@@ -157,6 +157,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   6. **«Emitir apertura»** (de despacho o de servicio). Pide confirmación antes de emitir. La apertura es la orden de trabajo para el almacén y el técnico. Ver 3.8.
      - El botón «Emitir» está en el paso «Apertura» del pedido, no en la hoja de la apertura. En la hoja, «Enviar al almacén y a Finanzas» solo funciona si la apertura ya está emitida (desde el 14-10). Antes se podía marcar «enviada» sin emitirla, y el almacén no la veía (caso Beneficencia de Huancayo).
      - La apertura pide «guía de salida del equipo» (desde el 14-10). El **motivo** de la guía no lo pone postventa: lo define Contabilidad al autorizarla (ver 1.10).
+     - **Orden de compra u orden de servicio** (desde el 16-10, lo pidió Rubí): en la hoja de la apertura, «Datos que se coordinan» pregunta «¿El cliente mandó orden de compra u orden de servicio?» con tres botones: «Orden de compra», «Orden de servicio» o «El cliente no mandó orden». Con orden, se escribe su número. Sale en la **fila 2** de la apertura, justo después de «Servicio a realizar» (las demás filas corrieron un número: Cliente es la 3, Primer destino la 4, etc.). Si no se elige y el cierre trae su orden de compra, sale esa sola; si no, la fila dice «—» y la hoja lo marca en «Falta llenar» (no impide emitir).
 - **Qué sale:** una apertura emitida que llega sola al almacén y a Finanzas/Contabilidad.
 - **«Terminado»:** apertura emitida y guía autorizada.
 - **Bloqueos típicos y por qué:**
