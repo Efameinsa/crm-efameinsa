@@ -422,6 +422,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 - **Accesos y equipos:** gerencia ve quién entró, desde qué equipo y desde qué zona aproximada. Las laptops son de la empresa y el seguimiento figura en el contrato. Solo se mira, no se bloquea.
 - **Conducta sospechosa** (desde el 02-10): el CRM detecta capturas de pantalla, copias de texto, descargas e impresiones, y avisa a gerencia. Por qué: hay información delicada, como los teléfonos de los contactos. Solo detecta y alerta; no bloquea.
+- **Registro de acciones y «Deshacer este clic»** (desde el 16-10): cada cambio que hace una persona en casos, expedientes, prospectos, derivaciones, contactos, fichas, máquinas, pedidos, visitas, gestiones, cierres y aperturas queda anotado, clic por clic: quién, cuándo y qué cambió (cómo estaba y cómo quedó). Lo ven administración, gerencia y operaciones en «Registro de acciones». Si alguien se equivocó, uno de ellos pulsa «Deshacer este clic», escribe el motivo y todo vuelve a como estaba; a quien hizo el clic le llega un aviso. **Cuando no se puede deshacer, el CRM dice por qué:** si después alguien volvió a cambiar lo mismo, hay que deshacer primero ese clic más nuevo; si lo que se creó ya tiene cosas que dependen de él, hay que resolver eso antes. Lo que hacen los procesos automáticos no se anota. **Si usted se equivocó con un clic, avise por el buzón del CRM o a operaciones: no hace falta pedir que se arregle la base a mano.**
 - **«Salir»** cierra la sesión en ese equipo (por confirmar si ya rige; antes cerraba en todos).
 
 ---
@@ -429,6 +430,10 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 ## 3. Reglas por tema
 
 ### 3.1 Cartera, fichas y expedientes
+
+**Unir fichas y fichas sueltas** (desde el 16-10)
+- **Unir dos fichas del mismo cliente:** desde «¿Es el mismo cliente?» en la ficha o el caso, o desde el aviso de una serie que ya está en otra ficha («Revisar y unir las dos fichas»). Se ven las dos fichas, cuál se une y cuál se queda (se queda la que tiene RUC), se escribe el motivo y se pide el **código de operaciones**. Si las dos tienen RUC propio no se unen desde ahí: pueden ser empresas distintas o sedes, y lo revisa operaciones.
+- **Fichas sueltas:** fichas sin expedientes, casos, máquinas, prospectos, cierres, pedidos ni cotizaciones. Administración, gerencia y operaciones las ven en «Fichas sueltas» y las archivan con un motivo (duplicada sin datos, proveedor, prueba…). Una ficha archivada sale de las listas de clientes pero no se borra; se restaura desde «Archivadas», y **vuelve sola** si le entra un expediente, un caso o un prospecto. Si la ficha suelta es el duplicado de una con historia, lo correcto es unirla, no archivarla.
 
 **Ficha, expediente y cartera**
 - **Ficha** es el cliente (RUC o DNI). **Expediente** es un negocio concreto con ese cliente (la oportunidad). **Cartera** son las fichas de un comercial.
