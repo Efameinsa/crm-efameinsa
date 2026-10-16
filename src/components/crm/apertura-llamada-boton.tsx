@@ -112,6 +112,7 @@ export function AperturaLlamadaBoton({
   const [contactos, setContactos] = useState<{ texto: string; operativo: boolean }[]>([]);
   const [urgente, setUrgente] = useState(urgenteInicial);
   const [pin, setPin] = useState("");
+  const [aviso, setAviso] = useState<string | null>(null);
   const [cuenta, setCuenta] = useState<{ id: string; nombre: string } | null>(null);
   const [tecnico, setTecnico] = useState("");
   const [formato, setFormato] = useState<FormatoLlamada>({});
@@ -194,7 +195,7 @@ export function AperturaLlamadaBoton({
     setAbierto(v);
   }
 
-  // Lo que falta, dicho en el pie: el botón ya no se apaga sin explicar por qué.
+  // Lo que falta, dicho sobre el botón: el botón ya no se apaga sin explicar por qué.
   const falta = [
     !cuentaId && "el cliente",
     !texto.trim() && ((parque?.length ?? 0) > 0 ? "marcar la máquina (o escribir el equipo)" : "escribir el equipo"),
@@ -291,7 +292,9 @@ export function AperturaLlamadaBoton({
   }, [busca, cuentaFija]);
 
   function enviar() {
-    if (falta.length || !cuentaId) return void toast.error(`Para enviar falta: ${falta.join(", ")}`, { duration: 8000 });
+    // Lo que falta ya está escrito sobre el botón: no hace falta repetirlo en un toast.
+    setAviso(null);
+    if (falta.length || !cuentaId) return;
     startTransition(async () => {
       const r = await enviarAperturaLlamada({
         cuentaId,
@@ -308,7 +311,7 @@ export function AperturaLlamadaBoton({
         contacto: persona,
       });
       if (r.error) {
-        toast.error(r.error);
+        setAviso(r.error);
         return;
       }
       toast.success(urgente ? "Apertura URGENTE enviada: el almacén ya la tiene" : "Apertura enviada: el almacén ya la tiene en su bandeja");
@@ -579,12 +582,20 @@ export function AperturaLlamadaBoton({
             </div>
           )}
         </div>
+        {/* Fuera del pie: en el celular el pie se apila al revés y el aviso
+            quedaba debajo de los botones. */}
+        {falta.length > 0 && (
+          <p className="text-xs leading-snug text-destructive">
+            Para enviar falta: <b>{falta.join(" · ")}</b>.
+          </p>
+        )}
+        {aviso && (
+          <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+            {aviso}
+          </p>
+        )}
         <DialogFooter className="sm:items-center">
-          {falta.length > 0 ? (
-            <p className="text-xs text-destructive sm:mr-auto">
-              Para enviar falta: <b>{falta.join(", ")}</b>.
-            </p>
-          ) : vaciosFormato.length > 0 ? (
+          {falta.length === 0 && vaciosFormato.length > 0 ? (
             <p className="text-xs text-amber-700 sm:mr-auto dark:text-amber-300">
               En el formato quedan vacíos: {vaciosFormato.join(", ")}. Saldrán con «—».
             </p>

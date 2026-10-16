@@ -101,6 +101,7 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
   // de Central, vacío hasta que se toca un botón.
   const [canal, setCanal] = useState<string>("");
   const [faltaCanal, setFaltaCanal] = useState(false);
+  const [problema, setProblema] = useState<string | null>(null);
   const [codigoCampaniaWa, setCodigoCampaniaWa] = useState("");
   const [coincidencias, setCoincidencias] = useState<CoincidenciaCartera[]>([]);
   // «¿QUIÉN LLAMA?» (Carlos, 22-09): en vez de retipear el nombre de la
@@ -202,6 +203,7 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
     formRef.current?.reset();
     setCanal("");
     setFaltaCanal(false);
+    setProblema(null);
     setCodigoCampaniaWa("");
     setCoincidencias([]);
     setContactosCuenta([]);
@@ -210,9 +212,10 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setProblema(null);
     if (!canal) {
+      // El aviso queda escrito bajo los canales (ver «¿Por dónde llegó?»).
       setFaltaCanal(true);
-      toast.error("Elija por dónde llegó el contacto: WhatsApp, llamada, correo…");
       formRef.current?.querySelector<HTMLElement>(".canales button")?.focus();
       return;
     }
@@ -226,13 +229,13 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
       // mandó, que es justamente lo que se vino a adjuntar.
       const subida = await adjuntos.subir();
       if (subida.error) {
-        toast.error(subida.error);
+        setProblema(subida.error);
         return;
       }
       formData.set("adjuntos", JSON.stringify(subida.adjuntos));
       const r = await registrarContacto(formData);
       if (r.error) {
-        toast.error(r.error);
+        setProblema(r.error);
         return;
       }
       if (r.repetido) {
@@ -472,6 +475,11 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
                     </button>
                   ))}
                 </div>
+                {faltaCanal && !canal && (
+                  <p role="alert" className="text-xs leading-snug text-destructive">
+                    Elija por dónde llegó el contacto: WhatsApp, llamada, correo…
+                  </p>
+                )}
               </div>
 
               {canal === "whatsapp" && (
@@ -507,6 +515,14 @@ export function PasarContactoCentral({ contexto = "comercial", campaniasWhatsapp
             </Seccion>
           </div>
 
+          {problema && (
+            <p role="alert" className="mt-4 rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+              {problema}
+            </p>
+          )}
+          {faltaCanal && !canal && (
+            <p className="mt-4 text-xs leading-snug text-destructive">Falta: por dónde llegó el contacto (en «Qué necesita»).</p>
+          )}
           <DialogFooter className="mt-4 items-center sm:justify-between">
             <p className="hidden text-xs text-muted-foreground sm:block">
               Central lo recibe al instante en su bandeja.

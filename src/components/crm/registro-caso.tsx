@@ -113,6 +113,10 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
   const [tipoOtro, setTipoOtro] = useState("");
   const [problema, setProblema] = useState("");
   const [codigoError, setCodigoError] = useState("");
+  // Lo que frenó la búsqueda o el registro queda escrito junto al botón
+  // (`problema` ya es el texto del cliente: por eso «aviso»).
+  const [avisoSerie, setAvisoSerie] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
   /**
    * LA FOTO DE LA PLACA. Los casos de prueba del área dicen «el cliente manda
    * la foto de la placa», pero acá no había dónde subirla: solo la aceptaba el
@@ -128,8 +132,9 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
 
   function mirarSerie() {
     const s = serie.trim();
+    setAvisoSerie(null);
     if (s.length < 4) {
-      toast.error("Escriba la serie completa: es lo que amarra el caso a la máquina");
+      setAvisoSerie("Escriba la serie completa: es lo que amarra el caso a la máquina.");
       return;
     }
     setBuscando(true);
@@ -151,12 +156,13 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
    * bandeja de Central. La atención nace cuando Central la devuelve al área.
    */
   function derivarACentral(autoderivar = false) {
+    setAviso(null);
     if (!cuentaId) {
-      toast.error("Falta el cliente: Central no puede derivar un caso sin cliente");
+      setAviso("Falta el cliente: Central no puede derivar un caso sin cliente.");
       return;
     }
     if (tipo === "otro" && !tipoOtro.trim()) {
-      toast.error("Con «Otro», escriba qué es: es el título del caso");
+      setAviso("Con «Otro», escriba qué es: es el título del caso.");
       return;
     }
     startTransition(async () => {
@@ -165,7 +171,7 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
       // equipo, que es justamente a lo que se vino.
       const subida = await adjuntos.subir();
       if (subida.error !== null) {
-        toast.error(subida.error);
+        setAviso(subida.error);
         return;
       }
       const r = await registrarAtencion({
@@ -182,7 +188,7 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
         autoderivar,
       });
       if (r.error) {
-        toast.error(r.error, { duration: 8000 });
+        setAviso(r.error);
         return;
       }
       // AUTODERIVADO: el caso ya es suyo; se abre para seguir trabajándolo.
@@ -222,14 +228,15 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
 
   function resolverEnLaLlamada() {
     const desenlace = "telefono" as const;
+    setAviso(null);
     if (!cuentaId) {
-      toast.error("Falta el cliente: sin cliente el caso no se puede archivar en ningún lado");
+      setAviso("Falta el cliente: sin cliente el caso no se puede archivar en ningún lado.");
       return;
     }
     startTransition(async () => {
       const subida = await adjuntos.subir();
       if (subida.error !== null) {
-        toast.error(subida.error);
+        setAviso(subida.error);
         return;
       }
       const r = await registrarCaso({
@@ -248,7 +255,7 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
         adjuntos: subida.adjuntos,
       });
       if (r.error) {
-        toast.error(r.error, { duration: 8000 });
+        setAviso(r.error);
         return;
       }
       toast.success("Caso resuelto y cerrado, con su informe de llamada.");
@@ -284,6 +291,11 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
             Buscar la máquina
           </button>
         </div>
+        {avisoSerie && (
+          <p role="alert" className="mt-2 rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+            {avisoSerie}
+          </p>
+        )}
 
         <div className="mt-2 space-y-1.5">
           {otrasSeries.map((x, i) => (
@@ -542,6 +554,14 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
             >
               ¿Es para un comercial? Mandarlo a Central para que lo reparta
             </button>
+            {!pendiente && (!cuentaId || problema.trim().length < 10) && (
+              <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
+                Falta:{" "}
+                {[!cuentaId && "el cliente", problema.trim().length < 10 && "lo que dice el cliente (al menos una frase)"]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            )}
           </div>
           <Desenlace
             icono={Phone}
@@ -551,6 +571,11 @@ export function RegistroCaso({ cuentaInicial = null }: { cuentaInicial?: { id: s
             onClick={() => resolverEnLaLlamada()}
           />
         </div>
+        {aviso && (
+          <p role="alert" className="mt-2 rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+            {aviso}
+          </p>
+        )}
         {!cuentaId && (
           <p className="mt-2 text-xs text-amber-800">
             Primero identifique el equipo por su serie —o elija el cliente— y después se puede registrar.

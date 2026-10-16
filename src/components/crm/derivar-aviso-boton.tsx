@@ -68,6 +68,7 @@ export function DerivarAvisoBoton({
   const numeroWhatsApp = enlaceWhatsApp ? (new URL(enlaceWhatsApp).searchParams.get("phone") ?? "") : "";
   const [copiado, setCopiado] = useState(false);
   const [resumen, setResumen] = useState<{ hecho: string[]; falta: string[] } | null>(null);
+  const [problema, setProblema] = useState<string | null>(null);
   const [enviando, empezar] = useTransition();
   const router = useRouter();
 
@@ -81,6 +82,7 @@ export function DerivarAvisoBoton({
     setTextoWhatsApp(null);
     setCopiado(false);
     setResumen(null);
+    setProblema(null);
     router.refresh();
   }
 
@@ -162,6 +164,11 @@ export function DerivarAvisoBoton({
                   Es lo único que van a leer las áreas. Escríbalo como se lo diría por teléfono.
                 </p>
               </div>
+              {problema && (
+                <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+                  {problema}
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
@@ -253,8 +260,16 @@ export function DerivarAvisoBoton({
                 <Button
                   size="sm"
                   disabled={enviando || ninguno || detalle.trim().length < 10}
+                  porQue={
+                    enviando
+                      ? null
+                      : ninguno
+                        ? "Marque al menos un área a la que avisar."
+                        : "Escriba qué avisó el cliente (al menos una frase)."
+                  }
                   onClick={() =>
                     empezar(async () => {
+                      setProblema(null);
                       const r = await derivarAviso({
                         leadId,
                         finanzas: elegidos.finanzas,
@@ -263,7 +278,7 @@ export function DerivarAvisoBoton({
                         detalle,
                       });
                       if (r.error) {
-                        toast.error(r.error);
+                        setProblema(r.error);
                         return;
                       }
                       toast.success("Aviso registrado.");
