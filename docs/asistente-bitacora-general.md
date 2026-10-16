@@ -18,6 +18,11 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 16-10 · Lo que más se reporta por el buzón, convertido en botones (Santos)
+- **Análisis:** 149 observaciones del 06 al 16-10. 41 se resolvieron tocando la base a mano; en 60 respuestas se pidió recargar la página. Lo más repetido: fichas duplicadas o de otra cartera (13), equipos y series de pedidos que venían del Excel (10), gestiones o derivaciones en el lugar equivocado (7).
+- **Qué se hizo:** «Devolver a la bandeja» para Central; «Mover las gestiones a otro expediente»; gerencia puede unir fichas que tienen RUC las dos; el CRM se actualiza solo cuando no hay nada que perder; unos 100 botones y avisos de postventa, Central, cierres y almacén ahora dicen qué falta.
+- **Pendiente:** corregir equipos y series de pedidos heredados del Excel (partir un renglón, quitar una serie ajena) desde una pantalla de operaciones; corregir datos del cliente y arrastrarlos a pedidos e informes; pedir rubros o productos del catálogo directo a Lesly.
+
 ### 16-10 · Registro de acciones, «Deshacer este clic», unir fichas desde el aviso y fichas sueltas (Santos)
 - **Por qué:** ese mismo día hubo que deshacer a mano en la base un clic de postventa (garantía verificada con la máquina de otra ficha). Santos: «los usuarios cometen errores… el administrador pueda deshacerlo… el CRM tiene que funcionar solo, sin necesitar de la IA».
 - **Qué se hizo:** (1) «Registro de acciones» para administración, gerencia y operaciones: cada clic de cada persona, con lo que cambió, y el botón «Deshacer este clic» (pide motivo, avisa a quien lo hizo y explica cuándo no se puede). (2) En el aviso de la serie que está en otra ficha, el botón «Revisar y unir las dos fichas», con el código de operaciones. (3) «Fichas sueltas»: archivar fichas sin movimiento; vuelven solas si les entra trabajo.
