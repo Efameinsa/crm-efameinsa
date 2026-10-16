@@ -57,6 +57,19 @@ function enLinea(texto: string, clave: string): ReactNode[] {
           {m[7]}
         </code>,
       );
+    } else if (m[9]?.startsWith("/procesos/")) {
+      // Los diagramas de procesos se abren aparte, en pantalla completa (16-10).
+      partes.push(
+        <a
+          key={k}
+          href={m[9]}
+          target="_blank"
+          rel="noopener"
+          className="font-semibold text-primary underline decoration-primary/30 underline-offset-2 transition-colors hover:decoration-primary"
+        >
+          {m[8]}
+        </a>,
+      );
     } else if (m[9]?.startsWith("/") && !m[9].startsWith("//")) {
       partes.push(
         <Link

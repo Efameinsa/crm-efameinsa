@@ -1,4 +1,5 @@
 import { esGerencia, type Quien } from "@/lib/asistente/permisos";
+import { PREGUNTA_PROCESOS } from "@/lib/procesos";
 
 /**
  * Las preguntas de ejemplo de la burbuja vacía, según el área. Enseñan qué se
@@ -6,6 +7,11 @@ import { esGerencia, type Quien } from "@/lib/asistente/permisos";
  * postventa y almacén, el estado de los pedidos; a todos, cómo funciona.
  */
 export function sugerenciasPara(q: Quien): string[] {
+  // Primera en todas las áreas (Santos, 16-10): repasar los procesos de la empresa en diagrama.
+  return [PREGUNTA_PROCESOS, ...sugerenciasDelArea(q)];
+}
+
+function sugerenciasDelArea(q: Quien): string[] {
   if (esGerencia(q)) {
     return [
       "¿Cuánto vendió Katerine esta semana?",

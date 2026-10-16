@@ -36,7 +36,8 @@ export type Icono =
   | "files"
   | "observaciones"
   | "tasking"
-  | "directorio";
+  | "directorio"
+  | "procesos";
 
 export interface OpcionMenu {
   etiqueta: string;
@@ -106,6 +107,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
     // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
     { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
+    // PROCESOS (16-10, Santos): los diagramas de postventa para repasar cómo se mueve un pedido.
+    { etiqueta: "Procesos", href: "/procesos", icono: "procesos", coincide: ["/procesos"] },
   ],
   comercial: [
     hoy,
@@ -119,6 +122,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
     // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
     { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
+    // PROCESOS (16-10, Santos): los diagramas de postventa para repasar cómo se mueve un pedido.
+    { etiqueta: "Procesos", href: "/procesos", icono: "procesos", coincide: ["/procesos"] },
   ],
   postventa: [
     hoy,
@@ -136,6 +141,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
     // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
     { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
+    // PROCESOS (16-10, Santos): los diagramas de postventa para repasar cómo se mueve un pedido.
+    { etiqueta: "Procesos", href: "/procesos", icono: "procesos", coincide: ["/procesos"] },
   ],
   preventivo: [
     hoy,
@@ -147,6 +154,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
     // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
     { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
+    // PROCESOS (16-10, Santos): los diagramas de postventa para repasar cómo se mueve un pedido.
+    { etiqueta: "Procesos", href: "/procesos", icono: "procesos", coincide: ["/procesos"] },
   ],
   almacen: [
     hoy,
@@ -166,6 +175,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
     // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
     { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
+    // PROCESOS (16-10, Santos): los diagramas de postventa para repasar cómo se mueve un pedido.
+    { etiqueta: "Procesos", href: "/procesos", icono: "procesos", coincide: ["/procesos"] },
   ],
   // IMPORTACIONES (0402, 06-10): una sola pantalla, lo que falta traer.
   importaciones: [
@@ -183,6 +194,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
     // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
     { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
+    // PROCESOS (16-10, Santos): los diagramas de postventa para repasar cómo se mueve un pedido.
+    { etiqueta: "Procesos", href: "/procesos", icono: "procesos", coincide: ["/procesos"] },
   ],
   // Reunión 25-09 11:44 (0306): revisa el expediente, factura y la registra.
   facturacion: [
@@ -195,6 +208,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
     // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
     { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
+    // PROCESOS (16-10, Santos): los diagramas de postventa para repasar cómo se mueve un pedido.
+    { etiqueta: "Procesos", href: "/procesos", icono: "procesos", coincide: ["/procesos"] },
   ],
   // LESLY SUPERVISA TODO (Santos, 25-09: «tiene que estar atenta a todo para
   // ir a dar seguimiento a todos los trabajadores»). Hoy es la supervisión de
@@ -217,6 +232,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
     // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
     { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
+    // PROCESOS (16-10, Santos): los diagramas de postventa para repasar cómo se mueve un pedido.
+    { etiqueta: "Procesos", href: "/procesos", icono: "procesos", coincide: ["/procesos"] },
   ],
   gerencia: [
     hoy,
@@ -237,6 +254,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
     // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
     { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
+    // PROCESOS (16-10, Santos): los diagramas de postventa para repasar cómo se mueve un pedido.
+    { etiqueta: "Procesos", href: "/procesos", icono: "procesos", coincide: ["/procesos"] },
   ],
   admin: [
     { etiqueta: "Usuarios", href: "/admin", icono: "usuarios", coincide: [] },
@@ -252,6 +271,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
     // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
     { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
+    // PROCESOS (16-10, Santos): los diagramas de postventa para repasar cómo se mueve un pedido.
+    { etiqueta: "Procesos", href: "/procesos", icono: "procesos", coincide: ["/procesos"] },
   ],
 };
 
