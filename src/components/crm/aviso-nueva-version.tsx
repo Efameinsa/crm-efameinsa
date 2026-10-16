@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { esDesfaseDeVersion } from "@/lib/desfase-de-version";
 import { haySinGuardar } from "@/lib/sin-guardar";
@@ -33,9 +34,59 @@ import { haySinGuardar } from "@/lib/sin-guardar";
  *   pastilla lo dice en su texto y, si la pantalla tiene algo escrito sin
  *   guardar (lib/sin-guardar), pregunta antes de recargar. El formulario del
  *   cierre además guarda lo escrito en el navegador y lo ofrece al volver.
+ * · 16-10 (análisis del buzón): 60 de 149 respuestas fueron «recargue la
+ *   página»; varias personas reportaron algo que ya estaba arreglado porque
+ *   su pestaña seguía en la versión vieja. Ahora SE ACTUALIZA SOLA, pero solo
+ *   cuando no hay nada que perder: nadie escribió nada en esta pantalla desde
+ *   que se abrió, no hay una ventana abierta ni cambios sin guardar, y la
+ *   pestaña está en segundo plano o lleva 2 minutos quieta. Si escribió algo,
+ *   la pastilla sigue esperando su clic como antes.
  */
 export function AvisoNuevaVersion({ versionInicial }: { versionInicial: string }) {
   const [hayNueva, setHayNueva] = useState(false);
+  const pathname = usePathname();
+  // ¿Escribió algo en esta pantalla? Se olvida al cambiar de pantalla: lo que
+  // quedó escrito en la anterior ya se perdió al salir.
+  const escribio = useRef(false);
+  const ultimoMovimiento = useRef(Date.now());
+  useEffect(() => {
+    escribio.current = false;
+  }, [pathname]);
+  useEffect(() => {
+    const alEscribir = () => {
+      escribio.current = true;
+    };
+    const alMoverse = () => {
+      ultimoMovimiento.current = Date.now();
+    };
+    document.addEventListener("input", alEscribir, true);
+    for (const ev of ["pointerdown", "keydown", "wheel", "touchstart"]) document.addEventListener(ev, alMoverse, { passive: true, capture: true });
+    return () => {
+      document.removeEventListener("input", alEscribir, true);
+      for (const ev of ["pointerdown", "keydown", "wheel", "touchstart"]) document.removeEventListener(ev, alMoverse, true);
+    };
+  }, []);
+
+  // La actualización sola, solo sin nada que perder.
+  useEffect(() => {
+    if (!hayNueva) return;
+    const sinNadaQuePerder = () =>
+      !escribio.current &&
+      !haySinGuardar() &&
+      document.querySelector('[role="dialog"], [role="alertdialog"]') === null;
+    const intentar = () => {
+      if (!sinNadaQuePerder()) return;
+      const quieta = Date.now() - ultimoMovimiento.current > 2 * 60 * 1000;
+      if (document.visibilityState === "hidden" || quieta) location.reload();
+    };
+    intentar();
+    const cada = setInterval(intentar, 15 * 1000);
+    document.addEventListener("visibilitychange", intentar);
+    return () => {
+      clearInterval(cada);
+      document.removeEventListener("visibilitychange", intentar);
+    };
+  }, [hayNueva]);
 
   useEffect(() => {
     if (versionInicial === "dev") return; // el dev server ya recarga solo
