@@ -168,6 +168,9 @@ export interface ServicioPostventa {
   apertura_coordina_logistica?: string | null;
   /** Empresa elegida para la apertura de un pedido sin cierre (0421). */
   apertura_empresa?: "EFAMEINSA" | "OPEN" | null;
+  /** Fila 2 de la apertura: orden de compra, de servicio o ninguna, y su número (0508; buzón Rubí 16-10). */
+  apertura_orden_tipo?: "compra" | "servicio" | "sin" | null;
+  apertura_orden_numero?: string | null;
   /** «Ya lo mandé»: el correo de la apertura, marcado por separado al almacén y al cliente (0271). */
   apertura_enviada_almacen_at?: string | null;
   apertura_enviada_cliente_at?: string | null;

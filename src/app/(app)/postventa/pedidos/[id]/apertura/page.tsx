@@ -144,7 +144,7 @@ export default async function AperturaServicioPage({ params }: { params: Promise
           </div>
         </div>
 
-        {/* Las once filas: el modelo de Lesly (01-10) con primer destino y destino final separados (02-10). */}
+        {/* Las doce filas: el modelo de Lesly (01-10) con primer destino y destino final separados (02-10) y la orden de compra o de servicio en la 2 (Rubí 16-10). */}
         <table className="mt-4 w-full border-collapse text-[12px]">
           <thead>
             <tr className="bg-neutral-100 text-left">
@@ -257,6 +257,8 @@ export default async function AperturaServicioPage({ params }: { params: Promise
           guiaDetalle: d.guiaDetalle ?? null,
           coordinaContabilidad: d.coordinaContabilidad ?? null,
           coordinaLogistica: s.apertura_coordina_logistica ?? null,
+          ordenTipo: d.ordenTipo ?? null,
+          ordenNumero: d.ordenNumero ?? null,
         }}
         asunto={asuntoApertura(d)}
         cuerpo={cuerpoApertura(d)}

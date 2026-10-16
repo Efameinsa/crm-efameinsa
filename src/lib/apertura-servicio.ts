@@ -184,7 +184,23 @@ export interface DatosApertura {
    * observaciones de esa fila, debajo de lo que ya sale solo.
    */
   obsFilas?: Record<string, string> | null;
+  /** Fila 2 (buzón Rubí 16-10): si el cliente mandó orden de compra u orden de servicio, o ninguna. */
+  ordenTipo?: OrdenApertura | null;
+  ordenNumero?: string | null;
 }
+
+/**
+ * ORDEN DE COMPRA U ORDEN DE SERVICIO (buzón Rubí 16-10: «después de
+ * "SERVICIO A REALIZAR" debe estar para seleccionar ORDEN DE COMPRA U ORDEN
+ * DE SERVICIO»). Va en la fila 2; sin elegir, sale «—».
+ */
+export type OrdenApertura = "compra" | "servicio" | "sin";
+
+export const ORDENES_APERTURA: { clave: OrdenApertura; etiqueta: string }[] = [
+  { clave: "compra", etiqueta: "Orden de compra" },
+  { clave: "servicio", etiqueta: "Orden de servicio" },
+  { clave: "sin", etiqueta: "El cliente no mandó orden" },
+];
 
 export type GuiaApertura = "traslado" | "materiales" | "repuestos" | "ambas";
 
@@ -222,6 +238,12 @@ export const LOGISTICA_POR_DEFECTO = "Almacén";
 
 export interface FilaApertura {
   n: number;
+  /**
+   * Con qué se guardan sus observaciones escritas a mano (0445). Es el número
+   * que tenía la fila antes de que entrara la orden en la fila 2 (16-10): así
+   * lo ya escrito en aperturas anteriores sigue en su sitio.
+   */
+  clave: string;
   descripcion: string;
   informacion: string;
   observaciones: string;
@@ -237,18 +259,19 @@ export function queQuedaEnAgenda(tipo: TipoApertura | null | undefined): string 
 }
 
 /** Las filas que no tienen campo propio para sus observaciones: se escriben en la apertura (0445). */
-export const FILAS_CON_OBSERVACION_LIBRE: { n: number; etiqueta: string; ejemplo: string }[] = [
-  { n: 2, etiqueta: "Cliente", ejemplo: "ej. Facturar a nombre de la sede Cusco" },
-  { n: 3, etiqueta: "Primer destino", ejemplo: "ej. Entregar en ventanilla de carga" },
-  { n: 5, etiqueta: "Programación", ejemplo: "ej. Solo de lunes a viernes" },
-  { n: 6, etiqueta: "Persona que recibe", ejemplo: "ej. Si no está, recibe el Sr. Pérez (encargado de mantenimiento)" },
-  { n: 7, etiqueta: "Personal asignado", ejemplo: "ej. Llevar SCTR" },
-  { n: 8, etiqueta: "Medio de transporte", ejemplo: "ej. Bus Cruz del Sur, salida 9 p. m." },
+export const FILAS_CON_OBSERVACION_LIBRE: { n: number; clave: string; etiqueta: string; ejemplo: string }[] = [
+  { n: 2, clave: "oc", etiqueta: "Orden de compra / servicio", ejemplo: "ej. Adjuntar copia de la orden a la guía" },
+  { n: 3, clave: "2", etiqueta: "Cliente", ejemplo: "ej. Facturar a nombre de la sede Cusco" },
+  { n: 4, clave: "3", etiqueta: "Primer destino", ejemplo: "ej. Entregar en ventanilla de carga" },
+  { n: 6, clave: "5", etiqueta: "Programación", ejemplo: "ej. Solo de lunes a viernes" },
+  { n: 7, clave: "6", etiqueta: "Persona que recibe", ejemplo: "ej. Si no está, recibe el Sr. Pérez (encargado de mantenimiento)" },
+  { n: 8, clave: "7", etiqueta: "Personal asignado", ejemplo: "ej. Llevar SCTR" },
+  { n: 9, clave: "8", etiqueta: "Medio de transporte", ejemplo: "ej. Bus Cruz del Sur, salida 9 p. m." },
 ];
 
 /** Deja solo las filas con texto; nada escrito = null. */
 export function limpiarObsFilas(o: Record<string, string | null | undefined> | null | undefined): Record<string, string> | null {
-  const filas = new Set(FILAS_CON_OBSERVACION_LIBRE.map((f) => String(f.n)));
+  const filas = new Set(FILAS_CON_OBSERVACION_LIBRE.map((f) => f.clave));
   const limpio = Object.fromEntries(
     Object.entries(o ?? {})
       .filter(([k, v]) => filas.has(k) && typeof v === "string" && v.trim())
@@ -271,7 +294,8 @@ function yaDice(texto: string | null | undefined, direccion: string): boolean {
 }
 
 /**
- * Las once filas del formato, en su orden. Lo que falta se deja como «—»
+ * Las doce filas del formato, en su orden (la orden de compra o de servicio
+ * entró de 2.ª el 16-10). Lo que falta se deja como «—»
  * bien visible en vez de inventarse: el correo sale igual y quien lo revisa
  * ve de un vistazo qué le falta llenar.
  */
@@ -339,29 +363,44 @@ export function filasApertura(d: DatosApertura): FilaApertura[] {
   const contabilidad = d.coordinaContabilidad?.trim() || "—";
   const logistica = d.coordinaLogistica?.trim() || LOGISTICA_POR_DEFECTO;
 
-  const filas: FilaApertura[] = [
-    { n: 1, descripcion: "SERVICIO A REALIZAR", informacion: equipo, observaciones: d.hora ?? "—", notas },
-    { n: 2, descripcion: "CLIENTE", informacion: `${d.cliente}${d.ruc ? `\nRUC: ${d.ruc}` : ""}`, observaciones: "" },
-    { n: 3, descripcion: "PRIMER DESTINO", informacion: primerDestino, observaciones: "" },
-    { n: 4, descripcion: "DESTINO FINAL", informacion: destinoFinal, observaciones: observacionesDestino },
-    { n: 5, descripcion: "PROGRAMACIÓN", informacion: d.fecha ? fechaCalendario(d.fecha) : "—", observaciones: "" },
-    { n: 6, descripcion: "PERSONA QUE RECIBE", informacion: recibe, observaciones: "" },
-    { n: 7, descripcion: "PERSONAL ASIGNADO PARA EL SERVICIO", informacion: d.tecnico ?? "—", observaciones: "" },
-    { n: 8, descripcion: "MEDIO DE TRANSPORTE PERSONAL TÉCNICO", informacion: d.transporte ?? "—", observaciones: "" },
-    { n: 9, descripcion: "REQUISICIÓN POR MOVILIDAD (IDA Y VUELTA, REFERENCIA).", informacion: GESTION_CONTABILIDAD, observaciones: contabilidad },
-    { n: 10, descripcion: "MONTO DE VIÁTICOS", informacion: GESTION_CONTABILIDAD, observaciones: contabilidad },
-    { n: 11, descripcion: "COORDINACIÓN CON LOGÍSTICA", informacion: COORDINACION_LOGISTICA, observaciones: logistica },
-  ];
+  const orden = filaOrden(d);
+  // La fila 2 es la orden (16-10) y las demás corren un número. La clave es
+  // la de antes: con ella se guardan las observaciones escritas (0445).
+  const filas: FilaApertura[] = (
+    [
+      { clave: "1", descripcion: "SERVICIO A REALIZAR", informacion: equipo, observaciones: d.hora ?? "—", notas },
+      { clave: "oc", descripcion: orden.descripcion, informacion: orden.informacion, observaciones: "" },
+      { clave: "2", descripcion: "CLIENTE", informacion: `${d.cliente}${d.ruc ? `\nRUC: ${d.ruc}` : ""}`, observaciones: "" },
+      { clave: "3", descripcion: "PRIMER DESTINO", informacion: primerDestino, observaciones: "" },
+      { clave: "4", descripcion: "DESTINO FINAL", informacion: destinoFinal, observaciones: observacionesDestino },
+      { clave: "5", descripcion: "PROGRAMACIÓN", informacion: d.fecha ? fechaCalendario(d.fecha) : "—", observaciones: "" },
+      { clave: "6", descripcion: "PERSONA QUE RECIBE", informacion: recibe, observaciones: "" },
+      { clave: "7", descripcion: "PERSONAL ASIGNADO PARA EL SERVICIO", informacion: d.tecnico ?? "—", observaciones: "" },
+      { clave: "8", descripcion: "MEDIO DE TRANSPORTE PERSONAL TÉCNICO", informacion: d.transporte ?? "—", observaciones: "" },
+      { clave: "9", descripcion: "REQUISICIÓN POR MOVILIDAD (IDA Y VUELTA, REFERENCIA).", informacion: GESTION_CONTABILIDAD, observaciones: contabilidad },
+      { clave: "10", descripcion: "MONTO DE VIÁTICOS", informacion: GESTION_CONTABILIDAD, observaciones: contabilidad },
+      { clave: "11", descripcion: "COORDINACIÓN CON LOGÍSTICA", informacion: COORDINACION_LOGISTICA, observaciones: logistica },
+    ] as Omit<FilaApertura, "n">[]
+  ).map((f, i) => ({ ...f, n: i + 1 }));
   // LO QUE POSTVENTA ESCRIBIÓ EN CADA FILA (Rubí, 12-10; 0445): debajo de lo
   // que ya sale solo; un «—» vacío se reemplaza.
   const obsFilas = limpiarObsFilas(d.obsFilas);
   if (!obsFilas) return filas;
   return filas.map((f) => {
-    const extra = obsFilas[String(f.n)];
+    const extra = obsFilas[f.clave];
     if (!extra) return f;
     const base = f.observaciones.trim() === "—" ? "" : f.observaciones;
     return { ...f, observaciones: [base, extra].filter(Boolean).join("\n") };
   });
+}
+
+/** La fila 2: qué orden mandó el cliente y su número. */
+function filaOrden(d: Pick<DatosApertura, "ordenTipo" | "ordenNumero">): { descripcion: string; informacion: string } {
+  const numero = d.ordenNumero?.trim() || null;
+  if (d.ordenTipo === "compra") return { descripcion: "ORDEN DE COMPRA", informacion: numero ? `N° ${numero}` : "(falta el número)" };
+  if (d.ordenTipo === "servicio") return { descripcion: "ORDEN DE SERVICIO", informacion: numero ? `N° ${numero}` : "(falta el número)" };
+  if (d.ordenTipo === "sin") return { descripcion: "ORDEN DE COMPRA / SERVICIO", informacion: "EL CLIENTE NO EMITIÓ ORDEN" };
+  return { descripcion: "ORDEN DE COMPRA / SERVICIO", informacion: "—" };
 }
 
 /**
@@ -413,6 +452,7 @@ export function cuerpoApertura(d: DatosApertura): string {
 export function faltantesApertura(d: DatosApertura): string[] {
   const falta: string[] = [];
   if (!d.equipo) falta.push("la descripción del equipo");
+  if (!d.ordenTipo) falta.push("si hay orden de compra u orden de servicio");
   if (!d.direccion) falta.push("la dirección");
   if (d.entregaModo === "agencia" && !d.agenciaDireccion) falta.push("la dirección de la agencia (primer destino)");
   if (d.entregaModo === "agencia" && !d.agenciaHorario?.trim()) falta.push("el horario de atención de la agencia (en «Dirección y quién recibe»)");

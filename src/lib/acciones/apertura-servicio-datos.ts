@@ -152,6 +152,9 @@ export async function cargarHojaApertura(
     coordinaContabilidad:
       s.apertura_coordina_contabilidad ?? nombreDe((s as { pago_confirmado_por?: string | null }).pago_confirmado_por),
     coordinaLogistica: s.apertura_coordina_logistica ?? null,
+    // Si postventa no la eligió y el cierre trae su OC, sale esa (buzón Rubí 16-10).
+    ordenTipo: s.apertura_orden_tipo ?? (informe?.orden_compra?.trim() ? "compra" : null),
+    ordenNumero: s.apertura_orden_tipo ? (s.apertura_orden_numero ?? null) : (informe?.orden_compra?.trim() || null),
   };
 
   const filas = filasApertura(d);
