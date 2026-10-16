@@ -759,6 +759,10 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - Si el pedido está completo, el caso se reclasifica (por ejemplo, como refuerzo de capacitación).
 - Una llamada sobre un pedido en curso no abre un caso suelto.
 
+**Qué se hizo en el cliente** (paso de la atención)
+- Se anota qué se hizo, los repuestos usados (si hubo) y los ciclos que marca el contador. Los ciclos pasan solos a la ficha de la máquina.
+- **Caso con varias máquinas** (desde el 16-10, lo pidió Rubí): si al caso se le agregaron otras máquinas, el paso muestra un recuadro por máquina («Serie … · tipo · principal» y uno por cada otra), cada uno con su «Qué se hizo», «Repuestos usados» y «Ciclos». Los ciclos de cada una van a su propia ficha. La principal es obligatoria; las demás se llenan según lo que se hizo. Al revisar después esa etapa, se ve lo registrado de cada máquina.
+
 **Cerrar una atención**
 - Exige elegir un resultado: resuelto, no procede o derivado. No viene marcado por defecto.
 - Cada gestión de la atención queda como nota, con autor y hora, en el expediente y en la ficha.
