@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { BellRing, Check, FileText, Loader2, PackageSearch, Printer, X } from "lucide-react";
 import { liberarPedido } from "@/lib/acciones/postventa";
-import { apurarDesdeCentral, generarPedido, pedirSeriesAlAlmacen, prepararPedido, rechazarLiquidacion } from "@/lib/acciones/pedido-central";
+import { apurarDesdeCentral, generarPedido, indicarAccesorios, pedirSeriesAlAlmacen, prepararPedido, rechazarLiquidacion, type AccesoriosPedido } from "@/lib/acciones/pedido-central";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
@@ -44,6 +44,7 @@ export function PasosPedidoCentral({
   cliente = null,
   fileEntregado = null,
   regularizado = false,
+  accesorios = null,
 }: {
   informeId: string;
   servicioId: string | null;
@@ -64,12 +65,18 @@ export function PasosPedidoCentral({
   fileEntregado?: { a: string; at: string; recibido: boolean } | null;
   /** Cierre en Word anterior al CRM (REG, 0397): el almacén ya entregó, las series las copia Central. */
   regularizado?: boolean;
+  /** Lo que Central ya dijo de los accesorios (0510); null si todavía no hay pedido o no lo dijo. */
+  accesorios?: { incluye: boolean | null; detalle: string | null } | null;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [pin, setPin] = useState("");
   const [rechazando, setRechazando] = useState(false);
   const [motivo, setMotivo] = useState("");
+  // Los accesorios (0510, Lesly 16-10): Central los dice al pedir el código.
+  const [acc, setAcc] = useState<AccesoriosPedido>({ incluye: accesorios?.incluye ?? null, detalle: accesorios?.detalle ?? "" });
+  const [editandoAcc, setEditandoAcc] = useState(false);
+  const accListo = acc.incluye === false || (acc.incluye === true && acc.detalle.trim().length >= 3);
 
   const correr = (fn: () => Promise<{ error: string | null }>, exito: string) =>
     startTransition(async () => {
@@ -100,7 +107,13 @@ export function PasosPedidoCentral({
           </div>
         ) : !servicioId ? (
           <div className="flex flex-wrap gap-1.5">
-            <Button size="sm" disabled={pendiente} onClick={() => correr(() => pedirSeriesAlAlmacen(informeId), "Pedido al almacén: le llegó el aviso con los equipos")}>
+            <EditorAccesorios valor={acc} onChange={setAcc} />
+            <Button
+              size="sm"
+              disabled={pendiente || !accListo}
+              title={!accListo ? "Primero diga si los equipos incluyen accesorios" : undefined}
+              onClick={() => correr(() => pedirSeriesAlAlmacen(informeId, acc), "Pedido al almacén: le llegó el aviso con los equipos y los accesorios")}
+            >
               <PackageSearch className="size-3.5" /> Pedir series al almacén
             </Button>
             <Button size="sm" variant="ghost" disabled={pendiente} onClick={() => correr(() => prepararPedido(informeId), "Lista de equipos lista: escriba las series abajo")}>
@@ -128,11 +141,61 @@ export function PasosPedidoCentral({
               </>
             ) : (
               !seriesListas && !regularizado && (
-                <Button size="sm" variant="outline" className="mt-1" disabled={pendiente} onClick={() => correr(() => pedirSeriesAlAlmacen(informeId), "Pedido al almacén: le llegó el aviso")}>
-                  <PackageSearch className="size-3.5" /> Pedir al almacén
-                </Button>
+                <div className="mt-1 space-y-1.5">
+                  <EditorAccesorios valor={acc} onChange={setAcc} />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={pendiente || !accListo}
+                    title={!accListo ? "Primero diga si los equipos incluyen accesorios" : undefined}
+                    onClick={() => correr(() => pedirSeriesAlAlmacen(informeId, acc), "Pedido al almacén: le llegó el aviso")}
+                  >
+                    <PackageSearch className="size-3.5" /> Pedir al almacén
+                  </Button>
+                </div>
               )
             )}
+            {/* Ya pedido (o «Las escribo yo»): se ve lo dicho y se puede corregir. */}
+            {(seriesPedidasAt || seriesListas || regularizado) &&
+              (editandoAcc ? (
+                <div className="mt-1.5 space-y-1.5">
+                  <EditorAccesorios valor={acc} onChange={setAcc} />
+                  <div className="flex gap-1.5">
+                    <Button
+                      size="sm"
+                      disabled={pendiente || !accListo}
+                      onClick={() =>
+                        correr(async () => {
+                          const r = await indicarAccesorios(servicioId, acc);
+                          if (!r.error) setEditandoAcc(false);
+                          return r;
+                        }, seriesPedidasAt ? "Accesorios guardados: al almacén le llegó el aviso" : "Accesorios guardados")
+                      }
+                    >
+                      Guardar
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditandoAcc(false)}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  {accesorios?.incluye === true ? (
+                    <>
+                      Accesorios: <b className="whitespace-pre-wrap text-foreground">{accesorios.detalle}</b>
+                    </>
+                  ) : accesorios?.incluye === false ? (
+                    "Sin accesorios"
+                  ) : (
+                    <span className="text-amber-800">No se indicó si lleva accesorios</span>
+                  )}{" "}
+                  ·{" "}
+                  <button type="button" className="font-semibold text-primary hover:underline" onClick={() => setEditandoAcc(true)}>
+                    {accesorios?.incluye == null ? "Indicarlo" : "Cambiar"}
+                  </button>
+                </p>
+              ))}
           </>
         )}
       </Paso>
@@ -352,5 +415,42 @@ function Paso({ n, titulo, hecho, children }: { n: number; titulo: string; hecho
       </p>
       {children}
     </li>
+  );
+}
+
+/**
+ * ¿LOS EQUIPOS INCLUYEN ACCESORIOS? (0510). Lesly, 16-10: «en la generación de
+ * código la Central debería tener una regla de indicar si los equipos incluyen
+ * algún accesorio, y más si son industriales como las lavadoras». Sin
+ * responder no se pide el código.
+ */
+function EditorAccesorios({ valor, onChange }: { valor: AccesoriosPedido; onChange: (v: AccesoriosPedido) => void }) {
+  const chip = (activo: boolean) =>
+    cn(
+      "rounded-md border px-2 py-0.5 text-[11px] font-semibold",
+      activo ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:bg-secondary",
+    );
+  return (
+    <div className="w-full space-y-1">
+      <p className="text-[11px] font-semibold text-foreground">¿Los equipos incluyen accesorios?</p>
+      <div className="flex flex-wrap gap-1">
+        <button type="button" className={chip(valor.incluye === false)} onClick={() => onChange({ ...valor, incluye: false })}>
+          No incluye
+        </button>
+        <button type="button" className={chip(valor.incluye === true)} onClick={() => onChange({ ...valor, incluye: true })}>
+          Sí incluye
+        </button>
+      </div>
+      {valor.incluye === true && (
+        <textarea
+          className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
+          rows={2}
+          value={valor.detalle}
+          onChange={(e) => onChange({ ...valor, detalle: e.target.value })}
+          placeholder="Qué accesorio y con qué máquina (ej. lavadora UCT060: base y kit de anclaje)"
+        />
+      )}
+      {valor.incluye === null && <p className="text-[10.5px] text-muted-foreground">Revise el cierre; ojo con las lavadoras y secadoras industriales.</p>}
+    </div>
   );
 }

@@ -171,6 +171,9 @@ export interface ServicioPostventa {
   /** Fila 2 de la apertura: orden de compra, de servicio o ninguna, y su número (0508; buzón Rubí 16-10). */
   apertura_orden_tipo?: "compra" | "servicio" | "sin" | null;
   apertura_orden_numero?: string | null;
+  /** Si los equipos van con accesorios, lo dice Central al pedir el código (0510; buzón Lesly 16-10). */
+  accesorios_incluye?: boolean | null;
+  accesorios_detalle?: string | null;
   /** «Ya lo mandé»: el correo de la apertura, marcado por separado al almacén y al cliente (0271). */
   apertura_enviada_almacen_at?: string | null;
   apertura_enviada_cliente_at?: string | null;

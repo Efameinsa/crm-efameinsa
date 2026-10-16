@@ -146,7 +146,7 @@ export default async function CierresCentralPage({
   // lista entera y no una por fila (migración 0087).
   const { data: pedidos } = await supabase
     .from("servicios_postventa")
-    .select("id, informe_cierre_id, numero_pedido_erp, pedido_ejecutado_at, liquidacion_at, aprobado_at, series_pedidas_at, liquidacion_adjunto, liquidacion_subida_at, liquidacion_rechazada_at, liquidacion_rechazada_motivo, facturacion_observada_at, facturacion_observada_motivo, apuro_almacen_at, apuro_almacen_n, apuro_finanzas_at, apuro_finanzas_n")
+    .select("id, informe_cierre_id, numero_pedido_erp, pedido_ejecutado_at, liquidacion_at, aprobado_at, series_pedidas_at, liquidacion_adjunto, liquidacion_subida_at, liquidacion_rechazada_at, liquidacion_rechazada_motivo, facturacion_observada_at, facturacion_observada_motivo, apuro_almacen_at, apuro_almacen_n, apuro_finanzas_at, apuro_finanzas_n, accesorios_incluye, accesorios_detalle")
     .in("informe_cierre_id", todas.map((f) => f.id));
   const pedidoPorInforme = new Map((pedidos ?? []).map((p) => [p.informe_cierre_id as string, p]));
 
@@ -628,6 +628,7 @@ export default async function CierresCentralPage({
                       apuroFinanzas={pedido?.apuro_finanzas_at ? { at: pedido.apuro_finanzas_at as string, n: Number(pedido.apuro_finanzas_n ?? 1) } : null}
                       cliente={{ cuentaId: f.cuenta_id, nombre: f.cliente_nombre, empresa: f.serie === "OPEN" ? "open" : f.serie === "EFAMEINSA" ? "efameinsa" : null }}
                       fileEntregado={pedido?.id ? (fileDePedido.get(pedido.id as string) ?? null) : null}
+                      accesorios={pedido?.id ? { incluye: (pedido.accesorios_incluye as boolean | null) ?? null, detalle: (pedido.accesorios_detalle as string | null) ?? null } : null}
                     />
                   );
                 })()}
