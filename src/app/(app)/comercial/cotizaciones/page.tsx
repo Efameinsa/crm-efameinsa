@@ -78,6 +78,8 @@ interface Fila {
   anulada?: boolean;
   /** Versión vigente de una cotización corregida (0123): «v2» junto al número. */
   version?: number;
+  /** Un borrador que ya pasó por gerencia: esperando, aprobado o rechazado. */
+  estadoAprobacion?: string | null;
 }
 
 export default async function MisCotizacionesPage({
@@ -121,7 +123,7 @@ export default async function MisCotizacionesPage({
     pag === 1
       ? supabase
           .from("cotizaciones")
-          .select("id, codigo, serie, total, moneda, created_at, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))")
+          .select("id, codigo, serie, total, moneda, created_at, estado_aprobacion, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))")
           .in("oportunidades.comercial_id", duenos)
           .eq("estado", "borrador")
           .is("enviada_at", null)
@@ -170,6 +172,14 @@ export default async function MisCotizacionesPage({
     (op as { cuentas: { razon_social: string } | null } | null)?.cuentas?.razon_social ?? "Cliente sin nombre";
   const contiene = (texto: string) => texto.toLowerCase().includes(busqueda.toLowerCase());
 
+  // AL BUSCAR, ESTO NO SE ESCONDE (Ariana, ECOLAV 16-10): buscaba «ecolav» y
+  // la sección de gerencia desaparecía entera; quedaba el borrador a secas y
+  // no se enteraba de que ya estaba aprobado, mientras Rubí, sin buscar, lo
+  // veía «Aprobada por gerencia». Ahora se filtra por el mismo texto.
+  const porGerenciaVisibles = porGerencia.filter(
+    (c) => !busqueda || contiene(razonSocial(c.oportunidades)) || (c.codigo != null && contiene(c.codigo as string)),
+  );
+
   const borradores: Fila[] = borradoresCrudos
     .map((c) => ({
       id: c.id,
@@ -179,11 +189,12 @@ export default async function MisCotizacionesPage({
       fecha: c.created_at as string,
       monto: Number(c.total),
       moneda: c.moneda as string,
-      href: `/comercial/oportunidades/${c.oportunidad_id}/cotizar/${c.id}`,
+      href: `/comercial/oportunidades/${c.oportunidad_id}/cotizar/${c.id}${c.estado_aprobacion === "aprobada_gerencia" ? "?confirmar=1" : ""}`,
       borrador: true,
       oportunidadHref: null,
       delArchivo: false,
       nota: null,
+      estadoAprobacion: (c.estado_aprobacion as string | null) ?? null,
     }))
     .filter((f) => !busqueda || contiene(f.cliente) || (f.codigo != null && contiene(f.codigo)));
 
@@ -241,7 +252,9 @@ export default async function MisCotizacionesPage({
   const enlace = (p: number) =>
     `/comercial/cotizaciones?${new URLSearchParams({ ...(busqueda ? { q: busqueda } : {}), pagina: String(p) })}`;
 
-  const FilaCotizacion = ({ f }: { f: Fila }) => (
+  const FilaCotizacion = ({ f }: { f: Fila }) => {
+    const aprobadaPorConfirmar = f.borrador && f.estadoAprobacion === "aprobada_gerencia";
+    return (
     // La fila entera es un enlace estirado por encima: así adentro puede haber
     // un botón de verdad («Corregir» abre un cuadro) sin anidarlo en un <a>.
     <div
@@ -310,7 +323,9 @@ export default async function MisCotizacionesPage({
       <span
         className={cn(
           "w-24 rounded-full px-2 py-0.5 text-center text-[10px] font-semibold",
-          f.borrador
+          aprobadaPorConfirmar
+            ? "bg-[#1E7F4F]/10 text-[#1E7F4F]"
+            : f.borrador
             ? "bg-amber-500/10 text-amber-700"
             : f.anulada
               ? "bg-destructive/10 text-destructive"
@@ -319,16 +334,29 @@ export default async function MisCotizacionesPage({
               : "bg-primary/10 text-primary",
         )}
       >
-        {f.borrador ? "sin numerar" : (f.nota ?? (f.delArchivo ? "del archivo" : "del CRM"))}
+        {f.borrador
+          ? aprobadaPorConfirmar
+            ? "aprobada · falta confirmar"
+            : f.estadoAprobacion === "pendiente_gerencia"
+              ? "esperando a gerencia"
+              : f.estadoAprobacion === "rechazada_gerencia"
+                ? "rechazada por gerencia"
+                : "sin numerar"
+          : (f.nota ?? (f.delArchivo ? "del archivo" : "del CRM"))}
       </span>
       <span className="relative z-10 flex w-36 items-center justify-end gap-2 text-[11px]">
         {f.borrador ? (
           <>
             <Link
               href={f.href}
-              className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+              className={cn(
+                "inline-flex items-center gap-1 font-medium",
+                aprobadaPorConfirmar
+                  ? "rounded-md bg-[#1E7F4F] px-2 py-0.5 text-white hover:bg-[#1E7F4F]/90"
+                  : "text-primary hover:underline",
+              )}
             >
-              <PencilLine className="size-3" /> Editar
+              <PencilLine className="size-3" /> {aprobadaPorConfirmar ? "Confirmar" : "Editar"}
             </Link>
             <VerPdfEnLaApp
               url={`/api/cotizaciones/${f.id}/pdf`}
@@ -357,6 +385,7 @@ export default async function MisCotizacionesPage({
       </span>
     </div>
   );
+  };
 
   return (
     <SeccionPanel
@@ -389,13 +418,13 @@ export default async function MisCotizacionesPage({
         )}
       </form>
 
-      {porGerencia.length > 0 && !busqueda && (
+      {porGerenciaVisibles.length > 0 && (
         <div className="mb-4">
           <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Lo que pasó por gerencia · últimos 60 días
           </p>
           <div className="space-y-1.5">
-            {porGerencia.map((c) => {
+            {porGerenciaVisibles.map((c) => {
               const estado = c.estado_aprobacion as string;
               const autor = (c.autor as unknown as { nombre: string } | null)?.nombre;
               const sello =
