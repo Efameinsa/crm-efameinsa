@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
 import { EntregarFileDirecto } from "@/components/crm/files-acciones";
 import type { EmpresaFile } from "@/lib/acciones/files";
+import { etiquetaEstadoPago, type LiquidacionFirmada } from "@/lib/documentos-finanzas";
 import { cn } from "@/lib/utils";
 
 /**
@@ -38,6 +39,7 @@ export function PasosPedidoCentral({
   liquidacionAt,
   liquidacionPdf,
   liquidacionRechazo = null,
+  liquidaciones = [],
   pedidoEjecutadoAt,
   apuroAlmacen = null,
   apuroFinanzas = null,
@@ -55,6 +57,8 @@ export function PasosPedidoCentral({
   liquidacionPdf: { url: string; nombre: string; subidaAt: string } | null;
   /** La última vez que Central la devolvió a Finanzas, si todavía no llega la corregida. */
   liquidacionRechazo?: { motivo: string; at: string } | null;
+  /** Todas las que subió Finanzas, la más nueva primero (0306): las anteriores se listan bajo la vigente. */
+  liquidaciones?: LiquidacionFirmada[];
   pedidoEjecutadoAt: string | null;
   /** El último «Apurar» de Central a cada área y cuántos van (0358). */
   apuroAlmacen?: { at: string; n: number } | null;
@@ -94,6 +98,8 @@ export function PasosPedidoCentral({
   const sinEquipos = Boolean(servicioId) && series.total === 0;
   const seriesListas = sinEquipos || (series.total > 0 && series.con === series.total);
   const faltanSeries = series.total - series.con;
+  // La vigente es la del enlace de arriba (liquidacion_adjunto); el resto, anteriores.
+  const anteriores = liquidaciones.filter((l) => !liquidacionPdf || Date.parse(l.subidaAt) !== Date.parse(liquidacionPdf.subidaAt));
   const cuando = (iso: string) => new Date(iso).toLocaleString("es-PE", { timeZone: "America/Lima", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
   return (
@@ -287,6 +293,31 @@ export function PasosPedidoCentral({
               )}
             </>
           )
+        )}
+        {/* LAS ANTERIORES NO SE BORRAN (Central 16-10, ABACHI): Finanzas sube
+            una por movimiento y acá se ve la secuencia, la N.º 1 la primera. */}
+        {anteriores.length > 0 && (
+          <div className="mt-1.5">
+            <p className="text-[11px] font-semibold text-muted-foreground">Anteriores ({anteriores.length}):</p>
+            <ul className="mt-0.5 space-y-0.5">
+              {anteriores.map((l) => (
+                <li key={l.id} className="text-[11px] text-muted-foreground">
+                  <span className="font-mono font-bold text-foreground">N.º {liquidaciones.length - liquidaciones.indexOf(l)}</span> · {cuando(l.subidaAt)} ·{" "}
+                  {etiquetaEstadoPago(l.estadoPago)}
+                  {l.facturaNumero ? ` · Factura ${l.facturaNumero}` : ""}
+                  {l.nota ? ` · ${l.nota}` : ""}
+                  {l.url && (
+                    <>
+                      {" · "}
+                      <a href={l.url} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">
+                        Ver
+                      </a>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         {liquidacionRechazo && !liquidacionAt && !liquidacionPdf && numeroPedido && servicioId && (
           <Apurar
