@@ -1,5 +1,5 @@
 import { WHATSAPP_CUENTA_PARA_META } from "@/lib/gestion-whatsapp";
-import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
 import type { ProyeccionSemana } from "@/lib/potenciales-semana";
 import type { IndicadoresDocumento } from "@/lib/indicadores-comerciales";
 import { BloqueIndicadoresPdf } from "@/lib/pdf/indicadores-pdf";
@@ -11,6 +11,10 @@ import type { SeccionQueFalta } from "@/lib/lo-que-falta-por-paso";
 import type { PanoramaPendientes } from "@/lib/panorama-pendientes";
 import type { ProblemasTecnicos } from "@/lib/problemas-tecnicos-reporte";
 import type { RepuestosDelReporte, RepuestoFila } from "@/lib/repuestos-reporte";
+import type { GrupoPedidos, Urgente } from "@/lib/resumen-postventa";
+
+// Sin cortar palabras con guion («TUR-ISTICA»): en una tabla se lee mejor la palabra entera.
+Font.registerHyphenationCallback((palabra) => [palabra]);
 
 // Reporte diario de gestión del comercial. Reemplaza la agenda que hoy se
 // arma a mano en Excel y se exporta a PDF (ejemplo del ing. Carlos:
@@ -130,6 +134,10 @@ export interface ReporteDiarioProps {
   problemasTecnicos?: ProblemasTecnicos;
   /** «Solicitudes de repuesto · abiertas y cerradas» (reunión 16-10 17:57). */
   repuestos?: RepuestosDelReporte;
+  /** Los pedidos, uno por fila con su siguiente paso, agrupados por a quién le toca (Santos 16-10). */
+  pedidosPorResponsable?: GrupoPedidos[];
+  /** Lo urgente, en orden, para la primera hoja (Santos 16-10). */
+  urgentes?: Urgente[];
   indicadores?: IndicadoresDocumento & {
     /** Las marcas de un botón en los chats: salen de la lista de seguimientos y van aparte. */
     marcas: { hora: string | null; cliente: string; nota: string | null }[];
@@ -211,96 +219,266 @@ const CANAL_CLIENTE: Record<string, string> = {
   presencial: "Vino a la oficina", referido: "Referido",
 };
 
-/** La hoja «Problemas técnicos y su estado» (Santos, 16-10). */
-function ProblemasTecnicosPdf({ p }: { p: ProblemasTecnicos }) {
+// ── POSTVENTA, CON BUENAS PRÁCTICAS (Santos 16-10: «¿es la mejor forma de ver
+// las cosas?») ──────────────────────────────────────────────────────────────
+// Un solo código de color en las hojas de postventa: granate = le toca a
+// usted, ámbar = espera a otra área o al cliente, verde = cerrado. La
+// antigüedad (días) va en su columna, alineada a la derecha, porque es lo que
+// dice qué urge. Los textos que llegan EN MAYÚSCULAS se pasan a oración.
+const TONO = {
+  accion: { texto: GRANATE, fondo: "#F6E7E6", etiqueta: "Le toca a usted" },
+  espera: { texto: "#8A5A00", fondo: "#FBF0DC", etiqueta: "Espera a otra área o al cliente" },
+  cerrado: { texto: VERDE, fondo: "#E3F2EA", etiqueta: "Cerrado" },
+} as const;
+type TonoPv = keyof typeof TONO;
+
+/** «EL CLIENTE LO MANDO ARREGLAR…» → «El cliente lo mando arreglar…». Lo que ya viene en minúsculas se respeta. */
+const enOracion = (t: string | null) => {
+  const s = (t ?? "").replace(/\s+/g, " ").trim();
+  const letras = s.replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ]/g, "");
+  if (!letras || letras !== letras.toUpperCase()) return s;
+  const bajo = s.toLowerCase();
+  return bajo.charAt(0).toUpperCase() + bajo.slice(1);
+};
+
+function Chip({ tono, texto }: { tono: TonoPv; texto: string }) {
+  return (
+    <View style={{ alignSelf: "flex-start", backgroundColor: TONO[tono].fondo, borderRadius: 2, paddingVertical: 1.5, paddingHorizontal: 4 }}>
+      <Text style={{ fontSize: 7, color: TONO[tono].texto, fontFamily: "Helvetica-Bold" }}>{texto}</Text>
+    </View>
+  );
+}
+
+function Leyenda() {
+  return (
+    <View style={{ flexDirection: "row", gap: 10, marginTop: 4, marginBottom: 2 }}>
+      {(Object.keys(TONO) as TonoPv[]).map((t) => (
+        <View key={t} style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+          <View style={{ width: 7, height: 7, borderRadius: 1, backgroundColor: TONO[t].texto }} />
+          <Text style={{ fontSize: 6.5, color: GRIS }}>{TONO[t].etiqueta}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function Encabezados({ columnas }: { columnas: [string, string, ("left" | "right")?][] }) {
+  return (
+    <View style={e.th}>
+      {columnas.map(([t, w, a]) => (
+        <Text key={t} style={[e.thTexto, { width: w, textAlign: a ?? "left" }]}>{t}</Text>
+      ))}
+    </View>
+  );
+}
+
+const tonoRepuesto = (f: RepuestoFila): TonoPv => (!f.abierto ? "cerrado" : f.estado.startsWith("Cotizado") ? "espera" : "accion");
+
+/** HOJA 1: lo que gerencia pregunta cada día, con su respuesta, y lo urgente en orden. */
+function ResumenPostventaPdf({
+  problemas,
+  repuestos,
+  cotizaciones,
+  porSalir,
+  pedidos,
+  urgentes,
+}: {
+  problemas: ProblemasTecnicos;
+  repuestos: RepuestosDelReporte;
+  cotizaciones: ReporteDiarioProps["cotizaciones"];
+  porSalir: number | null;
+  pedidos: GrupoPedidos[];
+  urgentes: Urgente[];
+}) {
+  const urgentesPt = problemas.filas.filter((p) => p.urgente).length;
+  const sinGestion = repuestos.abiertas.filter((r) => r.estado.startsWith("Sin gestión")).length;
+  const totalPedidos = pedidos.reduce((t, g) => t + g.pedidos.length, 0);
+  const suyos = pedidos.find((g) => g.esPostventa)?.pedidos.length ?? 0;
+  const enviadas = cotizaciones.filter((c) => c.enviada).length;
+  const tarjetas: { titulo: string; valor: number; lineas: string[]; color: string }[] = [
+    {
+      titulo: "¿Qué problemas técnicos hay por resolver?",
+      valor: problemas.abiertos,
+      lineas: [`${urgentesPt} urgente${urgentesPt === 1 ? "" : "s"}`, `${problemas.cerradosHoy} resuelto${problemas.cerradosHoy === 1 ? "" : "s"} este día`],
+      color: urgentesPt ? GRANATE : CARBON,
+    },
+    {
+      titulo: "¿Qué repuestos se pidieron y cómo van?",
+      valor: repuestos.abiertas.length,
+      lineas: [`${sinGestion} sin gestión todavía · ${repuestos.nuevasHoy} llegaron este día`, `${repuestos.cerradas.length} cerrada${repuestos.cerradas.length === 1 ? "" : "s"} este día`],
+      color: sinGestion ? GRANATE : CARBON,
+    },
+    {
+      titulo: "¿Qué cotizaciones hizo?",
+      valor: cotizaciones.length,
+      lineas: [`${enviadas} enviada${enviadas === 1 ? "" : "s"} al cliente`, porSalir == null ? "" : `${porSalir} armada${porSalir === 1 ? "" : "s"} sin enviar todavía`].filter(Boolean),
+      color: CARBON,
+    },
+    {
+      titulo: "¿Cómo van sus pedidos?",
+      valor: totalPedidos,
+      lineas: [`${suyos} le toca${suyos === 1 ? "" : "n"} a usted ahora`, `${totalPedidos - suyos} esperan a otra área o al cliente`],
+      color: suyos ? GRANATE : CARBON,
+    },
+  ];
   return (
     <View>
-      <View style={{ flexDirection: "row", alignItems: "flex-end", marginBottom: 4 }}>
-        <Text style={{ fontSize: 22, lineHeight: 1, height: 24, fontFamily: "Helvetica-Bold", color: GRANATE, marginRight: 6 }}>{p.abiertos}</Text>
-        <Text style={{ fontSize: 9, color: CARBON, marginBottom: 3 }}>
-          problemas técnicos abiertos que usted lleva{p.cerradosHoy ? ` · ${p.cerradosHoy} cerrado${p.cerradosHoy === 1 ? "" : "s"} este día` : ""}
-        </Text>
-      </View>
-      <Text style={{ fontSize: 7, color: GRIS, marginBottom: 6 }}>
-        Los casos técnicos que usted tomó (o tiene asignados y nadie tomó): problema técnico, revisión por garantía, soporte y «Otro». Con el paso en que están, lo que falta y a quién le toca; primero lo urgente y lo más antiguo; al final, los que cerró este día. Estado al generar el reporte.
+      <Text style={{ fontSize: 7.5, color: GRIS, marginBottom: 8 }}>
+        Las cuatro preguntas de cada día, con su respuesta. Lo urgente va debajo, en el orden en que conviene atenderlo; el detalle está en las hojas siguientes.
       </Text>
-      {p.porEtapa.length > 0 && (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 8 }} wrap={false}>
-          {p.porEtapa.map((x) => (
-            <View key={x.etapa} style={{ flexDirection: "row", borderWidth: 0.5, borderColor: BORDE, borderRadius: 3, paddingVertical: 2, paddingHorizontal: 5, marginRight: 4, marginBottom: 4 }}>
-              <Text style={{ fontSize: 7, color: CARBON }}>{x.etapa}</Text>
-              <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: GRANATE, marginLeft: 4 }}>{x.total}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-      {p.filas.length === 0 ? (
-        <Text style={e.vacio}>No lleva problemas técnicos abiertos ni cerró ninguno este día.</Text>
-      ) : (
-        <>
-          <View style={[e.fila, { borderBottomColor: GRIS }]}>
-            {["Cliente y equipo", "Paso", "Qué falta", "Le toca", "Días"].map((t, k) => (
-              <Text key={t} style={{ width: ["38%", "14%", "28%", "12%", "8%"][k], fontSize: 7, fontFamily: "Helvetica-Bold", color: GRIS, textAlign: k === 4 ? "right" : "left" }}>{t}</Text>
-            ))}
-          </View>
-          {p.filas.map((f, i) => (
-            <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
-              <View style={{ width: "38%", paddingRight: 6 }}>
-                <Text>{corta(f.cliente, 44)}</Text>
-                {f.tipo || f.equipo ? <Text style={{ fontSize: 7, color: GRIS }}>{corta([f.tipo, f.equipo].filter(Boolean).join(" · "), 60)}</Text> : null}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 6 }}>
+        {tarjetas.map((t) => (
+          <View key={t.titulo} style={{ width: "48.5%", borderWidth: 1, borderColor: BORDE, borderLeftWidth: 3, borderLeftColor: t.color, borderRadius: 4, padding: 9 }}>
+            <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: CARBON }}>{t.titulo}</Text>
+            <View style={{ flexDirection: "row", alignItems: "flex-end", marginTop: 4 }}>
+              <Text style={{ fontSize: 24, lineHeight: 1, height: 26, fontFamily: "Helvetica-Bold", color: t.color, marginRight: 8 }}>{t.valor}</Text>
+              <View style={{ marginBottom: 2 }}>
+                {t.lineas.map((l) => (
+                  <Text key={l} style={{ fontSize: 7.5, color: GRIS }}>{l}</Text>
+                ))}
               </View>
-              <Text style={{ width: "14%", color: f.cerradoHoy ? VERDE : CARBON }}>{f.etapa}</Text>
-              <Text style={{ width: "28%", color: f.urgente ? GRANATE : CARBON, fontFamily: f.urgente ? "Helvetica-Bold" : "Helvetica" }}>{f.falta}</Text>
-              <Text style={{ width: "12%", color: GRIS }}>{f.leToca}</Text>
-              <Text style={{ width: "8%", textAlign: "right", color: GRIS }}>{f.dias}</Text>
             </View>
-          ))}
-        </>
+          </View>
+        ))}
+      </View>
+      <Seccion titulo="LO URGENTE, EN ORDEN" total={urgentes.length}>
+        {urgentes.length === 0 ? (
+          <Text style={e.vacio}>Nada urgente: no hay problemas técnicos urgentes, repuestos sin gestión, seguimientos vencidos ni pedidos que le toquen.</Text>
+        ) : (
+          <>
+            <Encabezados columnas={[["#", "5%"], ["Qué es", "18%"], ["Cliente", "35%"], ["Qué hacer", "33%"], ["Días", "9%", "right"]]} />
+            {urgentes.map((u, i) => (
+              <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+                <Text style={{ width: "5%", color: GRIS }}>{i + 1}</Text>
+                <Text style={{ width: "18%", fontFamily: "Helvetica-Bold", color: GRANATE }}>{u.tipo}</Text>
+                <Text style={{ width: "35%", paddingRight: 6 }}>{corta(u.cliente, 48)}</Text>
+                <Text style={{ width: "33%", paddingRight: 6 }}>{corta(enOracion(u.que), 60)}</Text>
+                <Text style={{ width: "9%", textAlign: "right", fontFamily: "Helvetica-Bold", color: u.dias != null && u.dias > 7 ? GRANATE : CARBON }}>
+                  {u.dias == null ? "—" : `${u.dias} d`}
+                </Text>
+              </View>
+            ))}
+          </>
+        )}
+      </Seccion>
+      <Leyenda />
+    </View>
+  );
+}
+
+/** HOJA: problemas técnicos y solicitudes de repuesto, juntos (cada uno ocupaba una hoja casi vacía). */
+function CasosYSolicitudesPdf({ problemas, repuestos }: { problemas?: ProblemasTecnicos; repuestos?: RepuestosDelReporte }) {
+  return (
+    <View>
+      <Text style={{ fontSize: 7.5, color: GRIS, marginBottom: 2 }}>
+        Primero lo abierto, de lo urgente y lo más antiguo a lo más nuevo; al final, lo cerrado este día con su motivo. «Días» = desde que llegó. Estado al generar el reporte.
+      </Text>
+      <Leyenda />
+      {problemas && (
+        <Seccion titulo={`PROBLEMAS TÉCNICOS · ${problemas.abiertos} ABIERTOS · ${problemas.cerradosHoy} CERRADOS HOY`} total={problemas.filas.length}>
+          {problemas.porEtapa.length > 0 && (
+            <Text style={{ fontSize: 7, color: GRIS, paddingHorizontal: 5, paddingTop: 4 }}>
+              Abiertos por paso: {problemas.porEtapa.map((x) => `${x.etapa} ${x.total}`).join(" · ")}
+            </Text>
+          )}
+          {problemas.filas.length === 0 ? (
+            <Text style={e.vacio}>No lleva problemas técnicos abiertos ni cerró ninguno este día.</Text>
+          ) : (
+            <>
+              <Encabezados columnas={[["Cliente y equipo", "36%"], ["Paso", "13%"], ["Qué falta", "29%"], ["Le toca", "14%"], ["Días", "8%", "right"]]} />
+              {problemas.filas.map((f, i) => {
+                const tono: TonoPv = f.cerradoHoy ? "cerrado" : f.leToca === "Postventa" ? "accion" : "espera";
+                return (
+                  <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+                    <View style={{ width: "36%", paddingRight: 6 }}>
+                      <Text>{corta(f.cliente, 44)}</Text>
+                      {f.tipo || f.equipo ? <Text style={{ fontSize: 7, color: GRIS }}>{corta([f.tipo, f.equipo].filter(Boolean).join(" · "), 60)}</Text> : null}
+                    </View>
+                    <View style={{ width: "13%" }}>
+                      <Chip tono={tono} texto={f.etapa} />
+                    </View>
+                    <View style={{ width: "29%", paddingRight: 6 }}>
+                      <Text style={{ color: tono === "accion" && f.urgente ? GRANATE : CARBON, fontFamily: f.urgente ? "Helvetica-Bold" : "Helvetica" }}>{f.falta}</Text>
+                      {f.motivo ? <Text style={{ fontSize: 7, color: GRIS }}>{corta(enOracion(f.motivo), 140)}</Text> : null}
+                    </View>
+                    <Text style={{ width: "14%", color: GRIS }}>{f.leToca}</Text>
+                    <Text style={{ width: "8%", textAlign: "right", fontFamily: "Helvetica-Bold" }}>{f.dias}</Text>
+                  </View>
+                );
+              })}
+            </>
+          )}
+        </Seccion>
+      )}
+      {repuestos && (
+        <Seccion
+          titulo={`SOLICITUDES DE REPUESTO · ${repuestos.abiertas.length} ABIERTAS · ${repuestos.cerradas.length} CERRADAS HOY`}
+          total={repuestos.abiertas.length + repuestos.cerradas.length}
+        >
+          {repuestos.abiertas.length + repuestos.cerradas.length === 0 ? (
+            <Text style={e.vacio}>No tiene solicitudes de repuesto abiertas ni cerró ninguna este día.</Text>
+          ) : (
+            <>
+              <Encabezados columnas={[["Llegó", "9%"], ["Cliente y qué pidió", "55%"], ["Estado", "28%"], ["Días", "8%", "right"]]} />
+              {[...[...repuestos.abiertas].sort((a, b) => b.dias - a.dias), ...repuestos.cerradas].map((f, i) => (
+                <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+                  <Text style={{ width: "9%", fontFamily: f.nuevo ? "Helvetica-Bold" : "Helvetica" }}>{f.recibido}</Text>
+                  <View style={{ width: "55%", paddingRight: 6 }}>
+                    <Text>{corta(f.cliente, 60)}</Text>
+                    {f.pedido ? <Text style={{ fontSize: 7, color: GRIS }}>{corta(enOracion(f.pedido), 120)}</Text> : null}
+                  </View>
+                  <View style={{ width: "28%", paddingRight: 4 }}>
+                    <Chip tono={tonoRepuesto(f)} texto={f.estado} />
+                    {f.motivo ? <Text style={{ fontSize: 7, color: GRIS, marginTop: 1 }}>{corta(enOracion(f.motivo), 110)}</Text> : null}
+                  </View>
+                  <Text style={{ width: "8%", textAlign: "right", fontFamily: "Helvetica-Bold", color: f.abierto && f.dias > 7 ? GRANATE : CARBON }}>{f.dias}</Text>
+                </View>
+              ))}
+            </>
+          )}
+        </Seccion>
       )}
     </View>
   );
 }
 
-/** La hoja de repuestos (reunión 16-10 17:57: «abierto y cerrado, simple, así como manzanita»). */
-function RepuestosPdf({ r }: { r: RepuestosDelReporte }) {
-  const tabla = (titulo: string, filas: RepuestoFila[], vacio: string) => (
-    <Seccion titulo={titulo} total={filas.length}>
-      {filas.length === 0 ? (
-        <Text style={e.vacio}>{vacio}</Text>
-      ) : (
-        <>
-          <View style={[e.fila, { borderBottomColor: GRIS }]}>
-            {["Llegó", "Cliente y qué pidió", "Estado"].map((t, k) => (
-              <Text key={t} style={{ width: ["9%", "59%", "32%"][k], fontSize: 7, fontFamily: "Helvetica-Bold", color: GRIS }}>{t}</Text>
-            ))}
-          </View>
-          {filas.map((f, i) => (
-            <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
-              <Text style={{ width: "9%", fontFamily: f.nuevo ? "Helvetica-Bold" : "Helvetica" }}>{f.recibido}</Text>
-              <View style={{ width: "59%", paddingRight: 6 }}>
-                <Text>{corta(f.cliente, 60)}</Text>
-                {f.pedido ? <Text style={{ fontSize: 7, color: GRIS }}>{corta(f.pedido, 110)}</Text> : null}
-              </View>
-              <Text style={{ width: "32%", color: f.abierto ? (f.estado.startsWith("Sin gestión") ? GRANATE : CARBON) : VERDE }}>{corta(f.estado, 70)}</Text>
-            </View>
-          ))}
-        </>
-      )}
-    </Seccion>
-  );
+/** HOJA: un pedido por fila, con su siguiente paso, agrupados por a quién le toca. */
+function PedidosPorResponsablePdf({ grupos }: { grupos: GrupoPedidos[] }) {
+  const total = grupos.reduce((t, g) => t + g.pedidos.length, 0);
   return (
     <View>
       <View style={{ flexDirection: "row", alignItems: "flex-end", marginBottom: 4 }}>
-        <Text style={{ fontSize: 22, lineHeight: 1, height: 24, fontFamily: "Helvetica-Bold", color: GRANATE, marginRight: 6 }}>{r.abiertas.length}</Text>
-        <Text style={{ fontSize: 9, color: CARBON, marginBottom: 3 }}>
-          abiertas · {r.cerradas.length} cerrada{r.cerradas.length === 1 ? "" : "s"} este día · {r.nuevasHoy} llegaron este día
-        </Text>
+        <Text style={{ fontSize: 22, lineHeight: 1, height: 24, fontFamily: "Helvetica-Bold", color: GRANATE, marginRight: 6 }}>{total}</Text>
+        <Text style={{ fontSize: 9, color: CARBON, marginBottom: 3 }}>pedidos abiertos en los que usted trabajó</Text>
       </View>
-      <Text style={{ fontSize: 7, color: GRIS, marginBottom: 6 }}>
-        Sus expedientes de repuesto. Abierta: sin gestión, en gestión (por ejemplo, consultando stock al almacén) o cotizada. Cerrada: vendida o cerrada con su motivo. En negrita, las que llegaron este día. Estado al generar el reporte.
+      <Text style={{ fontSize: 7.5, color: GRIS, marginBottom: 2 }}>
+        Uno por fila, con el paso que sigue y a quién le toca; primero lo que le toca a usted. Son los pedidos en los que firmó algún paso o gestionó al cliente en los últimos 90 días. La lista de toda el área, paso por paso, está en la agenda y en Control.
       </Text>
-      {tabla("ABIERTAS", r.abiertas, "No tiene solicitudes de repuesto abiertas.")}
-      {tabla("CERRADAS ESTE DÍA", r.cerradas, "No cerró solicitudes de repuesto este día.")}
+      <Leyenda />
+      {total === 0 && <Text style={e.vacio}>No tiene pedidos abiertos.</Text>}
+      {grupos.map((g) => (
+        <Seccion key={g.responsable} titulo={`LE TOCA A ${g.responsable.toUpperCase()}`} total={g.pedidos.length}>
+          <Encabezados columnas={[["#", "5%"], ["Cliente y equipo", "45%"], ["Siguiente paso", "50%"]]} />
+          {g.pedidos.map((p, i) => (
+            <View key={i} wrap={false} style={[e.fila, ...(i % 2 ? [e.filaAlterna] : [])]}>
+              <Text style={{ width: "5%", color: GRIS }}>{i + 1}</Text>
+              <View style={{ width: "45%", paddingRight: 6 }}>
+                <Text style={{ fontFamily: "Helvetica-Bold" }}>{corta(p.cliente, 50)}</Text>
+                <Text style={{ fontSize: 7, color: GRIS }}>{corta(enOracion(p.equipo), 70)}</Text>
+              </View>
+              <View style={{ width: "50%" }}>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 3, alignItems: "center" }}>
+                  <Chip tono={g.esPostventa ? "accion" : "espera"} texto={p.paso} />
+                  {p.avisos.map((a) => (
+                    <Text key={a} style={{ fontSize: 6.5, color: GRANATE, borderWidth: 0.5, borderColor: GRANATE, borderRadius: 2, paddingHorizontal: 3, paddingVertical: 1 }}>{a}</Text>
+                  ))}
+                </View>
+                {p.detalle ? <Text style={{ fontSize: 7, color: GRIS, marginTop: 1 }}>{corta(p.detalle, 150)}</Text> : null}
+              </View>
+            </View>
+          ))}
+        </Seccion>
+      ))}
     </View>
   );
 }
@@ -391,7 +569,7 @@ export function Tarjeta({ etiqueta, valor, sub }: { etiqueta: string; valor: str
 
 export function ReporteDiarioPdf({
   logoBuffer, fecha, fechaCorta, comercial, resumen, seguimientos, cotizaciones, ventas, leads, complementarias, agenda, planificacion_manana, proyeccion,
-  pendientesPostventa, tituloPendientes, pendientesAnotados, movimientoDelArea, rutasPostventa, indicadores, panelPostventa, panorama, loQueFalta, problemasTecnicos, repuestos,
+  pendientesPostventa, tituloPendientes, pendientesAnotados, movimientoDelArea, rutasPostventa, indicadores, panelPostventa, panorama, loQueFalta, problemasTecnicos, repuestos, pedidosPorResponsable, urgentes,
 }: ReporteDiarioProps) {
   const pct = resumen.meta_seguimientos > 0
     ? Math.min((resumen.seguimientos_efectivos / resumen.meta_seguimientos) * 100, 100)
@@ -444,10 +622,35 @@ export function ReporteDiarioPdf({
     <Document title={`Reporte diario ${comercial.codigo ?? ""} ${fecha}`} author="CRM Efameinsa">
       {/* POSTVENTA: la hoja de gráficos primero, para ver de una vista cómo va
           cada gestión (Santos, 13-10); el detalle sigue en la hoja siguiente. */}
+      {/* POSTVENTA, de lo general al detalle (Santos 16-10, «con buenas
+          prácticas»): primero lo que gerencia pregunta y lo urgente; después
+          el panel, los casos y repuestos, lo que falta gestionar y los
+          pedidos; al final, el detalle de cada gestión. */}
+      {problemasTecnicos && repuestos && (
+        <Page size="A4" style={e.pagina}>
+          {cabecera("RESUMEN DEL DÍA · LO QUE GERENCIA PREGUNTA")}
+          <ResumenPostventaPdf
+            problemas={problemasTecnicos}
+            repuestos={repuestos}
+            cotizaciones={cotizaciones}
+            porSalir={panorama?.presupuestos.length ?? null}
+            pedidos={pedidosPorResponsable ?? []}
+            urgentes={urgentes ?? []}
+          />
+          {pie}
+        </Page>
+      )}
       {panelPostventa && (
         <Page size="A4" style={e.pagina}>
           {cabecera("PANEL DEL DÍA · SU GESTIÓN")}
           <PanelPostventaPdf panel={panelPostventa} resumen={resumen} />
+          {pie}
+        </Page>
+      )}
+      {(problemasTecnicos || repuestos) && (
+        <Page size="A4" style={e.pagina}>
+          {cabecera("PROBLEMAS TÉCNICOS Y REPUESTOS")}
+          <CasosYSolicitudesPdf problemas={problemasTecnicos} repuestos={repuestos} />
           {pie}
         </Page>
       )}
@@ -458,27 +661,19 @@ export function ReporteDiarioPdf({
           {pie}
         </Page>
       )}
-      {problemasTecnicos && (
+      {pedidosPorResponsable ? (
         <Page size="A4" style={e.pagina}>
-          {cabecera("PROBLEMAS TÉCNICOS Y SU ESTADO")}
-          <ProblemasTecnicosPdf p={problemasTecnicos} />
+          {cabecera("SUS PEDIDOS ABIERTOS · SIGUIENTE PASO")}
+          <PedidosPorResponsablePdf grupos={pedidosPorResponsable} />
           {pie}
         </Page>
-      )}
-      {repuestos && (
-        <Page size="A4" style={e.pagina}>
-          {cabecera("SOLICITUDES DE REPUESTO · ABIERTAS Y CERRADAS")}
-          <RepuestosPdf r={repuestos} />
-          {pie}
-        </Page>
-      )}
-      {loQueFalta && (
+      ) : loQueFalta ? (
         <Page size="A4" style={e.pagina}>
           {cabecera("SUS PEDIDOS ABIERTOS · LO QUE FALTA, PASO POR PASO")}
           <LoQueFaltaPdf abiertos={loQueFalta.abiertos} historia={loQueFalta.historia} secciones={loQueFalta.secciones} />
           {pie}
         </Page>
-      )}
+      ) : null}
       <Page size="A4" style={e.pagina}>
         {cabecera(panelPostventa ? "REPORTE DIARIO · DETALLE" : "REPORTE DIARIO DE GESTIÓN")}
 

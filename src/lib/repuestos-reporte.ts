@@ -16,9 +16,13 @@ export interface RepuestoFila {
   pedido: string | null;
   recibido: string;
   estado: string;
+  /** El motivo del cierre, en su propia línea (no corta el estado). */
+  motivo: string | null;
   abierto: boolean;
   /** Llegó ese mismo día. */
   nuevo: boolean;
+  /** Días desde que llegó: la antigüedad es lo que dice qué urge. */
+  dias: number;
 }
 
 export interface RepuestosDelReporte {
@@ -31,7 +35,7 @@ const LIMA = "-05:00";
 const ESTADO: Record<string, string> = {
   asignada: "Sin gestión todavía",
   seguimiento: "En gestión",
-  cotizada: "Cotizado, esperando respuesta",
+  cotizada: "Cotizado",
 };
 
 const fechaCorta = (iso: string) => new Date(iso).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit" });
@@ -87,14 +91,16 @@ export async function cargarRepuestos(admin: SupabaseClient, personaId: string, 
     const abierto = !["venta", "rechazada"].includes(o.etapa);
     const recibidoIso = pedido.get(o.id)?.recibido_at ?? o.created_at;
     let estado: string;
+    let motivoCierre: string | null = null;
     if (o.etapa === "venta") estado = "Vendido";
     else if (o.etapa === "rechazada") {
       const m = o.motivo_rechazo_id != null ? motivo.get(o.motivo_rechazo_id) : null;
       // «Otro (explicar en la nota)» no dice nada: va la nota de la última gestión.
       const quien = ultimoAutor.get(o.id);
       const por = quien && quien !== personaId ? ` por ${nombre.get(quien) ?? "otra persona"}` : "";
-      estado = `Cerrado${por}: ${m && !/^otro/i.test(m) ? m : (ultimaNota.get(o.id) ?? "sin motivo anotado")}`;
-    } else if (cotizacion.has(o.id)) estado = `Cotizado (${cotizacion.get(o.id)}), esperando respuesta`;
+      estado = `Cerrado${por}`;
+      motivoCierre = m && !/^otro/i.test(m) ? m : (ultimaNota.get(o.id) ?? "Sin motivo anotado");
+    } else if (cotizacion.has(o.id)) estado = `Cotizado (${cotizacion.get(o.id)})`;
     // El expediente puede seguir en «asignada» aunque ya tenga gestiones.
     else if (o.etapa === "asignada" && ultimoAutor.has(o.id)) estado = "En gestión";
     else estado = ESTADO[o.etapa] ?? o.etapa;
@@ -103,8 +109,10 @@ export async function cargarRepuestos(admin: SupabaseClient, personaId: string, 
       pedido: pedido.get(o.id)?.mensaje ?? null,
       recibido: fechaCorta(recibidoIso),
       estado,
+      motivo: motivoCierre,
       abierto,
       nuevo: recibidoIso >= inicio && recibidoIso < fin,
+      dias: Math.max(0, Math.floor((Date.parse(fin) - Date.parse(recibidoIso)) / 86_400_000)),
     };
   });
   return {

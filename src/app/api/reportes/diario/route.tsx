@@ -23,6 +23,7 @@ import { cargarFilasPorPaso, filtrarPedidosQueTrabajo } from "@/lib/pedidos-por-
 import { cargarProblemasTecnicos, type ProblemasTecnicos } from "@/lib/problemas-tecnicos-reporte";
 import { estadoDeLosLeads } from "@/lib/leads-del-reporte";
 import { cargarRepuestos, type RepuestosDelReporte } from "@/lib/repuestos-reporte";
+import { loUrgente, pedidosPorResponsable as agruparPedidos, type GrupoPedidos } from "@/lib/resumen-postventa";
 import { loQueFaltaPorPaso } from "@/lib/lo-que-falta-por-paso";
 import type { PendienteAnotado } from "@/lib/pendientes-anotados";
 
@@ -127,6 +128,7 @@ export async function GET(request: Request) {
   let loQueFalta: ReturnType<typeof loQueFaltaPorPaso> | undefined;
   let problemasTecnicos: ProblemasTecnicos | undefined;
   let repuestos: RepuestosDelReporte | undefined;
+  let pedidosPorResponsable: GrupoPedidos[] | undefined;
   try {
     const { data: perfil } = await supabase
       .from("perfiles")
@@ -310,7 +312,11 @@ export async function GET(request: Request) {
       // de la agenda, del área entera; si falla, el reporte sale sin esa hoja.
       try {
         // Solo los pedidos en los que trabajó (Santos 16-10): antes iba el área entera.
-        loQueFalta = loQueFaltaPorPaso(await filtrarPedidosQueTrabajo(createAdminClient(), comercialId, await cargarFilasPorPaso(supabase, false)));
+        const propios = await filtrarPedidosQueTrabajo(createAdminClient(), comercialId, await cargarFilasPorPaso(supabase, false));
+        loQueFalta = loQueFaltaPorPaso(propios);
+        // Una fila por pedido con su siguiente paso (Santos 16-10): antes un mismo
+        // pedido salía en cada paso que debía y la hoja ocupaba siete páginas.
+        pedidosPorResponsable = agruparPedidos(propios);
       } catch {
         loQueFalta = undefined;
       }
@@ -328,6 +334,13 @@ export async function GET(request: Request) {
         panorama = await cargarPanorama(createAdminClient(), comercialId, fecha, hoyLima(), anotadosCrudos, tareasSinHacer);
       } catch {
         panorama = undefined;
+      }
+      // La tarjeta «Agenda» del detalle con la MISMA cuenta que «Lo que falta
+      // gestionar» (16-10: una decía 2 para hoy y la otra 0).
+      if (panorama) {
+        const hoyN = panorama.seguimientos.filter((x) => x.atraso === 0).length;
+        const vencidasN = panorama.seguimientos.filter((x) => x.atraso > 0).length;
+        r.agenda = { ...r.agenda, pendiente_hoy: hoyN, vencidas: vencidasN };
       }
       try {
         const admin = createAdminClient();
@@ -400,6 +413,8 @@ export async function GET(request: Request) {
       loQueFalta={loQueFalta}
       problemasTecnicos={problemasTecnicos}
       repuestos={repuestos}
+      pedidosPorResponsable={pedidosPorResponsable}
+      urgentes={problemasTecnicos || repuestos ? loUrgente(problemasTecnicos, repuestos, panorama, pedidosPorResponsable ?? []) : undefined}
     />,
   );
 

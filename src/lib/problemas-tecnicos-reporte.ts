@@ -21,6 +21,8 @@ export interface ProblemaTecnicoFila {
   equipo: string | null;
   etapa: string;
   falta: string;
+  /** El motivo del cierre, en su propia línea. */
+  motivo: string | null;
   leToca: string;
   dias: number;
   urgente: boolean;
@@ -58,13 +60,14 @@ export async function cargarProblemasTecnicos(admin: SupabaseClient, personaId: 
   const filas = lista.map((a) => {
     const cerrado = a.cerrado_at != null;
     const motivo = (a as { motivo_cierre?: string | null }).motivo_cierre;
-    const falta = cerrado ? { texto: motivo ? `Cerrado: ${motivo}` : "Cerrado este día", responsable: "—", urgente: false } : queLeFalta(a);
+    const falta = cerrado ? { texto: "Cerrado este día", responsable: "—", urgente: false } : queLeFalta(a);
     return {
       cliente: a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre",
       tipo: a.tipo === "problema_tecnico" ? null : tituloDelTipo(a.tipo, a.tipo_detalle),
       equipo: a.equipo_texto ?? null,
       etapa: cerrado ? "Cerrado" : (ETIQUETA_ETAPA[a.etapa as EtapaAtencion] ?? a.etapa),
       falta: falta.texto,
+      motivo: cerrado ? (motivo ?? null) : null,
       leToca: falta.responsable,
       dias: Math.max(0, Math.floor((hoy - Date.parse(a.created_at)) / 86_400_000)),
       urgente: !cerrado && falta.urgente,
