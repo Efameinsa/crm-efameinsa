@@ -1,5 +1,5 @@
 import Link from "@/components/enlace";
-import { FileText, FilePlus2, Pencil } from "lucide-react";
+import { FileText, FilePlus2, Pencil, Wallet } from "lucide-react";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { fechaCalendario } from "@/lib/fechas";
 import { AdjuntosCierre } from "@/components/crm/adjuntos-cierre";
@@ -130,6 +130,16 @@ export function ListaInformesCierre({
                 className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
               >
                 Abrir
+              </Link>
+            )}
+            {/* Los abonos que confirmó Finanzas y la comisión que descontó el
+                banco (Katerine, 16-10: solo llegaba desde la campana). */}
+            {inf.emitido_at && !inf.anulado_at && !sinPrecios && (
+              <Link
+                href={`/comercial/cierres/${inf.id}/pagos`}
+                className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
+              >
+                <Wallet className="size-3" /> Pagos
               </Link>
             )}
             {(
