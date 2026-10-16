@@ -26,6 +26,7 @@ import { firmarAdjuntosDeCierres } from "@/lib/adjuntos-cierre";
 import { ContactosEditables, type ContactoEditable } from "@/components/crm/contactos-editables";
 import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
 import { FichasRelacionadas } from "@/components/crm/fichas-relacionadas";
+import { MoverGestionesBoton } from "@/components/crm/mover-gestiones-boton";
 import { candidatosMismoCliente } from "@/lib/acciones/cuentas";
 import { CambiarRubro } from "@/components/crm/cambiar-rubro";
 import { EtapaBadge } from "@/components/crm/etapa-badge";
@@ -549,6 +550,12 @@ export default async function OportunidadDetallePage({
               <Link href={`/comercial/cartera/${cuenta.id}`} className="text-xs font-medium text-primary hover:underline">
                 Ir a la ficha del cliente (todos sus expedientes) →
               </Link>
+            )}
+            {/* Gestiones en el expediente equivocado (0514): las mueve quien puede arreglarlo. */}
+            {["central", "admin", "gerencia", "operaciones"].includes(perfilQueMira.rol) && (
+              <div className="mt-0.5">
+                <MoverGestionesBoton oportunidadId={id} cliente={cuenta?.razon_social ?? "este expediente"} />
+              </div>
             )}
             {sedeDe && (
               <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
