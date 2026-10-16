@@ -64,4 +64,11 @@ describe("cabeceraArchivo", () => {
   it("si el nombre queda vacío, igual devuelve algo abrible", () => {
     expect(cabeceraArchivo("")).toContain('filename="documento.pdf"');
   });
+
+  it("para descargar va como attachment, con el mismo nombre (Moisés, 16-10)", () => {
+    expect(cabeceraArchivo("Presu_1193-26, MULTISERVICIOS ROAGUI S.A.C", "pdf", true)).toBe(
+      'attachment; filename="Presu_1193-26, MULTISERVICIOS ROAGUI S.A.C.pdf"',
+    );
+    expect(cabeceraArchivo("Presu_1193-26, MULTISERVICIOS ROAGUI S.A.C")).toMatch(/^inline;/);
+  });
 });

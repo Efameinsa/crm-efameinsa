@@ -74,8 +74,14 @@ function soloAscii(texto: string): string {
  * `inline` a propósito: el PDF se abre en el visor del navegador y desde ahí se
  * descarga o se adjunta, que es como trabajan. El nombre es el que aparece al
  * guardar.
+ *
+ * `descargar` pide `attachment`: el navegador baja el archivo directo del
+ * servidor, sin pasar por su visor de PDF (Moisés, 16-10: «al descargar la
+ * cotización para compartirla como adjunto sale error, REINTENTAR»). El
+ * guardado desde el visor de Chrome falló sin volver a pedir nada al CRM; una
+ * descarga directa, si se corta, se reintenta contra el servidor.
  */
-export function cabeceraArchivo(nombreSinExtension: string, extension = "pdf"): string {
+export function cabeceraArchivo(nombreSinExtension: string, extension = "pdf", descargar = false): string {
   // Si de la limpieza no queda nada, igual tiene que descargarse con ALGO: un
   // archivo llamado ".pdf" no se abre en Windows.
   const base = textoParaNombreArchivo(nombreSinExtension) || "documento";
@@ -85,5 +91,5 @@ export function cabeceraArchivo(nombreSinExtension: string, extension = "pdf"): 
   // ajenos y en carpetas compartidas, y ahí una eñe todavía se convierte en
   // «Ã±». Un solo nombre plano se abre igual en todas partes.
   const nombre = soloAscii(`${base}.${extension}`) || `documento.${extension}`;
-  return `inline; filename="${nombre}"`;
+  return `${descargar ? "attachment" : "inline"}; filename="${nombre}"`;
 }

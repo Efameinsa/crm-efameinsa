@@ -64,10 +64,13 @@ export function CotizacionConfirmada({
         Falta lo último, y eso va por fuera del CRM: descargue el PDF y mándeselo al cliente por correo o WhatsApp.
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        {/* Baja el archivo DIRECTO del servidor, con su nombre «Presu_…, CLIENTE»
+            (Moisés, 16-10: lo abría en una pestaña y el guardado desde el visor
+            de Chrome fallaba con «Reintentar»). Para mirarlo antes, el enlace
+            de abajo lo abre aparte. */}
         <a
-          href={`/api/cotizaciones/${cotizacionId}/pdf`}
-          target="_blank"
-          rel="noreferrer"
+          href={`/api/cotizaciones/${cotizacionId}/pdf?descargar=1`}
+          download
           className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <FileDown className="size-4" />
@@ -78,6 +81,14 @@ export function CotizacionConfirmada({
             de arriba ya avisó que cuesta una autorización. */}
         <CorregirCotizacionBoton cotizacionId={cotizacionId} codigo={codigo} volverHref={volverHref} />
       </div>
+      <a
+        href={`/api/cotizaciones/${cotizacionId}/pdf`}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-3 inline-block text-xs text-muted-foreground hover:underline"
+      >
+        Verlo antes en una pestaña aparte
+      </a>
       <div className="mt-4">
         <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={volverHref}>Volver a la oportunidad</Link>} />
       </div>
