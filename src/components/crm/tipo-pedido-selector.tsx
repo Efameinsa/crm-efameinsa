@@ -37,6 +37,12 @@ export function TipoPedidoSelector({
   const [t, setT] = useState<TipoPedido>(tipo);
   const [e, setE] = useState<"planta" | "agencia" | "cliente" | null>(entregaEn);
   const [i, setI] = useState<boolean | null>(conInstalacion);
+  // Lo que el servidor no dejó guardar queda a la vista en la caja (16-10).
+  const [problema, setProblema] = useState<string | null>(null);
+  const falta = [
+    (t === "repuesto" || t === "accesorio") && e == null && "cómo se entrega",
+    t === "repuesto" && i == null && "si lleva instalación",
+  ].filter(Boolean);
 
   const resumen = [
     ETIQUETA_TIPO_PEDIDO[tipo],
@@ -47,10 +53,11 @@ export function TipoPedidoSelector({
     .join(" · ");
 
   function guardar() {
+    setProblema(null);
     startTransition(async () => {
       const r = await definirTipoPedido(servicioId, { tipo: t, entregaEn: e, conInstalacion: i });
       if (r.error) {
-        toast.error(r.error, { duration: 8000 });
+        setProblema(r.error);
         return;
       }
       toast.success("Circuito del pedido actualizado");
@@ -136,12 +143,29 @@ export function TipoPedidoSelector({
             " Coches, carros y lo que no se conecta: sin plano, sin preinstalación y sin puesta en marcha."}
         {t === "embalaje" && "Pago y embalaje listo → dirección, apertura y despacho → cierre con las fotos de la salida (mínimo 3). Sin plano, sin preinstalación y sin informe."}
       </p>
-      <div className="flex items-center gap-2">
-        <Button size="sm" onClick={guardar} disabled={pendiente || (t === "repuesto" && (e == null || i == null)) || (t === "accesorio" && e == null)}>
+      {problema && (
+        <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+          {problema}
+        </p>
+      )}
+      <div className="flex items-start gap-2">
+        <Button
+          size="sm"
+          onClick={guardar}
+          disabled={pendiente || (t === "repuesto" && (e == null || i == null)) || (t === "accesorio" && e == null)}
+          porQue={falta.length > 0 ? `Falta: ${falta.join(" · ")}.` : null}
+        >
           {pendiente && <Loader2 className="size-4 animate-spin" />}
           Guardar
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => setEditando(false)}>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            setEditando(false);
+            setProblema(null);
+          }}
+        >
           Cancelar
         </Button>
       </div>

@@ -77,11 +77,15 @@ export function PasosPedidoCentral({
   const [acc, setAcc] = useState<AccesoriosPedido>({ incluye: accesorios?.incluye ?? null, detalle: accesorios?.detalle ?? "" });
   const [editandoAcc, setEditandoAcc] = useState(false);
   const accListo = acc.incluye === false || (acc.incluye === true && acc.detalle.trim().length >= 3);
+  const faltaAcc = pendiente || accListo ? null : acc.incluye == null ? "Primero diga si los equipos incluyen accesorios." : "Escriba qué accesorios lleva.";
+  // Lo que el servidor no dejó hacer queda escrito sobre los pasos, no en un toast.
+  const [problema, setProblema] = useState<string | null>(null);
 
   const correr = (fn: () => Promise<{ error: string | null }>, exito: string) =>
     startTransition(async () => {
+      setProblema(null);
       const r = await fn();
-      if (r.error) return void toast.error(r.error, { duration: 9000 });
+      if (r.error) return void setProblema(r.error);
       toast.success(exito);
       router.refresh();
     });
@@ -93,6 +97,12 @@ export function PasosPedidoCentral({
   const cuando = (iso: string) => new Date(iso).toLocaleString("es-PE", { timeZone: "America/Lima", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
   return (
+    <>
+    {problema && (
+      <p role="alert" className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+        {problema}
+      </p>
+    )}
     <ol className="mt-3 grid gap-2 lg:grid-cols-4">
       {/* 1 · SERIES */}
       <Paso n={1} titulo="Series de los equipos" hecho={seriesListas}>
@@ -111,7 +121,7 @@ export function PasosPedidoCentral({
             <Button
               size="sm"
               disabled={pendiente || !accListo}
-              title={!accListo ? "Primero diga si los equipos incluyen accesorios" : undefined}
+              porQue={faltaAcc}
               onClick={() => correr(() => pedirSeriesAlAlmacen(informeId, acc), "Pedido al almacén: le llegó el aviso con los equipos y los accesorios")}
             >
               <PackageSearch className="size-3.5" /> Pedir series al almacén
@@ -147,7 +157,7 @@ export function PasosPedidoCentral({
                     size="sm"
                     variant="outline"
                     disabled={pendiente || !accListo}
-                    title={!accListo ? "Primero diga si los equipos incluyen accesorios" : undefined}
+                    porQue={faltaAcc}
                     onClick={() => correr(() => pedirSeriesAlAlmacen(informeId, acc), "Pedido al almacén: le llegó el aviso")}
                   >
                     <PackageSearch className="size-3.5" /> Pedir al almacén
@@ -164,6 +174,7 @@ export function PasosPedidoCentral({
                     <Button
                       size="sm"
                       disabled={pendiente || !accListo}
+                      porQue={faltaAcc}
                       onClick={() =>
                         correr(async () => {
                           const r = await indicarAccesorios(servicioId, acc);
@@ -295,6 +306,7 @@ export function PasosPedidoCentral({
                 size="sm"
                 variant="destructive"
                 disabled={pendiente || motivo.trim().length < 5 || !servicioId}
+                porQue={pendiente ? null : !servicioId ? "Primero genere el pedido (paso 2)." : "Escriba qué está mal."}
                 onClick={() =>
                   correr(async () => {
                     const r = await rechazarLiquidacion(servicioId!, motivo);
@@ -321,7 +333,7 @@ export function PasosPedidoCentral({
               // Revisión 23-09: sin el PDF de Finanzas no hay qué aceptar (antes
               // se podía saltar a Finanzas, incluso justo después de rechazarla).
               disabled={pendiente || !liquidacionPdf}
-              title={!liquidacionPdf ? "Finanzas todavía no sube la liquidación" : undefined}
+              porQue={pendiente ? null : "Finanzas todavía no sube la liquidación."}
               onClick={() => correr(() => liberarPedido({ informeId, marcarLiquidacion: true }), "Liquidación aceptada")}
             >
               <Check className="size-3.5" /> Aceptar
@@ -355,7 +367,8 @@ export function PasosPedidoCentral({
               size="sm"
               className="mt-1"
               disabled={pendiente || !numeroPedido || (!liquidacionAt && pin.replace(/\D/g, "").length < 4)}
-              title={!numeroPedido ? "Primero genere el pedido (paso 2)" : undefined}
+              // Sin pedido, el «Primero genere el pedido» ya está escrito arriba.
+              porQue={pendiente || !numeroPedido ? null : "Falta el código de 4 dígitos."}
               onClick={() =>
                 correr(
                   () => liberarPedido({ informeId, numeroPedido, marcarPedido: true, pin: liquidacionAt ? null : pin }),
@@ -370,6 +383,7 @@ export function PasosPedidoCentral({
         )}
       </Paso>
     </ol>
+    </>
   );
 }
 

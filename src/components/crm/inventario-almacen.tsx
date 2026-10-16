@@ -190,13 +190,15 @@ function FilaModelo({ modelo: m }: { modelo: ModeloStock }) {
 
 function BotonesEstado({ id, serie, estado }: { id: string; serie: string; estado: string }) {
   const [enviando, empezar] = useTransition();
+  const [problema, setProblema] = useState<string | null>(null);
   const router = useRouter();
 
   function mover(nuevo: "disponible" | "despachado" | "baja") {
+    setProblema(null);
     empezar(async () => {
       const r = await moverEquipo(id, nuevo, null);
       if (r.error) {
-        toast.error(r.error);
+        setProblema(r.error);
         return;
       }
       toast.success(`La ${serie} quedó como ${ETIQUETA_ESTADO[nuevo].toLowerCase()}.`);
@@ -205,6 +207,7 @@ function BotonesEstado({ id, serie, estado }: { id: string; serie: string; estad
   }
 
   return (
+    <span className="flex flex-col items-end gap-1">
     <span className="flex gap-1">
       {estado !== "disponible" && (
         <Button variant="ghost" size="sm" disabled={enviando} onClick={() => mover("disponible")}>
@@ -226,6 +229,12 @@ function BotonesEstado({ id, serie, estado }: { id: string; serie: string; estad
         Baja
       </Button>
     </span>
+    {problema && (
+      <span role="alert" className="block max-w-xs rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+        {problema}
+      </span>
+    )}
+    </span>
   );
 }
 
@@ -236,6 +245,7 @@ function CargarStock({ modelos }: { modelos: ModeloStock[] }) {
   const [productoId, setProductoId] = useState<string | null>(null);
   const [series, setSeries] = useState("");
   const [ubicacion, setUbicacion] = useState("");
+  const [problema, setProblema] = useState<string | null>(null);
   const [enviando, empezar] = useTransition();
   const router = useRouter();
 
@@ -245,10 +255,11 @@ function CargarStock({ modelos }: { modelos: ModeloStock[] }) {
 
   function guardar() {
     if (!productoId) return;
+    setProblema(null);
     empezar(async () => {
       const r = await cargarSeries(productoId, series, ubicacion.trim() || null);
       if (r.error) {
-        toast.error(r.error);
+        setProblema(r.error);
         return;
       }
       const partes = [`${r.cargadas} máquina${r.cargadas === 1 ? "" : "s"} en el almacén`];
@@ -335,10 +346,30 @@ function CargarStock({ modelos }: { modelos: ModeloStock[] }) {
             </span>
             <Input value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} placeholder="Almacén Lima, contenedor 3…" />
           </label>
+
+          {problema && (
+            <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+              {problema}
+            </p>
+          )}
         </div>
 
         <DialogFooter>
-          <Button onClick={guardar} disabled={enviando || !productoId || cuantas === 0}>
+          <Button
+            onClick={guardar}
+            disabled={enviando || !productoId || cuantas === 0}
+            porQue={
+              enviando
+                ? null
+                : !productoId && cuantas === 0
+                  ? "Falta: el modelo · los números de serie."
+                  : !productoId
+                    ? "Falta elegir el modelo."
+                    : cuantas === 0
+                      ? "Faltan los números de serie (uno por línea)."
+                      : null
+            }
+          >
             {enviando ? "Cargando…" : `Cargar ${cuantas || ""} al almacén`}
           </Button>
         </DialogFooter>

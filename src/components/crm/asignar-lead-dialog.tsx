@@ -161,6 +161,9 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
    */
   const [traspaso, setTraspaso] = useState<{ razonSocial: string; duenoNombre: string; duenoCodigo: string | null } | null>(null);
   const [pin, setPin] = useState("");
+  // La regla que frenó la asignación queda escrita en el diálogo (un toast se
+  // va en segundos y la persona no sabe qué le faltó).
+  const [problema, setProblema] = useState<string | null>(null);
   /**
    * Instituciones con sedes bajo un mismo RUC (0158). Gerencia, 02-09: «solo
    * en esos casos, cuando se reconozca por el RUC, deben aparecer las
@@ -248,37 +251,38 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
   }, [abierto, comercialId, esPostventa, leadId]);
 
   function confirmar() {
+    setProblema(null);
     if (!comercialId) {
-      toast.error("Seleccione un comercial");
+      setProblema("Falta elegir el comercial.");
       return;
     }
     if (esPostventa && !tipoPostventa) {
-      toast.error("Indique de qué clase es el caso de postventa");
+      setProblema("Falta indicar de qué clase es el caso de postventa.");
       return;
     }
     // Con coincidencias delante no hay «cliente nuevo» a secas: o se une a una
     // de esas fichas, o se dice por qué no lo es. La base lo vuelve a exigir.
     if (pideMotivoNuevo && motivoNuevo.trim().length < 10) {
-      toast.error("Este contacto coincide con un cliente que ya tenemos: elija su ficha para unirlo, o escriba por qué es un cliente nuevo.");
+      setProblema("Este contacto coincide con un cliente que ya tenemos: elija su ficha para unirlo, o escriba por qué es un cliente nuevo.");
       return;
     }
     if (codigoPostventa && pin.length !== 4) {
-      toast.error("Derivar a postventa lo autoriza gerencia u operaciones: escriba su código de cuatro dígitos.");
+      setProblema("Derivar a postventa lo autoriza gerencia u operaciones: escriba su código de cuatro dígitos.");
       return;
     }
     if (nuevoConClienteAjeno && pin.length !== 4) {
-      toast.error("Este contacto coincide con un cliente de otra cartera: gerencia debe darle el código para derivarlo como nuevo.");
+      setProblema("Este contacto coincide con un cliente de otra cartera: gerencia debe darle el código para derivarlo como nuevo.");
       return;
     }
     let sede: EleccionSede | null = null;
     if (institucion) {
       if (!sedeElegida) {
-        toast.error("Indique a qué sede de la institución va este contacto");
+        setProblema("Falta indicar a qué sede de la institución va este contacto.");
         return;
       }
       if (sedeElegida === "nueva") {
         if (!nombreSedeNueva.trim()) {
-          toast.error("Escriba el nombre de la sede");
+          setProblema("Falta el nombre de la sede nueva.");
           return;
         }
         sede = { nombreNueva: nombreSedeNueva.trim() };
@@ -298,7 +302,7 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
       if (resultado.error) {
         // La base distingue el caso: no es un error, es una autorización que
         // falta. El aviso ya está en pantalla con su casilla para el código.
-        toast.error(resultado.error, { duration: 9000 });
+        setProblema(resultado.error);
         return;
       }
       // Carlos (01-09): consolidar automático, PERO avisando — «o que le
@@ -625,10 +629,17 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
           </div>
         )}
 
+        {problema && (
+          <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+            {problema}
+          </p>
+        )}
+
         <DialogFooter>
           <Button
             onClick={confirmar}
             disabled={enviando || ((!!traspaso || nuevoConClienteAjeno || codigoPostventa) && pin.length !== 4)}
+            porQue={!enviando ? "Falta el código de 4 dígitos." : null}
             variant={traspaso ? "destructive" : "default"}
           >
             {enviando

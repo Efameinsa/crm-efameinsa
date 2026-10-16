@@ -158,6 +158,7 @@ export function PantallaCorreccion({
   const [confirmando, setConfirmando] = useState(false);
   const [ocupado, empezar] = useTransition();
   const [abriendoPdf, setAbriendoPdf] = useState(false);
+  const [problema, setProblema] = useState<string | null>(null);
 
   const equiposParaElegir = useMemo(
     () => productos.map((p) => ({ ...p, precio: precioReferencia(p) })),
@@ -361,7 +362,8 @@ export function PantallaCorreccion({
     empezar(async () => {
       const r = await guardarCorreccion(cuerpoParaGuardar());
       if (r.error) {
-        toast.error(r.error);
+        // Se cierra el diálogo para corregir en la pantalla; el motivo queda junto al botón.
+        setProblema(r.error);
         setConfirmando(false);
         return;
       }
@@ -546,6 +548,11 @@ export function PantallaCorreccion({
                         <Trash2 className="size-4" />
                       </Button>
                     </div>
+                    {carrito.length === 1 && !vencida && (
+                      <p className="px-3 pb-2 text-right text-[11px] leading-snug text-muted-foreground">
+                        Es el único equipo: no se puede quitar. Para cambiarlo, toque su nombre arriba.
+                      </p>
+                    )}
 
                     {/* Un precio bajo lista NO se puede dejar por esta puerta:
                         la base lo rechaza (migración 0123). Se avisa acá para
@@ -711,17 +718,37 @@ export function PantallaCorreccion({
               <span className="text-muted-foreground">Total con IGV</span>
               <span className="font-bold tabular-nums text-foreground">US$ {monto(totalConIgv)}</span>
             </div>
-            <Button variant="outline" className="w-full" onClick={verPdf} disabled={abriendoPdf || carrito.length === 0}>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={verPdf}
+              disabled={abriendoPdf || carrito.length === 0}
+            >
               {abriendoPdf ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
               Ver el PDF corregido
             </Button>
+            {/* Botones a todo el ancho: la razón va en su propia línea (el porQue del botón lo encogería). */}
+            {carrito.length === 0 && <p className="text-[11px] leading-snug text-muted-foreground">No hay equipos en el documento.</p>}
             <Button
               className="w-full"
-              onClick={() => setConfirmando(true)}
+              onClick={() => {
+                setProblema(null);
+                setConfirmando(true);
+              }}
               disabled={ocupado || vencida || cambios.length === 0 || bajoLista}
             >
               Guardar la corrección
             </Button>
+            {(vencida || bajoLista || cambios.length === 0) && (
+              <p className="text-[11px] leading-snug text-muted-foreground">
+                {vencida
+                  ? "La autorización venció: pida un código nuevo para corregir."
+                  : bajoLista
+                    ? "Hay un precio por debajo del de lista: súbalo, o pida a gerencia que lo autorice."
+                    : "Todavía no cambió nada: toque un equipo o cambie una condición."}
+              </p>
+            )}
+            {problema && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
             <p className="text-center text-[11px] text-muted-foreground">
               El documento conserva su número. La versión de hoy queda archivada entera.
             </p>

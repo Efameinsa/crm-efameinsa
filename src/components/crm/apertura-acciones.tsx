@@ -19,11 +19,13 @@ import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnico
 export function AccionesAlmacenApertura({ id, tecnico }: { id: string; tecnico: string | null }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
+  const [problema, setProblema] = useState<string | null>(null);
 
   function tomar() {
+    setProblema(null);
     startTransition(async () => {
       const r = await tomarApertura(id);
-      if (r.error) return void toast.error(r.error);
+      if (r.error) return void setProblema(r.error);
       toast.success("Tomada: postventa ya recibió el aviso");
       router.refresh();
     });
@@ -38,6 +40,7 @@ export function AccionesAlmacenApertura({ id, tecnico }: { id: string; tecnico: 
         {pendiente ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
         La tomo: ya la estoy gestionando
       </Button>
+      {problema && <p role="alert" className="w-full rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
     </div>
   );
 }
@@ -48,6 +51,7 @@ export function TecnicoApertura({ id, tecnico }: { id: string; tecnico: string |
   const [pendiente, startTransition] = useTransition();
   const [editando, setEditando] = useState(!tecnico);
   const [valor, setValor] = useState(tecnico ?? "");
+  const [problema, setProblema] = useState<string | null>(null);
   if (!editando) {
     return (
       <span>
@@ -59,6 +63,7 @@ export function TecnicoApertura({ id, tecnico }: { id: string; tecnico: string |
     );
   }
   return (
+    <span className="flex flex-col gap-1">
     <span className="flex items-center gap-1.5">
       <Input className="h-8 max-w-56 text-sm" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Nombre del técnico" list={ID_LISTA_TECNICOS} />
       <ListaTecnicos />
@@ -66,18 +71,22 @@ export function TecnicoApertura({ id, tecnico }: { id: string; tecnico: string |
         size="sm"
         className="h-8"
         disabled={pendiente || !valor.trim()}
-        onClick={() =>
+        porQue={!valor.trim() ? "Escriba el nombre del técnico." : null}
+        onClick={() => {
+          setProblema(null);
           startTransition(async () => {
             const r = await asignarTecnicoApertura(id, valor);
-            if (r.error) return void toast.error(r.error);
+            if (r.error) return void setProblema(r.error);
             toast.success("Técnico asignado");
             setEditando(false);
             router.refresh();
-          })
-        }
+          });
+        }}
       >
         Guardar
       </Button>
+    </span>
+    {problema && <span role="alert" className="block rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</span>}
     </span>
   );
 }
@@ -102,19 +111,21 @@ export function AccionesPostventaApertura({
   const [texto, setTexto] = useState(borrador);
   // Reunión 02-10: «que suban la constancia de que ya se le envió al cliente».
   const [constancia, setConstancia] = useState<File | null>(null);
+  const [problema, setProblema] = useState<string | null>(null);
 
   function revisar(enviada: boolean) {
+    setProblema(null);
     startTransition(async () => {
       let ruta: string | null = null;
       if (enviada) {
-        if (!constancia) return void toast.error("Adjunte la constancia del envío: el correo o la captura del WhatsApp al cliente");
-        if (constancia.size > 10 * 1024 * 1024) return void toast.error("La constancia pasa de 10 MB");
+        if (!constancia) return void setProblema("Adjunte la constancia del envío: el correo o la captura del WhatsApp al cliente.");
+        if (constancia.size > 10 * 1024 * 1024) return void setProblema("La constancia pasa de 10 MB: adjunte una más liviana.");
         ruta = `aperturas/${id}/constancia-${crypto.randomUUID()}-${constancia.name.replace(/[^\w.\-]+/g, "_").slice(0, 60)}`;
         const { error } = await createClient().storage.from("adjuntos").upload(ruta, constancia, { contentType: constancia.type || "application/octet-stream" });
-        if (error) return void toast.error(`No se pudo subir la constancia: ${error.message}`);
+        if (error) return void setProblema(`No se pudo subir la constancia: ${error.message}. Vuelva a intentarlo.`);
       }
       const r = await revisarApertura(id, texto, enviada, ruta);
-      if (r.error) return void toast.error(r.error);
+      if (r.error) return void setProblema(r.error);
       toast.success(enviada ? "Listo: queda como enviada al cliente" : "Revisión guardada: ya se puede imprimir para el cliente");
       router.refresh();
     });
@@ -129,7 +140,7 @@ export function AccionesPostventaApertura({
           </p>
           <Textarea rows={8} value={texto} onChange={(e) => setTexto(e.target.value)} />
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => revisar(false)} disabled={pendiente || !texto.trim()}>
+            <Button variant="outline" onClick={() => revisar(false)} disabled={pendiente || !texto.trim()} porQue={!texto.trim() ? "Escriba la versión para el cliente." : null}>
               {pendiente && <Loader2 className="size-4 animate-spin" />}
               Guardar la revisión
             </Button>
@@ -141,11 +152,20 @@ export function AccionesPostventaApertura({
               </label>
             )}
             {estado !== "enviada_cliente" && (
-              <Button onClick={() => revisar(true)} disabled={pendiente || !texto.trim() || !constancia}>
+              <Button
+                onClick={() => revisar(true)}
+                disabled={pendiente || !texto.trim() || !constancia}
+                porQue={
+                  !texto.trim() || !constancia
+                    ? `Falta: ${[!texto.trim() && "el texto para el cliente", !constancia && "adjuntar la constancia del envío"].filter(Boolean).join(" · ")}.`
+                    : null
+                }
+              >
                 <Send className="size-4" /> Guardar y marcar enviada al cliente
               </Button>
             )}
           </div>
+          {problema && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
         </div>
       )}
     </div>

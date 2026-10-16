@@ -126,6 +126,14 @@ export function PedidoPostventa({
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [form, setForm] = useState<Formulario>(null);
+  // Lo que el servidor no dejó hacer queda fijo dentro del cuadro abierto
+  // (Santos, 16-10); al abrir o cerrar otro cuadro se limpia.
+  const [fallo, setFallo] = useState<string | null>(null);
+  const [formPrevio, setFormPrevio] = useState<Formulario>(null);
+  if (form !== formPrevio) {
+    setFormPrevio(form);
+    setFallo(null);
+  }
   // Los equipos que van en la apertura: el texto del pedido, con la serie si ya la tiene.
   const equiposDeLaApertura = equiposTexto || (servicio.equipo ?? "");
   // Las máquinas del pedido de a una serie: la secadora de una torre tiene su propio informe (Rubí 14-10).
@@ -163,9 +171,11 @@ export function PedidoPostventa({
   function correr(fn: () => Promise<{ error: string | null; aviso?: string }>, exito: string, parche?: Partial<ServicioPostventa>) {
     startTransition(async () => {
       if (parche) aplicarParche(parche);
+      setFallo(null);
       const r = await fn();
       if (r.error) {
-        toast.error(r.error, { duration: 8000 });
+        if (form) setFallo(r.error);
+        else toast.error(r.error, { duration: 8000 });
         return;
       }
       // EL DOBLE FILTRO (Carlos, 22-09): programar sin haber cumplido no se
@@ -487,16 +497,14 @@ export function PedidoPostventa({
         descripcion="Qué porcentaje del total debe estar pagado para despachar sin pedir autorización, y a cuántos días va el saldo. Contado = 100. Todo a crédito = 0. Queda escrito también en el informe de cierre."
         boton="Guardar la condición"
         pendiente={pendiente}
+        fallo={fallo}
         onEnviar={(datos) => {
           const pct = Number(datos.pct);
           const dias = datos.dias?.trim() ? Number(datos.dias) : null;
-          if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
-            toast.error("El porcentaje va de 0 a 100");
-            return;
-          }
+          // Lo que se devuelve queda escrito dentro del cuadro, no en un toast.
+          if (!Number.isFinite(pct) || pct < 0 || pct > 100) return "El porcentaje va de 0 a 100.";
           if (pct < 100 && (dias == null || !Number.isFinite(dias) || dias < 0)) {
-            toast.error("Si queda saldo a crédito, diga a cuántos días");
-            return;
+            return "Si queda saldo a crédito, diga a cuántos días.";
           }
           correr(
             () => definirCondicionPago(servicio.id, { pct, dias, nota: datos.nota }),
@@ -645,6 +653,7 @@ export function PedidoPostventa({
         descripcion="El manual pide un protocolo de pruebas firmado por supervisor, inspector y técnico. Si tiene el número a mano, anótelo: es lo que después prueba que la máquina salió bien."
         boton="Marcar probado y embalado"
         pendiente={pendiente}
+        fallo={fallo}
         onEnviar={(datos) =>
           correr(() => marcarPaso(servicio.id, "prueba_lista_at", datos.protocolo), "Prueba y embalaje confirmados", { prueba_lista_at: ahora() })
         }
@@ -658,6 +667,7 @@ export function PedidoPostventa({
         descripcion="Llame antes de programar: 9 de cada 10 veces cambia la dirección, el teléfono o la persona que recibe (Carlos, 01-09). Lo que confirme acá es lo que va impreso en la apertura de despacho."
         boton="Guardar lo verificado"
         pendiente={pendiente}
+        fallo={fallo}
         onEnviar={(datos) =>
           correr(
             () =>
@@ -789,6 +799,7 @@ export function PedidoPostventa({
         descripcion="Repuestos, accesorios y equipos que no se instalan (un calderín, una mesa) no tienen plano. El paso se salta y queda escrito por qué."
         boton="Saltar el plano"
         pendiente={pendiente}
+        fallo={fallo}
         onEnviar={(datos) => correr(() => marcarSinPlano(servicio.id, datos.motivo), "Listo: el circuito sigue sin el plano", { sin_plano: true })}
         campos={[{ nombre: "motivo", etiqueta: "Por qué no lleva plano", inicial: "Es un repuesto / accesorio, no requiere instalación", requerido: true }]}
       />
@@ -800,6 +811,7 @@ export function PedidoPostventa({
         descripcion="El equipo sí llevaba plano, pero no salió a tiempo. El paso se cierra como «no se le envió», a la vista, con el motivo y con quién lo tenía a cargo: no es lo mismo que «No lleva plano»."
         boton="Marcar no enviado"
         pendiente={pendiente}
+        fallo={fallo}
         onEnviar={(datos) =>
           correr(() => marcarPlanoNoEnviado(servicio.id, datos.motivo, datos.a_cargo), "Listo: queda dicho que el plano no se le envió", {
             sin_plano: true,
@@ -831,6 +843,7 @@ export function PedidoPostventa({
         }
         boton="Registrar"
         pendiente={pendiente}
+        fallo={fallo}
         onEnviar={(datos) =>
           correr(() => marcarPaso(servicio.id, "preinstalacion_ok_at", datos.nota), "Preinstalación registrada", { preinstalacion_ok_at: ahora() })
         }
@@ -852,11 +865,13 @@ export function PedidoPostventa({
         descripcion="Le llega al almacén y con ella despacha sin preguntar a nadie. Después, cambiar la entrega pide código de operaciones o gerencia."
         boton="Sí, emitir la apertura"
         pendiente={pendiente}
+        fallo={fallo}
         onEnviar={() =>
           startTransition(async () => {
+            setFallo(null);
             const r = await emitirAperturaDespacho(servicio.id);
             if (r.error) {
-              toast.error(r.error, { duration: 8000 });
+              setFallo(r.error);
               return;
             }
             toast.success("Apertura de despacho emitida");
@@ -875,6 +890,7 @@ export function PedidoPostventa({
         descripcion="La fecha que ponga acá es la que aparece en la agenda del área."
         boton="Programar"
         pendiente={pendiente}
+        fallo={fallo}
         onEnviar={(datos) =>
           correr(() => programarDespacho(servicio.id, datos.fecha, datos.hora, datos.nota, datos.pin), "Despacho programado. Ya está en el calendario; el almacén confirma.")
         }
@@ -922,6 +938,7 @@ export function PedidoPostventa({
         }
         boton="Registrar despacho"
         pendiente={pendiente}
+        fallo={fallo}
         onEnviar={(datos) =>
           correr(
             () =>
@@ -966,6 +983,7 @@ export function PedidoPostventa({
         descripcion="Instalación y capacitación. La lectura de ciclos es el kilometraje del equipo: es lo que después permite decirle al cliente cuánto lo usó."
         boton="Guardar el informe"
         pendiente={pendiente}
+        fallo={fallo}
         onEnviar={(datos, _archivos, varias) => {
           startTransition(async () => {
             // Las fotos del trabajo (reunión 23-09: «tendría que subir la opción
@@ -1009,7 +1027,7 @@ export function PedidoPostventa({
               conformeDoc: datos.conformeDoc,
             });
             if (r.error) {
-              toast.error(r.error, { duration: 8000 });
+              setFallo(r.error);
               return;
             }
             toast.success(elegido?.serie ? `Informe de la serie ${elegido.serie} guardado` : "Informe guardado y puesta en marcha registrada");
@@ -1054,6 +1072,7 @@ export function PedidoPostventa({
         descripcion="Al cerrar, cada serie que anote acá entra al registro de máquinas con su garantía calculada y su primer mantenimiento agendado. Si van varias, sepárelas con coma."
         boton="Cerrar el pedido"
         pendiente={pendiente}
+        fallo={fallo}
         onEnviar={(datos) =>
           correr(
             () =>
@@ -1132,6 +1151,7 @@ function Cuadro({
   campos,
   onEnviar,
   pendiente,
+  fallo = null,
 }: {
   abierto: boolean;
   cerrar: () => void;
@@ -1139,20 +1159,25 @@ function Cuadro({
   descripcion: string;
   boton: string;
   campos: Campo[];
-  onEnviar: (datos: Record<string, string>, archivos: Record<string, File>, varias: Record<string, File[]>) => void;
+  /** Si devuelve un texto, es lo que falta: queda escrito en el cuadro. */
+  onEnviar: (datos: Record<string, string>, archivos: Record<string, File>, varias: Record<string, File[]>) => void | string;
   pendiente: boolean;
+  /** Lo que el servidor no dejó hacer, a la vista sobre los botones. */
+  fallo?: string | null;
 }) {
+  const [problema, setProblema] = useState<string | null>(null);
   const [valores, setValores] = useState<Record<string, string>>({});
   const [archivos, setArchivos] = useState<Record<string, File>>({});
   const [varias, setVarias] = useState<Record<string, File[]>>({});
 
   function elegirArchivo(nombre: string, f: File | null) {
+    setProblema(null);
     if (f && f.size > MAX_ARCHIVO) {
-      toast.error(`"${f.name}" pasa de 10 MB`);
+      setProblema(`«${f.name}» pasa de 10 MB: elija uno más liviano.`);
       return;
     }
     if (f && !esArchivoAceptado(f)) {
-      toast.error(`"${f.name}": solo se aceptan fotos o PDF`);
+      setProblema(`«${f.name}» no se acepta: solo fotos o PDF.`);
       return;
     }
     setArchivos((a) => {
@@ -1190,11 +1215,13 @@ function Cuadro({
     const falta = visibles.find(
       (c) => c.requerido && (c.archivo ? !archivos[c.nombre] : c.codigo ? datos[c.nombre].length < 4 : !datos[c.nombre]?.trim()),
     );
+    setProblema(null);
     if (falta) {
-      toast.error(falta.codigo ? "Falta el código de 4 números" : `Falta: ${falta.etiqueta.toLowerCase()}`);
+      setProblema(falta.codigo ? "Falta el código de 4 dígitos." : `Falta: ${falta.etiqueta.toLowerCase()}.`);
       return;
     }
-    onEnviar(datos, archivos, varias);
+    const otro = onEnviar(datos, archivos, varias);
+    if (typeof otro === "string") setProblema(otro);
   }
 
   return (
@@ -1205,6 +1232,7 @@ function Cuadro({
           setValores({});
           setArchivos({});
           setVarias({});
+          setProblema(null);
           cerrar();
         }
       }}
@@ -1284,6 +1312,11 @@ function Cuadro({
             ),
           )}
         </div>
+        {(problema ?? fallo) && (
+          <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+            {problema ?? fallo}
+          </p>
+        )}
         <DialogFooter>
           <Button variant="ghost" onClick={cerrar}>
             Cancelar

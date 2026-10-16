@@ -142,19 +142,23 @@ function DialogoAbono({
   const [evidencia, setEvidencia] = useState<File | null>(null);
   const [avisar, setAvisar] = useState<Avisar>({ comercial: true, postventa: true });
   const simbolo = moneda === "PEN" ? "S/" : "US$";
+  const [problema, setProblema] = useState<string | null>(null);
 
   function enviar() {
+    setProblema(null);
     const n = Number(monto.replace(/,/g, ""));
-    if (!Number.isFinite(n) || n <= 0) return toast.error("Escriba el monto que entró a la cuenta");
-    if (!operacion.trim()) return toast.error("Falta el número de operación del banco");
-    if (!medio) return toast.error("Elija el banco o el medio por el que entró");
+    const falta: string[] = [];
+    if (!Number.isFinite(n) || n <= 0) falta.push("el monto que entró a la cuenta");
+    if (!operacion.trim()) falta.push("el número de operación del banco");
+    if (!medio) falta.push("el banco o medio");
+    if (falta.length > 0) return setProblema(`Falta: ${falta.join(" · ")}.`);
     // El descuento se revisa ANTES de confirmar: si fallara después, el abono
     // quedaría guardado sin aviso y reintentar chocaría con la operación ya
     // registrada (revisión 23-09).
     const dTexto = descuento.trim();
     const dNum = dTexto ? leerMonto(dTexto) : 0;
-    if (dTexto && (!Number.isFinite(dNum) || dNum <= 0)) return toast.error("El descuento del banco debe ser un monto, ej. 50 o 1,234.50");
-    if (dNum > 0 && motivoDescuento.trim().length > 0 && motivoDescuento.trim().length < 3) return toast.error("Diga por qué se descontó (ej.: comisión del banco)");
+    if (dTexto && (!Number.isFinite(dNum) || dNum <= 0)) return setProblema("El descuento del banco debe ser un monto, ej. 50 o 1,234.50.");
+    if (dNum > 0 && motivoDescuento.trim().length > 0 && motivoDescuento.trim().length < 3) return setProblema("Escriba por qué se descontó (ej.: comisión del banco).");
     startTransition(async () => {
       let capturaPath: string | null = null;
       let evidenciaPath: string | null = null;
@@ -163,7 +167,7 @@ function DialogoAbono({
         if (captura) capturaPath = await subirAFinanzas(servicioId, captura);
         if (evidencia && d > 0) evidenciaPath = await subirAFinanzas(servicioId, evidencia);
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "No se pudo subir el archivo");
+        setProblema(e instanceof Error ? e.message : "No se pudo subir el archivo. Vuelva a intentarlo.");
         return;
       }
       const r = await confirmarAbono({
@@ -171,7 +175,7 @@ function DialogoAbono({
         descuento: d > 0 ? { monto: d, motivo: motivoDescuento || "Comisión del banco", adjuntoPath: evidenciaPath } : null,
       });
       if (r.error) {
-        toast.error(r.error, { duration: 9000 });
+        setProblema(r.error);
         return;
       }
       toast.success("Abono confirmado y avisado.");
@@ -257,6 +261,7 @@ function DialogoAbono({
             <Label htmlFor="nota">Nota (opcional)</Label>
             <Input id="nota" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="ej. abono parcial, el cliente paga el resto el viernes" />
           </div>
+          {problema && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="outline" size="sm" onClick={() => setAbierto(false)} disabled={pendiente}>
               Cancelar
@@ -286,20 +291,22 @@ function DialogoObservar({ servicioId, cliente, compacto }: { servicioId: string
     // Carlos, 23-09 17:48: «el abono existe, pero hay comisión… del banco».
     "El abono existe, pero el banco cobró comisión: falta la diferencia",
   ];
+  const [problema, setProblema] = useState<string | null>(null);
 
   function enviar() {
-    if (motivo.trim().length < 10) return toast.error("Escriba qué pasa con el pago (mínimo una frase)");
+    setProblema(null);
+    if (motivo.trim().length < 10) return setProblema("Escriba qué pasa con el pago (al menos una frase).");
     startTransition(async () => {
       let adjuntoPath: string | null = null;
       try {
         if (evidencia) adjuntoPath = await subirAFinanzas(servicioId, evidencia);
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "No se pudo subir la evidencia");
+        setProblema(e instanceof Error ? e.message : "No se pudo subir la evidencia. Vuelva a intentarlo.");
         return;
       }
       const r = await observarPago({ servicioId, motivo, adjuntoPath, avisar });
       if (r.error) {
-        toast.error(r.error, { duration: 9000 });
+        setProblema(r.error);
         return;
       }
       toast.success("Pago observado y avisado.");
@@ -341,6 +348,7 @@ function DialogoObservar({ servicioId, cliente, compacto }: { servicioId: string
           <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={3} placeholder="Qué pasa con el pago y qué necesita para confirmarlo" />
           <CampoArchivo etiqueta="Adjuntar la evidencia (ej. el cargo de la comisión)" archivo={evidencia} onChange={setEvidencia} />
           <AQuienAvisar valor={avisar} onChange={setAvisar} />
+          {problema && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="outline" size="sm" onClick={() => setAbierto(false)} disabled={pendiente}>
               Cancelar

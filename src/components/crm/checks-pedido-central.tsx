@@ -61,10 +61,18 @@ export function ChecksPedidoCentral({
   const [visto, setVisto] = useState<{ pedido: boolean; liquidacion: boolean }>({ pedido: pedidoEjecutado, liquidacion });
   const pedidoEjecutadoVisto = visto.pedido;
   const liquidacionVista = visto.liquidacion;
+  // Lo que la base no dejó marcar queda escrito: en el diálogo si fue el
+  // pedido, bajo los checks si fue la liquidación.
+  const [problema, setProblema] = useState<{ campo: "pedido" | "liquidacion"; texto: string } | null>(null);
+  const faltaEjecutar = [
+    !numero.trim() && "n.º de pedido del ERP",
+    !liquidacionVista && pin.replace(/\D/g, "").length < 4 && "código de 4 dígitos",
+  ].filter(Boolean);
 
   function marcar(campo: "pedido" | "liquidacion", numeroPedidoErp?: string) {
     const antes = visto;
     setVisto((v) => ({ ...v, [campo]: true }));
+    setProblema(null);
     startTransition(async () => {
       const r = await liberarPedido({
         informeId,
@@ -76,7 +84,7 @@ export function ChecksPedidoCentral({
       if (r.error) {
         setVisto(antes);
         setPin("");
-        toast.error(r.error, { duration: 9000 });
+        setProblema({ campo, texto: r.error });
         return;
       }
       const quedaCompleto = campo === "pedido" ? liquidacion : pedidoEjecutado;
@@ -106,6 +114,11 @@ export function ChecksPedidoCentral({
         {!liquidacionVista && (
           <Chip activo={false} onClick={() => marcar("liquidacion")} disabled={pendiente} etiqueta="Liquidación" />
         )}
+        {problema?.campo === "liquidacion" && (
+          <p role="alert" className="max-w-[16rem] text-[11px] leading-snug text-destructive">
+            {problema.texto}
+          </p>
+        )}
       </div>
     );
   }
@@ -133,6 +146,11 @@ export function ChecksPedidoCentral({
           disabled={pendiente}
           etiqueta="Liquidación"
         />
+        {problema?.campo === "liquidacion" && (
+          <p role="alert" className="max-w-[16rem] text-[11px] leading-snug text-destructive">
+            {problema.texto}
+          </p>
+        )}
       </div>
 
       <Dialog open={abierto} onOpenChange={setAbierto}>
@@ -170,6 +188,11 @@ export function ChecksPedidoCentral({
               </div>
             </div>
           )}
+          {problema?.campo === "pedido" && (
+            <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+              {problema.texto}
+            </p>
+          )}
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAbierto(false)}>
               Cancelar
@@ -177,7 +200,7 @@ export function ChecksPedidoCentral({
             <Button
               onClick={() => marcar("pedido", numero)}
               disabled={pendiente || !numero.trim() || (!liquidacionVista && pin.replace(/\D/g, "").length < 4)}
-              title={!numero.trim() ? "Anote el número del pedido en el ERP" : !liquidacionVista && pin.replace(/\D/g, "").length < 4 ? "Falta el código de autorización" : undefined}
+              porQue={pendiente || faltaEjecutar.length === 0 ? null : `Falta: ${faltaEjecutar.join(" · ")}.`}
             >
               {pendiente && <Loader2 className="size-4 animate-spin" />}
               {liquidacionVista ? "Marcar ejecutado" : "Ejecutar con código"}

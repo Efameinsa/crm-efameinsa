@@ -56,14 +56,20 @@ export function ConfirmarGuiaBoton({
   const [motivoOtro, setMotivoOtro] = useState("");
   const pideNumero = tipo === "factura" || tipo === "boleta";
   const listo = tipo !== null && (!pideNumero || numero.trim().length > 0) && (motivo !== "otro" || motivoOtro.trim().length > 0);
+  // Lo mismo que `listo`, dicho en palabras bajo el botón (16-10).
+  const falta = [
+    motivo === "otro" && !motivoOtro.trim() && "cuál es el otro motivo de la guía",
+    tipo === null && "con qué comprobante sale",
+    pideNumero && !numero.trim() && `el número de la ${tipo}`,
+  ].filter((x): x is string => Boolean(x));
+  const [problema, setProblema] = useState<string | null>(null);
 
   function enviar() {
-    if (!tipo) return void toast.error("Elija con qué comprobante sale: factura, boleta o sin comprobante todavía");
-    if (pideNumero && !numero.trim()) return void toast.error(`Escriba el número de la ${tipo}`);
-    if (motivo === "otro" && !motivoOtro.trim()) return void toast.error("Escriba cuál es el otro motivo de la guía");
+    setProblema(null);
+    if (!tipo || falta.length > 0) return;
     startTransition(async () => {
       const r = await confirmarGuia(servicioId, nota, { tipo, numero: pideNumero ? numero : "" }, motivo, motivo === "otro" ? motivoOtro : "");
-      if (r.error) return void toast.error(r.error);
+      if (r.error) return void setProblema(r.error);
       toast.success("Confirmado: el almacén ya puede emitir la guía");
       setAbierto(false);
       setNota("");
@@ -146,11 +152,20 @@ export function ConfirmarGuiaBoton({
             </div>
           )}
           <Textarea rows={2} value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Nota para el almacén (opcional). Ej.: la guía a nombre de la sede de Ica" />
-          <div className="flex justify-end gap-2">
+          {problema && (
+            <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+              {problema}
+            </p>
+          )}
+          <div className="flex items-start justify-end gap-2">
             <Button variant="outline" onClick={() => setAbierto(false)} disabled={pendiente}>
               Cancelar
             </Button>
-            <Button onClick={enviar} disabled={pendiente || !listo}>
+            <Button
+              onClick={enviar}
+              disabled={pendiente || !listo}
+              porQue={!pendiente && falta.length > 0 ? `Falta: ${falta.join(" · ")}.` : null}
+            >
               {pendiente ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />}
               Sí, procede con la guía
             </Button>

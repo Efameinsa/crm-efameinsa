@@ -31,20 +31,22 @@ export function RegistrarFactura({ servicioId, cliente }: { servicioId: string; 
   const [fecha, setFecha] = useState(hoyLima());
   const [archivo, setArchivo] = useState<File | null>(null);
   const [nota, setNota] = useState("");
+  const [problema, setProblema] = useState<string | null>(null);
 
   function enviar() {
-    if (numero.trim().length < 4) return toast.error("Escriba el número de la factura (serie y número)");
-    if (!fecha) return toast.error("Falta la fecha de emisión");
-    if (archivo && archivo.size > 10 * 1024 * 1024) return toast.error("El archivo pasa de 10 MB");
+    setProblema(null);
+    if (numero.trim().length < 4) return setProblema("Escriba el número de la factura (serie y número).");
+    if (!fecha) return setProblema("Falta la fecha de emisión.");
+    if (archivo && archivo.size > 10 * 1024 * 1024) return setProblema("El archivo pasa de 10 MB: adjunte uno más liviano.");
     startTransition(async () => {
       let path: string | null = null;
       if (archivo) {
         path = `facturas/${servicioId}/${crypto.randomUUID()}-${archivo.name.replace(/[^\w.\-]+/g, "_").slice(0, 80)}`;
         const { error } = await createClient().storage.from("adjuntos").upload(path, archivo, { contentType: archivo.type || "application/pdf" });
-        if (error) return void toast.error(`No se pudo subir la factura: ${error.message}`);
+        if (error) return void setProblema(`No se pudo subir la factura: ${error.message}. Vuelva a intentarlo.`);
       }
       const r = await registrarFactura({ servicioId, numero, fecha, path, nombre: archivo?.name ?? null, nota: nota.trim() || null });
-      if (r.error) return void toast.error(r.error, { duration: 9000 });
+      if (r.error) return void setProblema(r.error);
       toast.success("Factura registrada: Finanzas y Central ya recibieron el aviso");
       setAbierto(false);
       setNumero("");
@@ -101,6 +103,7 @@ export function RegistrarFactura({ servicioId, cliente }: { servicioId: string; 
             <Label htmlFor="fac-nota">Nota (opcional)</Label>
             <Textarea id="fac-nota" rows={2} value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Ej.: crédito a 30 días; con detracción" />
           </div>
+          {problema && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setAbierto(false)} disabled={pendiente}>
               Cancelar
@@ -121,12 +124,14 @@ export function ObservarExpediente({ servicioId, cliente }: { servicioId: string
   const [abierto, setAbierto] = useState(false);
   const [pendiente, startTransition] = useTransition();
   const [motivo, setMotivo] = useState("");
+  const [problema, setProblema] = useState<string | null>(null);
 
   function enviar() {
-    if (motivo.trim().length < 5) return toast.error("Diga qué no está alineado en el expediente");
+    setProblema(null);
+    if (motivo.trim().length < 5) return setProblema("Escriba qué no está alineado en el expediente (al menos una frase).");
     startTransition(async () => {
       const r = await observarExpediente(servicioId, motivo);
-      if (r.error) return void toast.error(r.error);
+      if (r.error) return void setProblema(r.error);
       toast.success("Observado: Central ya recibió el motivo");
       setAbierto(false);
       setMotivo("");
@@ -156,6 +161,7 @@ export function ObservarExpediente({ servicioId, cliente }: { servicioId: string
             onChange={(e) => setMotivo(e.target.value)}
             placeholder="Ej.: la orden de compra trae otro RUC que la cotización; la cotización no es la del cierre"
           />
+          {problema && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setAbierto(false)} disabled={pendiente}>
               Cancelar

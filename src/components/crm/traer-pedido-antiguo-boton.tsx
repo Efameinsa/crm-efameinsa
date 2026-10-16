@@ -39,10 +39,18 @@ export function TraerPedidoAntiguoBoton({ cuentaId, compacto = false }: { cuenta
   const [conInstalacion, setConInstalacion] = useState<boolean | null>(null);
   const [f, setF] = useState({ equipo: "", monto: "", moneda: "USD" as "USD" | "PEN", fechaVenta: "", referencia: "", nota: "" });
   const campo = (k: keyof typeof f) => ({ value: f[k], onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((x) => ({ ...x, [k]: e.target.value })) });
+  // Lo que el servidor no dejó abrir queda a la vista en el diálogo (16-10).
+  const [problema, setProblema] = useState<string | null>(null);
+  const falta = [
+    f.equipo.trim().length < 3 && "qué equipo es",
+    (tipo === "repuesto" || tipo === "accesorio") && entregaEn == null && "cómo se entrega",
+    tipo === "repuesto" && conInstalacion == null && "si lleva instalación",
+  ].filter(Boolean);
   const chip = (activo: boolean) =>
     cn("rounded-full border px-2.5 py-1 text-xs font-medium transition-colors", activo ? "border-primary bg-primary text-primary-foreground" : "border-border text-foreground hover:bg-accent");
 
   function enviar() {
+    setProblema(null);
     startTransition(async () => {
       const r = await traerPedidoAntiguo({
         cuentaId,
@@ -57,7 +65,7 @@ export function TraerPedidoAntiguoBoton({ cuentaId, compacto = false }: { cuenta
         conInstalacion: tipo === "repuesto" ? conInstalacion : null,
       });
       if (r.error || !r.id) {
-        toast.error(r.error ?? "No se pudo abrir el pedido", { duration: 8000 });
+        setProblema(r.error ?? "No se pudo abrir el pedido. Vuelva a intentarlo.");
         return;
       }
       toast.success("El pedido ya está en preparación");
@@ -67,7 +75,13 @@ export function TraerPedidoAntiguoBoton({ cuentaId, compacto = false }: { cuenta
   }
 
   return (
-    <Dialog open={abierto} onOpenChange={setAbierto}>
+    <Dialog
+      open={abierto}
+      onOpenChange={(v) => {
+        setAbierto(v);
+        if (!v) setProblema(null);
+      }}
+    >
       <DialogTrigger
         render={
           <button
@@ -170,11 +184,18 @@ export function TraerPedidoAntiguoBoton({ cuentaId, compacto = false }: { cuenta
             <Input {...campo("nota")} placeholder="ej. pagó el saldo el 14-09; pide despacho por agencia" />
           </div>
         </div>
+        {problema && (
+          <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+            {problema}
+          </p>
+        )}
         <DialogFooter>
           <Button variant="ghost" onClick={() => setAbierto(false)}>
             Cancelar
           </Button>
-          <Button onClick={enviar} disabled={pendiente || f.equipo.trim().length < 3 || (tipo === "repuesto" && (entregaEn == null || conInstalacion == null)) || (tipo === "accesorio" && entregaEn == null)}>
+          <Button onClick={enviar} disabled={pendiente || f.equipo.trim().length < 3 || (tipo === "repuesto" && (entregaEn == null || conInstalacion == null)) || (tipo === "accesorio" && entregaEn == null)}
+            porQue={falta.length > 0 ? `Falta: ${falta.join(" · ")}.` : null}
+          >
             {pendiente && <Loader2 className="size-4 animate-spin" />}
             Abrir el pedido
           </Button>

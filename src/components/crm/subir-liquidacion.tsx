@@ -35,16 +35,21 @@ export function SubirLiquidacion({ servicioId, yaSubida }: { servicioId: string;
   const [facturaPendiente, setFacturaPendiente] = useState(true);
   const [factura, setFactura] = useState("");
   const [nota, setNota] = useState("");
+  const [problema, setProblema] = useState<string | null>(null);
 
   function enviar() {
-    if (!archivo) return toast.error("Adjunte el PDF de la liquidación");
-    if (archivo.size > 10 * 1024 * 1024) return toast.error("El archivo pasa de 10 MB");
-    if (!estado) return toast.error("Diga qué dice la liquidación del pago");
-    if (!facturaPendiente && factura.trim().length < 4) return toast.error("Escriba el número de la factura, o marque «factura pendiente»");
+    setProblema(null);
+    // Solo lo que falta, en una línea («Falta: el PDF · qué dice del pago»).
+    const falta: string[] = [];
+    if (!archivo) falta.push("el PDF de la liquidación");
+    if (!estado) falta.push("qué dice del pago");
+    if (!facturaPendiente && factura.trim().length < 4) falta.push("el número de la factura (o marque «factura pendiente»)");
+    if (falta.length > 0 || !archivo || !estado) return setProblema(`Falta: ${falta.join(" · ")}.`);
+    if (archivo.size > 10 * 1024 * 1024) return setProblema("El archivo pasa de 10 MB: adjunte uno más liviano.");
     startTransition(async () => {
       const path = `liquidaciones/${servicioId}/${crypto.randomUUID()}-${archivo.name.replace(/[^\w.\-]+/g, "_").slice(0, 80)}`;
       const { error } = await createClient().storage.from("adjuntos").upload(path, archivo, { contentType: archivo.type || "application/pdf" });
-      if (error) return void toast.error(`No se pudo subir: ${error.message}`);
+      if (error) return void setProblema(`No se pudo subir el archivo: ${error.message}. Vuelva a intentarlo.`);
       const r = await registrarLiquidacion({
         servicioId,
         path,
@@ -53,7 +58,7 @@ export function SubirLiquidacion({ servicioId, yaSubida }: { servicioId: string;
         factura: facturaPendiente ? null : factura,
         nota: nota.trim() || null,
       });
-      if (r.error) return void toast.error(r.error, { duration: 9000 });
+      if (r.error) return void setProblema(r.error);
       toast.success(yaSubida ? "Liquidación actualizada: Central ya tiene la nueva" : "Liquidación subida: Central ya recibió el aviso");
       setAbierto(false);
       setArchivo(null);
@@ -138,6 +143,8 @@ export function SubirLiquidacion({ servicioId, yaSubida }: { servicioId: string;
             <Label htmlFor="liq-nota">Nota (opcional)</Label>
             <Textarea id="liq-nota" rows={2} value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Ej.: segundo abono; incluye la retención" />
           </div>
+
+          {problema && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setAbierto(false)} disabled={pendiente}>

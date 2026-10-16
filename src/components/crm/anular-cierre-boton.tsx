@@ -37,6 +37,7 @@ export function AnularCierreBoton({
   const [enJuego, setEnJuego] = useState<CierreEnJuego | null>(null);
   const [motivo, setMotivo] = useState("");
   const [pin, setPin] = useState("");
+  const [problema, setProblema] = useState<string | null>(null);
   const [enviando, empezar] = useTransition();
   const router = useRouter();
 
@@ -45,15 +46,17 @@ export function AnularCierreBoton({
     if (v) {
       setMotivo("");
       setPin("");
+      setProblema(null);
       setEnJuego(await cierreEnJuego(informeId));
     }
   }
 
   function confirmar() {
+    setProblema(null);
     empezar(async () => {
       const r = await anularCierre(informeId, motivo, pin);
       if (r.error) {
-        toast.error(r.error);
+        setProblema(r.error);
         setPin("");
         return;
       }
@@ -139,6 +142,12 @@ export function AnularCierreBoton({
               Se lo pide al administrador, a gerencia o a Lesly: lo tienen en su pantalla y dura diez minutos.
             </span>
           </label>
+
+          {problema && (
+            <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">
+              {problema}
+            </p>
+          )}
         </div>
 
         <DialogFooter>
@@ -146,6 +155,17 @@ export function AnularCierreBoton({
             variant="destructive"
             onClick={confirmar}
             disabled={enviando || pin.length !== 4 || motivo.trim().length < 10}
+            porQue={
+              enviando
+                ? null
+                : motivo.trim().length < 10 && pin.length !== 4
+                  ? "Falta: por qué se anula (al menos 10 caracteres) · el código del supervisor."
+                  : motivo.trim().length < 10
+                    ? "Escriba por qué se anula (al menos 10 caracteres)."
+                    : pin.length !== 4
+                      ? "Falta el código del supervisor (4 dígitos)."
+                      : null
+            }
           >
             {enviando ? "Anulando…" : "Anular el cierre"}
           </Button>

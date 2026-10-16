@@ -42,6 +42,7 @@ export function LetrasDelPedido({ s, cliente, puedeRecibir = false }: { s: Datos
   const [recibio, setRecibio] = useState("");
   const [nota, setNota] = useState("");
   const [foto, setFoto] = useState<File | null>(null);
+  const [problema, setProblema] = useState<string | null>(null);
 
   const n = s.letras_cantidad ?? 0;
   const cuantas = n ? `${n} letra${n === 1 ? "" : "s"}` : "letras";
@@ -65,9 +66,10 @@ export function LetrasDelPedido({ s, cliente, puedeRecibir = false }: { s: Datos
   const antesDeSalir = !s.letras_recibidas_almacen_at && !s.despachado_at && !s.salida_autorizada_at;
 
   function correr(fn: () => Promise<{ error: string | null }>, exito: string) {
+    setProblema(null);
     startTransition(async () => {
       const r = await fn();
-      if (r.error) return void toast.error(r.error, { duration: 10000 });
+      if (r.error) return void setProblema(r.error);
       toast.success(exito);
       router.refresh();
     });
@@ -78,7 +80,7 @@ export function LetrasDelPedido({ s, cliente, puedeRecibir = false }: { s: Datos
     const path = `pedidos/${s.id}/almacen/letras-${crypto.randomUUID()}-${foto.name.replace(/[^\w.\-]+/g, "_").slice(0, 60)}`;
     const { error } = await createClient().storage.from("adjuntos").upload(path, foto, { contentType: foto.type || "image/jpeg" });
     if (error) {
-      toast.error(`No se pudo subir la foto: ${error.message}`);
+      setProblema(`No se pudo subir la foto: ${error.message}. Vuelva a intentarlo.`);
       return null;
     }
     return [{ path, nombre: foto.name.slice(0, 120), tipo: foto.type.slice(0, 100), etiqueta: "letras" }];
@@ -107,6 +109,9 @@ export function LetrasDelPedido({ s, cliente, puedeRecibir = false }: { s: Datos
               Recibí las {cuantas} de Finanzas
             </button>
           )}
+          {!puedeRecibir && (
+            <p className="text-[11px] leading-snug text-muted-foreground">Solo el almacén marca que ya tiene las letras en la mano.</p>
+          )}
         </>
       ) : (
         <>
@@ -134,23 +139,28 @@ export function LetrasDelPedido({ s, cliente, puedeRecibir = false }: { s: Datos
           <button
             type="button"
             disabled={pendiente || recibio.trim().length < 3}
-            onClick={() =>
+            onClick={() => {
+              setProblema(null);
               startTransition(async () => {
                 const fotos = await subirFoto();
                 if (!fotos) return;
                 const r = await entregarLetras(s.id, { recibio, fotos, nota, cliente });
-                if (r.error) return void toast.error(r.error, { duration: 10000 });
+                if (r.error) return void setProblema(r.error);
                 toast.success("Letras entregadas: Finanzas y postventa ya recibieron el aviso");
                 router.refresh();
-              })
-            }
+              });
+            }}
             className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
           >
             {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : <FileSignature className="size-3.5" />}
             Letras entregadas al cliente
           </button>
+          {!pendiente && recibio.trim().length < 3 && (
+            <p className="text-[11px] leading-snug text-muted-foreground">Escriba quién recibió las letras para poder marcarlas como entregadas.</p>
+          )}
         </>
       )}
+      {problema && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
     </div>
   );
 }
