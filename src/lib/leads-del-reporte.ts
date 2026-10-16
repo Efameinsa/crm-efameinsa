@@ -18,7 +18,10 @@ export async function estadoDeLosLeads(
   if (!lista.length) return salida;
 
   const { data: leads } = await admin.from("leads").select("codigo, oportunidad_id").in("codigo", lista);
-  const porOpp = new Map(((leads ?? []) as { codigo: string; oportunidad_id: string | null }[]).filter((l) => l.oportunidad_id).map((l) => [l.oportunidad_id as string, l.codigo]));
+  // Dos leads pueden caer en el mismo expediente (San Isidro llamó dos veces el 16-10).
+  const porOpp = new Map<string, string[]>();
+  for (const l of (leads ?? []) as { codigo: string; oportunidad_id: string | null }[])
+    if (l.oportunidad_id) porOpp.set(l.oportunidad_id, [...(porOpp.get(l.oportunidad_id) ?? []), l.codigo]);
   const ids = [...porOpp.keys()];
   if (!ids.length) return salida;
 
@@ -32,7 +35,7 @@ export async function estadoDeLosLeads(
   const nombre = new Map(((perfiles ?? []) as { id: string; nombre: string | null }[]).map((p) => [p.id, (p.nombre ?? "otra persona").replace(/\s*\(.*\)\s*$/, "")]));
 
   for (const o of (opps ?? []) as { id: string; etapa: string }[]) {
-    const codigo = porOpp.get(o.id)!;
+    const codigos = porOpp.get(o.id) ?? [];
     const deEsta = gestiones.filter((a) => a.oportunidad_id === o.id);
     const ultima = deEsta[0]?.realizada_por ?? null;
     const otros = [...new Set(deEsta.map((a) => a.realizada_por).filter((x): x is string => !!x && x !== personaId))].map((id) => nombre.get(id) ?? "otra persona");
@@ -43,7 +46,7 @@ export async function estadoDeLosLeads(
     else if (suya) texto = otros.length ? `Gestionado por usted y ${otros.join(", ")}` : "Gestionado por usted";
     else if (otros.length) texto = `Lo atendió ${otros.join(", ")}`;
     else texto = "Sin gestión todavía";
-    salida.set(codigo, texto);
+    for (const c of codigos) salida.set(c, texto);
   }
   return salida;
 }

@@ -36,6 +36,8 @@ const ESTADO: Record<string, string> = {
 
 const fechaCorta = (iso: string) => new Date(iso).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit" });
 
+const sinParentesis = (n: string | null) => (n ?? "otra persona").replace(/\s*\(.*\)\s*$/, "");
+
 export async function cargarRepuestos(admin: SupabaseClient, personaId: string, fecha: string): Promise<RepuestosDelReporte> {
   const inicio = new Date(`${fecha}T00:00:00${LIMA}`).toISOString();
   const fin = new Date(Date.parse(inicio) + 86_400_000).toISOString();
@@ -60,7 +62,7 @@ export async function cargarRepuestos(admin: SupabaseClient, personaId: string, 
     admin.from("leads").select("oportunidad_id, mensaje, recibido_at").in("oportunidad_id", ids),
     admin.from("cotizaciones").select("oportunidad_id, codigo, enviada_at").in("oportunidad_id", ids).is("anulada_at", null),
     motivosIds.length ? admin.from("catalogo_motivos_rechazo").select("id, nombre").in("id", motivosIds) : Promise.resolve({ data: [] }),
-    admin.from("actividades").select("oportunidad_id, nota, realizada_at").in("oportunidad_id", ids).order("realizada_at", { ascending: false }).limit(2000),
+    admin.from("actividades").select("oportunidad_id, nota, realizada_at, realizada_por").in("oportunidad_id", ids).order("realizada_at", { ascending: false }).limit(2000),
   ]);
   const pedido = new Map<string, { mensaje: string | null; recibido_at: string }>();
   for (const l of (leads ?? []) as { oportunidad_id: string; mensaje: string | null; recibido_at: string }[]) {
@@ -72,8 +74,14 @@ export async function cargarRepuestos(admin: SupabaseClient, personaId: string, 
     if (c.enviada_at && c.codigo) cotizacion.set(c.oportunidad_id, c.codigo);
   const motivo = new Map(((motivos ?? []) as { id: number; nombre: string }[]).map((m) => [m.id, m.nombre]));
   const ultimaNota = new Map<string, string>();
-  for (const a of (acts ?? []) as { oportunidad_id: string; nota: string | null }[])
+  const ultimoAutor = new Map<string, string | null>();
+  for (const a of (acts ?? []) as { oportunidad_id: string; nota: string | null; realizada_por: string | null }[]) {
+    if (!ultimoAutor.has(a.oportunidad_id)) ultimoAutor.set(a.oportunidad_id, a.realizada_por);
     if (!ultimaNota.has(a.oportunidad_id) && a.nota) ultimaNota.set(a.oportunidad_id, a.nota);
+  }
+  const otros = [...new Set([...ultimoAutor.values()].filter((x): x is string => !!x && x !== personaId))];
+  const { data: perfiles } = otros.length ? await admin.from("perfiles").select("id, nombre").in("id", otros) : { data: [] };
+  const nombre = new Map(((perfiles ?? []) as { id: string; nombre: string | null }[]).map((p) => [p.id, sinParentesis(p.nombre)]));
 
   const filas = opps.map((o): RepuestoFila => {
     const abierto = !["venta", "rechazada"].includes(o.etapa);
@@ -83,8 +91,12 @@ export async function cargarRepuestos(admin: SupabaseClient, personaId: string, 
     else if (o.etapa === "rechazada") {
       const m = o.motivo_rechazo_id != null ? motivo.get(o.motivo_rechazo_id) : null;
       // «Otro (explicar en la nota)» no dice nada: va la nota de la última gestión.
-      estado = `Cerrado: ${m && !/^otro/i.test(m) ? m : (ultimaNota.get(o.id) ?? "sin motivo anotado")}`;
+      const quien = ultimoAutor.get(o.id);
+      const por = quien && quien !== personaId ? ` por ${nombre.get(quien) ?? "otra persona"}` : "";
+      estado = `Cerrado${por}: ${m && !/^otro/i.test(m) ? m : (ultimaNota.get(o.id) ?? "sin motivo anotado")}`;
     } else if (cotizacion.has(o.id)) estado = `Cotizado (${cotizacion.get(o.id)}), esperando respuesta`;
+    // El expediente puede seguir en «asignada» aunque ya tenga gestiones.
+    else if (o.etapa === "asignada" && ultimoAutor.has(o.id)) estado = "En gestión";
     else estado = ESTADO[o.etapa] ?? o.etapa;
     return {
       cliente: o.cuentas?.razon_social ?? "Cliente sin nombre",
