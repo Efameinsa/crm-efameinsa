@@ -18,6 +18,20 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 16-10 · Los procesos de postventa, dibujados y a la vista de todos (Santos)
+- **Qué pidió Santos:** que los 12 procesos de postventa dibujados paso a paso se vean libremente desde el CRM, que Efamein los ofrezca entre sus consultas predeterminadas y que cada uno se abra en pestaña nueva con un botón de pantalla completa bien visible, «para motivar a que todos recuerden los procesos».
+- **Qué se hizo:** menú **Procesos** para todo el personal, con una tarjeta por proceso; cada diagrama muestra un carril por área, las preguntas que deciden el camino y en ámbar lo que frena, con botones «Todos los procesos» y «Pantalla completa». La primera sugerencia de Efamein en todas las áreas es «¿Quiere repasar los procesos de la empresa?». Los diagramas se dibujan con el mismo estilo que el mapa de sistemas (Santos pidió no cambiarlo).
+
+### 16-10 · Buzón: otros dos casos resueltos (Central, Moisés)
+- **Devolver un prospecto a la bandeja cuando el comercial ya lo gestionó** (Central, PRO-11084). Se había derivado a C5 y Katerine confirmó por teléfono que era cliente de la cartera de C4. Volvió a la bandeja de Central como recién llegado; sus llamadas y el contacto nuevo pasaron a la ficha del cliente de C4 (nada se pierde), se quitó la ficha que se había creado en C5 y a Katerine le llegó el aviso de que la derivación se retiró. Al derivarlo de nuevo, el CRM muestra la coincidencia con la cartera de C4. Si el expediente ya tiene gestiones, el botón «Devolver a la bandeja» manda primero a «Mover las gestiones».
+- **«No descarga la cotización»** (Moisés). El CRM entregaba bien el PDF; fallaba el guardado del visor de Chrome. Ahora «Descargar el PDF para el cliente» baja el archivo directo, con su nombre listo para adjuntar; para mirarlo antes está «Verlo antes en una pestaña aparte». Si vuelve a fallar: recargar (F5) y probar de nuevo.
+
+### 15-10 (noche) y 16-10 · Postventa: un cliente con siete expedientes abiertos (Choquehuanca)
+- **Qué pasó:** postventa no veía la queja del 13-10 por el listado del kit de Choquehuanca. La ficha era una sola, pero el cliente tenía 7 expedientes de postventa: 6 de garantía de septiembre (uno por cada mensaje: embalaje, factura, despacho, agencia, guía), nacidos antes de la regla de un expediente por cliente del 22-09, y el del 13-10, que quedó vacío porque la gestión y la cotización se registraron en uno de septiembre.
+- **Qué se hizo (Santos, 15-10):** se juntó todo en el expediente del 16-09, los otros 6 quedaron archivados con una nota, y los casos de septiembre se cerraron como «derivado». Sigue abierto el caso del kit.
+- **16-10, Ariana «no aparece»:** la nota de la unión hizo que el caso del kit figurara tomado por el administrador y salió de la bandeja «por tomar». Se devolvió a Ariana, que fue quien lo atendió.
+- **Pendiente (Carlos):** una lista de 56 clientes con expedientes de postventa repetidos (166 expedientes): unos se pueden unir y archivar; en otros hay que revisar el tipo, porque la regla no junta expedientes de tipo distinto y aquí el tipo estaba mal puesto.
+
 ### 16-10 · Lo que más se reporta por el buzón, convertido en botones (Santos)
 - **Análisis:** 149 observaciones del 06 al 16-10. 41 se resolvieron tocando la base a mano; en 60 respuestas se pidió recargar la página. Lo más repetido: fichas duplicadas o de otra cartera (13), equipos y series de pedidos que venían del Excel (10), gestiones o derivaciones en el lugar equivocado (7).
 - **Qué se hizo:** «Devolver a la bandeja» para Central; «Mover las gestiones a otro expediente»; gerencia puede unir fichas que tienen RUC las dos; el CRM se actualiza solo cuando no hay nada que perder; unos 100 botones y avisos de postventa, Central, cierres y almacén ahora dicen qué falta.
@@ -42,7 +56,7 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ### 16-10 · Crece: el tope de puntos por gestión comercial sube a 2.500 al mes (Santos)
 - **Qué se pidió:** Katerine preguntó por qué desde el 15-10 sus actividades salían con +0. Había llegado al tope de 1.000 puntos del mes. Moisés y Brenda ya habían llegado el 13-10. Santos ordenó subir el tope a 2.500 para todos.
-- **Qué se hizo:** los puntos que el CRM envía a Crece (gestiones, cotizaciones, cierres y leads) tienen un tope de **2.500 al mes por persona**. Antes era 1.000. Cada actividad vale lo mismo que antes: llamada, WhatsApp o correo 1; reunión virtual 3; filtro 2; showroom 5; visita 6; cotización 3, o 6 si es de US$ 10.000 o más; cierre 25, 40 o 60 según el monto; lead respondido 8 en menos de 5 minutos, 5 en 10, 2 en 30 y 1 si pasa de eso. Desde el cambio vuelven a sumar. Las actividades que salieron con +0 antes del cambio no se recalcularon. Las sugerencias siguen sin límite. El tope se reinicia el 1 de cada mes.
+- **Qué se hizo:** los puntos que el CRM envía a Crece (gestiones, cotizaciones, cierres y leads) tienen un tope de **2.500 al mes por persona**. Antes era 1.000. Cada actividad vale lo mismo que antes: llamada, WhatsApp o correo 1; reunión virtual 3; filtro 2; showroom 5; visita 6; cotización 3, o 6 si es de monto alto; cierre 25, 40 o 60 según el monto; lead respondido 8 en menos de 5 minutos, 5 en 10, 2 en 30 y 1 si pasa de eso. Desde el cambio vuelven a sumar. Las actividades que salieron con +0 antes del cambio no se recalcularon. Las sugerencias siguen sin límite. El tope se reinicia el 1 de cada mes.
 
 ### 16-10 · Buzón: accesorios en la generación de código (Lesly)
 - **Qué se pidió:** Lesly pidió que, en la generación de código, Central tenga la regla de indicar si los equipos incluyen algún accesorio, sobre todo los industriales como las lavadoras (caso: pedido de PRODECO DEL SUR con calandria, lavadora y secadora industriales).
@@ -289,182 +303,31 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 - **Llamadas de la más reciente a la más antigua** (pedido de Lesly; hecho ese día).
 
 ### 06-10 · Reunión de postventa y correos (gerencia, Lesly, Central)
-- **Kit con cantidades en el cotizador.**
-  - Un kit (por ejemplo, instalación de secadora) varía en una cantidad según el cliente: el ducto puede ser de 3 m o de 10 m.
-  - Postventa o el comercial editan solo las cantidades de los componentes. El precio nuevo va a aprobación de gerencia.
-  - Origen: sugerencia de Lesly, porque el kit salía desalineado en el PDF.
-- **Correos automáticos según la empresa del pedido.**
-  - Cada persona tiene dos correos (OPEN y EFAMEINSA). Si el pedido nació en OPEN, salen correos de OPEN.
-  - Los avisos también van por correo, para que no haya «mi campana no sonó».
-  - Lesly entregó el directorio y la lista de técnicos, que ahora salen con DNI en la apertura.
-- **Apertura → Finanzas → almacén.**
-  - Postventa ve un check verde cuando Finanzas autoriza la guía.
-  - Si postventa corrige una apertura ya emitida (por ejemplo, dirección mal escrita), se avisa a Finanzas y al almacén para volver a aprobar.
-  - El almacén tiene la tarjeta «Guías autorizadas por Finanzas». Caso: Ninamango, que Lesly no encontraba.
-- **Apertura de servicio sin pedido** (garantía o servicio a un cliente antiguo, por ejemplo Jaén): ahora sale desde el caso.
-- **WhatsApp de comerciales:** la comunicación con clientes es por la bandeja del CRM. «Se cierra la ventanilla» del WhatsApp personal.
-- **Mantenimientos como San Fernando y Buenos Aires:** gerencia dijo «hay que seguir el procedimiento», es un pedido. Las líneas de servicio no piden serie.
-- **Cierres Word hechos después del CRM no son REG** (Lesly, con visto bueno de gerencia). REG es solo para cierres anteriores al CRM. Un Word posterior se carga como cierre normal, con su venta. Se cargaron San Fernando y Panaservice (este con su número reservado, OPEN 037).
-- **REG debe llevar series:** se cerró el hueco del piloto de AGROCASAGRANDE. Central generó el pedido REG sin series porque creía que se generaban solas.
-- **Garantía de las 2 secadoras de AGROCASAGRANDE: 36 meses**, como dice su cierre (OK de Santos). La regla general sigue abierta (ver Pendientes).
-- **Buscador de files** por empresa, RUC, día y mes (pedido de Central).
-- **Segunda cuenta de Almacén para Ariana** (ALM2), aparte de su cuenta de postventa.
-- **Importaciones tiene perfil propio** (ingresó Marco Antonio Velásquez). Su pantalla «Por importar» muestra las máquinas sin serie de pedidos abiertos, con fecha estimada de llegada.
-- **Directorio del personal** en el CRM (lo mantiene operaciones).
+- Resumen: kit con cantidades editables en el cotizador (el precio nuevo va a gerencia; idea de Lesly); correos automáticos según la empresa del pedido (OPEN o EFAMEINSA) y los avisos también por correo; directorio y técnicos con DNI en la apertura; postventa ve el check verde cuando Finanzas autoriza la guía, y corregir una apertura emitida avisa a Finanzas y al almacén (Ninamango); apertura de servicio sin pedido desde el caso; WhatsApp de comerciales solo por la bandeja del CRM; los mantenimientos siguen el procedimiento de pedido y las líneas de servicio no piden serie; los cierres Word posteriores al CRM no son REG (San Fernando, Panaservice OPEN 037) y REG lleva series; garantía de las 2 secadoras de AGROCASAGRANDE a 36 meses; buscador de files; cuenta ALM2 de Ariana; perfil de Importaciones con «Por importar»; directorio del personal.
 
 ### 05-10 · Presentación al personal y reunión de cierres «REG»
-- **Presentación a todo el personal a las 9:00** (decidida el 29-09): el CRM y Crece como productos, la estrategia de marketing y las pautas de comunicación y cultura.
-- **Cierres antiguos que nunca entraron al CRM: se suben como «REG»** (reunión de las 16:38).
-  - Origen: Rubí no podía abrir la puesta en marcha de AGROCASAGRANDE porque su cierre estaba solo en Word y no había pedido.
-  - Se sube con el correlativo que sigue en la serie del CRM, no con su número de Word.
-  - No suma a la venta, porque la venta ya estaba en el CRM desde el Excel.
-  - Lleva la marca «REG» y Central lo filtra aparte.
-  - Pasa por todo el circuito desde Central. Central copia ella misma las series; no se le piden al almacén.
-  - Primero se probó con un solo caso (el de Katerine) y luego se pasa a «todos los demás».
-- **Toda cotización de postventa pasa por gerencia** mientras postventa esté en capacitación, a cualquier precio (orden de gerencia). Aplica a Gabriela, Rubí y Ariana; no a Lesly ni a comerciales.
-- **Buzón de sugerencias** (botón de la bombilla), pedido por Santos. Cada uno ve las suyas; admin y gerencia ven todas. El 06-10 se agregó el aviso «Ya se solucionó lo que reportó».
-- **El cierre hereda la moneda de la cotización.** Caso: Katerine cotizó en soles y el cierre salió en dólares.
-- **Postventa:**
-  - Puede editar el nombre impreso del renglón y la «Nota del PDF». Gabriela: «no en todos incluye el examen médico ocupacional».
-  - Gerencia ve los borradores de postventa en Aprobaciones.
-- **Aprobaciones muestra gestiones del cliente en otros expedientes** (últimos 90 días). Caso: gerencia rechazó una cotización de Gabriela a ANTUAN SERVICES por «no hay gestión», pero su llamada estaba en otro expediente.
-- **Nuevo tipo de apertura «Puesta en marcha de:»**, para cuando el técnico va sin equipo (pedido de Rubí).
-- **Alerta de WhatsApp sin responder** a los comerciales (pedido de Central): máximo un aviso por hora, de lunes a sábado de 8 a 19. No avisa si hubo gestión fuera del chat (pedido de Katerine).
-- **WhatsApp retenidos en Central:** unos 41 chats retenidos desde el 22-09 se pasaron a quien tenía el contacto. Desde entonces el chat va directo al dueño de la cartera si está activo.
-- **PDF de cotización sin la fila del TOTAL** (reclamo de Brenda): el sistema borraba como «hoja en blanco» una hoja que solo tenía el total. Se corrigió el mismo día.
+- Resumen: presentación a todo el personal (CRM, Crece, marketing y cultura); los cierres antiguos que nunca entraron al CRM se suben como «REG» con el correlativo que sigue, sin sumar a la venta y pasando por todo el circuito desde Central (origen: AGROCASAGRANDE); toda cotización de postventa pasa por gerencia mientras postventa esté en capacitación; buzón de sugerencias (la bombilla); el cierre hereda la moneda de la cotización; postventa edita el nombre impreso del renglón y la «Nota del PDF»; Aprobaciones muestra gestiones del cliente en otros expedientes (ANTUAN SERVICES); apertura «Puesta en marcha de:» sin equipo; alerta de WhatsApp sin responder; 41 chats retenidos en Central pasados a sus dueños; el PDF de cotización ya no pierde la hoja del TOTAL.
 
 ### 02-10 · Dos reuniones de Carlos con postventa
-- **10:25, preventivos:**
-  - «Ventas de la empresa» tiene filtro por mes y por última gestión (nadie lo llamó / llamado sin oportunidad / en proceso).
-  - La campaña «Vender» tiene filtro «Sin mantenimiento hace» 3, 6, 12 o 24 meses. Antes salían como «nunca le hicimos mantenimiento» ventas de hace 21 días.
-  - Santos decidió **no unir todavía** las dos pantallas: «es más delicado», se retoma en otra reunión.
-- **12:25, criterio de Carlos:** si una queja es en realidad lo pendiente de un pedido (caso Agrícola Huarmey, faltaba la puesta en marcha), la atención se cierra como «derivado a pedidos» y se sigue en el pedido. Si el pedido está completo, se reclasifica (por ejemplo, refuerzo de capacitación).
-- **Pedidos de esa reunión:**
-  - La atención cerrada muestra su historial (quién y cuándo), y esas gestiones se ven en la ficha del cliente. Caso: Hotel Santa Lucila, cuyo cierre no aparecía.
-  - Cerrar una atención exige elegir el resultado; ya no viene «resuelto» por defecto.
-  - El paso a paso tiene encabezado fijo, buscador por cliente y el pago parcial visible.
-  - Columna «Informe técnico enviado», con constancia adjunta.
-  - Filtro por cliente en el calendario de postventa.
-  - El almacén marca «sin stock» con motivo (importación, compra local o fabricación).
-  - Finanzas filtra por el día en que confirmó.
-  - Los pedidos históricos de Rubí **no se cierran en automático**: Lesly pasa la lista y Ariana se capacita con unos 10.
-- **Mejoras de almacén pedidas por Lesly:**
-  - Al emitir la apertura también se avisa a Finanzas. Caso: Tomy Jiro.
-  - La guía lleva tipo y número de comprobante.
-  - Se marca la procedencia de cada equipo.
-  - Se registran las visitas de proveedor.
-- **Una sola dirección del CRM para todos** (Santos). A cada persona se le da solo esa dirección.
-- **NEWREST:** se unieron 7 fichas en NEWREST PERÚ S.A.C. (pedido de Brenda, orden de Santos).
-- **Textos del CRM: nunca «parque»** (Santos: en Perú un parque es un lugar con jardín). Se dice «registro de máquinas».
-- **Cotización con forma de pago:** al elegirla se trae su saldo, y un aviso ámbar marca las contradicciones. Caso: Gabriela marcó «al contado» y salió 30/70.
+- Resumen: «Ventas de la empresa» con filtros por mes y última gestión, y la campaña «Vender» con «Sin mantenimiento hace…» (no se unen todavía las dos pantallas); criterio de Carlos: si una queja es lo pendiente de un pedido (Agrícola Huarmey), la atención se cierra «derivado a pedidos»; la atención cerrada muestra su historial (Santa Lucila) y cerrar exige elegir el resultado; columna «Informe técnico enviado»; el almacén marca «sin stock» con motivo; los pedidos históricos de Rubí no se cierran en automático; Lesly: la apertura avisa a Finanzas (Tomy Jiro), la guía lleva comprobante, procedencia de cada equipo y visitas de proveedor; una sola dirección del CRM para todos; 7 fichas de NEWREST unidas; nunca «parque», se dice «registro de máquinas»; la cotización avisa si la forma de pago se contradice.
 
 ### 01-10 · Reunión con comerciales (Abel, Desiré) y arquitectura
-- **Oportunidades con filtro «Origen»:** Central, campaña o web, o propia. Lo pidió Desiré (C9), que no distinguía lo derivado por Central de lo que llegaba por campaña.
-- **Panel «Visitas del equipo» en supervisión.** Carlos: «dame visibilidad en las visitas».
-- **Piloto de trabajo de campo de Brenda:** 15 días, martes y viernes, con ubicación lo más precisa posible. Después vendrá un «vendedor de campo» con menos pantallas.
-- **Files: entrega directa a postventa** registrada en el CRM. Antes Central entregaba el expediente en mano y no quedaba constancia.
-- **Inducción por etapas para comerciales nuevos** (Carlos):
-  1. Corporativa, en Crece.
-  2. Técnica de producto (primero LG, luego industrial), de no más de una hora.
-  3. Práctica con la máquina en el showroom.
-  - Se graba en audio para Crece.
-- **Reglas anunciadas, aún NO implementadas: dueño del prospecto.**
-  - Contactos nuevos de campaña: 15 días.
-  - Cliente de compra continua: 6 meses.
-  - Cliente que trae el comercial: permanente.
-- **Apertura según el modelo de Lesly** (Santos). Reemplazó al formato anterior de 9 filas. El 02-10 se ajustó:
-  - Son 11 filas, con primer destino y destino final.
-  - La guía tiene campo propio.
-  - Contabilidad es editable (Lesly: «es Jhon»).
-- **Destino Lima o provincia verificable y corregible** (Rubí, caso Ninamango, Huancayo). Hay empresas con dirección en Lima que piden el equipo para provincia.
-- **Motivo de rechazo nuevo: «Busca lavadora doméstica (no industrial)»** (pedido de los comerciales). No se usa «spam» porque le dice a Google y Meta que el lead era basura.
-- **Hortifrut:** el pedido real de Brenda nunca se había registrado como cierre. Se cargó como OPEN 050. Carlos: «coordina con Santos, nadie está informado».
+- Resumen: filtro «Origen» en oportunidades (Central, campaña o web, propia); panel «Visitas del equipo» para supervisión; piloto de campo de Brenda; Files con entrega directa a postventa; inducción por etapas (Crece, producto, práctica en showroom); dueño del prospecto anunciado y NO implementado (ver Pendientes); apertura según el modelo de Lesly (11 filas, primer destino y destino final); destino Lima o provincia verificable (Ninamango); motivo de rechazo «Busca lavadora doméstica» en vez de «spam»; Hortifrut cargado como OPEN 050.
 
 ### 30-09 · Tres reuniones (correos de postventa, Carlos y el CRM, WhatsApp)
-- **Códigos de postventa definitivos:** Rubí PV1, Gabriela PV2, Ariana PV3. PV es la cuenta del área y nadie entra con ella. Cada usuario del CRM tiene su correo del mismo número. Solo el PDF de Rubí muestra el correo general de postventa, que es el que conocen los clientes.
-- **Pedidos de Carlos sobre el CRM:**
-  - Files: botón «Terminé», para que Central suba a recogerlo.
-  - La gestión de WhatsApp sale de la meta de gestiones.
-  - Visitas y videollamadas son un indicador propio en «Hoy» y en los reportes. «Reunión online» pasó a llamarse «Videollamada».
-  - Si el proceso ya avanzó (serie pedida o pedido en Finanzas), Central necesita código de gerencia para devolver un cierre.
-  - El contacto escrito a mano en la apertura se suma a la ficha como contacto «operativo». Carlos: «¿contacto de tercera categoría?».
-  - Respaldo del CRM fuera de la máquina.
-- **WhatsApp: trabajar dentro del CRM** (Carlos).
-  - Caso: un comercial pasó unos 100 leads a su WhatsApp personal con el mismo texto repetido, y WhatsApp lo bloqueó como spam por un día.
-  - Pauta: trabajar lo máximo dentro del CRM (número oficial, ventana de 72 h desde el anuncio) y tipificar todo. La línea personal es solo una excepción. Llamar sigue permitido.
-  - Se descartaron Telegram y los bots por QR, porque violan los términos de WhatsApp.
-- **«Interesado» o «Cotizado» en WhatsApp pide el nivel de interés en el mismo clic** (Santos). Nunca se califica solo.
-- **Desde el 30-09, tipificar en WhatsApp no cuenta como gestión.**
-- **Apertura:**
-  - El nombre y el RUC salen del cierre, no de la ficha. Caso: Inversiones URGA.
-  - En envíos por agencia, el primer destino se separa del destino final. Caso: Andinas Service, Ica.
-  - «Emitir apertura» pide confirmación.
-  - Código solo si cambia algo impreso.
-  - «A quién llama el almacén» es obligatorio y empieza vacío. Caso: Hostal La Arboleda.
-- **Botones «Apurar al almacén» y «Apurar a Finanzas»** (pedido de Central, caso Ninamango). Desde la segunda vez avisan a gerencia.
-- **«No se le envió» el plano** (Rubí). Caso: el equipo llegó antes que el plano a Inversiones Nacionales de Turismo.
-- **Corregir o mover una solicitud mal colgada** (Rubí, caso Vidawasi). La solicitud cayó en Inversiones Cristo Vive por un teléfono ajeno.
-- **Torres LG: dos series por unidad** (Lesly, caso Ninamango).
-- **Almacén:**
-  - Lo más reciente arriba.
-  - Aviso si el largo de la serie no cuadra con la marca. Caso: la Unimac de Hortifrut, con un dígito de menos.
-- **SENATI:** se unieron las fichas en la cartera de Katerine (orden de Santos).
-- **«Así se quedó»:** arriba del expediente se ve lo archivado, en gris. Lo histórico se consulta pero no cuenta como trabajo (Santos). Origen: Katerine reclamó por Pyramid Metals y Grupo Safe.
+- Resumen: códigos de postventa PV1 Rubí, PV2 Gabriela, PV3 Ariana (PV es la cuenta del área); Files con «Terminé»; visitas y videollamadas como indicador propio; devolver un cierre ya avanzado pide código de gerencia; WhatsApp se trabaja dentro del CRM (caso: un comercial bloqueado por spam al pasar leads a su línea personal) y tipificar ya no cuenta como gestión; «Interesado» o «Cotizado» piden el nivel de interés; la apertura toma nombre y RUC del cierre, separa primer destino y destino final (Andinas Service) y el código solo se pide si cambia algo impreso; «Apurar al almacén» y «Apurar a Finanzas» (Ninamango); «No se le envió» el plano; mover una solicitud mal colgada (Vidawasi); torres LG con dos series; aviso si el largo de la serie no cuadra (Hortifrut); fichas de SENATI unidas; lo archivado se ve en gris y no cuenta como trabajo.
 
 ### 29-09 · Gerencia con marketing (Karen, Carlos, Santos)
-- Se convocó la **presentación al personal** del 05-10, para que se entienda el trabajo del CRM y de Crece.
-- **Reseñas de Google:** se habló de un piloto con personal antiguo y de una directiva para que el comercial o técnico pida la reseña al cliente al entregar, con QR. Ver Pendientes.
-- **CRM, etapa 2:** los técnicos llenan informes y firman en tablet dentro del CRM.
-- **Postventa sin cartera propia** (Santos, 28 y 29-09). Gerencia: «PV es el área; PV1, PV2 y PV3 son de las personas; cuando alguien lo gestiona es suyo». Cualquiera del área cotiza en expedientes de postventa.
-- **Corregir o anular con código lo que uno mandó a Central** (Carlos). Caso: el almacén registró dos veces «Hotel El Alto Recepción», que era Amazonas Grandez Inversiones. También se frena registrar el mismo teléfono dos veces en 24 h.
-- **El registro de un caso engancha la máquina por su serie** y verifica la garantía (Santos, «hazlo ahora»). Origen: Rubí no podía registrar la puesta en marcha de AGROCASAGRANDE.
-- **El CRM pasó a correr en el servidor de la oficina** (decisión de Santos del 26-09, encendido el 29-09). En la red de la oficina es varias veces más rápido; la nube queda como copia.
+- Resumen: se convocó la presentación al personal del 05-10; reseñas de Google en revisión (ver Pendientes); etapa 2 con informes y firma en tablet; postventa sin cartera propia («PV es el área»); corregir o anular con código lo mandado a Central (caso Hotel El Alto / Amazonas Grandez) y no registrar el mismo teléfono dos veces en 24 h; el registro de un caso engancha la máquina por su serie (AGROCASAGRANDE); el CRM pasó al servidor de la oficina.
 
 ### 28-09 · Reuniones de gerencia con postventa (mañana y tarde)
-- **Expediente con historia propia** y botón «ver todo el cliente». La solicitud de Central aparece como «Inicio», con quién la registró.
-- **Postventa ve los PDF con los montos tapados** (cierre y cotización).
-- **Circuito por tipo de atención:**
-  - «Diagnóstico» pasó a llamarse «Antecedentes».
-  - Puesta en marcha y repuesto: antecedentes opcional.
-  - Repuesto: sin pruebas ni conformidad.
-  - Soporte técnico: circuito completo.
-- **Nuevas opciones:** fecha de despacho de la guía, «Factura también con otra empresa», autoderivado y formatos PDF de repuestos y mantenimiento con firma de postventa.
-- **Postventa da su retroalimentación del CRM hasta el 29-09.** Les preocupaban las variantes del mundo real («¿qué pasa si no compré? ¿se rompe el circuito?»).
-- **El pedido de Julca (OPEN 024)** se reinició para que Central lo vuelva a generar con la serie correcta. La factura la corrige Finanzas aparte.
-- **El CRM se cayó unos 15 minutos a las 17:30**, porque la base de datos gratuita en la nube se saturó. Esto aceleró el paso al servidor de la oficina.
-- **Comerciales:** catalogar bien la campaña de origen en el CRM.
-- **Pendiente:** la numeración propia de las cotizaciones de postventa (hoy comparten serie con los comerciales).
+- Resumen: expediente con historia propia y «ver todo el cliente»; postventa ve los PDF con montos tapados; circuito por tipo de atención («Diagnóstico» pasó a «Antecedentes»; repuesto sin pruebas ni conformidad); fecha de despacho de la guía y formatos de repuesto y mantenimiento; el pedido de Julca (OPEN 024) se reinició por la serie; caída de 15 minutos por la base en la nube; pendiente la numeración propia de cotizaciones de postventa.
 
 ### 26-09 · Navegación y celular
-- **Vista moderna obligatoria** para todas las cuentas oficiales (Santos). Antes era optativa. Gerencia había aprobado el 23-09 el mapa nuevo, que pasó de 80 a 44 opciones de menú.
-- **El CRM se adapta a pantallas HD y al iPhone del gerente** (Santos): menú móvil y agenda en lista.
-- **Pedidos de Rubí desplegados el mismo día:**
-  - Pestaña «Cerrados».
-  - Los pedidos del Excel ya entregados se cierran desde su ficha.
-  - Tipo «accesorio» (coches) sin instalación.
-  - Una atención cerrada ya no pasa sola a seguimiento.
-  - Enter ya no envía en «Pasar contacto a Central».
+- Resumen: vista moderna obligatoria (menú de 80 a 44 opciones); el CRM se adapta a pantallas HD y al iPhone del gerente; para Rubí: pestaña «Cerrados», cerrar pedidos del Excel ya entregados, tipo «accesorio» sin instalación y una atención cerrada ya no pasa sola a seguimiento.
 
 ### 25-09 · Reunión de postventa y reunión con Central y Finanzas
-- **Preinstalación:**
-  - Lima: videollamada **antes** del despacho.
-  - Provincia: confirmación del cliente **después**.
-- **Tipos de pedido:** equipo, repuesto, mantenimiento o revisión, y **embalaje** (nuevo; cierra con al menos 3 fotos de salida). Si un pedido pide pasos que no le tocan, casi siempre tiene el tipo mal puesto.
-- **Nombres nuevos:**
-  - «Aperturas al almacén» pasó a llamarse «Derivación de llamadas».
-  - Hay una pestaña aparte de «Aperturas urgentes».
-  - Para el almacén, «apertura» significa despacho.
-- **Caso técnico:**
-  - Botón «Derivar llamada al almacén».
-  - «Registrar otra máquina del caso».
-  - «¿La vendimos nosotros?»: si no, queda sin garantía y anotado.
-- **Rol Facturación** (con Central y Jhon).
-  - Finanzas ve el expediente en solo lectura.
-  - Los vouchers solo los ven Finanzas y gerencia.
-  - Contabilidad marca «Enviada al cliente».
-- **Cotizar a nombre de otra empresa del grupo** (caso de Katerine: Congelados y Frescos y Refrigerados INY). Misma ficha y misma cartera. Antes se abría otra ficha y la historia se partía.
-- **Servicios de mantenimiento en el catálogo,** con la ficha del trabajo del técnico. Lesly los edita.
-- **C9 es Desiree Salinas** (se reutilizó el perfil de reserva).
+- Resumen: preinstalación con videollamada antes del despacho en Lima y confirmación después en provincia; tipos de pedido (equipo, repuesto, mantenimiento o revisión, embalaje con 3 fotos); «Derivación de llamadas» y «Aperturas urgentes» (para el almacén, apertura es despacho); en el caso técnico «Derivar llamada al almacén», «Registrar otra máquina del caso» y «¿La vendimos nosotros?»; rol Facturación (Finanzas en solo lectura, vouchers solo Finanzas y gerencia); cotizar a nombre de otra empresa del grupo en la misma ficha (INY); servicios de mantenimiento en el catálogo, los edita Lesly; C9 es Desiree Salinas.
 
 ### 24-09 · Prueba en vivo del pedido desde Central (Santos y Carlos)
 - Resumen: Central convierte el cierre en pedido (numera el CRM, sin el ERP), acepta o rechaza la liquidación con el PDF de Finanzas y pide las series desde el sistema (antes por WhatsApp); salir del almacén con saldo pendiente pide autorización; cada documento sigue la empresa de su cadena (OPEN o EFAMEINSA); alerta «Urgencia a Finanzas», cuyo segundo aviso llega a gerencia; se limpiaron 4 pedidos que no abrían por máquinas probadas sin fotos.
@@ -639,6 +502,7 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 - **Fin de la «postventa en capacitación»**, que es cuando las cotizaciones de postventa dejan de ir todas a gerencia.
 - **Visto bueno de Finanzas:** si aplica a todo crédito o solo a letras.
 - **Carteras en disputa:** la tercera ficha de Caravedo, el grupo Costa del Sol / Hotelera Cusco, la ficha con RUC de Operador Nacional de Hoteles (Decameron) y otros pares en carteras distintas.
+- **Expedientes de postventa repetidos:** lista de 56 clientes (16-10) para decidir cuáles se unen y cuáles tienen el tipo mal puesto.
 - **Unir las dos pantallas de preventivos** (Ventas de la empresa y campaña): se retoma en otra reunión.
 - **Ventana de validez de una aprobación de precio** (propuesta desde el 01-09).
 - **Reseñas de Google por parte del personal:** en revisión. Google prohíbe reseñas de empleados con incentivo; se recomendó premiar que el personal pida reseñas a clientes. Consulte a gerencia antes de dejar o pedir reseñas.
