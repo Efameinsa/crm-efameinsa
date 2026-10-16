@@ -47,22 +47,69 @@ export async function prepararPedido(informeId: string) {
   return { error: null, servicioId };
 }
 
+/** Lo que Central dice de los accesorios al pedir el código (0510; Lesly, 16-10). */
+export type AccesoriosPedido = { incluye: boolean | null; detalle: string };
+
+function validarAccesorios(a: AccesoriosPedido | null | undefined): string | null {
+  if (!a || a.incluye === null) return "Antes de pedir el código, diga si los equipos incluyen accesorios";
+  if (a.incluye && a.detalle.trim().length < 3) return "Escriba qué accesorios van y con qué máquina";
+  return null;
+}
+
+const textoAccesorios = (a: AccesoriosPedido) => (a.incluye ? `Incluye accesorios: ${a.detalle.trim()}.` : "Sin accesorios.");
+
 /** «Pedir series al almacén»: le llega el aviso y el pedido entra a su cola. */
-export async function pedirSeriesAlAlmacen(informeId: string) {
+export async function pedirSeriesAlAlmacen(informeId: string, accesorios: AccesoriosPedido) {
   const perfil = await requerirPerfil();
+  const falta = validarAccesorios(accesorios);
+  if (falta) return { error: falta, faltan: 0 };
   const { supabase, servicioId, error } = await preparar(informeId);
   if (error || !servicioId) return { error: error ?? "No se pudo preparar el pedido", faltan: 0 };
+  const { error: e1 } = await supabase.rpc("indicar_accesorios_del_pedido", {
+    p_servicio: servicioId,
+    p_incluye: accesorios.incluye,
+    p_detalle: accesorios.detalle,
+  });
+  if (e1) return { error: limpiar(e1.message), faltan: 0 };
   const { data: faltan, error: e2 } = await supabase.rpc("pedir_series_al_almacen", { p_servicio: servicioId });
   if (e2) return { error: limpiar(e2.message), faltan: 0 };
   const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto").eq("id", servicioId).maybeSingle();
   await notificarAlmacen({
     titulo: `Generación de código · ${sinRuc(s?.cliente_texto)}`,
-    cuerpo: `Central pide la serie de ${faltan} equipo${faltan === 1 ? "" : "s"}. Escríbalas como se leen en la placa: quedan fijas.`,
+    cuerpo: `Central pide la serie de ${faltan} equipo${faltan === 1 ? "" : "s"}. Escríbalas como se leen en la placa: quedan fijas. ${textoAccesorios(accesorios)}`,
     url: `/almacen/pedidos/${servicioId}`,
     esPrueba: perfil.es_prueba === true,
   });
   revalidar(servicioId);
   return { error: null, faltan: faltan as number };
+}
+
+/**
+ * Central corrige o completa los accesorios de un pedido ya creado (0510).
+ * Si el almacén ya tenía la solicitud, le avisa del cambio.
+ */
+export async function indicarAccesorios(servicioId: string, accesorios: AccesoriosPedido) {
+  const perfil = await requerirPerfil();
+  const falta = validarAccesorios(accesorios);
+  if (falta) return { error: falta };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("indicar_accesorios_del_pedido", {
+    p_servicio: servicioId,
+    p_incluye: accesorios.incluye,
+    p_detalle: accesorios.detalle,
+  });
+  if (error) return { error: limpiar(error.message) };
+  const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, series_pedidas_at").eq("id", servicioId).maybeSingle();
+  if (s?.series_pedidas_at) {
+    await notificarAlmacen({
+      titulo: `Accesorios del pedido · ${sinRuc(s.cliente_texto)}`,
+      cuerpo: `Central corrigió los accesorios. ${textoAccesorios(accesorios)}`,
+      url: `/almacen/pedidos/${servicioId}`,
+      esPrueba: perfil.es_prueba === true,
+    });
+  }
+  revalidar(servicioId);
+  return { error: null };
 }
 
 /**

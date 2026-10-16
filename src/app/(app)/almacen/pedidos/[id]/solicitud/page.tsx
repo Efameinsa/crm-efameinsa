@@ -60,7 +60,7 @@ export default async function SolicitudDeCodigoPage({
   const { data } = await supabase
     .from("servicios_postventa")
     .select(
-      "id, cliente_texto, numero_pedido_erp, series_pedidas_at, perfiles!servicios_postventa_series_pedidas_por_fkey(nombre, codigo_comercial), informes_cierre!servicios_postventa_informe_cierre_id_fkey(codigo, serie)",
+      "id, cliente_texto, numero_pedido_erp, series_pedidas_at, accesorios_incluye, accesorios_detalle, perfiles!servicios_postventa_series_pedidas_por_fkey(nombre, codigo_comercial), informes_cierre!servicios_postventa_informe_cierre_id_fkey(codigo, serie)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -70,6 +70,8 @@ export default async function SolicitudDeCodigoPage({
     cliente_texto: string | null;
     numero_pedido_erp: string | null;
     series_pedidas_at: string | null;
+    accesorios_incluye: boolean | null;
+    accesorios_detalle: string | null;
     perfiles: Perfil;
     informes_cierre: { codigo: string; serie: string } | null;
   };
@@ -124,6 +126,13 @@ export default async function SolicitudDeCodigoPage({
             <tr><th className={cabecera}>Cierre</th><td className={celda}>{cierre.serie === "OPEN" ? "Open" : "Efameinsa"} {cierre.codigo}</td></tr>
           )}
           <tr><th className={cabecera}>Solicitado por</th><td className={celda}>{quien(pedido.perfiles)} · {fechaHora(pedido.series_pedidas_at)}</td></tr>
+          {/* 0510 (Lesly, 16-10): Central dice si los equipos van con accesorios. */}
+          <tr>
+            <th className={cabecera}>Accesorios</th>
+            <td className={`${celda} whitespace-pre-wrap`}>
+              {pedido.accesorios_incluye === true ? <b>Sí incluye: {pedido.accesorios_detalle}</b> : pedido.accesorios_incluye === false ? "No incluye" : "No indicado"}
+            </td>
+          </tr>
           {respuesta && (
             <tr>
               <th className={cabecera}>Estado</th>

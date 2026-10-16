@@ -156,6 +156,28 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
         </div>
       )}
 
+      {/* Los accesorios que Central dijo al pedir el código (0510, Lesly 16-10). */}
+      {(seriesPedidasAt || servicio.accesorios_incluye != null) && (
+        <div
+          className={
+            servicio.accesorios_incluye
+              ? "rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-950 shadow-sm"
+              : "rounded-xl border border-border bg-card px-4 py-3 text-xs text-muted-foreground shadow-sm"
+          }
+        >
+          {servicio.accesorios_incluye === true ? (
+            <>
+              <b className="uppercase tracking-wide">Incluye accesorios</b>
+              <p className="mt-0.5 whitespace-pre-wrap text-sm text-foreground">{servicio.accesorios_detalle}</p>
+            </>
+          ) : servicio.accesorios_incluye === false ? (
+            "Central indicó que los equipos no incluyen accesorios."
+          ) : (
+            "Central no indicó si los equipos llevan accesorios (pedido anterior a la regla): revise el cierre."
+          )}
+        </div>
+      )}
+
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-4">
           {/* El almacén despacha lo que dice la apertura; si no la hay por el saldo, que lo lea (15-10). */}
