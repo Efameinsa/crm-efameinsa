@@ -499,12 +499,19 @@ export async function registrarTrabajo(datos: {
   trabajo: string;
   repuestos?: string | null;
   ciclos?: number | null;
+  /** Las otras máquinas del caso (0253), cada una con lo suyo (0509; Rubí, buzón 16-10). */
+  otrasMaquinas?: { equipoId: string; trabajo?: string | null; repuestos?: string | null; ciclos?: number | null }[];
 }): Promise<{ error: string | null }> {
   if (datos.trabajo.trim().length < 10) {
     return { error: "Escriba qué se hizo en el cliente: es lo que se lee cuando la máquina vuelve a fallar" };
   }
   if (datos.ciclos != null && (!Number.isInteger(datos.ciclos) || datos.ciclos < 0)) {
     return { error: "La lectura de ciclos tiene que ser un número entero" };
+  }
+  for (const m of datos.otrasMaquinas ?? []) {
+    if (m.ciclos != null && (!Number.isInteger(m.ciclos) || m.ciclos < 0)) {
+      return { error: "La lectura de ciclos de cada máquina tiene que ser un número entero" };
+    }
   }
 
   const supabase = await createClient();
@@ -542,6 +549,21 @@ export async function registrarTrabajo(datos: {
     })
     .eq("id", datos.atencionId);
   if (error) return { error: error.message };
+
+  // Lo de cada máquina adicional va en su fila del caso; sus ciclos suben solos
+  // a su ficha (trigger de la 0509). Solo filas que ya son del caso.
+  for (const m of datos.otrasMaquinas ?? []) {
+    const { error: e } = await supabase
+      .from("atencion_equipos")
+      .update({
+        trabajo_realizado: m.trabajo?.trim() || null,
+        repuestos_usados: m.repuestos?.trim() || null,
+        ciclos: m.ciclos ?? null,
+      })
+      .eq("atencion_id", datos.atencionId)
+      .eq("equipo_id", m.equipoId);
+    if (e) return { error: `Se guardó la máquina principal, pero no otra del caso: ${e.message}` };
+  }
 
   refrescar(datos.atencionId);
   revalidatePath("/postventa/equipos");

@@ -101,12 +101,28 @@ const DIBUJO: Record<(typeof PASOS_VISIBLES)[number]["icono"], LucideIcon> = {
   seguimiento: PhoneCall,
 };
 
+/** Una máquina adicional del caso (0253) con lo que se le hizo en la visita (0509). */
+export interface OtraMaquinaDelCasoTrabajo {
+  equipoId: string;
+  serie: string | null;
+  modelo: string | null;
+  trabajo: string | null;
+  repuestos: string | null;
+  ciclos: number | null;
+}
+
+/** «Serie X · modelo» para encabezar el recuadro de cada máquina. */
+function nombreMaquina(serie: string | null | undefined, modelo: string | null | undefined): string {
+  return [serie ? `Serie ${serie}` : null, modelo].filter(Boolean).join(" · ") || "Máquina sin serie";
+}
+
 export function LineaAtencion({
   atencion,
   garantia,
   cliente,
   hayMaquinas = false,
   equipos = [],
+  otrasMaquinas = [],
   cuenta = null,
   autoderivado = false,
   pedidoSinSeries = null,
@@ -117,6 +133,8 @@ export function LineaAtencion({
   /** Las máquinas del cliente: la del caso se elige DENTRO del Paso 1, no en
    *  otro panel (Rubí, 28-09). */
   equipos?: EquipoDelCliente[];
+  /** Las otras máquinas del caso, además de la principal (0253/0509). */
+  otrasMaquinas?: OtraMaquinaDelCasoTrabajo[];
   /** La ficha del cliente, para registrar una máquina que no está en su parque. */
   cuenta?: { id: string; razonSocial: string } | null;
   /** Lo registró y lo atiende postventa, sin pasar por el reparto (0327): la
@@ -148,6 +166,8 @@ export function LineaAtencion({
   } | null;
 }) {
   const a = atencion;
+  const principal = equipos.find((e) => e.id === a.equipo_id);
+  const nombrePrincipal = nombreMaquina(principal?.serie ?? garantia?.serie, principal?.modelo_texto ?? a.equipo_texto);
   const router = useRouter();
   const [enviando, empezar] = useTransition();
   const paso = pasoDe(a.etapa);
@@ -424,6 +444,8 @@ export function LineaAtencion({
           atencion={a}
           hecha={pasoDe(etapaVista as Atencion["etapa"]) < paso}
           sello={sellos[etapaVista] ?? null}
+          otrasMaquinas={otrasMaquinas}
+          nombrePrincipal={nombrePrincipal}
           onVolver={() => setVista(null)}
         />
       ) : a.etapa === "solicitud" ? (
@@ -454,7 +476,16 @@ export function LineaAtencion({
         // hay visita que anotar, pero las pruebas y la conformidad sí van.
         <PasoPruebas atencion={a} enviando={enviando} correr={correr} />
       ) : a.etapa === "atencion" ? (
-        <PasoTrabajo atencion={a} puedeCotizar={puedeCotizar} enviando={enviando} correr={correr} />
+        <PasoTrabajo
+          // Si se agrega o quita una máquina del caso, los recuadros se rehacen.
+          key={otrasMaquinas.map((m) => m.equipoId).join(",")}
+          atencion={a}
+          otrasMaquinas={otrasMaquinas}
+          nombrePrincipal={nombrePrincipal}
+          puedeCotizar={puedeCotizar}
+          enviando={enviando}
+          correr={correr}
+        />
       ) : a.etapa === "pruebas" ? (
         <PasoPruebas atencion={a} enviando={enviando} correr={correr} />
       ) : a.etapa === "conformidad" ? (
@@ -773,11 +804,15 @@ function ActaEtapa({
   atencion: a,
   hecha,
   sello,
+  otrasMaquinas = [],
+  nombrePrincipal = "",
   onVolver,
 }: {
   etapa: EtapaAtencion;
   atencion: Atencion;
   hecha: boolean;
+  otrasMaquinas?: OtraMaquinaDelCasoTrabajo[];
+  nombrePrincipal?: string;
   sello: string | null;
   onVolver: () => void;
 }) {
@@ -837,9 +872,19 @@ function ActaEtapa({
     // Lo que la visita dejó escrito (0182): antes estas dos etapas eran un
     // sello con fecha y nada más.
     if (etapa === "atencion") {
+      // Con varias máquinas, cada una con lo suyo (0509): primero la principal.
+      if (otrasMaquinas.length > 0) lineas.push({ titulo: "Máquina", valor: nombrePrincipal });
       if (a.trabajo_realizado) lineas.push({ titulo: "Qué se hizo", valor: a.trabajo_realizado });
       if (a.repuestos_usados) lineas.push({ titulo: "Repuestos", valor: a.repuestos_usados });
       if (a.ciclos != null) lineas.push({ titulo: "Ciclos", valor: a.ciclos.toLocaleString("es-PE") });
+      for (const m of otrasMaquinas) {
+        const partes = [
+          m.trabajo,
+          m.repuestos ? `Repuestos: ${m.repuestos}` : null,
+          m.ciclos != null ? `Ciclos: ${m.ciclos.toLocaleString("es-PE")}` : null,
+        ].filter(Boolean);
+        lineas.push({ titulo: nombreMaquina(m.serie, m.modelo), valor: partes.join(" · ") || "Sin registro" });
+      }
     }
     if (etapa === "pruebas") {
       if (a.pruebas_detalle) lineas.push({ titulo: "Qué se probó", valor: a.pruebas_detalle });
@@ -1258,11 +1303,15 @@ function PasoSimple({
  */
 function PasoTrabajo({
   atencion: a,
+  otrasMaquinas = [],
+  nombrePrincipal,
   puedeCotizar,
   enviando,
   correr,
 }: {
   atencion: Atencion;
+  otrasMaquinas?: OtraMaquinaDelCasoTrabajo[];
+  nombrePrincipal: string;
   puedeCotizar?: boolean;
   enviando: boolean;
   correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
@@ -1270,48 +1319,55 @@ function PasoTrabajo({
   const [trabajo, setTrabajo] = useState("");
   const [repuestos, setRepuestos] = useState("");
   const [ciclos, setCiclos] = useState("");
+  // VARIAS MÁQUINAS EN EL CASO (Rubí, buzón 16-10): cada una con su trabajo,
+  // sus repuestos y su contador. Antes había un solo juego de campos y las
+  // máquinas adicionales se quedaban sin nada escrito ni lectura de ciclos.
+  const [otras, setOtras] = useState(() =>
+    otrasMaquinas.map((m) => ({
+      equipoId: m.equipoId,
+      trabajo: m.trabajo ?? "",
+      repuestos: m.repuestos ?? "",
+      ciclos: m.ciclos != null ? String(m.ciclos) : "",
+    })),
+  );
+  const cambiarOtra = (i: number, campo: "trabajo" | "repuestos" | "ciclos", valor: string) =>
+    setOtras((xs) => xs.map((x, j) => (j === i ? { ...x, [campo]: valor } : x)));
+  const varias = otras.length > 0;
   // El repuesto no lleva pruebas ni conformidad (reunión 28-09): de acá, al cierre.
   const alCierre = reglaDelPaso(a.tipo, "pruebas") === "no_corresponde";
 
   return (
     <Caja titulo="Paso · Qué se hizo en el cliente">
       <div className="space-y-3">
-        <textarea
-          rows={3}
-          value={trabajo}
-          onChange={(e) => setTrabajo(e.target.value)}
-          placeholder="«Se cambió la resistencia y se reguló el termostato; quedó calentando a 180°»"
-          className="w-full rounded-md border border-border bg-background p-2.5 text-sm outline-none placeholder:text-muted-foreground"
+        {varias && (
+          <p className="text-xs text-muted-foreground">
+            Este caso tiene {otras.length + 1} máquinas: anote lo de cada una en su recuadro.
+          </p>
+        )}
+        <CamposTrabajoMaquina
+          titulo={varias ? `${nombrePrincipal} · principal` : null}
+          trabajo={trabajo}
+          repuestos={repuestos}
+          ciclos={ciclos}
+          onTrabajo={setTrabajo}
+          onRepuestos={setRepuestos}
+          onCiclos={setCiclos}
         />
-        <div className="grid gap-2 sm:grid-cols-2">
-          <label className="space-y-1">
-            <span className="text-xs font-medium text-foreground">
-              Repuestos usados <span className="font-normal text-muted-foreground">— si hubo</span>
-            </span>
-            <input
-              value={repuestos}
-              onChange={(e) => setRepuestos(e.target.value)}
-              placeholder="«Resistencia 3 kW, 1 unidad»"
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none"
-            />
-          </label>
-          <label className="space-y-1">
-            <span className="text-xs font-medium text-foreground">
-              Ciclos <span className="font-normal text-muted-foreground">— lo que marca el contador</span>
-            </span>
-            <input
-              type="number"
-              min={0}
-              value={ciclos}
-              onChange={(e) => setCiclos(e.target.value)}
-              placeholder="Ej.: 4820"
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none"
-            />
-          </label>
-        </div>
+        {otras.map((m, i) => (
+          <CamposTrabajoMaquina
+            key={m.equipoId}
+            titulo={nombreMaquina(otrasMaquinas[i]?.serie, otrasMaquinas[i]?.modelo)}
+            trabajo={m.trabajo}
+            repuestos={m.repuestos}
+            ciclos={m.ciclos}
+            onTrabajo={(v) => cambiarOtra(i, "trabajo", v)}
+            onRepuestos={(v) => cambiarOtra(i, "repuestos", v)}
+            onCiclos={(v) => cambiarOtra(i, "ciclos", v)}
+          />
+        ))}
         <p className="text-[11px] text-muted-foreground">
-          La lectura de ciclos queda en la ficha de la máquina: es lo que después dice si un equipo de dos años se
-          usó como uno de cinco.
+          La lectura de ciclos queda en la ficha de {varias ? "cada máquina" : "la máquina"}: es lo que después dice si
+          un equipo de dos años se usó como uno de cinco.
         </p>
         <Button
           size="sm"
@@ -1324,6 +1380,12 @@ function PasoTrabajo({
                   trabajo,
                   repuestos: repuestos || null,
                   ciclos: ciclos.trim() === "" ? null : Number(ciclos),
+                  otrasMaquinas: otras.map((m) => ({
+                    equipoId: m.equipoId,
+                    trabajo: m.trabajo || null,
+                    repuestos: m.repuestos || null,
+                    ciclos: m.ciclos.trim() === "" ? null : Number(m.ciclos),
+                  })),
                 }),
               alCierre ? "Trabajo registrado. Ahora el cierre." : "Trabajo registrado. Ahora las pruebas.",
             )
@@ -1342,6 +1404,64 @@ function PasoTrabajo({
         </div>
       </div>
     </Caja>
+  );
+}
+
+/** Qué se hizo, repuestos y ciclos de UNA máquina; con varias, cada una en su recuadro (0509). */
+function CamposTrabajoMaquina({
+  titulo,
+  trabajo,
+  repuestos,
+  ciclos,
+  onTrabajo,
+  onRepuestos,
+  onCiclos,
+}: {
+  titulo: string | null;
+  trabajo: string;
+  repuestos: string;
+  ciclos: string;
+  onTrabajo: (v: string) => void;
+  onRepuestos: (v: string) => void;
+  onCiclos: (v: string) => void;
+}) {
+  return (
+    <div className={titulo ? "space-y-2 rounded-lg border border-border p-3" : "space-y-3"}>
+      {titulo && <p className="text-xs font-semibold text-foreground">{titulo}</p>}
+      <textarea
+        rows={titulo ? 2 : 3}
+        value={trabajo}
+        onChange={(e) => onTrabajo(e.target.value)}
+        placeholder="«Se cambió la resistencia y se reguló el termostato; quedó calentando a 180°»"
+        className="w-full rounded-md border border-border bg-background p-2.5 text-sm outline-none placeholder:text-muted-foreground"
+      />
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="space-y-1">
+          <span className="text-xs font-medium text-foreground">
+            Repuestos usados <span className="font-normal text-muted-foreground">— si hubo</span>
+          </span>
+          <input
+            value={repuestos}
+            onChange={(e) => onRepuestos(e.target.value)}
+            placeholder="«Resistencia 3 kW, 1 unidad»"
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none"
+          />
+        </label>
+        <label className="space-y-1">
+          <span className="text-xs font-medium text-foreground">
+            Ciclos <span className="font-normal text-muted-foreground">— lo que marca el contador</span>
+          </span>
+          <input
+            type="number"
+            min={0}
+            value={ciclos}
+            onChange={(e) => onCiclos(e.target.value)}
+            placeholder="Ej.: 4820"
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none"
+          />
+        </label>
+      </div>
+    </div>
   );
 }
 
