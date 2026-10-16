@@ -464,7 +464,12 @@ export function LineaAtencion({
         // antecedentes son opcionales, con su botón «No hay antecedentes».
         // Hasta hoy (0231) pasaba directo a programar sin saber qué máquina.
         <PasoRegistro atencion={a} garantia={garantia} hayMaquinas={hayMaquinas} equipos={equipos} cuenta={cuenta} pedidoSinSeries={pedidoSinSeries} enviando={enviando} correr={correr} />
-      ) : a.etapa === "diagnostico" ? (
+      ) : a.etapa === "diagnostico" || (a.etapa === "planificacion" && !a.programada_at) ? (
+        // VOLVER AL CLIENTE (Rubí, 16-10, LINO ESPIRITU). Las pruebas «no
+        // conformes» devuelven el caso a planificación y BORRAN la visita
+        // programada, porque hay que ir otra vez. Esta pantalla seguía
+        // ofreciendo «Marcar Atención» y la base lo frenaba con «primero hay
+        // que programarla», sin dónde programar. Sin fecha, toca programar.
         <PasoPlanificar
           atencion={a}
           cliente={cliente}
@@ -1155,6 +1160,13 @@ function PasoPlanificar({
           ? "Con día, hora y técnico queda programada y entra al calendario del área. Si es una llamada o videollamada, derívela al almacén con «Derivar llamada al almacén» (arriba): lleva los antecedentes."
           : "Esto entra al calendario del área y arma la orden para el almacén."}
       </p>
+      {a.pruebas_conforme === false && (
+        <p className="mb-3 rounded-md border border-amber-400/50 bg-amber-500/5 p-2.5 text-xs text-amber-800">
+          <b>Hay que volver al cliente.</b> Las pruebas quedaron pendientes
+          {a.pruebas_at ? ` el ${fechaLima(a.pruebas_at)}` : ""}
+          {a.pruebas_detalle ? `: «${a.pruebas_detalle}»` : ""}. Programe la nueva visita.
+        </p>
+      )}
       {a.diagnostico && (
         <p className="mb-3 rounded-md border border-border bg-secondary/40 p-2.5 text-xs text-foreground">
           <b>Antecedentes:</b> {a.diagnostico}
