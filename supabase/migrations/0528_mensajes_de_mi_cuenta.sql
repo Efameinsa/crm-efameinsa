@@ -62,6 +62,8 @@ create policy portal_mensajes_marcar_leido on public.portal_mensajes for update 
   with check (exists (select 1 from public.cuentas c where c.id = portal_mensajes.cuenta_id));
 
 revoke all on public.portal_mensajes from anon, authenticated;
+-- El motor de avisos (mkt) y la API del portal leen con la llave de servicio (aplicado a mano el 17-10).
+grant all on public.portal_mensajes to service_role;
 grant select on public.portal_mensajes to authenticated;
 grant insert (cuenta_id, autor, autor_id, autor_nombre, texto, servicio_id, atencion_id) on public.portal_mensajes to authenticated;
 grant update (leido_at) on public.portal_mensajes to authenticated;

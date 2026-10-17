@@ -252,6 +252,16 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - [P11 · Excepciones de pago en el despacho](/procesos/p11): pago parcial, salida con código, crédito, letras, segundo anticipo.
 - Si el diagrama y esta guía no coinciden, manda la guía (y avise que el diagrama puede estar desactualizado).
 
+### 1.15 Mi cuenta del cliente en efameinsa.com (piloto desde el 17-10)
+
+- **Qué es:** el cliente entra a www.efameinsa.com con su correo o su celular y una contraseña, y ve su historial del CRM: cotizaciones con su PDF, pedidos paso a paso (con fotos del protocolo, de la salida y de la agencia, y la guía), casos de servicio técnico, sus equipos con garantía y próximo mantenimiento, y un chat.
+- **Qué ve el cliente y qué no:** solo pasos con fecha real y documentos suyos. Nunca ve notas internas, montos internos, comisiones ni el nombre interno de un estado. Si un paso no tiene fecha en el CRM, no aparece como hecho: **marcar cada paso a tiempo es lo que el cliente ve**.
+- **Avisos por estado:** cada paso marcado en el CRM genera un correo (y, cuando esté el número de soporte, un WhatsApp corto) con enlace a Mi cuenta: cotización enviada, pedido confirmado, pago recibido, planos, probado y embalado, despacho programado, salió de planta, en la agencia, ¿ya lo recibió?, instalación agendada, técnico en camino, puesta en marcha, documentos, caso registrado, programado, resuelto, mantenimiento.
+- **Piloto:** desde el 17-10 los avisos salen de verdad **solo** a una lista de prueba que define Santos; a los demás clientes no les llega nada todavía (quedan anotados «en ensayo»).
+- **Botones nuevos en el pedido y en el caso (postventa, almacén, operaciones, gerencia):** «El técnico salió hacia el cliente» y «El técnico llegó al local». Se marcan cuando ocurre; se pueden deshacer («llegó» antes que «salió» no se deshace).
+- **«Ya lo recibí»:** el cliente lo confirma desde Mi cuenta cuando el equipo está en la agencia o salió de planta. Queda en el pedido con hora y nota; al dueño de la cuenta y a postventa les llega un aviso.
+- **Mensajes de Mi cuenta:** lo que el cliente escribe en su chat aparece en la ficha del cliente y en el pedido o caso («Mensajes de Mi cuenta») y avisa al comercial dueño (y a postventa si es de un pedido o caso). Se responde desde ahí con su nombre; al cliente le llega el aviso «Tiene una respuesta de Efameinsa».
+
 ---
 
 ## 2. Qué ve y qué puede hacer cada rol
@@ -1139,6 +1149,12 @@ No hace falta avisar a mano. Desde el 15-10, al guardar la corrección, Central 
 
 **42. ¿Quién me da el código para corregir mi cierre?**
 Solo Central, desde el 15-10. Escriba qué está mal y pídale el código a Central: ella lo coordina con Carlos. El código de Lesly ya no sirve para cierres. (3.5)
+
+**45. Un cliente dice que en su cuenta de efameinsa.com no ve que su equipo salió. ¿Qué pasó?**
+Mi cuenta muestra solo lo que está marcado en el CRM con fecha. Revise que el paso («Despacho concluido», agencia, puesta en marcha) esté marcado en el pedido; apenas se marca, aparece en su cuenta y, si está en la lista del piloto, le llega el aviso. El cliente entra con el correo o el celular que figura en su ficha o en «quién recibe». (1.15)
+
+**46. ¿Dónde contesto lo que el cliente escribió en su Mi cuenta?**
+En la ficha del cliente o en el pedido o caso, sección «Mensajes de Mi cuenta». Responda ahí: el cliente lo ve en su chat y le llega un aviso. No le conteste por otro canal sin dejarlo anotado. (1.15)
 
 **44. El pedido dice que Finanzas confirmó el pago, pero el cliente solo pagó un adelanto. ¿Puedo despachar?**
 No. Finanzas confirma cada abono, no el total. Desde el 15-10 el pedido lo muestra en ámbar: el paso de pago dice «Pago parcial… falta el saldo» y arriba sale un anuncio con cuánto falta. El CRM no deja hacer la apertura hasta que Finanzas confirme lo que falta según la condición de pago, o hasta que gerencia u operaciones autoricen la salida con su código. Si la condición del cierre está mal (dice contado y la venta era con saldo a plazo), el comercial la corrige con el código de Central, o gerencia u operaciones definen la condición en el pedido. (3.6)
