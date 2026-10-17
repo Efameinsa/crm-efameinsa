@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { SubirLiquidacion } from "@/components/crm/subir-liquidacion";
+import { GenerarLiquidacion } from "@/components/crm/generar-liquidacion";
 import { ExpedienteCierre } from "@/components/crm/expediente-cierre";
 import { DocumentosFinanzasLista } from "@/components/crm/documentos-finanzas-lista";
 import { fechaHoraLima } from "@/lib/fechas";
@@ -137,7 +138,9 @@ export default async function PedidosPorLiquidarPage() {
         <a href={`/pedidos/${f.id}/imprimir`} target="_blank" rel="noreferrer" className="rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-accent">
           Ver el pedido
         </a>
-        <SubirLiquidacion servicioId={f.id} yaSubida={Boolean(f.liquidacion_adjunto)} />
+        {/* Desde el 17-10 la arma el CRM (reunión con Jhon): «Generar liquidación» primero. */}
+        <GenerarLiquidacion servicioId={f.id} />
+        <SubirLiquidacion servicioId={f.id} yaSubida={Boolean(f.liquidacion_adjunto)} secundario />
       </li>
     );
   };
@@ -146,8 +149,9 @@ export default async function PedidosPorLiquidarPage() {
     <div className="space-y-4">
       <SeccionPanel titulo={`Pedidos por liquidar · ${porSubir.length}`}>
         <p className="mb-2 text-xs text-muted-foreground">
-          Central ya generó el pedido con sus series. Mire el cierre y el pedido (su anexo), suba el PDF de la liquidación y Central la acepta o
-          se la devuelve con el motivo: ya no hace falta pasar el papel.
+          Central ya generó el pedido con sus series. Pulse <b>«Generar liquidación»</b>: el CRM la arma con su formato (cliente, equipos, series,
+          abonos con su operación, comisiones, facturas); usted completa la factura de cada abono, la detracción o las letras, mira la vista
+          previa y la valida. Central la recibe al instante.
         </p>
         {porSubir.length === 0 ? (
           <p className="py-4 text-sm text-muted-foreground">No hay pedidos esperando liquidación.</p>
@@ -162,8 +166,8 @@ export default async function PedidosPorLiquidarPage() {
       {porActualizar.length > 0 && (
         <SeccionPanel titulo={`Con factura, liquidación por actualizar · ${porActualizar.length}`}>
           <p className="mb-2 text-xs text-muted-foreground">
-            Facturación ya registró la factura, pero su liquidación vigente dice «factura pendiente». Súbala actualizada con el número: Central la
-            imprime para el expediente.
+            Contabilidad ya registró la factura, pero su liquidación vigente dice «factura pendiente». Pulse «Generar liquidación»: la nueva ya
+            trae el número de factura y Central la imprime para el expediente.
           </p>
           <ul className="divide-y divide-border rounded-lg border border-border">
             {porActualizar.map((p) => (
@@ -175,7 +179,8 @@ export default async function PedidosPorLiquidarPage() {
                   </p>
                 </div>
                 <Expediente id={p.id} />
-                <SubirLiquidacion servicioId={p.id} yaSubida />
+                <GenerarLiquidacion servicioId={p.id} />
+                <SubirLiquidacion servicioId={p.id} yaSubida secundario />
               </li>
             ))}
           </ul>
@@ -189,9 +194,8 @@ export default async function PedidosPorLiquidarPage() {
         return (
           <SeccionPanel titulo={`Ya liquidados · ${yaLiquidados.length}`}>
             <p className="mb-2 text-xs text-muted-foreground">
-              Central ya aceptó su liquidación. Si entró otro pago o salió la factura, suba la liquidación actualizada: la anterior queda en el
-              historial.
-            </p>
+              Central ya aceptó su liquidación. Si entró otro pago o salió la factura, pulse «Generar liquidación»: la nueva ya trae el abono o la
+          factura y la anterior queda en el historial.</p>
             <ul className="divide-y divide-border rounded-lg border border-border">
               {yaLiquidados.map((p) => {
                 const vigente = docs.get(p.id)?.liquidaciones[0];
@@ -205,7 +209,8 @@ export default async function PedidosPorLiquidarPage() {
                       </p>
                     </div>
                     <Expediente id={p.id} />
-                    <SubirLiquidacion servicioId={p.id} yaSubida />
+                    <GenerarLiquidacion servicioId={p.id} />
+                <SubirLiquidacion servicioId={p.id} yaSubida secundario />
                   </li>
                 );
               })}

@@ -19,6 +19,8 @@ Vigente al 17-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 - **Comisiones:** si después de los abonos queda solo la comisión del banco, se avisa al comercial para que la cobre (es su responsabilidad) y a postventa solo para informar. Cuando el cliente la paga, se confirma el abono y se genera la liquidación final («cancelada»).
 - **Detracción o retención (servicios):** si el cliente pagó el 88 % y el 12 % fue a la detracción, la operación está cancelada; queda solo «pendiente cobro de la detracción» y eso no frena a postventa para despachar.
 - **Letras:** se indican cuántas, cada cuántos días, la fecha de giro e intereses, y la liquidación arma el cuadro. Gerencia dijo que esta parte «la podríamos afinar un poquito más» más adelante.
+- **Mismo día (Santos):** Jhon no encontró el botón y siguió en manual: estaba solo dentro del detalle del pedido. Ahora «Generar liquidación» está en cada fila de «Por liquidar», y el PDF se rehízo calcando su plantilla de Excel (bloque por factura, comisiones a la izquierda, recuadro de la operación, NOTA, letras y su firma con celular y correo).
+- **Mismo día (Santos, después):** «la generación debe ser automática y tener un editor de campos para ajustar lo que desee». La liquidación pasó a una pantalla propia con todos los campos editables a la izquierda y la hoja en vivo a la derecha.
 - **Pendiente:** que Jhon pruebe con un pedido real y diga qué falta frente a su plantilla.
 
 ### 16-10 (noche) · Liquidaciones en secuencia, botón «Pagos» del comercial y descuento al final de la cotización

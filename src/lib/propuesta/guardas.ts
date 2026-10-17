@@ -11,6 +11,11 @@ export function guardaFichaPedido(perfil: Perfil) {
   if (perfil.solo_preventivo && perfil.rol !== "gerencia" && perfil.rol !== "admin" && !perfil.es_soporte) redirect("/comercial/ruta");
 }
 
+/**
+ * Central también (buzón 17-10, «el formato de gerencia para buscar más
+ * rápido la información de cada cliente»): entra en modo lectura, igual que en
+ * la ficha de siempre —la página decide qué botones le salen—.
+ */
 export function guardaFichaCliente(perfil: Perfil) {
-  if (!["comercial", "gerencia", "admin", "operaciones"].includes(perfil.rol)) redirect(perfil.rol === "central" ? "/central/clientes" : "/nuevo");
+  if (!["comercial", "gerencia", "admin", "operaciones", "central"].includes(perfil.rol)) redirect("/nuevo");
 }

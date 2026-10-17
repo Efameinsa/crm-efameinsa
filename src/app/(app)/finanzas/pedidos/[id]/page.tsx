@@ -13,8 +13,6 @@ import { cotizacionesDeCierres, documentosDeFinanzas } from "@/lib/documentos-fi
 import { DocumentosFinanzasLista } from "@/components/crm/documentos-finanzas-lista";
 import { SubirLiquidacion } from "@/components/crm/subir-liquidacion";
 import { GenerarLiquidacion } from "@/components/crm/generar-liquidacion";
-import { cargarBaseLiquidacion } from "@/lib/liquidacion-automatica";
-import { hoyLima } from "@/lib/periodo";
 import { EmpresaDelPedido } from "@/components/crm/empresa-del-pedido";
 import { AtenderOrdenFacturar } from "@/components/crm/orden-facturar";
 import { VistoBuenoSalida } from "@/components/crm/visto-bueno-salida";
@@ -51,8 +49,6 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
       .maybeSingle(),
   ]);
   const misDocs = docs.get(id);
-  // La liquidación que arma el CRM (0534, reunión 17-10 con Jhon).
-  const baseLiq = p.numeroErp ? await cargarBaseLiquidacion(supabase, id) : null;
   const consultas = await consultasDelPedido(id, p.moneda);
   const evidenciaObs = p.observadoAdjunto
     ? ((await supabase.storage.from("adjuntos").createSignedUrl(p.observadoAdjunto, 3600)).data?.signedUrl ?? null)
@@ -220,7 +216,7 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
                 : "El CRM arma la liquidación con el pedido, los abonos y las facturas: usted completa lo que falta y la valida. Una nueva por cada pago o factura; la anterior queda en el historial."}
             </p>
             <div className="flex flex-wrap items-center gap-2">
-              {baseLiq && <GenerarLiquidacion base={baseLiq} hoy={hoyLima()} />}
+              <GenerarLiquidacion servicioId={p.id} />
               <SubirLiquidacion servicioId={p.id} yaSubida={(misDocs?.liquidaciones.length ?? 0) > 0} secundario />
             </div>
           </div>

@@ -27,11 +27,11 @@ function revisar(c: Complementos): string | null {
 
 /** La vista previa, sin guardar nada: el PDF en base64. */
 export async function vistaPreviaLiquidacion(servicioId: string, c: Complementos): Promise<{ error: string | null; pdf?: string }> {
-  await requerirPerfil();
+  const perfil = await requerirPerfil();
   const problema = revisar(c);
   if (problema) return { error: problema };
   const supabase = await createClient();
-  const base = await cargarBaseLiquidacion(supabase, servicioId);
+  const base = await cargarBaseLiquidacion(supabase, servicioId, perfil.id);
   if (!base) return { error: "No se encontró el pedido." };
   const pdf = await pdfDeLiquidacion(calcularLiquidacion(base, c, hoyLima()), true);
   return { error: null, pdf: Buffer.from(pdf).toString("base64") };
@@ -43,7 +43,7 @@ export async function validarLiquidacion(servicioId: string, c: Complementos): P
   const problema = revisar(c);
   if (problema) return { error: problema };
   const supabase = await createClient();
-  const base = await cargarBaseLiquidacion(supabase, servicioId);
+  const base = await cargarBaseLiquidacion(supabase, servicioId, perfil.id);
   if (!base) return { error: "No se encontró el pedido." };
   const l = calcularLiquidacion(base, c, hoyLima());
   const pdf = await pdfDeLiquidacion(l, false);

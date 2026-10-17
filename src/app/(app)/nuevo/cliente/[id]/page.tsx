@@ -85,6 +85,9 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
   // LAS MISMAS REGLAS QUE LA FICHA DE SIEMPRE (auditoría 25-09): quién ve cada
   // acción no cambia con la vista.
   const comoGerencia = ["gerencia", "admin"].includes(perfil.rol);
+  // Central entra a leer (buzón 17-10): lo mismo que en su ficha de siempre
+  // —sin corregir, registrar ni anotar— y cada expediente abre su derivación.
+  const comoCentral = perfil.rol === "central";
   const haceCasos = Boolean(perfil.es_postventa) || Boolean(perfil.hace_postventa);
   const puedeCrearRubros = ["gerencia", "admin", "operaciones"].includes(perfil.rol) || Boolean(perfil.es_operaciones);
   const supabase = await createClient();
@@ -145,6 +148,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
     perfiles: { nombre: string; codigo_comercial: string | null } | null;
   }[];
   const vivas = ops.filter((o) => !o.cerrada_at && !["venta", "rechazada", "derivada", "historico"].includes(o.etapa));
+  const derivacionPorExpediente = comoCentral ? await derivacionesDeExpedientes(ops) : null;
   const siguiente = vivas.filter((o) => o.proxima_accion_at).sort((a, b) => (a.proxima_accion_at! < b.proxima_accion_at! ? -1 : 1))[0];
 
   const casosApertura: CasoParaApertura[] = (casosSinApertura ?? []).map((c) => ({
@@ -171,7 +175,8 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
   ];
   // Quién anota desde la ficha: postventa en el expediente del área; el
   // comercial, solo en su cartera (las mismas reglas que «Registrar seguimiento»).
-  const anotaGestion = !comoGerencia && (haceCasos || cuenta.comercial_id === perfil.id);
+  const anotaGestion = !comoGerencia && !comoCentral && (haceCasos || cuenta.comercial_id === perfil.id);
+  const enlaceExpediente = (id: string) => enlaceDelExpediente(id, derivacionPorExpediente);
 
   return (
     <div className="space-y-4">
@@ -198,6 +203,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
                   cómo arreglarlo — el botón estaba dos pestañas más allá y, sin
                   RUC, decía «Vincular RUC». Lleva al bloque ya abierto para
                   editar; la base sigue decidiendo quién puede guardar. */}
+              {!comoCentral && (
               <Link
                 href={`?tab=contactos&corregir=1#datos-del-cliente`}
                 className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-medium text-primary hover:underline"
@@ -205,6 +211,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
               >
                 <Pencil className="size-3" /> Corregir nombre o RUC
               </Link>
+              )}
             </div>
             {comoGerencia && (
               <div className="mt-1">
@@ -234,7 +241,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
               )}
               {cuenta.cartera_desde && <span>Cliente desde {fechaLima(cuenta.cartera_desde)}</span>}
             </p>
-            <AvisoMismoCliente cuentaId={cuenta.id} baseHref={comoGerencia ? "/gerencia/clientes" : undefined} className="mt-2" />
+            <AvisoMismoCliente cuentaId={cuenta.id} baseHref={comoCentral ? "/central/clientes" : comoGerencia ? "/gerencia/clientes" : undefined} className="mt-2" />
           </div>
           <div className="flex max-w-xl flex-wrap items-center justify-end gap-1.5">
             {anotaGestion && (
@@ -271,7 +278,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
                 </Link>
               ))}
             <MasAcciones>
-              {!comoGerencia && <VisitaPlantaBoton cuentaId={cuenta.id} empresa={cuenta.razon_social} ruc={cuenta.num_doc as string | null} compacto />}
+              {!comoGerencia && !comoCentral && <VisitaPlantaBoton cuentaId={cuenta.id} empresa={cuenta.razon_social} ruc={cuenta.num_doc as string | null} compacto />}
               {haceCasos && !comoGerencia && <AperturaLlamadaBoton cuentaId={cuenta.id} tipo="atencion_in_situ" etiqueta="Derivar llamada" compacto />}
               {haceCasos && !perfil.solo_preventivo && !comoGerencia && <TraerPedidoAntiguoBoton cuentaId={cuenta.id} compacto />}
               {esArea && !comoGerencia && <OfrecerMantenimientoBoton cuentaId={cuenta.id} compacto />}
@@ -280,7 +287,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
                 <VincularRazonSocial cuentaId={cuenta.id} razonSocial={cuenta.razon_social} />
               )}
               <Link
-                href={comoGerencia ? `/gerencia/clientes/${cuenta.id}?hoy=1` : `/comercial/cartera/${cuenta.id}?hoy=1`}
+                href={comoCentral ? `/central/clientes/${cuenta.id}?hoy=1` : comoGerencia ? `/gerencia/clientes/${cuenta.id}?hoy=1` : `/comercial/cartera/${cuenta.id}?hoy=1`}
                 className="rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:underline"
               >
                 Vista anterior de la ficha
@@ -335,20 +342,20 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
         {pestana === "resumen" && (
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
             <div className="space-y-4">
-              <ExpedientesVivos cuentaId={cuenta.id} vivas={vivas} verPrecios={verPrecios} conAnotar={anotaGestion} />
+              <ExpedientesVivos cuentaId={cuenta.id} vivas={vivas} verPrecios={verPrecios} conAnotar={anotaGestion} derivacionPorExpediente={derivacionPorExpediente} />
               {siguiente && (
-                <Link href={`/comercial/oportunidades/${siguiente.id}`} className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 transition-colors hover:bg-primary/10">
+                <EnlaceOFila href={enlaceExpediente(siguiente.id)} className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 transition-colors hover:bg-primary/10">
                   <div className="min-w-0 flex-1">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">Lo que sigue con este cliente</p>
                     <p className="text-base font-semibold text-foreground">{siguiente.proxima_accion ?? "Seguimiento"}</p>
                     <p className="text-xs text-muted-foreground">{fechaAgendada(siguiente.proxima_accion_at, siguiente.proxima_accion_hora)}</p>
                   </div>
-                  <ArrowRight className="size-5 text-primary" />
-                </Link>
+                  {enlaceExpediente(siguiente.id) && <ArrowRight className="size-5 text-primary" />}
+                </EnlaceOFila>
               )}
               <UltimosCierres informes={informes ?? []} />
               {/* Editable, como en la ficha de siempre (auditoría 25-09). */}
-              <ResumenCuenta cuentaId={cuenta.id} notasIniciales={cuenta.notas} />
+              <ResumenCuenta cuentaId={cuenta.id} notasIniciales={cuenta.notas} soloLectura={comoCentral} />
               <UltimoHistorial cuentaId={cuenta.id} verPrecios={verPrecios} />
             </div>
             <div className="space-y-4">
@@ -363,7 +370,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
 
         {pestana === "pedidos" && (
           <div className="max-w-3xl space-y-4">
-            <ExpedientesVivos cuentaId={cuenta.id} vivas={vivas} verPrecios={verPrecios} conAnotar={anotaGestion} />
+            <ExpedientesVivos cuentaId={cuenta.id} vivas={vivas} verPrecios={verPrecios} conAnotar={anotaGestion} derivacionPorExpediente={derivacionPorExpediente} />
             <PendientesDelCliente cuentaId={cuenta.id} conEnlace={esArea} />
             <InformesTecnicosDelCliente cuentaId={cuenta.id} conEnlace={abreInformes} />
             {(pedidosAbiertos ?? 0) + (casosAbiertos ?? 0) === 0 && (
@@ -406,7 +413,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
         )}
 
         {pestana === "ventas" && (
-          <PestanaVentas cuentaId={cuenta.id} informes={informes ?? []} ops={ops} verPrecios={verPrecios} quienMira={perfil.id} comoGerencia={comoGerencia} />
+          <PestanaVentas cuentaId={cuenta.id} informes={informes ?? []} ops={ops} verPrecios={verPrecios} quienMira={perfil.id} comoGerencia={comoGerencia} derivacionPorExpediente={derivacionPorExpediente} />
         )}
 
         {pestana === "documentos" && (
@@ -417,8 +424,9 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
               razonSocial={cuenta.razon_social}
               nombreComercial={cuenta.nombre_comercial as string | null}
               carpetas={cuenta.carpetas_servidor as Record<string, string> | null}
+              soloLectura={comoCentral}
             />
-            <GrupoEconomico cuentaId={cuenta.id} comoGerencia={comoGerencia} />
+            <GrupoEconomico cuentaId={cuenta.id} comoGerencia={comoGerencia} baseHref={comoCentral ? "/central/clientes" : undefined} />
           </div>
         )}
 
@@ -438,8 +446,9 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
                 rubroId={(cuenta.rubro_id as number | null) ?? null}
                 rubros={(rubros ?? []) as { id: number; nombre: string }[]}
                 abrirAlEntrar={corregir === "1"}
+                soloLectura={comoCentral}
               />
-              {(rubros ?? []).length > 0 && (
+              {!comoCentral && (rubros ?? []).length > 0 && (
                 <CambiarRubro
                   cuentaId={cuenta.id}
                   rubroId={(cuenta.rubro_id as number | null) ?? null}
@@ -450,7 +459,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
             </div>
             <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
               <p className="mb-2 text-[13px] font-bold uppercase tracking-wide text-foreground">Contactos ({contactos.length})</p>
-              <ContactosEditables cuentaId={cuenta.id} contactos={contactos} />
+              <ContactosEditables cuentaId={cuenta.id} contactos={contactos} soloLectura={comoCentral} />
             </div>
           </div>
         )}
@@ -503,11 +512,14 @@ async function ExpedientesVivos({
   vivas: propias,
   verPrecios,
   conAnotar,
+  derivacionPorExpediente,
 }: {
   cuentaId: string;
   vivas: ExpedienteVivo[];
   verPrecios: boolean;
   conAnotar: boolean;
+  /** Solo Central: expediente → su derivación (ver derivacionesDeExpedientes). */
+  derivacionPorExpediente: Map<string, string> | null;
 }) {
   const supabase = await createClient();
   // LOS DEL GRUPO TAMBIÉN (17-10, Ariana PV3). Una cadena de hoteles factura
@@ -520,7 +532,7 @@ async function ExpedientesVivos({
   const { data: delGrupo } = otras.length
     ? await supabase
         .from("oportunidades")
-        .select("id, etapa, tipo_postventa, proxima_accion, proxima_accion_at, proxima_accion_hora, cuenta_id, perfiles:comercial_id(nombre, codigo_comercial)")
+        .select("id, etapa, tipo_postventa, proxima_accion, proxima_accion_at, proxima_accion_hora, cuenta_id, lead_id, perfiles:comercial_id(nombre, codigo_comercial)")
         .in("cuenta_id", otras.map((g) => g.id))
         .is("cerrada_at", null)
         .not("etapa", "in", "(venta,rechazada,derivada,historico)")
@@ -535,6 +547,11 @@ async function ExpedientesVivos({
   ];
   if (vivas.length === 0) return null;
   const deOtras = vivas.length - propias.length;
+  // Los del grupo también se abren por su derivación, si Central es quien mira.
+  const derivaciones =
+    derivacionPorExpediente && deOtras > 0
+      ? new Map([...derivacionPorExpediente, ...(await derivacionesDeExpedientes(vivas.slice(propias.length) as { id: string; lead_id?: string | null }[]))])
+      : derivacionPorExpediente;
   const ids = vivas.map((o) => o.id);
   const [{ data: cotizaciones }, { data: gestiones }] = await Promise.all([
     supabase
@@ -573,9 +590,10 @@ async function ExpedientesVivos({
           const ges = gestionDe.get(o.id);
           const autor = ges?.perfiles as unknown as { nombre: string; codigo_comercial: string | null } | null;
           const aprob = cot?.estado_aprobacion ? APROBACION[cot.estado_aprobacion as string] : null;
+          const href = enlaceDelExpediente(o.id, derivaciones);
           return (
             <li key={o.id}>
-              <Link href={`/comercial/oportunidades/${o.id}`} className="block space-y-1.5 px-4 py-3 transition-colors hover:bg-accent">
+              <EnlaceOFila href={href} className="block space-y-1.5 px-4 py-3 transition-colors hover:bg-accent">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <TipoExpedienteBadge tipo={o.tipo_postventa} grande />
                   <EtapaBadge etapa={o.etapa} />
@@ -587,9 +605,13 @@ async function ExpedientesVivos({
                   <span className="text-[11px] text-muted-foreground">
                     {o.perfiles ? `${o.perfiles.codigo_comercial ?? ""} ${o.perfiles.nombre}`.trim() : "sin dueño"}
                   </span>
-                  <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-primary">
-                    Abrir expediente <ArrowRight className="size-3.5" />
-                  </span>
+                  {href ? (
+                    <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-primary">
+                      {derivaciones ? "Ver la derivación" : "Abrir expediente"} <ArrowRight className="size-3.5" />
+                    </span>
+                  ) : (
+                    <span className="ml-auto text-[11px] text-muted-foreground">del archivo, sin derivación</span>
+                  )}
                 </div>
                 {cot && (
                   <p className="flex flex-wrap items-center gap-1.5 text-xs text-foreground">
@@ -622,12 +644,51 @@ async function ExpedientesVivos({
                     {ges.nota ? ` — ${(ges.nota as string).trim()}` : ""}
                   </p>
                 )}
-              </Link>
+              </EnlaceOFila>
             </li>
           );
         })}
       </ul>
     </div>
+  );
+}
+
+/**
+ * PARA CENTRAL, LA PUERTA A CADA EXPEDIENTE ES SU DERIVACIÓN (la misma regla
+ * que la ficha de siempre, ficha-cuenta.tsx): /comercial/* le está cerrado y
+ * /central/derivados/[lead] es su vista de lectura. Se busca por el lead que
+ * abrió el expediente y por los que se le sumaron después (0141). Son 50 como
+ * máximo, así que el `.in` no revienta la URL.
+ */
+async function derivacionesDeExpedientes(ops: { id: string; lead_id?: string | null }[]) {
+  const mapa = new Map<string, string>();
+  for (const o of ops) if (o.lead_id) mapa.set(o.id, o.lead_id);
+  const sinLead = ops.filter((o) => !o.lead_id).map((o) => o.id);
+  if (sinLead.length > 0) {
+    const supabase = await createClient();
+    const { data: sumados } = await supabase.from("leads").select("id, oportunidad_id").in("oportunidad_id", sinLead);
+    for (const l of (sumados ?? []) as { id: string; oportunidad_id: string | null }[]) {
+      if (l.oportunidad_id && !mapa.has(l.oportunidad_id)) mapa.set(l.oportunidad_id, l.id);
+    }
+  }
+  return mapa;
+}
+
+/** Adónde lleva un expediente: al expediente o —para Central— a su derivación, si la tiene. */
+function enlaceDelExpediente(id: string, derivaciones: Map<string, string> | null): string | null {
+  if (!derivaciones) return `/comercial/oportunidades/${id}`;
+  const lead = derivaciones.get(id);
+  return lead ? `/central/derivados/${lead}` : null;
+}
+
+/** Un enlace que lleva a un portazo es peor que ningún enlace: sin destino, la fila se lee igual. */
+function EnlaceOFila({ href, className, children }: { href: string | null; className: string; children: React.ReactNode }) {
+  return href ? (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
+  ) : (
+    <div className={className}>{children}</div>
   );
 }
 
@@ -668,9 +729,11 @@ async function PestanaVentas({
   verPrecios,
   quienMira,
   comoGerencia,
+  derivacionPorExpediente,
 }: {
   quienMira: string;
   comoGerencia: boolean;
+  derivacionPorExpediente: Map<string, string> | null;
   cuentaId: string;
   informes: { id: string; codigo: string | null; serie: string | null; fecha: string | null; monto_total: number | null; moneda: string | null; emitido_at: string | null; adjuntos: unknown; anulado_at?: string | null }[];
   ops: {
@@ -688,14 +751,14 @@ async function PestanaVentas({
           expediente, su monto, y «trabajar» los del histórico. */}
       <div className="self-start">
         <SeccionPanel titulo={`Expedientes (${ops.length})`}>
-          <ListaOportunidadesCuenta oportunidades={[...ops].sort((a, b) => rangoOportunidad(a) - rangoOportunidad(b))} quienMira={quienMira} comoGerencia={comoGerencia} />
+          <ListaOportunidadesCuenta oportunidades={[...ops].sort((a, b) => rangoOportunidad(a) - rangoOportunidad(b))} quienMira={quienMira} comoGerencia={comoGerencia} derivacionPorExpediente={derivacionPorExpediente} />
         </SeccionPanel>
       </div>
       <div className="space-y-4">
         <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="text-[13px] font-bold uppercase tracking-wide text-foreground">Cierres</p>
-            <AccionNuevoInforme cuentaId={cuentaId} />
+            {!derivacionPorExpediente && <AccionNuevoInforme cuentaId={cuentaId} />}
           </div>
           <ListaInformesCierre informes={informes as Parameters<typeof ListaInformesCierre>[0]["informes"]} adjuntosPorInforme={adjuntos} sinPrecios={!verPrecios} conCifras={verPrecios ? undefined : await cierresDePostventa(supabase, informes.map((i) => i.id))} />
         </div>
