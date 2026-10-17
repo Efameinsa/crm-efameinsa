@@ -20,6 +20,10 @@ import { pendientesAnotados, bloquesPendientesAnotados, tareasPendientesDelCalen
 import { cargarPanelPostventa, type PanelPostventa } from "@/lib/panel-postventa";
 import { cargarPanorama, type PanoramaPendientes } from "@/lib/panorama-pendientes";
 import { cargarFilasPorPaso, filtrarPedidosQueTrabajo } from "@/lib/pedidos-por-paso";
+import { cargarProblemasTecnicos, type ProblemasTecnicos } from "@/lib/problemas-tecnicos-reporte";
+import { estadoDeLosLeads } from "@/lib/leads-del-reporte";
+import { cargarRepuestos, type RepuestosDelReporte } from "@/lib/repuestos-reporte";
+import { loUrgente, pedidosPorResponsable as agruparPedidos, type GrupoPedidos } from "@/lib/resumen-postventa";
 import { loQueFaltaPorPaso } from "@/lib/lo-que-falta-por-paso";
 import type { PendienteAnotado } from "@/lib/pendientes-anotados";
 
@@ -74,6 +78,15 @@ export async function GET(request: Request) {
     };
   }
 
+  // En qué quedó cada lead y quién lo atendió (Santos 16-10, Vidawasi): sin
+  // esto, «Llamada» se leía como una gestión de quien recibió el lead.
+  try {
+    const estados = await estadoDeLosLeads(createAdminClient(), comercialId, r.leads.map((l) => l.codigo ?? ""));
+    r.leads = r.leads.map((l) => ({ ...l, estado: l.codigo ? (estados.get(l.codigo) ?? null) : null }));
+  } catch {
+    // La sección sale como antes.
+  }
+
   // WhatsApp de campaña, visitas y videollamadas (ing. Carlos, 30-09: «esos
   // dos puntos tienen que estar en su reporte diario»). Si algo falla, el
   // reporte sale igual sin la sección.
@@ -113,6 +126,9 @@ export async function GET(request: Request) {
   let panelPostventa: PanelPostventa | undefined;
   let panorama: PanoramaPendientes | undefined;
   let loQueFalta: ReturnType<typeof loQueFaltaPorPaso> | undefined;
+  let problemasTecnicos: ProblemasTecnicos | undefined;
+  let repuestos: RepuestosDelReporte | undefined;
+  let pedidosPorResponsable: GrupoPedidos[] | undefined;
   try {
     const { data: perfil } = await supabase
       .from("perfiles")
@@ -296,14 +312,35 @@ export async function GET(request: Request) {
       // de la agenda, del área entera; si falla, el reporte sale sin esa hoja.
       try {
         // Solo los pedidos en los que trabajó (Santos 16-10): antes iba el área entera.
-        loQueFalta = loQueFaltaPorPaso(await filtrarPedidosQueTrabajo(createAdminClient(), comercialId, await cargarFilasPorPaso(supabase, false)));
+        const propios = await filtrarPedidosQueTrabajo(createAdminClient(), comercialId, await cargarFilasPorPaso(supabase, false));
+        loQueFalta = loQueFaltaPorPaso(propios);
+        // Una fila por pedido con su siguiente paso (Santos 16-10): antes un mismo
+        // pedido salía en cada paso que debía y la hoja ocupaba siete páginas.
+        pedidosPorResponsable = agruparPedidos(propios);
       } catch {
         loQueFalta = undefined;
+      }
+      try {
+        problemasTecnicos = await cargarProblemasTecnicos(createAdminClient(), comercialId, fecha);
+      } catch {
+        problemasTecnicos = undefined;
+      }
+      try {
+        repuestos = await cargarRepuestos(createAdminClient(), comercialId, fecha);
+      } catch {
+        repuestos = undefined;
       }
       try {
         panorama = await cargarPanorama(createAdminClient(), comercialId, fecha, hoyLima(), anotadosCrudos, tareasSinHacer);
       } catch {
         panorama = undefined;
+      }
+      // La tarjeta «Agenda» del detalle con la MISMA cuenta que «Lo que falta
+      // gestionar» (16-10: una decía 2 para hoy y la otra 0).
+      if (panorama) {
+        const hoyN = panorama.seguimientos.filter((x) => x.atraso === 0).length;
+        const vencidasN = panorama.seguimientos.filter((x) => x.atraso > 0).length;
+        r.agenda = { ...r.agenda, pendiente_hoy: hoyN, vencidas: vencidasN };
       }
       try {
         const admin = createAdminClient();
@@ -374,6 +411,10 @@ export async function GET(request: Request) {
       panelPostventa={panelPostventa}
       panorama={panorama}
       loQueFalta={loQueFalta}
+      problemasTecnicos={problemasTecnicos}
+      repuestos={repuestos}
+      pedidosPorResponsable={pedidosPorResponsable}
+      urgentes={problemasTecnicos || repuestos ? loUrgente(problemasTecnicos, repuestos, panorama, pedidosPorResponsable ?? []) : undefined}
     />,
   );
 

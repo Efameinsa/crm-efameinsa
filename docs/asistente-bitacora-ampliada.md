@@ -1,6 +1,6 @@
 # Bitácora ampliada (gerencia, administración, Central y operaciones)
 
-Vigente al 15-10-2026. Complementa la «Bitácora del CRM» general (asistente-bitacora-general.md). Santos, 14-10: Central y operaciones (Lesly) deben tener el mismo contexto que gerencia —estados, montos, dinero— para continuar lo que se habló en las reuniones. Aquí va:
+Vigente al 16-10-2026. Complementa la «Bitácora del CRM» general (asistente-bitacora-general.md). Santos, 14-10: Central y operaciones (Lesly) deben tener el mismo contexto que gerencia —estados, montos, dinero— para continuar lo que se habló en las reuniones. Aquí va:
 - estrategia, presupuestos de publicidad y marketing;
 - web y campañas;
 - desempeño por comercial y metas;
@@ -16,6 +16,11 @@ Vigente al 15-10-2026. Complementa la «Bitácora del CRM» general (asistente-b
 ---
 
 ## Cronología
+
+### 16-10 · Reunión de gerencia con Ariana y Santos (17:57): reparto en postventa
+- **Criterio para derivar en postventa:** gerencia mira cuánto avanza cada una, qué tan rápida es y cuánto le falta cerrar; a quien avanza más se le da más («así aprendemos más y experimentamos»).
+- **Rubí:** está enfocada en regularizar para cerrar el circuito (ya bajó a ocho pendientes) y en temas puntuales; por eso casi no se le deriva nuevo. Gerencia ve que lo documentario la demora. Las cotizaciones se ven con Ariana.
+- **Ariana:** recibe más derivaciones (el 16-10, siete pedidos de repuesto en un día). Se le pidió entender el proceso completo hasta el final (caso Lino: seguimiento al técnico).
 
 ### 15-10 · Reunión de Carlos con Santos (09:53)
 - **Casos de cierre:**
