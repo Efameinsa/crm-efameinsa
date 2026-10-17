@@ -18,6 +18,11 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 17-10 · La ficha del cliente muestra todo y se anota sin salir de ella (Ariana, Santos)
+- **Qué pasó:** Ariana (postventa) dijo que en la ficha del cliente «no veía toda la información» y que tenía que apretar «Registrar gestión» para que aparecieran más cosas. Con su propia sesión se vio por qué: la cabecera fija ocupaba media pantalla en las computadoras de la oficina, la cotización y la última gestión solo se veían dentro del expediente, y el botón la llevaba a otra pantalla sin decirlo.
+- **Qué se hizo (Santos, 17-10):** la cabecera se achicó y solo las pestañas quedan fijas al bajar; «Anotar gestión» abre el formulario al costado de la ficha (reemplaza a «Registrar seguimiento»); cada expediente vivo muestra su cotización, próxima acción y última gestión; lo menos usado pasó a «Más acciones»; la pestaña Equipos permite registrar una máquina del cliente; el expediente tiene «← Ficha del cliente» y, si es de postventa, ya no muestra «Calificación».
+- **Pendiente (para ver con gerencia):** un «Resumen» pensado para postventa (equipos y garantía primero) y un solo verbo para anotar en todas las pantallas.
+
 ### 17-10 · Mi cuenta del cliente en efameinsa.com y avisos por cada estado (Santos)
 - **Qué pidió Santos:** que cada cliente tenga usuario y contraseña en efameinsa.com, entregados por correo y por un WhatsApp de atención al cliente; que vea desde su perfil su cotización, sus pedidos, repuestos, mantenimientos, documentos y fotos; que reciba un aviso en cada cambio de estado (embalado, salió, llegó a la agencia de su provincia, lo recibió, técnico enviado y llegó, puesta en marcha); y un chat. Objetivo: mejor experiencia del cliente y más opiniones en Google.
 - **Qué se hizo:** Mi cuenta ya lee el historial del CRM; en el CRM hay botones «El técnico salió / llegó», el «Ya lo recibí» del cliente y «Mensajes de Mi cuenta» en la ficha, el pedido y el caso. El motor de avisos quedó en **piloto**: solo la lista de prueba recibe de verdad.

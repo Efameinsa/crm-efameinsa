@@ -466,6 +466,15 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **El cliente es del comercial que lo atendió.** Si llega un lead de un cliente existente, se propone a su dueño.
 - **El RUC manda.** No se puede registrar un cliente que ya existe con ese documento. Para deduplicar, se busca por RUC/DNI, luego teléfono, luego correo; nunca por nombre.
 
+**Cómo se lee y se trabaja la ficha del cliente** (desde el 17-10, a raíz de Ariana: «no veo toda la información, tengo que apretar para que aparezcan más cosas»)
+- **Todo está en la ficha, repartido en pestañas:** Resumen (lo vivo y lo último que pasó), Pedidos y casos, Equipos, Ventas, Historial (todo lo hablado), Correos de campaña, Documentos y sedes, Datos y contactos. Las pestañas quedan fijas arriba al bajar. La línea bajo el nombre (expedientes vivos, pedidos, casos, equipos, última venta) lleva a cada pestaña.
+- **«Anotar gestión»** (el botón granate de la ficha) abre el formulario en un panel al costado, sin salir de la ficha: qué hizo, qué pasó, en qué quedó y qué sigue. Arriba dice en qué expediente se guarda (postventa: el del área con ese cliente; comercial: el suyo) y trae «Abrir el expediente» por si quiere el detalle. Reemplaza a «Registrar seguimiento».
+- **Cada expediente vivo dice en la misma ficha** su tipo, etapa, la cotización y su estado (confirmada, aprobada, espera a gerencia), la próxima acción (o el aviso ámbar si falta) y la última gestión. Para el resto, «Abrir expediente».
+- **Lo de vez en cuando está en «Más acciones»:** visita o videollamada, derivar llamada, traer a preparación, ofrecer mantenimiento, otra razón social y la vista anterior de la ficha. A la vista quedan «Anotar gestión», «Registrar un caso» y «Apertura de servicio».
+- **Si el cliente tiene una máquina que no está en «Equipos»** (comprada antes del CRM o en otro lado), postventa la registra ahí mismo con «Registrar un equipo de este cliente»; la serie y la foto de la placa pueden llegar después.
+- **En el expediente**, arriba a la izquierda está «← Ficha del cliente» para volver. En los expedientes de postventa ya no salen «Calificación» ni «Pide servicio, no equipos», que son de la venta de equipos.
+- **El formulario de gestión viene abierto** con sus tres pasos a la vista (antes «¿En qué quedó?», la próxima acción y el botón aparecían recién al escribir).
+
 **Cartera liberable**
 - Un cliente **sin venta en 3 meses** es liberable, y la cartera se redistribuye cada 3 meses (gerencia, 23-09). Antes eran 6 meses.
 - La pantalla «Cartera liberable» de gerencia solo señala qué se puede mover. **Moverlo lo decide gerencia, nunca es automático.**
@@ -1152,6 +1161,9 @@ Solo Central, desde el 15-10. Escriba qué está mal y pídale el código a Cent
 
 **45. Un cliente dice que en su cuenta de efameinsa.com no ve que su equipo salió. ¿Qué pasó?**
 Mi cuenta muestra solo lo que está marcado en el CRM con fecha. Revise que el paso («Despacho concluido», agencia, puesta en marcha) esté marcado en el pedido; apenas se marca, aparece en su cuenta y, si está en la lista del piloto, le llega el aviso. El cliente entra con el correo o el celular que figura en su ficha o en «quién recibe». (1.15)
+
+**46 b. En la ficha del cliente no veo todo; ¿tengo que apretar algo para que aparezca?**
+No. Desde el 17-10 todo está en la misma ficha: lo vivo en «Resumen» (cada expediente con su cotización, próxima acción y última gestión) y el resto en las pestañas de arriba —Historial, Equipos, Pedidos y casos…—, que quedan fijas al bajar. Para anotar una llamada use «Anotar gestión»: se abre al costado, sin cambiar de pantalla. «Abrir expediente» es solo si quiere el detalle de un negocio. (3.1)
 
 **46. ¿Dónde contesto lo que el cliente escribió en su Mi cuenta?**
 En la ficha del cliente o en el pedido o caso, sección «Mensajes de Mi cuenta». Responda ahí: el cliente lo ve en su chat y le llega un aviso. No le conteste por otro canal sin dejarlo anotado. (1.15)
