@@ -33,6 +33,7 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 ### 17-10 · Las casillas del protocolo se ven como botones (Ariana)
 - **Qué pasó:** Ariana (almacén) no podía «poner checks» en la hoja de chequeo. Sí tenía permiso: las casillas ✓ y ✗ eran cuadritos blancos vacíos al lado del campo de Observaciones, y al pasar el mouse salía el cursor de escribir.
 - **Qué se hizo:** las casillas vacías muestran su ✓ o ✗ tenue y se colorean al pasar el mouse; arriba de la hoja hay una línea que explica cómo marcar y que hay que «Guardar protocolo». En el papel impreso no cambia nada.
+- **Después (mismo día):** Ariana completó la hoja con ✓ en «CANT.» de Programación y el CRM no la dejaba marcar «Probada y embalada» porque solo contaba las casillas de RESULTADOS; además el ✓ tenue de las casillas vacías parecía una marca. Santos decidió que **un ✓ en CANT. también cuenta**. Las casillas vacías pasaron a gris con borde punteado y las marcadas a color lleno.
 
 ### 17-10 · La ficha del cliente muestra todo y se anota sin salir de ella (Ariana, Santos)
 - **Qué pasó:** Ariana (postventa) dijo que en la ficha del cliente «no veía toda la información» y que tenía que apretar «Registrar gestión» para que aparecieran más cosas. Con su propia sesión se vio por qué: la cabecera fija ocupaba media pantalla en las computadoras de la oficina, la cotización y la última gestión solo se veían dentro del expediente, y el botón la llevaba a otra pantalla sin decirlo.

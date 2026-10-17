@@ -94,8 +94,11 @@ function faltaEnLaHoja(
   if (!repuesto && !(guardado.serie ?? propuesta.serie ?? e.serie)?.trim()) falta.push("serie");
   if (!(tecnicoEnPantalla.trim() || guardado.tecnico?.trim())) falta.push("técnico que hizo la prueba");
   if (plantilla) {
-    const marcas = (e.protocolo_chequeo ?? {})[maquina]?.marcas ?? {};
-    if (!renglonesConMarca(plantilla).some((k) => marcas[k])) falta.push(`hoja «${plantilla.titulo}»: ninguna casilla marcada`);
+    const hoja = (e.protocolo_chequeo ?? {})[maquina];
+    const marcas = hoja?.marcas ?? {};
+    // Un ✓ en «CANT.» de Programación también cuenta (0534, Santos 17-10).
+    const conCheckEnCant = Object.values((hoja as { prog?: Record<string, string> } | undefined)?.prog ?? {}).some((v) => v === "✓");
+    if (!renglonesConMarca(plantilla).some((k) => marcas[k]) && !conCheckEnCant) falta.push(`hoja «${plantilla.titulo}»: ninguna casilla marcada`);
   }
   return falta.map((f) => `${nombre}: ${f}`);
 }
