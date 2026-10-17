@@ -74,6 +74,19 @@ describe("liquidación automática (0534)", () => {
     expect(calcularLiquidacion(b, c, "2026-10-17").facturaVigente).toBeNull();
   });
 
+  it("crédito sin abonos: la factura emitida va al saldo y al historial (Jhon 17-10)", () => {
+    const b = base({ facturas: [{ numero: "E001-840", fechaEmision: "2026-10-16", registradaAt: "2026-10-16T23:22:00Z" }] });
+    const c = complementosIniciales(b, "2026-10-17");
+    expect(c.facturaSaldo).toBe("E001-840");
+    const l = calcularLiquidacion(b, c, "2026-10-17");
+    expect(l.hayCola).toBe(true);
+    expect(l.bloques[0].filas[0].izquierda).toBe("FT E001-840");
+    expect(l.facturaVigente).toBe("E001-840");
+    expect(l.notas[0]).toBe("FACTURA: FT E001-840");
+    // Vacío = sigue pendiente.
+    expect(calcularLiquidacion(b, { ...c, facturaSaldo: "" }, "2026-10-17").bloques[0].filas[0].izquierda).toBe("FT PDTE");
+  });
+
   it("detracción: pagó el 88 % y el resto retenido → cancelada, pendiente cobro de la detracción", () => {
     const b = base({ esServicio: true, abonos: [abono("a", 1038.4)] });
     const l = calcularLiquidacion(b, { ...sin, retenido: { tipo: "detraccion", pct: 12, monto: 141.6, cobrado: false } }, "2026-10-17");
