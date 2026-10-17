@@ -296,7 +296,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Ve:**
   - la bandeja de contactos;
   - «Lo que derivé» (cómo va cada derivado: sin atender, en gestión, cotizado, cerrado) y el historial de gestión del comercial en solo lectura;
-  - **Clientes**, que muestra la cartera completa en solo lectura (de quién es cada cliente);
+  - **Clientes**, que muestra la cartera completa en solo lectura (de quién es cada cliente). Desde el 17-10 (buzón, Central: «para buscar más rápido la información de cada cliente») la ficha se abre con pestañas, igual que la de gerencia: Resumen, Pedidos y casos, Equipos, Ventas, Historial, Correos de campaña, Documentos y sedes, Datos y contactos. Es de lectura: no trae «Corregir nombre o RUC», «Anotar gestión» ni editar contactos, y cada expediente abre su derivación («Ver la derivación»). «Más acciones» → «Vista anterior de la ficha» vuelve a la de una sola página;
   - «Ver la historia de la empresa»;
   - Presupuestos: cantidades por comercial y buscador por cliente y serie, incluido el archivo de Word;
   - todos los informes de cierre («Cierres de venta») y «Sus pedidos»;
