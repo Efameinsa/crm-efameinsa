@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 import { MisPendientesAnotados } from "@/components/crm/mis-pendientes-anotados";
 import { pendientesAnotados } from "@/lib/pendientes-anotados";
+import { CoberturaPostventa } from "@/components/crm/cobertura-postventa";
 
 export const dynamic = "force-dynamic";
 
@@ -430,6 +431,9 @@ export default async function PostventaPage() {
           <BotonReporteDiario fecha={hoyIso} compacto elegirFecha />
         </div>
       </div>
+
+      {/* 0530: «Hoy cubro a…», para cuando falta una compañera. */}
+      <CoberturaPostventa />
 
       <SeccionPanel
         titulo="Sin atender todavía"

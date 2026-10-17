@@ -24,7 +24,9 @@ export async function ofrecerMantenimiento(
     .from("oportunidades")
     .select("id, comercial_id, perfiles!oportunidades_comercial_id_fkey(nombre, codigo_comercial)")
     .eq("cuenta_id", cuentaId)
-    .eq("tipo_postventa", "mantenimiento")
+    // 0530: un cliente, una carpeta de postventa. Si ya tiene una abierta, del
+    // tipo que sea, el mantenimiento se ofrece desde ahí.
+    .not("tipo_postventa", "is", null)
     .not("etapa", "in", "(venta,rechazada,derivada,historico)")
     .order("created_at", { ascending: false })
     .limit(1)
@@ -32,6 +34,12 @@ export async function ofrecerMantenimiento(
   if (abierta) {
     const p = abierta.perfiles as unknown as { nombre: string; codigo_comercial: string | null } | null;
     const quien = abierta.comercial_id === perfil.id ? "usted" : p ? `${p.nombre}${p.codigo_comercial ? ` (${p.codigo_comercial})` : ""}` : "otra persona";
+    // Queda para hoy en la carpeta, sin pisar una acción más cercana.
+    await supabase
+      .from("oportunidades")
+      .update({ proxima_accion: "Ofrecer mantenimiento preventivo", proxima_accion_at: hoyLima(), proxima_accion_hora: null })
+      .eq("id", abierta.id)
+      .or(`proxima_accion_at.is.null,proxima_accion_at.lt.${hoyLima()}`);
     return { error: null, oportunidadId: abierta.id as string, yaEstaba: true, quien };
   }
 

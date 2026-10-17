@@ -2,6 +2,7 @@
 import { ETIQUETA_TIPO_EXPEDIENTE } from "@/lib/tipo-expediente";
 
 import { useEffect, useState, useTransition } from "react";
+import { carpetaDelCliente, type ResumenCarpeta } from "@/lib/acciones/expediente-postventa";
 import { toast } from "sonner";
 import { TriangleAlert } from "lucide-react";
 import {
@@ -179,6 +180,30 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
   // decir de qué clase es, y la cartera del comercial no se toca (0080).
   const esPostventa = comerciales.find((c) => c.id === comercialId)?.es_postventa === true;
   const codigoPostventa = esPostventa && pideCodigoPostventa;
+
+  // 0530 (Santos 17-10): un cliente, una carpeta de postventa. Antes de derivar
+  // se ve si ya la tiene y quién la lleva: el pedido entra ahí como un caso.
+  const cuentaParaCarpeta =
+    cuentaElegida ??
+    cuentaId ??
+    (coincidencias ?? []).find((c) => c.motivo === "documento" || c.motivo === "telefono")?.cuentaId ??
+    null;
+  const [carpeta, setCarpeta] = useState<ResumenCarpeta | null>(null);
+  useEffect(() => {
+    if (!abierto || !esPostventa || !cuentaParaCarpeta) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- limpiar al cambiar de destino o de cliente
+      setCarpeta(null);
+      return;
+    }
+    let vivo = true;
+    carpetaDelCliente(cuentaParaCarpeta).then((r) => {
+      if (vivo) setCarpeta(r);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [abierto, esPostventa, cuentaParaCarpeta]);
+  const destinoNombre = comerciales.find((c) => c.id === comercialId)?.nombre ?? "";
 
   // ¿Hace falta decir por qué es un cliente nuevo? Solo si hay coincidencias,
   // el contacto no está ya en una ficha, Central no eligió ninguna, y la base
@@ -585,6 +610,21 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
             <p className="text-[11px] text-muted-foreground">
               El cliente sigue en la cartera de su comercial: postventa recibe el caso, no el cliente.
             </p>
+            {carpeta && (
+              <div className="rounded-md border border-sky-300 bg-sky-50 p-2 text-[11px] text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-100">
+                <p className="font-semibold">Este cliente ya tiene carpeta de postventa: la lleva {carpeta.lleva}.</p>
+                {carpeta.casos.length > 0 && (
+                  <p>
+                    Casos abiertos: {carpeta.casos.map((c) => `${c.titulo} (${c.responsable})`).join(" · ")}
+                  </p>
+                )}
+                {carpeta.cotizacionesVivas > 0 && <p>Cotizaciones en curso: {carpeta.cotizacionesVivas}.</p>}
+                <p className="mt-1">
+                  Este pedido entra ahí como un caso nuevo; no se abre otro expediente.
+                  {destinoNombre && !/área/i.test(destinoNombre) ? ` La carpeta pasa a ${destinoNombre}, que la recibe.` : ""}
+                </p>
+              </div>
+            )}
             {/* Ing. Carlos, 09-10: a postventa no se deriva sin autorización (0420). */}
             {codigoPostventa && (
               <div className="space-y-1 border-t border-primary/20 pt-2">

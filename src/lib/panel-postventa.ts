@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sumarDias } from "@/lib/calendario";
 import { esMarcaWhatsapp } from "@/lib/gestion-whatsapp";
+import { minutosDeOficina } from "@/lib/files-tiempos";
 
 /**
  * EL PANEL DEL DÍA DE POSTVENTA (Santos, 13-10: «un informe amigable
@@ -54,6 +55,21 @@ export interface PanelPostventa {
   pendientes: { titulo: string; n: number }[];
   /** La línea de cada expediente gestionado hoy, para agrupar la sección 1. */
   lineaDeOportunidad: Record<string, Linea>;
+  /**
+   * TRABAJO EN EQUIPO Y RESPUESTA (0530, Santos 17-10: «más libertad entre
+   * los trabajadores de postventa, pero la trazabilidad y las métricas de cada
+   * usuario»). Las ayudas son gestiones en carpetas que lleva otra compañera
+   * (dadas) o de otras en las suyas (recibidas). La respuesta mide, en horas
+   * de oficina, de la derivación de Central a su primera gestión (6 días).
+   */
+  equipo: {
+    ayudasDadas: number;
+    ayudasRecibidas: number;
+    derivaciones: number;
+    atendidas: number;
+    medianaMin: number | null;
+    sinGestion: number;
+  };
 }
 
 type Seguimiento = { hora: string | null; tipo: string; efectivo: boolean; oportunidad_id?: string };
@@ -106,6 +122,8 @@ export async function cargarPanelPostventa(
       .limit(3000),
   ]);
 
+  const equipo = await cargarEquipo(admin, personaId, fecha, desde, hasta);
+
   const tipoDe = new Map(((ops ?? []) as { id: string; tipo_postventa: string | null }[]).map((o) => [o.id, o.tipo_postventa]));
   const hoy = new Map(LINEAS.map((l) => [l.clave as Linea, { efectivas: 0, sinContacto: 0 }]));
   const vias = new Map<string, number>();
@@ -156,5 +174,77 @@ export async function cargarPanelPostventa(
       .sort((a, b) => (ORDEN_ESTADO.indexOf(a.estado) + 99) % 99 - (ORDEN_ESTADO.indexOf(b.estado) + 99) % 99),
     pendientes: pendientes.map((p) => ({ titulo: p.titulo, n: p.filas.length })).filter((p) => p.n > 0),
     lineaDeOportunidad: Object.fromEntries([...tipoDe].map(([id, t]) => [id, lineaDe(t)])),
+    equipo,
+  };
+}
+
+async function cargarEquipo(
+  admin: SupabaseClient,
+  personaId: string,
+  fecha: string,
+  desde6: string,
+  hasta: string,
+): Promise<PanelPostventa["equipo"]> {
+  const desdeDia = new Date(`${fecha}T00:00:00-05:00`).toISOString();
+  type Act = { oportunidad_id: string; realizada_por: string | null; realizada_at: string; tipo: string; oportunidades: { comercial_id: string | null; tipo_postventa: string | null } | null };
+  const [{ data: mias }, { data: enLasMias }, { data: leads }] = await Promise.all([
+    admin
+      .from("actividades")
+      .select("oportunidad_id, realizada_por, realizada_at, tipo, oportunidades!inner(comercial_id, tipo_postventa)")
+      .eq("realizada_por", personaId)
+      .neq("tipo", "nota")
+      .gte("realizada_at", desdeDia)
+      .lt("realizada_at", hasta)
+      .not("oportunidades.tipo_postventa", "is", null)
+      .neq("oportunidades.comercial_id", personaId)
+      .limit(500),
+    admin
+      .from("actividades")
+      .select("oportunidad_id, realizada_por, realizada_at, tipo, oportunidades!inner(comercial_id, tipo_postventa)")
+      .eq("oportunidades.comercial_id", personaId)
+      .not("oportunidades.tipo_postventa", "is", null)
+      .not("realizada_por", "is", null)
+      .neq("realizada_por", personaId)
+      .neq("tipo", "nota")
+      .gte("realizada_at", desdeDia)
+      .lt("realizada_at", hasta)
+      .limit(500),
+    admin
+      .from("leads")
+      .select("oportunidad_id, asignado_at")
+      .eq("asignado_a", personaId)
+      .gte("asignado_at", desde6)
+      .lt("asignado_at", hasta)
+      .not("oportunidad_id", "is", null)
+      .limit(300),
+  ]);
+  const derivs = (leads ?? []) as { oportunidad_id: string; asignado_at: string }[];
+  const ids = [...new Set(derivs.map((d) => d.oportunidad_id))];
+  const { data: gestiones } = ids.length
+    ? await admin
+        .from("actividades")
+        .select("oportunidad_id, realizada_at")
+        .eq("realizada_por", personaId)
+        .in("oportunidad_id", ids.slice(0, 150))
+        .gte("realizada_at", desde6)
+        .order("realizada_at", { ascending: true })
+        .limit(2000)
+    : { data: [] as { oportunidad_id: string; realizada_at: string }[] };
+  const tiempos: number[] = [];
+  let sinGestion = 0;
+  for (const d of derivs) {
+    const primera = (gestiones ?? []).find((g) => g.oportunidad_id === d.oportunidad_id && g.realizada_at >= d.asignado_at);
+    if (primera) tiempos.push(minutosDeOficina(d.asignado_at, primera.realizada_at));
+    else sinGestion++;
+  }
+  tiempos.sort((a, b) => a - b);
+  const medianaMin = tiempos.length ? tiempos[Math.floor(tiempos.length / 2)] : null;
+  return {
+    ayudasDadas: ((mias ?? []) as unknown as Act[]).length,
+    ayudasRecibidas: ((enLasMias ?? []) as unknown as Act[]).length,
+    derivaciones: derivs.length,
+    atendidas: tiempos.length,
+    medianaMin,
+    sinGestion,
   };
 }

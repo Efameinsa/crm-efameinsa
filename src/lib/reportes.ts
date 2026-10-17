@@ -308,6 +308,8 @@ export async function listarOportunidades(
     offset?: number;
     rubro?: RubroFiltro;
     origen?: OrigenOportunidad | null;
+    /** 0530: postventa ve los expedientes de postventa de todas («Del área»). */
+    area?: boolean;
   },
 ): Promise<{ total: number; filas: FilaOportunidadListado[] }> {
   const { data, error } = await supabase.rpc("listar_oportunidades", {
@@ -325,6 +327,7 @@ export async function listarOportunidades(
     // Solo cuando se filtra (0362): sin la migración aplicada, la lista
     // normal sigue funcionando con la firma vieja.
     ...(opciones.origen ? { p_origen: opciones.origen } : {}),
+    ...(opciones.area ? { p_area: true } : {}),
   });
   if (error) {
     console.error("listar_oportunidades:", error.message);
@@ -347,6 +350,7 @@ export async function contarOportunidadesPorEtapa(
     soloCrm?: boolean;
     rubro?: RubroFiltro;
     origen?: OrigenOportunidad | null;
+    area?: boolean;
   },
 ): Promise<Record<string, number>> {
   const { data, error } = await supabase.rpc("contar_oportunidades_por_etapa", {
@@ -360,6 +364,7 @@ export async function contarOportunidadesPorEtapa(
     // Solo cuando se filtra (0362): sin la migración aplicada, la lista
     // normal sigue funcionando con la firma vieja.
     ...(opciones.origen ? { p_origen: opciones.origen } : {}),
+    ...(opciones.area ? { p_area: true } : {}),
   });
   if (error) {
     console.error("contar_oportunidades_por_etapa:", error.message);
