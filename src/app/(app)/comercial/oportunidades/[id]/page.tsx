@@ -1,6 +1,7 @@
 import { Phone, Mail, MapPin, FileText, CalendarClock, Building2, MessageCircle, ArrowLeft } from "lucide-react";
 import { etiquetaTipoExpediente } from "@/lib/tipo-expediente";
 import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
+import { CarpetaPostventa } from "@/components/crm/carpeta-postventa";
 import { VincularRazonSocial } from "@/components/crm/vincular-razon-social";
 import { versionesAnteriores } from "@/lib/versiones-cotizacion";
 import { totalesConIgvExactos } from "@/lib/total-con-igv-exacto";
@@ -650,12 +651,20 @@ export default async function OportunidadDetallePage({
         </div>
 
         {/* Otra razón social del mismo dueño (23-09): se ve antes de cotizar. */}
+        {/* 0530: un cliente, una carpeta de postventa; los casos y quién lleva cada uno. */}
+        {oportunidad.tipo_postventa && <CarpetaPostventa oportunidadId={oportunidad.id} />}
         <AvisoMismoCliente cuentaId={cuenta?.id} className="mt-3" />
         {/* Katerine 07-10: «que el asesor pueda generarlo directamente», desde el expediente. */}
         {cuenta && esMio && (
           <div className="mt-2">
             <VincularRazonSocial cuentaId={cuenta.id} razonSocial={cuenta.razon_social} />
           </div>
+        )}
+        {/* 0530: nada se esconde por dueña; si no se puede, se dice por qué. */}
+        {cuenta && !esMio && comoCompaneraDeArea && (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            «Vincular otra razón social» lo hace el comercial dueño de la cartera o gerencia: pídaselo con el RUC.
+          </p>
         )}
 
         {cuenta?.contactos && cuenta.contactos.length > 0 && (

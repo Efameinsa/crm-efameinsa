@@ -93,6 +93,7 @@ export default async function OportunidadesPage({
     llamada?: string;
     antig?: string;
     tel?: string;
+    area?: string;
   }>;
 }) {
   const perfil = await requerirPerfil();
@@ -136,7 +137,11 @@ export default async function OportunidadesPage({
   // desde la 0152, así que la Tabla, el Kanban y las pestañas lo respetan igual
   // que a los demás.
   const rubro = leerFiltroRubro(sp.rubro);
-  const filtrosComunes = { q, tipoCliente, desde, hasta, soloCrm, rubro: rubroParaRpc(rubro), origen };
+  // «Del área» (0530, Santos 17-10): postventa trabaja la carpeta del cliente
+  // sea de quien sea; aquí ve las de sus compañeras sin perder «Mías».
+  const esDelArea = Boolean(perfil.es_postventa || perfil.hace_postventa);
+  const area = esDelArea && sp.area === "1";
+  const filtrosComunes = { q, tipoCliente, desde, hasta, soloCrm, rubro: rubroParaRpc(rubro), origen, area };
   const listar = (extra: { etapa?: string | null; limite: number; offset: number }) =>
     listarOportunidades(supabase, { ...filtrosComunes, orden, ...extra });
 
@@ -195,6 +200,7 @@ export default async function OportunidadesPage({
           opcionesRubro={opcionesRubro}
           sinRubro={sinRubro}
         />
+        {esDelArea && <MiasODelArea area={area} sp={sp} />}
         <p className="text-xs text-muted-foreground">
           El tablero es para trabajar el día a día: muestra hasta {POR_COLUMNA} fichas por columna, las más recientes
           según el orden elegido. El número junto a cada etapa dice cuántas hay en total — para verlas todas, filtrar
@@ -239,6 +245,8 @@ export default async function OportunidadesPage({
         sinRubro={sinRubro}
       />
 
+      {esDelArea && <MiasODelArea area={area} sp={sp} />}
+
       {/* El archivo se explica solo en cuanto se abre: nadie tiene que
           adivinar por qué esas filas no salían antes (0130). */}
       {etapa === "historico" && (
@@ -251,7 +259,7 @@ export default async function OportunidadesPage({
       )}
 
       <SeccionPanel
-        titulo={etapa === "historico" ? "Histórico" : "Mis oportunidades"}
+        titulo={etapa === "historico" ? "Histórico" : area ? "Expedientes del área de postventa" : "Mis oportunidades"}
         accion={<Paginacion pagina={pagina} totalPaginas={totalPaginas} total={total} desde={desdeFila} hasta={hastaFila} etiqueta="oportunidad" etiquetaPlural="oportunidades" />}
       >
         {filas.length === 0 ? (
@@ -391,4 +399,33 @@ function Vacio({
   }
 
   return <p className="text-sm text-muted-foreground">Aún no tiene oportunidades asignadas.</p>;
+}
+
+/**
+ * «Mías / Del área» (0530): las dos miradas del área de postventa. La carpeta
+ * es del cliente; «Mías» son las que lleva una, «Del área» todas.
+ */
+function MiasODelArea({ area, sp }: { area: boolean; sp: Record<string, string | undefined> }) {
+  const con = (valor: boolean) => {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries(sp)) if (v && k !== "area" && k !== "pagina") p.set(k, v);
+    if (valor) p.set("area", "1");
+    const qs = p.toString();
+    return `/comercial/oportunidades${qs ? `?${qs}` : ""}`;
+  };
+  const chip = (activo: boolean) =>
+    `rounded-full border px-3 py-1 text-xs font-medium transition-colors ${activo ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:bg-accent"}`;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Link href={con(false)} className={chip(!area)}>
+        Mías
+      </Link>
+      <Link href={con(true)} className={chip(area)}>
+        Del área (todas las carpetas de postventa)
+      </Link>
+      <span className="text-[11px] text-muted-foreground">
+        {area ? "Puede trabajar cualquiera; cada acción queda con su nombre." : "Las carpetas que usted lleva."}
+      </span>
+    </div>
+  );
 }

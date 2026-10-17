@@ -172,7 +172,10 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
     : { data: null };
   const comercialDeLaPista = (duenio?.perfiles as unknown as { nombre: string } | null)?.nombre ?? null;
   const puedeCotizarla =
-    duenio?.comercial_id === perfil.id || perfil.rol === "gerencia" || perfil.rol === "admin";
+    duenio?.comercial_id === perfil.id || perfil.rol === "gerencia" || perfil.rol === "admin" ||
+    // 0530: la carpeta es del cliente; cualquiera del área cotiza en ella
+    // (puede_cotizar_en lo permite desde la 0323; la pantalla se había quedado atrás).
+    Boolean(a.oportunidad_id && (perfil.es_postventa || perfil.hace_postventa));
 
   // «En la parte derecha debe estar el historial de cómo llegó» (ing. Carlos,
   // reunión 01-09): la misma ruta que ven el comercial y Central — llegó a

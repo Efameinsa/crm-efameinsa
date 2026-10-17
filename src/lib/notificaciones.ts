@@ -78,7 +78,11 @@ export type TipoNotificacion =
   | "catalogo"
   // Mi cuenta de efameinsa.com (0527/0528, Santos 17-10): el cliente confirmó que
   // recibió su pedido o escribió por el chat de su perfil.
-  | "portal";
+  | "portal"
+  // Carpeta de postventa (0530): pases, uniones y «Hoy cubro a…».
+  | "otro"
+  | "gestiones_movidas"
+  | "cobertura";
 
 interface Destinatario {
   userId?: string;

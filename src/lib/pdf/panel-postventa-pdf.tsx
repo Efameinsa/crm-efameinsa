@@ -1,4 +1,5 @@
 import { View, Text, Svg, Path, Circle } from "@react-pdf/renderer";
+import { duracionOficina } from "@/lib/files-tiempos";
 import { LINEAS, type Linea, type PanelPostventa } from "@/lib/panel-postventa";
 
 // Los mismos de reporte-diario-pdf, repetidos para no importarlo de vuelta (se importan entre sí).
@@ -158,6 +159,36 @@ export function PanelPostventaPdf({
         <Kpi etiqueta="Ventas cerradas" valor={String(resumen.ventas)} sub={resumen.ventas > 0 ? usd(resumen.monto_vendido_usd) : "—"} color={VERDE} />
         <Kpi etiqueta="Sus pendientes" valor={String(totalPend)} sub="por atender" color="#eda100" />
       </View>
+
+      {/* Trabajo en equipo y respuesta (0530): la ayuda cuenta para quien la da. */}
+      {panel.equipo && (
+        <View style={{ flexDirection: "row", gap: 6, marginBottom: 8 }}>
+          <Kpi
+            etiqueta="Ayudó a compañeras"
+            valor={String(panel.equipo.ayudasDadas)}
+            sub="gestiones en carpetas que lleva otra"
+            color="#7c3aed"
+          />
+          <Kpi
+            etiqueta="La ayudaron"
+            valor={String(panel.equipo.ayudasRecibidas)}
+            sub="gestiones de otras en sus carpetas"
+            color="#a78bfa"
+          />
+          <Kpi
+            etiqueta="Respuesta a Central"
+            valor={panel.equipo.medianaMin === null ? "—" : duracionOficina(panel.equipo.medianaMin)}
+            sub={`mediana · ${panel.equipo.atendidas} de ${panel.equipo.derivaciones} derivaciones (6 días)`}
+            color="#2a78d6"
+          />
+          <Kpi
+            etiqueta="Derivaciones sin gestión"
+            valor={String(panel.equipo.sinGestion)}
+            sub="de los últimos 6 días"
+            color={panel.equipo.sinGestion > 0 ? GRANATE : VERDE}
+          />
+        </View>
+      )}
 
       {/* Fila 1: por línea + anillo de efectividad. */}
       <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>

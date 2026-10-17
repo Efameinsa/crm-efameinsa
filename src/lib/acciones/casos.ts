@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { anioLima } from "@/lib/periodo";
+import { anioLima, hoyLima } from "@/lib/periodo";
 import { requerirPerfil } from "@/lib/auth";
 import { estadoGarantia } from "@/lib/postventa";
 
@@ -174,7 +174,25 @@ export async function registrarCaso(datos: {
 
   const serie = datos.serieTexto?.trim().toUpperCase() || null;
   const otrasSeries = (datos.seriesAdicionales ?? []).map((x) => x.trim().toUpperCase()).filter((x) => x && x !== serie);
-  const { data: caso, error } = await supabase
+  // UN CLIENTE, UNA CARPETA (0530, Santos 17-10). Si el cliente ya tiene su
+  // carpeta de postventa abierta, el caso se anota ahí en vez de abrir otro
+  // expediente: 107 de los 248 expedientes de postventa del último mes nacían
+  // por este camino y por la ruta, aunque el cliente ya tuviera uno.
+  const { data: carpetaId } = await supabase.rpc("carpeta_postventa", { p_cuenta: datos.cuentaId, p_prueba: Boolean(perfil.es_prueba) });
+  const carpeta = (carpetaId as string | null) ?? null;
+  if (carpeta && datos.desenlace !== "telefono") {
+    await supabase
+      .from("oportunidades")
+      .update(
+        datos.desenlace === "derivar"
+          ? { proxima_accion: "Atención técnica programada", proxima_accion_at: datos.atencion?.fecha ?? null, proxima_accion_hora: datos.atencion?.hora || null }
+          : { proxima_accion: "Enviar la cotización", proxima_accion_at: hoyLima(), proxima_accion_hora: null },
+      )
+      .eq("id", carpeta);
+  }
+  const { data: nuevo, error } = carpeta
+    ? { data: null, error: null }
+    : await supabase
     .from("oportunidades")
     .insert({
       cuenta_id: datos.cuentaId,
@@ -199,6 +217,7 @@ export async function registrarCaso(datos: {
     .select("id")
     .single();
   if (error) return { error: error.message };
+  const caso = { id: (carpeta ?? (nuevo as { id: string } | null)?.id) as string };
 
   const detalleTecnico = [
     datos.codigoError?.trim() ? `Código de error: ${datos.codigoError.trim()}.` : null,
