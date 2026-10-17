@@ -205,7 +205,7 @@ export function EditorLiquidacion({ base, hoy }: { base: BaseLiquidacion; hoy: s
             </div>
           </Seccion>
 
-          <Seccion titulo="Abonos y facturas" ayuda="Los abonos son los que usted confirmó; acá solo se dice cómo se escriben y a qué factura van." editado={Boolean(aj.abonos && Object.keys(aj.abonos).length)}>
+          <Seccion titulo="Abonos y facturas" ayuda="Los abonos son los que usted confirmó; acá se dice cómo se escriben y a qué factura van, y la factura de lo que falta cobrar." editado={Boolean(aj.abonos && Object.keys(aj.abonos).length)}>
             {abonos.length === 0 ? (
               <p className="text-xs text-muted-foreground">
                 Todavía no hay abonos confirmados{base.pagadoSinDetalle > 0 ? ` (hay ${m(base.pagadoSinDetalle)} de antes del CRM)` : ""}: la liquidación sale «pendiente de pago», para que el cliente pague con su factura.
@@ -240,15 +240,34 @@ export function EditorLiquidacion({ base, hoy }: { base: BaseLiquidacion; hoy: s
                     </div>
                   );
                 })}
-                <datalist id={`facturas-${base.servicioId}`}>
-                  {base.facturas.map((f) => (
-                    <option key={f.numero} value={f.numero} />
-                  ))}
-                </datalist>
-                {base.facturas.length > 0 && (
-                  <p className="text-[11px] text-muted-foreground">Facturas registradas por Contabilidad: {base.facturas.map((f) => f.numero).join(", ")}.</p>
-                )}
               </div>
+            )}
+            {l.hayCola && (
+              <div className="mt-2 rounded-md border border-border p-2">
+                <p className="text-xs">
+                  <b>{abonos.length ? "Lo que falta cobrar" : "Toda la operación"}</b> · {m(l.bloques[l.bloques.length - 1]?.filas[0].monto ?? 0)}
+                  <span className="text-muted-foreground"> · si ya se facturó (crédito, pago contra entrega), ponga aquí el número</span>
+                </p>
+                <div className="mt-1.5 grid gap-2 sm:grid-cols-3">
+                  <Campo label="N.º de factura">
+                    <Input
+                      list={`facturas-${base.servicioId}`}
+                      value={c.facturaSaldo ?? ""}
+                      onChange={(ev) => setC((v) => ({ ...v, facturaSaldo: ev.target.value }))}
+                      className="h-8 font-mono uppercase"
+                      placeholder="Vacío = FT PDTE"
+                    />
+                  </Campo>
+                </div>
+              </div>
+            )}
+            <datalist id={`facturas-${base.servicioId}`}>
+              {base.facturas.map((f) => (
+                <option key={f.numero} value={f.numero} />
+              ))}
+            </datalist>
+            {base.facturas.length > 0 && (
+              <p className="mt-1.5 text-[11px] text-muted-foreground">Facturas registradas por Contabilidad: {base.facturas.map((f) => f.numero).join(", ")}.</p>
             )}
           </Seccion>
 

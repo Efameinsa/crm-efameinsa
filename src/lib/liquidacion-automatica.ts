@@ -46,6 +46,12 @@ export interface AjustesLiquidacion {
 export interface Complementos {
   /** Factura de cada abono (id del abono → número), o «» = pendiente de factura. */
   facturaDeAbono: Record<string, string>;
+  /**
+   * La factura de lo que falta cobrar (venta a crédito, saldo contra entrega):
+   * Contabilidad la emite sin que haya abono (Jhon, buzón 17-10: «no veo el
+   * cuadro donde colocar el número de factura»). «» = pendiente de factura.
+   */
+  facturaSaldo?: string;
   retenido: { tipo: TipoRetenido; pct: number; monto: number; cobrado: boolean } | null;
   letras: { cantidad: number; cadaDias: number; giro: string; interes: number } | null;
   guia: string;
@@ -195,6 +201,8 @@ export interface Liquidacion {
   rotulo: string;
   /** La factura que va al historial; null = factura pendiente (avisa a Contabilidad). */
   facturaVigente: string | null;
+  /** Queda saldo por cobrar: el editor pide la factura de ese saldo. */
+  hayCola: boolean;
   notas: string[];
   /** La nota libre de Finanzas: en la plantilla va a la izquierda («VALIDAR SI EMITE HES»). */
   notaLibre: string;
@@ -228,6 +236,10 @@ export function complementosIniciales(b: BaseLiquidacion, hoy: string): Compleme
   const ant = b.anteriores;
   const facturaDeAbono: Record<string, string> = {};
   for (const a of b.abonos) facturaDeAbono[a.id] = ant?.facturaDeAbono[a.id] || facturaSugerida(a, b.facturas);
+  // La del saldo: la última factura que no es de ningún abono (crédito: se factura antes de cobrar).
+  const usadas = new Set(Object.values(facturaDeAbono).map((x) => x.trim().toUpperCase()).filter(Boolean));
+  const libre = [...b.facturas].sort((x, y) => y.registradaAt.localeCompare(x.registradaAt)).find((f) => !usadas.has(f.numero.trim().toUpperCase()));
+  const facturaSaldo = ant?.facturaSaldo || libre?.numero || "";
   const retenido = b.retenidoGuardado
     ? { ...b.retenidoGuardado, pct: ant?.retenido?.pct ?? PCT_RETENIDO[b.retenidoGuardado.tipo] }
     : (ant?.retenido ?? null);
@@ -235,7 +247,7 @@ export function complementosIniciales(b: BaseLiquidacion, hoy: string): Compleme
   // Los ajustes de la anterior (cliente corregido, renglones…) se heredan; la fecha no.
   const { fecha: _fecha, ...ajustes } = ant?.ajustes ?? {};
   void _fecha;
-  return { facturaDeAbono, retenido, letras, guia: ant?.guia ?? "", nota: "", ajustes };
+  return { facturaDeAbono, facturaSaldo, retenido, letras, guia: ant?.guia ?? "", nota: "", ajustes };
 }
 
 /** Arma la liquidación entera: bloques, saldo, letras, estado y notas. Pura (se prueba sin base). */
@@ -310,10 +322,11 @@ export function calcularLiquidacion(b0: BaseLiquidacion, c: Complementos, hoy: s
     c.retenido && retenido > 0
       ? { izquierda: c.retenido.cobrado ? "COBRADA" : "PDTE COBRO", concepto: NOMBRE_RETENIDO[c.retenido.tipo].toUpperCase(), monto: retenido }
       : null;
+  const ftSaldo = hayCola ? (c.facturaSaldo ?? "").trim().toUpperCase() : "";
   if (hayCola) {
     // Lo que falta facturar o pagar: «FT CIERRE PDTE / PDTE ABONO n».
     const total = redondear2(falta + retenido);
-    const filas: FilaBloque[] = [{ izquierda: grupos.length ? "FT CIERRE PDTE" : "FT PDTE", concepto: "TOTAL", monto: total }];
+    const filas: FilaBloque[] = [{ izquierda: `${grupos.length ? "FT CIERRE" : "FT"} ${ftSaldo || "PDTE"}`, concepto: "TOTAL", monto: total }];
     let saldo = total;
     if (letras.length) {
       const suma = redondear2(letras.reduce((s, x) => s + x.monto, 0));
@@ -356,7 +369,7 @@ export function calcularLiquidacion(b0: BaseLiquidacion, c: Complementos, hoy: s
   // facturar (Contabilidad recibe el aviso); si no, la última emitida.
   const sinFactura = abonos.some((a) => !ftDe(a));
   const ultima = [...b.facturas].sort((x, y) => y.registradaAt.localeCompare(x.registradaAt))[0]?.numero ?? null;
-  const facturaVigente = sinFactura ? null : ultima;
+  const facturaVigente = sinFactura ? null : ftSaldo || ultima;
 
   const titulos = bloques.map((x) => x.filas[0].izquierda).filter((t) => t !== "PAGOS ANTERIORES");
   const notas = [
@@ -368,7 +381,7 @@ export function calcularLiquidacion(b0: BaseLiquidacion, c: Complementos, hoy: s
   ];
   if (c.retenido) notas.push(`OPERACIÓN AFECTA A ${NOMBRE_RETENIDO[c.retenido.tipo].toUpperCase()} (${c.retenido.pct} %)`);
 
-  return { base: b, numero: b.yaHay + 1, fecha, bloques, comisiones, saldo, comisionPendiente, letras, estado, rotulo, facturaVigente, notas, notaLibre: c.nota.trim().toUpperCase() };
+  return { base: b, numero: b.yaHay + 1, fecha, bloques, comisiones, saldo, comisionPendiente, letras, estado, rotulo, facturaVigente, hayCola, notas, notaLibre: c.nota.trim().toUpperCase() };
 }
 
 type Fila = Record<string, unknown>;
