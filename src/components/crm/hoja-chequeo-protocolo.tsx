@@ -160,11 +160,22 @@ export function HojaChequeoProtocolo({
             disabled={!editable}
             aria-label={r === "ok" ? "Conforme" : "Con falla"}
             onClick={() => marcar(k, r)}
+            title={editable ? (r === "ok" ? "Marcar conforme ✓" : "Marcar con falla ✗") : undefined}
             className={`marca flex h-9 w-full items-center justify-center text-[16px] font-bold ${
-              ch.marcas[k] === r ? (r === "ok" ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-700") : ""
-            } ${editable ? "cursor-pointer hover:bg-neutral-100" : ""}`}
+              ch.marcas[k] === r
+                ? r === "ok"
+                  ? "bg-emerald-100 text-emerald-800"
+                  : "bg-red-100 text-red-700"
+                : editable
+                  ? // VACÍA PERO QUE SE NOTE QUE SE TOCA (Ariana, 17-10: «no sé cómo
+                    // poner checks»). Era un cuadro blanco al lado del campo de
+                    // Observaciones, y el cursor de escribir la mandaba ahí. Ahora
+                    // la casilla muestra su ✓ o ✗ tenue; en papel sale en blanco.
+                    `${r === "ok" ? "text-emerald-700/30 hover:bg-emerald-50 hover:text-emerald-700" : "text-red-600/30 hover:bg-red-50 hover:text-red-600"} print:text-transparent`
+                  : ""
+            } ${editable ? "cursor-pointer" : ""}`}
           >
-            {ch.marcas[k] === r ? (r === "ok" ? "✓" : "✗") : ""}
+            {ch.marcas[k] === r ? (r === "ok" ? "✓" : "✗") : editable ? (r === "ok" ? "✓" : "✗") : ""}
           </button>
         </td>
       ))
@@ -259,6 +270,12 @@ export function HojaChequeoProtocolo({
 
   return (
     <section className="hoja-chequeo mt-10 break-before-page border-t-2 border-dashed border-neutral-300 pt-8 font-[Arial,Helvetica,sans-serif] text-[12px] text-black print:mt-0 print:border-0 print:pt-0">
+      {editable && (
+        <p className="no-imprimir mb-2 rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-900">
+          <b>Cómo se marca:</b> toque <b className="text-emerald-700">✓</b> (conforme) o <b className="text-red-600">✗</b> (con falla) en las dos columnas de la
+          derecha, o «N/A» si no aplica. «Observaciones» es solo para escribir, si hace falta. Al terminar, «Guardar protocolo» abajo.
+        </p>
+      )}
       {/* CABECERA */}
       <table className={tabla}>
         <Columnas anchos={COLS_CABECERA} />

@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 17-10 · Las casillas del protocolo se ven como botones (Ariana)
+- **Qué pasó:** Ariana (almacén) no podía «poner checks» en la hoja de chequeo. Sí tenía permiso: las casillas ✓ y ✗ eran cuadritos blancos vacíos al lado del campo de Observaciones, y al pasar el mouse salía el cursor de escribir.
+- **Qué se hizo:** las casillas vacías muestran su ✓ o ✗ tenue y se colorean al pasar el mouse; arriba de la hoja hay una línea que explica cómo marcar y que hay que «Guardar protocolo». En el papel impreso no cambia nada.
+
 ### 17-10 · La ficha del cliente muestra todo y se anota sin salir de ella (Ariana, Santos)
 - **Qué pasó:** Ariana (postventa) dijo que en la ficha del cliente «no veía toda la información» y que tenía que apretar «Registrar gestión» para que aparecieran más cosas. Con su propia sesión se vio por qué: la cabecera fija ocupaba media pantalla en las computadoras de la oficina, la cotización y la última gestión solo se veían dentro del expediente, y el botón la llevaba a otra pantalla sin decirlo.
 - **Qué se hizo (Santos, 17-10):** la cabecera se achicó y solo las pestañas quedan fijas al bajar; «Anotar gestión» abre el formulario al costado de la ficha (reemplaza a «Registrar seguimiento»); cada expediente vivo muestra su cotización, próxima acción y última gestión; lo menos usado pasó a «Más acciones»; la pestaña Equipos permite registrar una máquina del cliente; el expediente tiene «← Ficha del cliente» y, si es de postventa, ya no muestra «Calificación».
