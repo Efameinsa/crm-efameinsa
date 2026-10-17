@@ -16,6 +16,7 @@ import {
   type PedidoParaCliente,
 } from "@/lib/portal/traductor";
 import { circuitoDe, type ServicioPostventa } from "@/lib/postventa";
+import { urlPdfPortal } from "@/lib/portal/token-pdf";
 
 /**
  * EL HISTORIAL DEL CLIENTE PARA MI CUENTA (contrato «Experiencia del cliente», 17-10).
@@ -377,7 +378,6 @@ export async function armarRespuestaPortal(admin: Admin, cli: ClienteIdentificad
   }
   for (const m of maquinasPedido) rutas.push(...archivos(m.protocolo_fotos).map((f) => f.path));
   for (const i of informes) rutas.push(...archivos(i.fotos).map((f) => f.path), ...archivos(i.documentos).map((f) => f.path));
-  for (const c of cotizacionesCrudas) if (c.pdf_path) rutas.push(c.pdf_path);
   const url = await firmar(admin, rutas);
 
   // ── Pedidos, con la forma del contrato ──────────────────────────────────
@@ -511,6 +511,7 @@ export async function armarRespuestaPortal(admin: Admin, cli: ClienteIdentificad
 
   // ── Cotizaciones ─────────────────────────────────────────────────────────
   const cotizaciones: RespuestaPortal["cotizaciones"] = [];
+  const secreto = process.env.PORTAL_SECRETO ?? "";
   for (const c of cotizacionesCrudas) {
     const vale = validaHasta(c);
     const estado = estadoCotizacionCliente(c, vale);
@@ -521,7 +522,9 @@ export async function armarRespuestaPortal(admin: Admin, cli: ClienteIdentificad
       fecha: c.enviada_at ?? c.created_at,
       estado,
       valida_hasta: vale,
-      pdf_url: c.pdf_path ? (url.get(c.pdf_path) ?? null) : null,
+      // El PDF se dibuja en el momento con el mismo generador del CRM (/api/portal/pdf).
+      // La anulada no tiene PDF (el borrador ya no llega hasta acá).
+      pdf_url: estado !== "anulada" && secreto ? urlPdfPortal(secreto, "cotizacion", c.id) : null,
       equipos: (c.cotizacion_items ?? [])
         .map((i) => (i.nombre_impreso ?? "").trim() || [i.productos?.nombre, i.productos?.marca, i.productos?.modelo].filter(Boolean).join(" ") || (i.descripcion ?? "").trim())
         .filter(Boolean),

@@ -98,6 +98,18 @@ revisar("forma del JSON (claves del contrato)", claves.every((k) => k in h) && O
 const textoTodo = JSON.stringify(h);
 revisar("sin palabras internas (taller, parque, Huachipa, es_prueba, comision)", !/taller|parque|huachipa|es_prueba|comisi[oó]n/i.test(textoTodo));
 
+// El PDF de la primera cotización con enlace (GET /api/portal/pdf?t=…).
+const conPdf = h.cotizaciones.find((x) => x.pdf_url);
+if (conPdf) {
+  const r = await fetch(conPdf.pdf_url);
+  const tipo = r.headers.get("content-type") ?? "";
+  revisar(`PDF de ${conPdf.codigo}`, r.status === 200 && tipo.includes("application/pdf"), `status ${r.status}, ${tipo}`);
+  const malo = await fetch(conPdf.pdf_url.replace(/t=([^&]+)/, (_m, t) => `t=${t.slice(0, -2)}00`));
+  revisar("PDF con token tocado → 401", malo.status === 401, `status ${malo.status}`);
+} else {
+  console.log("  (ninguna cotización con PDF para probar)");
+}
+
 if (SOLO_LEER) {
   console.log("SOLO_LEER=1: no se prueban mensaje ni recibido.");
   process.exit(fallas ? 1 : 0);
