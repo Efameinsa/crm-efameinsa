@@ -53,6 +53,9 @@ export async function gemelaQueYaResolvio(
       .eq("cuenta_id", op.cuentaId)
       .neq("id", op.id)
       .not("cerrada_at", "is", null)
+      // Un expediente unido a otro (0530/0532) no es un cierre: todo lo suyo
+      // está en la carpeta. Contarlo ofrecía archivar la carpeta buena (ECOLAV).
+      .is("unida_a", null)
       .order("cerrada_at", { ascending: false })
       .limit(5),
     supabase

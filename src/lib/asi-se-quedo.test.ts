@@ -57,3 +57,21 @@ describe("resumirAsiSeQuedo (PYRAMID METALS, 30-09)", () => {
     expect(resumirAsiSeQuedo(eventos.filter((e) => e.expediente === "jul17"), archivados, "jul17")).toBeNull();
   });
 });
+
+describe("la nota de la unión de expedientes no es «así se quedó» (0530, ECOLAV 17-10)", () => {
+  const archivados = [{ id: "unido", proxima_accion: null, proxima_accion_at: null }];
+  it("si en el archivado solo queda la nota de la unión, no hay recuadro", () => {
+    const eventos = [
+      gestion("u", "2026-10-17T15:40:00Z", "unido", "Expediente unido al del 12-09-2026 por Administrador CRM: todo lo de aquí está allá."),
+      gestion("v", "2026-10-17T09:00:00Z", "carpeta", "Llamé al cliente"),
+    ];
+    expect(resumirAsiSeQuedo(eventos, archivados, "carpeta")).toBeNull();
+  });
+  it("la nota de unión no tapa una gestión real del archivo", () => {
+    const eventos = [
+      gestion("u", "2026-10-17T15:40:00Z", "unido", "Expediente unificado el 15-10-2026: aquí se juntaron los 7 expedientes"),
+      gestion("r", "2026-09-20T10:00:00Z", "unido", "Se le envió la guía"),
+    ];
+    expect(resumirAsiSeQuedo(eventos, archivados, "carpeta")?.nota).toBe("Se le envió la guía");
+  });
+});
