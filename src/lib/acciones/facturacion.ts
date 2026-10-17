@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { notificarCentral, notificarFacturacion, notificarFinanzas } from "@/lib/notificaciones";
 import type { EstadoPagoLiquidacion } from "@/lib/documentos-finanzas";
+import { enlaceCierreDelPedido } from "@/lib/enlace-cierre-central";
 
 // LIQUIDACIONES QUE SE ACTUALIZAN Y LA FACTURA (0306, reunión 25-09 11:44).
 // Finanzas sube una liquidación por movimiento (pago a cuenta, saldo, la
@@ -56,13 +57,14 @@ export async function registrarLiquidacion(datos: {
   const quien = sinRuc(antes?.cliente_texto);
   const pedido = antes?.numero_pedido_erp ? ` del pedido ${antes.numero_pedido_erp}` : "";
   const esPrueba = perfil.es_prueba === true;
+  const alPedido = await enlaceCierreDelPedido(supabase, datos.servicioId);
   await Promise.all([
     notificarCentral({
       titulo: antes?.liquidacion_at ? `Liquidación actualizada · ${quien}` : `Liquidación lista · ${quien}`,
       cuerpo: antes?.liquidacion_at
         ? `Finanzas subió una liquidación nueva${pedido}. Imprímala para el expediente.`
         : `Finanzas subió la liquidación${pedido}. Revísela: acéptela o recházela con el motivo.`,
-      url: "/central/cierres",
+      url: alPedido,
       esPrueba,
     }),
     // Si todavía no hay número de factura, el pedido espera a Facturación.
@@ -115,7 +117,7 @@ export async function registrarFactura(datos: {
     notificarCentral({
       titulo: `Factura ${numero} · ${quien}`,
       cuerpo: "Facturación registró la factura: ya puede imprimirla para el expediente.",
-      url: "/central/cierres?ver=liberados",
+      url: await enlaceCierreDelPedido(supabase, datos.servicioId),
       esPrueba,
     }),
   ]);
@@ -133,7 +135,7 @@ export async function observarExpediente(servicioId: string, motivo: string) {
   await notificarCentral({
     titulo: `Facturación observó · ${sinRuc(s?.cliente_texto)}`,
     cuerpo: `${motivo.trim()}. Corrija el expediente y levante la observación.`,
-    url: "/central/cierres?ver=todos",
+    url: await enlaceCierreDelPedido(supabase, servicioId),
     esPrueba: perfil.es_prueba === true,
   });
   revalidar(servicioId);

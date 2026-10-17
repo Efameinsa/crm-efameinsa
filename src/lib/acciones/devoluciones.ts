@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { notificar } from "@/lib/notificaciones";
+import { enlaceCierreCentral } from "@/lib/enlace-cierre-central";
 
 /**
  * Central devuelve al comercial un cierre mal hecho.
@@ -98,7 +99,7 @@ export async function reenviarCierreDevuelto(
     tipo: "cierre_corregido",
     titulo: `${perfil.nombre} corrigió el cierre ${r?.codigo ?? ""}`.trim(),
     cuerpo: nota.trim() || "Vuelve a la cola para liberar.",
-    url: "/central/cierres",
+    url: enlaceCierreCentral(informeId, r?.codigo),
   });
 
   revalidatePath("/central/cierres");

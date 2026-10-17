@@ -13,6 +13,7 @@ import { MESES_PRIMER_PREVENTIVO } from "@/lib/preventivo";
 import { sumarContactoOperativo } from "@/lib/contacto-operativo-servidor";
 import { limpiarObsFilas, lineasGuia, type GuiaApertura } from "@/lib/apertura-servicio";
 import { errorDocRecibe, tipoDocRecibe } from "@/lib/documento";
+import { enlaceCierreDelPedido } from "@/lib/enlace-cierre-central";
 
 /**
  * Las acciones del circuito de postventa (migración 0087).
@@ -1138,7 +1139,7 @@ async function avisarSiYaEstanTodas(supabase: Awaited<ReturnType<typeof createCl
       await notificarCentral({
         titulo: `Series listas · ${(srv.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "")}`,
         cuerpo: "El almacén puso todas las series. Ya puede generar el pedido e imprimirlo.",
-        url: "/central/cierres",
+        url: await enlaceCierreDelPedido(supabase, servicioId),
         esPrueba: srv.es_prueba === true,
       });
     }

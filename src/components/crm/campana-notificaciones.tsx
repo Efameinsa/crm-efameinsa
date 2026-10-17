@@ -319,6 +319,15 @@ const NOMBRE_DEL_DESTINO: Record<string, string> = {
 };
 
 /**
+ * El botón del aviso. Los de Central que llevan a un cierre concreto
+ * (/central/cierres?…#c-<id>, buzón Central 17-10) dicen adónde van.
+ */
+function nombreDelBoton(url: string): string {
+  if (url.startsWith("/central/cierres") && url.includes("#c-")) return "Abrir el pedido";
+  return NOMBRE_DEL_DESTINO[url] ?? "Ir";
+}
+
+/**
  * Por qué este aviso no lleva a un sitio exacto, dicho en la ventana.
  *
  * Los avisos de aprobación y rechazo anteriores al 16-09 (0237) salían sin
@@ -1054,7 +1063,7 @@ export function CampanaNotificaciones({
                     router.push(destino);
                   }}
                 >
-                  {NOMBRE_DEL_DESTINO[detalle.url] ?? "Ir"}{" "}
+                  {nombreDelBoton(detalle.url)}{" "}
                   <ArrowRight className="size-3.5" />
                 </Button>
               </div>
