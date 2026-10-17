@@ -27,7 +27,7 @@ import { agregarArchivosDelEquipo, quitarArchivoDelEquipo } from "@/lib/acciones
 import { subirConProgreso } from "@/lib/subir-con-progreso";
 import { cn } from "@/lib/utils";
 import { esTorre, seriesDeLaDescripcion } from "@/lib/torres";
-import { faltaParaProbar, hojaDelSistema, type ArchivoProtocolo, type MaquinaParaProbar } from "@/lib/protocolo-completo";
+import { esFilaDeServicio, faltaParaProbar, hojaDelSistema, type ArchivoProtocolo, type MaquinaParaProbar } from "@/lib/protocolo-completo";
 
 /** Las tres opciones de la generación de código (0385), con el nombre que usa Lesly. */
 const PROCEDENCIA: Record<string, string> = {
@@ -469,8 +469,11 @@ function Fila({
     },
   });
   // Con hoja de chequeo en el sistema el informe lo genera el CRM: el Word/PDF es opcional (Lesly, 13-10).
+  // Una fila de SERVICIO tampoco lo pide: el informe sale con sus fotos (Lesly, 17-10, 0529).
   const tituloDocs = (maquina: MaquinaParaProbar, cual: "principal" | "secadora", de: string) =>
-    hojaDelSistema(maquina, cual, repuesto)
+    esFilaDeServicio(maquina, maquina === e ? partes : [])
+      ? `Otro informe de ${de} (PDF o Word, opcional: es un servicio, el informe de prueba y embalaje lo genera el sistema con las fotos)`
+      : hojaDelSistema(maquina, cual, repuesto)
       ? `Otro protocolo o informe de ${de} (PDF o Word, opcional: el informe lo genera el sistema con la hoja de chequeo)`
       : `Protocolo o informe de ${de} (PDF o Word, varios)`;
 

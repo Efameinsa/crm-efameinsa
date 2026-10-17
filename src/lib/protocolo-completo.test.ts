@@ -107,4 +107,11 @@ describe("faltaParaProbar", () => {
     const r: MaquinaParaProbar = { ...cofaco, descripcion: "FAJA DE TAMBOR", protocolo_ref: "R1", protocolo_fotos: [{ path: "a.jpg", tipo: "image/jpeg" }], protocolo_datos: { principal: { tecnico: "T" } } };
     expect(faltaParaProbar(r, [], { repuesto: true })).toEqual([]);
   });
+
+  it("una fila de SERVICIO no pide el Word: solo fotos y técnico (Lesly, 17-10, ABACHI)", () => {
+    const s: MaquinaParaProbar = { ...cofaco, descripcion: "SERVICIO DE EMBALAJE EN MADERA PARA RODILLO PLANCHADOR ELECTRICO", serie: null, protocolo_fotos: [{ path: "a.jpg", tipo: "image/jpeg" }], protocolo_datos: { principal: { tecnico: "MONAGO" } } };
+    expect(faltaParaProbar(s, [])).toEqual([]);
+    expect(faltaParaProbar({ ...s, protocolo_fotos: [] }, []).join()).toContain("fotos");
+    expect(faltaParaProbar({ ...s, descripcion: "SERVICIO DE INSTALACION LAVADORA Y SECADORA", protocolo_datos: {} }, []).join()).toBe("La máquina: técnico que hizo la prueba");
+  });
 });

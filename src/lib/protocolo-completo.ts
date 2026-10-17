@@ -22,6 +22,11 @@ import { propuestaDeHoja, type DatosHoja, type Maquina } from "@/lib/protocolo-h
  * genera»): si la tiene, el informe de prueba y embalaje con la hoja completa
  * es el protocolo. Subir el Word sigue pudiéndose, ya no frena.
  *
+ * Una fila que es un SERVICIO (embalaje, transporte, instalación…) no es una
+ * máquina: el informe de prueba y embalaje lo genera el CRM con sus fotos, así
+ * que pide solo fotos y técnico, como un repuesto (Lesly, 17-10, ABACHI
+ * PED-0033-2026, «me pide subir Word del informe pero no debería»; 0529).
+ *
  * Función pura: la usa el botón (para decir qué falta antes de pulsar) y el
  * servidor (que es quien de verdad frena).
  */
@@ -58,6 +63,11 @@ const esVideo = (a: NonNullable<ArchivoProtocolo>) =>
   (a.tipo ?? "").startsWith("video/") || a.etiqueta === "video" || /\.(mp4|mov|webm|3gp)$/i.test(a.path ?? "");
 
 const lista = (x: unknown): NonNullable<ArchivoProtocolo>[] => (Array.isArray(x) ? x.filter((a): a is NonNullable<ArchivoProtocolo> => Boolean(a)) : []);
+
+/** La fila es un servicio y no una máquina (mismo criterio que es_linea_de_servicio, 0404). */
+export function esFilaDeServicio(e: Pick<MaquinaParaProbar, "descripcion">, partes: unknown[] = []) {
+  return partes.length === 0 && /^\s*SERVICIO\s/i.test(e.descripcion ?? "");
+}
 
 /** La hoja de chequeo que el sistema llena para esta máquina (null = no hay plantilla: se sube el Word/PDF). */
 export function hojaDelSistema(e: MaquinaParaProbar, maquina: Maquina, repuesto = false) {
@@ -100,7 +110,7 @@ export function faltaParaProbar(
   partes: MaquinaParaProbar[],
   opciones: { repuesto?: boolean; clic?: LoQueVaConElClic; nombre?: string } = {},
 ): string[] {
-  const repuesto = opciones.repuesto === true;
+  const repuesto = opciones.repuesto === true || esFilaDeServicio(e, partes);
   const clic = opciones.clic ?? {};
   const tecnico = clic.tecnico ?? "";
   const nombre = opciones.nombre ?? "La máquina";
