@@ -1,6 +1,6 @@
 # Base de conocimiento del CRM Efameinsa
 
-Vigente al 16-10-2026. Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
+Vigente al 17-10-2026. Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
 
 ## 0. Cómo usar este documento
 
@@ -66,6 +66,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 ### 1.4 Cotización
 
 - **Dueño:** el comercial. En servicios y repuestos, cualquiera de postventa.
+- **En postventa los casos son del área** (desde el 16-10, caso COR-PORACION 3C): cualquiera de postventa puede agregar y corregir contactos en un cliente con caso de postventa, aunque el caso esté a nombre de otra compañera. Regla de Santos: «todos deberían poder ver todo», pero cada acción queda con el nombre de quien la hizo.
 - **Qué entra:** el expediente y el catálogo, que gestiona Lesly (operaciones).
 - **Qué sale:** una cotización numerada **Presu_####-26** de la serie EFAMEINSA u OPEN, con su PDF.
 - **«Terminado»:** la cotización está «Confirmada», es decir, tiene número. El envío al cliente se hace por fuera (correo o WhatsApp con el PDF). **El CRM no envía la cotización al cliente.**
@@ -85,6 +86,8 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   4. Es un **kit con cantidades cambiadas** (desde el 06-10). Va sin código.
 - **Qué sale:** aprobada, devuelta para corregir por renglón, observada o rechazada entera.
 - **«Terminado»:** aprobada. Entonces el autor pulsa «Confirmar» y recién ahí se asigna el número.
+  - **El aviso «gerencia aprobó» le llega a quien armó la cotización, y también al dueño del expediente si es otra persona** (desde el 16-10, caso de Ariana en un expediente a nombre de Rubí). Dice «falta confirmarla» y lleva directo al botón Confirmar. En la lista de cotizaciones, el borrador aprobado dice «aprobada · falta confirmar», y lo que pasó por gerencia sigue a la vista aunque se busque un cliente.
+  - **Queda registrado quién confirmó** cada cotización: se ve «la hizo X · confirmada por Y».
 - **Bloqueos típicos:** la cotización no avanza hasta que gerencia decida. Una aprobación de palabra no sirve: tiene que darse en Aprobaciones.
 
 ### 1.6 Venta e informe de cierre
@@ -553,6 +556,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 **Precios**
 - **No hay un porcentaje de descuento libre ni un piso fijo.** Todo lo que quede bajo el precio de lista va a gerencia.
+- **Descuento al final del total** (desde el 16-10, lo pidió gerencia por medio de Katerine): debajo del total, «+ Agregar descuento o paquete especial». Se elige «Descuento» o «Descuento por paquete especial», se escribe el monto en la moneda de la cotización y se marca «incluye IGV» si se negoció con IGV. En el PDF sale debajo del SUB TOTAL, luego «SUB TOTAL CON DESCUENTO», el IGV y el TOTAL. Sirve para cerrar un paquete en una cifra sin tocar el precio de cada equipo. **Todo descuento pasa por gerencia** antes de confirmar; si ya se aprobó y no se cambia, no se vuelve a pedir.
 - Antes de cotizar:
   - a un cliente nuevo, se miran costo y margen;
   - a un cliente existente, su historial y los presupuestos anteriores del mismo equipo, para no dar precios distintos sin razón.
@@ -794,6 +798,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 **Apertura** (orden de trabajo)
 - **Tipos:** Entrega, Entrega y puesta en marcha, Mantenimiento, Solo puesta en marcha (el técnico va sin equipo) y aperturas de servicio con su encabezado.
+- **«SERVICIO E INSTALACIÓN DE:»** (desde el 16-10, a pedido de Rubí) es otra opción en «¿Qué se va a hacer?»: el técnico hace el servicio y la instalación que se vendió. Es el encabezado de la fila 1 en la hoja, el PDF y el correo de la apertura.
 - **Apertura desde un caso sin pedido** (garantía o servicio a un cliente antiguo): botón **«Apertura de servicio»**. Crea un pedido de origen «caso». Desde el 13-10 lista los equipos del cliente para marcar todos los que van.
 - **Contenido:** modelo de 11 filas de operaciones: servicio, cliente, primer destino, destino final, programación, quién recibe con DNI, personal, transporte, viáticos, coordinación con logística, etc.
 - **El cliente de la apertura es el del cierre.** Si no hay cierre, se toma de la ficha.
