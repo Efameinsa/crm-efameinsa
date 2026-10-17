@@ -178,6 +178,7 @@ export default async function OportunidadesPage({
       cotizacion_rechazada: op.cotizacion_estado === "rechazada_gerencia",
       origen_lead: op.origen_lead,
       via: op.via,
+      lleva: area ? ((op as { lleva?: string | null }).lleva ?? null) : null,
     }));
 
     return (

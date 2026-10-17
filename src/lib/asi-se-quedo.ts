@@ -65,6 +65,9 @@ export function resumirAsiSeQuedo(
 
   const gestiones = eventos
     .filter((e) => e.tipo === "actividad" && e.expediente != null && porId.has(e.expediente))
+    // La nota que deja la unión de expedientes (0530) no es una gestión: todo
+    // lo de ese expediente ya está en la carpeta que se está mirando.
+    .filter((e) => !(e.tipo === "actividad" && esNotaDeUnion(e.nota)))
     .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
   if (gestiones.length === 0) return null;
 
@@ -90,4 +93,9 @@ export function resumirAsiSeQuedo(
     desde: gestiones[gestiones.length - 1].fecha,
     hasta: ultima.fecha,
   };
+}
+
+/** «Expediente unido al…» (0530) o «Expediente unificado…» (15-10): notas de mudanza, no de trabajo. */
+export function esNotaDeUnion(nota: string | null | undefined): boolean {
+  return /^Expediente (unido al|unificado)/.test((nota ?? "").trim());
 }

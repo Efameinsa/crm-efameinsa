@@ -51,6 +51,8 @@ export interface OportunidadKanban {
   /** Central / campaña / propia (0362, Desiré 01-10). */
   origen_lead?: OrigenOportunidad | null;
   via?: string | null;
+  /** Quién lleva la carpeta (0533), solo en «Del área». */
+  lleva?: string | null;
 }
 
 const COLUMNAS: { etapa: EtapaOportunidad; etiqueta: string; droppable: boolean }[] = [
@@ -87,6 +89,7 @@ function Tarjeta({ op, arrastrando }: { op: OportunidadKanban; arrastrando?: boo
       </Link>
       <div className="flex items-center justify-between gap-2 text-[11px] tabular-nums text-muted-foreground">
         <PuntoInteres intencion={op.intencion} />
+        {op.lleva && <span className="rounded bg-sky-500/10 px-1.5 py-0.5 font-medium text-sky-800 dark:text-sky-300">lleva {op.lleva}</span>}
         <span>{formatoMonto(op)}</span>
       </div>
       <div className="mt-1.5 flex items-center justify-between">
