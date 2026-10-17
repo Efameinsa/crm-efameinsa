@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CheckCircle2, Eye, FileCog, Loader2 } from "lucide-react";
-import { validarLiquidacion, vistaPreviaLiquidacion } from "@/lib/acciones/liquidacion-automatica";
+import { prepararLiquidacion, validarLiquidacion, vistaPreviaLiquidacion } from "@/lib/acciones/liquidacion-automatica";
 import {
   calcularLiquidacion,
   complementosIniciales,
@@ -31,10 +31,55 @@ import { cn } from "@/lib/utils";
  * acá solo se completa lo que falta, se mira la vista previa y se valida.
  * Cada pago o factura nueva = otra liquidación con el número siguiente.
  */
-export function GenerarLiquidacion({ base, hoy }: { base: BaseLiquidacion; hoy: string }) {
-  const router = useRouter();
+export function GenerarLiquidacion({ servicioId, principal = true }: { servicioId: string; principal?: boolean }) {
   const [abierto, setAbierto] = useState(false);
-  const [c, setC] = useState<Complementos>(() => complementosIniciales(base));
+  const [datos, setDatos] = useState<{ base: BaseLiquidacion; hoy: string } | null>(null);
+  const [cargando, startCargar] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function abrir(v: boolean) {
+    setAbierto(v);
+    if (!v) return;
+    // Se lee al abrir: lo último del pedido (un abono o una factura que acaba de entrar).
+    setDatos(null);
+    setError(null);
+    startCargar(async () => {
+      const r = await prepararLiquidacion(servicioId);
+      if (r.error || !r.base || !r.hoy) return void setError(r.error ?? "No se pudo leer el pedido.");
+      setDatos({ base: r.base, hoy: r.hoy });
+    });
+  }
+
+  return (
+    <Dialog open={abierto} onOpenChange={abrir}>
+      <DialogTrigger
+        render={
+          <Button size="sm" variant={principal ? "default" : "outline"}>
+            <FileCog className="size-3.5" />
+            Generar liquidación
+          </Button>
+        }
+      />
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+        {datos ? (
+          <Formulario base={datos.base} hoy={datos.hoy} cerrar={() => setAbierto(false)} />
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>Generar liquidación</DialogTitle>
+              <DialogDescription>{error ?? "Leyendo el pedido, los abonos y las facturas…"}</DialogDescription>
+            </DialogHeader>
+            {cargando && <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />}
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Formulario({ base, hoy, cerrar }: { base: BaseLiquidacion; hoy: string; cerrar: () => void }) {
+  const router = useRouter();
+  const [c, setC] = useState<Complementos>(() => complementosIniciales(base, hoy));
   const [pendiente, startTransition] = useTransition();
   const [mirando, startMirar] = useTransition();
   const [problema, setProblema] = useState<string | null>(null);
@@ -69,29 +114,13 @@ export function GenerarLiquidacion({ base, hoy }: { base: BaseLiquidacion; hoy: 
       const r = await validarLiquidacion(base.servicioId, c);
       if (r.error) return void setProblema(r.error);
       toast.success(`Liquidación ${r.numero} validada: Central ya recibió el aviso`);
-      setAbierto(false);
+      cerrar();
       router.refresh();
     });
   }
 
   return (
-    <Dialog
-      open={abierto}
-      onOpenChange={(v) => {
-        setAbierto(v);
-        // Al abrir, lo último del pedido (un abono o una factura que acaba de entrar).
-        if (v) setC(complementosIniciales(base));
-      }}
-    >
-      <DialogTrigger
-        render={
-          <Button size="sm">
-            <FileCog className="size-3.5" />
-            Generar liquidación {base.yaHay + 1}
-          </Button>
-        }
-      />
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+      <>
         <DialogHeader>
           <DialogTitle>Liquidación N.º {base.yaHay + 1} · {base.pedido}</DialogTitle>
           <DialogDescription>
@@ -261,7 +290,6 @@ export function GenerarLiquidacion({ base, hoy }: { base: BaseLiquidacion; hoy: 
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </>
   );
 }

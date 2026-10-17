@@ -10,7 +10,7 @@ const base = (o: Partial<BaseLiquidacion>): BaseLiquidacion => ({
   clienteDoc: "20600000001",
   pedido: "PED-0001-2026",
   moneda: "USD",
-  renglones: [{ cantidad: 1, descripcion: "LAVADORA", precioUnitario: 1000, importe: 1000 }],
+  renglones: [{ cantidad: 1, descripcion: "LAVADORA", precioUnitario: 1000, importe: 1000, series: [] }],
   series: [],
   subtotal: 1000,
   igv: 180,
@@ -26,6 +26,7 @@ const base = (o: Partial<BaseLiquidacion>): BaseLiquidacion => ({
   anteriores: null,
   yaHay: 0,
   retenidoGuardado: null,
+  firma: null,
   ...o,
 });
 const sin: Complementos = { facturaDeAbono: {}, retenido: null, letras: null, guia: "", nota: "" };
@@ -36,7 +37,7 @@ const abono = (id: string, neto: number, comision = 0, createdAt = "2026-10-01T1
 describe("liquidación automática (0534)", () => {
   it("contado normal: un abono por el total y su factura → cancelada", () => {
     const b = base({ abonos: [abono("a", 1180)], facturas: [{ numero: "E001-816", fechaEmision: "2026-10-01", registradaAt: "2026-10-01T12:00:00Z" }] });
-    const l = calcularLiquidacion(b, complementosIniciales(b), "2026-10-17");
+    const l = calcularLiquidacion(b, complementosIniciales(b, "2026-10-17"), "2026-10-17");
     expect(l.estado).toBe("cancelado");
     expect(l.rotulo).toBe("OPERACIÓN CANCELADA");
     expect(l.facturaVigente).toBe("E001-816");
@@ -57,9 +58,10 @@ describe("liquidación automática (0534)", () => {
     expect(l.comisionPendiente).toBe(40);
     expect(l.rotulo).toContain("COMISIÓN");
     expect(l.numero).toBe(3);
-    // El abono se muestra por lo que pagó el cliente y la comisión aparte.
-    expect(l.filas.find((f) => f.etiqueta === "ABONO 3")?.monto).toBe(-580);
-    expect(l.filas.find((f) => f.etiqueta === "COMISIÓN")?.monto).toBe(40);
+    // Como en el Excel: el abono por lo que pagó el cliente y la comisión aparte, en su bloque.
+    const filas = l.bloques.flatMap((x) => x.filas);
+    expect(filas.find((f) => f.concepto === "ABONO 3")?.monto).toBe(580);
+    expect(filas.find((f) => f.concepto === "COMISIÓN")?.monto).toBe(-40);
   });
 
   it("un abono después de la última factura es un anticipo por facturar", () => {
@@ -67,7 +69,7 @@ describe("liquidación automática (0534)", () => {
       abonos: [abono("a", 500, 0, "2026-10-01T10:00:00Z"), abono("b", 100, 0, "2026-10-05T10:00:00Z")],
       facturas: [{ numero: "E001-826", fechaEmision: "2026-10-02", registradaAt: "2026-10-02T10:00:00Z" }],
     });
-    const c = complementosIniciales(b);
+    const c = complementosIniciales(b, "2026-10-17");
     expect(c.facturaDeAbono).toEqual({ a: "E001-826", b: "" });
     expect(calcularLiquidacion(b, c, "2026-10-17").facturaVigente).toBeNull();
   });
@@ -77,7 +79,11 @@ describe("liquidación automática (0534)", () => {
     const l = calcularLiquidacion(b, { ...sin, retenido: { tipo: "detraccion", pct: 12, monto: 141.6, cobrado: false } }, "2026-10-17");
     expect(l.saldo).toBe(0);
     expect(l.estado).toBe("cancelado");
-    expect(l.rotulo).toBe("OPERACIÓN CANCELADA · PENDIENTE COBRO DE LA DETRACCIÓN");
+    expect(l.rotulo).toBe("OPERACIÓN CANCELADA · PENDIENTE COBRO DE DETRACCIÓN");
+    // Un solo bloque, por la factura entera, con la detracción adentro.
+    expect(l.bloques).toHaveLength(1);
+    expect(l.bloques[0].filas[0].monto).toBe(1180);
+    expect(l.bloques[0].saldo).toBe(0);
   });
 
   it("letras: el saldo se reparte y el centavo va en la última", () => {
@@ -85,7 +91,8 @@ describe("liquidación automática (0534)", () => {
     const l = calcularLiquidacion(b, { ...sin, letras: { cantidad: 3, cadaDias: 30, giro: "2026-05-21", interes: 0 } }, "2026-10-17");
     expect(l.letras.map((x) => x.monto)).toEqual([200, 200, 200]);
     expect(l.letras[1].vence).toBe("2026-07-20");
-    expect(l.rotulo).toBe("SALDO EN 3 LETRAS");
+    expect(l.rotulo).toBe("OPERACIÓN CON SALDO EN 3 LETRAS");
+    expect(l.bloques.at(-1)?.saldo).toBe(0);
     const l2 = calcularLiquidacion(base({ total: 100 }), { ...sin, letras: { cantidad: 3, cadaDias: 30, giro: "2026-05-21", interes: 0 } }, "2026-10-17");
     expect(l2.letras.reduce((n, x) => n + x.monto, 0)).toBeCloseTo(100, 2);
   });

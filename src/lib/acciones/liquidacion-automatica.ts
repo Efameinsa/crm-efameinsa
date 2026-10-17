@@ -6,7 +6,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { hoyLima } from "@/lib/periodo";
 import { notificar, notificarCentral, notificarFacturacion } from "@/lib/notificaciones";
 import { enlaceCierreDelPedido } from "@/lib/enlace-cierre-central";
-import { calcularLiquidacion, cargarBaseLiquidacion, type Complementos } from "@/lib/liquidacion-automatica";
+import { calcularLiquidacion, cargarBaseLiquidacion, type BaseLiquidacion, type Complementos } from "@/lib/liquidacion-automatica";
 import { pdfDeLiquidacion } from "@/lib/pdf/liquidacion-servidor";
 import { textoParaNombreArchivo } from "@/lib/nombre-archivo";
 
@@ -25,13 +25,21 @@ function revisar(c: Complementos): string | null {
   return null;
 }
 
+/** Lo que el diálogo necesita al abrirse: el pedido ya leído y la fecha de hoy. */
+export async function prepararLiquidacion(servicioId: string): Promise<{ error: string | null; base?: BaseLiquidacion; hoy?: string }> {
+  const perfil = await requerirPerfil();
+  const base = await cargarBaseLiquidacion(await createClient(), servicioId, perfil.id);
+  if (!base) return { error: "No se encontró el pedido." };
+  return { error: null, base, hoy: hoyLima() };
+}
+
 /** La vista previa, sin guardar nada: el PDF en base64. */
 export async function vistaPreviaLiquidacion(servicioId: string, c: Complementos): Promise<{ error: string | null; pdf?: string }> {
-  await requerirPerfil();
+  const perfil = await requerirPerfil();
   const problema = revisar(c);
   if (problema) return { error: problema };
   const supabase = await createClient();
-  const base = await cargarBaseLiquidacion(supabase, servicioId);
+  const base = await cargarBaseLiquidacion(supabase, servicioId, perfil.id);
   if (!base) return { error: "No se encontró el pedido." };
   const pdf = await pdfDeLiquidacion(calcularLiquidacion(base, c, hoyLima()), true);
   return { error: null, pdf: Buffer.from(pdf).toString("base64") };
@@ -43,7 +51,7 @@ export async function validarLiquidacion(servicioId: string, c: Complementos): P
   const problema = revisar(c);
   if (problema) return { error: problema };
   const supabase = await createClient();
-  const base = await cargarBaseLiquidacion(supabase, servicioId);
+  const base = await cargarBaseLiquidacion(supabase, servicioId, perfil.id);
   if (!base) return { error: "No se encontró el pedido." };
   const l = calcularLiquidacion(base, c, hoyLima());
   const pdf = await pdfDeLiquidacion(l, false);
