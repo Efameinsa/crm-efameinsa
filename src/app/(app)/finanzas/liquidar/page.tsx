@@ -194,9 +194,8 @@ export default async function PedidosPorLiquidarPage() {
         return (
           <SeccionPanel titulo={`Ya liquidados · ${yaLiquidados.length}`}>
             <p className="mb-2 text-xs text-muted-foreground">
-              Central ya aceptó su liquidación. Si entró otro pago o salió la factura, suba la liquidación actualizada: la anterior queda en el
-              historial.
-            </p>
+              Central ya aceptó su liquidación. Si entró otro pago o salió la factura, pulse «Generar liquidación»: la nueva ya trae el abono o la
+          factura y la anterior queda en el historial.</p>
             <ul className="divide-y divide-border rounded-lg border border-border">
               {yaLiquidados.map((p) => {
                 const vigente = docs.get(p.id)?.liquidaciones[0];
