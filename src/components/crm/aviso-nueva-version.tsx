@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { esDesfaseDeVersion } from "@/lib/desfase-de-version";
@@ -35,58 +35,52 @@ import { haySinGuardar } from "@/lib/sin-guardar";
  *   guardar (lib/sin-guardar), pregunta antes de recargar. El formulario del
  *   cierre además guarda lo escrito en el navegador y lo ofrece al volver.
  * · 16-10 (análisis del buzón): 60 de 149 respuestas fueron «recargue la
- *   página»; varias personas reportaron algo que ya estaba arreglado porque
- *   su pestaña seguía en la versión vieja. Ahora SE ACTUALIZA SOLA, pero solo
- *   cuando no hay nada que perder: nadie escribió nada en esta pantalla desde
- *   que se abrió, no hay una ventana abierta ni cambios sin guardar, y la
- *   pestaña está en segundo plano o lleva 2 minutos quieta. Si escribió algo,
- *   la pastilla sigue esperando su clic como antes.
+ *   página»; varias personas reportaron algo ya arreglado porque su pestaña
+ *   seguía en la versión vieja. Se probó que recargara sola si la pantalla
+ *   estaba quieta 2 minutos.
+ * · 17-10 (Santos): «¿recuerdas que por actualizarse solo se perdía lo que el
+ *   usuario estaba haciendo? y generaba incomodidad». Tenía razón: «quieta» no
+ *   es «sin nada que perder» —un filtro elegido, un renglón agregado con
+ *   clics, alguien leyendo la ficha mientras habla por teléfono—. VUELVE la
+ *   regla de siempre: la pantalla que se está usando JAMÁS se recarga sola.
+ *   Lo que cambia: con versión nueva, el siguiente clic en un enlace del menú
+ *   o de la página abre la otra pantalla ya actualizada (carga completa en vez
+ *   de la navegación interna). Al salir de una pantalla no hay nada que
+ *   perder en ella, y así nadie se queda días en la versión vieja. Si la
+ *   pantalla tiene algo escrito sin guardar, el enlace se comporta como
+ *   siempre y la pastilla espera su clic.
  */
 export function AvisoNuevaVersion({ versionInicial }: { versionInicial: string }) {
   const [hayNueva, setHayNueva] = useState(false);
   const pathname = usePathname();
-  // ¿Escribió algo en esta pantalla? Se olvida al cambiar de pantalla: lo que
-  // quedó escrito en la anterior ya se perdió al salir.
-  const escribio = useRef(false);
-  const ultimoMovimiento = useRef(Date.now());
-  useEffect(() => {
-    escribio.current = false;
-  }, [pathname]);
-  useEffect(() => {
-    const alEscribir = () => {
-      escribio.current = true;
-    };
-    const alMoverse = () => {
-      ultimoMovimiento.current = Date.now();
-    };
-    document.addEventListener("input", alEscribir, true);
-    for (const ev of ["pointerdown", "keydown", "wheel", "touchstart"]) document.addEventListener(ev, alMoverse, { passive: true, capture: true });
-    return () => {
-      document.removeEventListener("input", alEscribir, true);
-      for (const ev of ["pointerdown", "keydown", "wheel", "touchstart"]) document.removeEventListener(ev, alMoverse, true);
-    };
-  }, []);
-
-  // La actualización sola, solo sin nada que perder.
+  // Con versión nueva, salir de la pantalla ya es el momento de actualizar:
+  // el enlace abre la otra pantalla con carga completa (ver arriba, 17-10).
   useEffect(() => {
     if (!hayNueva) return;
-    const sinNadaQuePerder = () =>
-      !escribio.current &&
-      !haySinGuardar() &&
-      document.querySelector('[role="dialog"], [role="alertdialog"]') === null;
-    const intentar = () => {
-      if (!sinNadaQuePerder()) return;
-      const quieta = Date.now() - ultimoMovimiento.current > 2 * 60 * 1000;
-      if (document.visibilityState === "hidden" || quieta) location.reload();
+    const alClic = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const enlace = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!enlace || enlace.target === "_blank" || enlace.hasAttribute("download")) return;
+      const destino = new URL(enlace.href, location.href);
+      if (destino.origin !== location.origin) return;
+      if (destino.pathname === location.pathname && destino.search === location.search) return;
+      if (haySinGuardar()) return;
+      e.preventDefault();
+      e.stopPropagation();
+      location.assign(destino.href);
     };
-    intentar();
-    const cada = setInterval(intentar, 15 * 1000);
-    document.addEventListener("visibilitychange", intentar);
+    // «Atrás» del navegador hacia OTRA pantalla: esta ya se dejó, se carga
+    // entera. Si solo cambia un filtro de la misma pantalla, no.
+    const alVolverAtras = () => {
+      if (location.pathname !== pathname) location.reload();
+    };
+    document.addEventListener("click", alClic, true);
+    window.addEventListener("popstate", alVolverAtras);
     return () => {
-      clearInterval(cada);
-      document.removeEventListener("visibilitychange", intentar);
+      document.removeEventListener("click", alClic, true);
+      window.removeEventListener("popstate", alVolverAtras);
     };
-  }, [hayNueva]);
+  }, [hayNueva, pathname]);
 
   useEffect(() => {
     if (versionInicial === "dev") return; // el dev server ya recarga solo

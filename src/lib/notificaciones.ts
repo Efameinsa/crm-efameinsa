@@ -73,7 +73,9 @@ export type TipoNotificacion =
   // Buzón de sugerencias del personal (0399, Santos 05-10): llega a admin y vuelve con la respuesta.
   | "sugerencia"
   // Queda menos de un día de saldo estimado en Google Ads (0421, gerencia 07-10): a admin.
-  | "saldo_ads";
+  | "saldo_ads"
+  // Pedidos al catálogo (0523, Santos 17-10): a Lesly, y la respuesta a quien pidió.
+  | "catalogo";
 
 interface Destinatario {
   userId?: string;

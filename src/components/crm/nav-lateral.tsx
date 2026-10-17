@@ -144,6 +144,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/central/cierres", etiqueta: "Cierres de venta", icono: PackageCheck },
     { href: "/operaciones/permisos", etiqueta: "Permisos", icono: ShieldCheck },
     { href: "/operaciones/catalogo", etiqueta: "El catálogo", icono: Package },
+    // Lo que el personal le pide al catálogo (0523, Santos 17-10).
+    { href: "/pedidos-catalogo", etiqueta: "Pedidos al catálogo", icono: Package },
     { href: "/admin/catalogos", etiqueta: "Listas del sistema", icono: BookMarked },
     // Registro de acciones y fichas sueltas (0513, Santos 16-10): deshacer sin tocar la base.
     { href: "/admin/acciones", etiqueta: "Registro de acciones", icono: History },

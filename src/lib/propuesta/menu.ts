@@ -225,6 +225,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     // agenda?». Su calendario general, sin entrar por Postventa ni Almacén.
     { etiqueta: "Agenda", href: "/nuevo/agenda", icono: "agenda", coincide: ["/nuevo/agenda"] },
     { etiqueta: "Catálogo", href: "/operaciones/catalogo", icono: "catalogo", coincide: ["/operaciones/catalogo"] },
+    // Lo que el personal le pide al catálogo (0523, Santos 17-10): le llega a Lesly, no al buzón del CRM.
+    { etiqueta: "Pedidos al catálogo", href: "/pedidos-catalogo", icono: "catalogo", coincide: ["/pedidos-catalogo"] },
     { etiqueta: "Permisos y listas", href: "/nuevo/permisos", icono: "permisos", coincide: ["/nuevo/permisos", "/operaciones/permisos", "/admin/catalogos"] },
     // Como gerencia, pero de Central, comerciales, almacén, Finanzas y Facturación (26-09).
     { etiqueta: "Ver como otra cuenta", href: "/operaciones/ver-como", icono: "control", coincide: ["/operaciones/ver-como"] },

@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Lightbulb } from "lucide-react";
+import { Lightbulb, PackagePlus } from "lucide-react";
 import Link from "@/components/enlace";
 
 /**
@@ -20,6 +20,24 @@ export function BotonSugerencias() {
       className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-[#8B1510]/50 hover:text-[#8B1510]"
     >
       <Lightbulb className="size-3.5" /> <span className="hidden 2xl:inline">Sugerencias</span>
+    </Link>
+  );
+}
+
+/**
+ * Pedir a Lesly (0523, Santos 17-10): productos, precios, stock y fichas no
+ * son del buzón del CRM sino de operaciones. Al lado del buzón, para que se
+ * elija bien desde el primer clic.
+ */
+export function BotonPedirALesly() {
+  return (
+    <Link
+      href="/pedidos-catalogo"
+      prefetch={false}
+      title="Pedir a Lesly: un producto que no está, un precio, el stock o corregir una ficha"
+      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-[#8B1510]/50 hover:text-[#8B1510]"
+    >
+      <PackagePlus className="size-3.5" /> <span className="hidden 2xl:inline">Pedir a Lesly</span>
     </Link>
   );
 }
