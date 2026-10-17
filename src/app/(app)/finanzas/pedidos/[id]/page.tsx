@@ -12,6 +12,9 @@ import { abonos, formatoMonto, unPedido } from "@/lib/pagos-finanzas";
 import { cotizacionesDeCierres, documentosDeFinanzas } from "@/lib/documentos-finanzas";
 import { DocumentosFinanzasLista } from "@/components/crm/documentos-finanzas-lista";
 import { SubirLiquidacion } from "@/components/crm/subir-liquidacion";
+import { GenerarLiquidacion } from "@/components/crm/generar-liquidacion";
+import { cargarBaseLiquidacion } from "@/lib/liquidacion-automatica";
+import { hoyLima } from "@/lib/periodo";
 import { EmpresaDelPedido } from "@/components/crm/empresa-del-pedido";
 import { AtenderOrdenFacturar } from "@/components/crm/orden-facturar";
 import { VistoBuenoSalida } from "@/components/crm/visto-bueno-salida";
@@ -48,6 +51,8 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
       .maybeSingle(),
   ]);
   const misDocs = docs.get(id);
+  // La liquidación que arma el CRM (0534, reunión 17-10 con Jhon).
+  const baseLiq = p.numeroErp ? await cargarBaseLiquidacion(supabase, id) : null;
   const consultas = await consultasDelPedido(id, p.moneda);
   const evidenciaObs = p.observadoAdjunto
     ? ((await supabase.storage.from("adjuntos").createSignedUrl(p.observadoAdjunto, 3600)).data?.signedUrl ?? null)
@@ -175,6 +180,13 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
           />
         </div>
 
+        {p.retenido && (
+          <p className="mt-3 rounded-md bg-secondary/60 p-2 text-xs text-muted-foreground">
+            {p.retenido.tipo === "detraccion" ? "Detracción" : "Retención"} de <b className="text-foreground">{formatoMonto(p.moneda, p.retenido.monto)}</b>{" "}
+            {p.retenido.cobradoAt ? "ya cobrada" : "pendiente de cobro"}: cuenta como pagada para el despacho.
+          </p>
+        )}
+
         {p.observadoAt && (
           <p className="mt-3 flex items-start gap-1.5 rounded-md bg-amber-50 p-2 text-xs text-amber-900">
             <AlertTriangle className="mt-0.5 size-3.5 flex-none" />
@@ -202,12 +214,15 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
       {p.numeroErp && (
         <SeccionPanel titulo="Liquidaciones y facturas">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs text-muted-foreground">
+            <p className="max-w-xl text-xs text-muted-foreground">
               {p.facturacionObservadaAt
                 ? `Facturación observó el expediente: ${p.facturacionObservadaMotivo}`
-                : "Suba una liquidación nueva por cada pago o cuando salga la factura; la anterior queda en el historial."}
+                : "El CRM arma la liquidación con el pedido, los abonos y las facturas: usted completa lo que falta y la valida. Una nueva por cada pago o factura; la anterior queda en el historial."}
             </p>
-            <SubirLiquidacion servicioId={p.id} yaSubida={(misDocs?.liquidaciones.length ?? 0) > 0} />
+            <div className="flex flex-wrap items-center gap-2">
+              {baseLiq && <GenerarLiquidacion base={baseLiq} hoy={hoyLima()} />}
+              <SubirLiquidacion servicioId={p.id} yaSubida={(misDocs?.liquidaciones.length ?? 0) > 0} secundario />
+            </div>
           </div>
           <DocumentosFinanzasLista docs={misDocs} />
         </SeccionPanel>

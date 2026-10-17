@@ -26,7 +26,7 @@ type Estado = (typeof ESTADOS_PAGO_LIQUIDACION)[number][0];
  * el historial con lo que dice del pago y de la factura; la última es la que
  * Central ve e imprime.
  */
-export function SubirLiquidacion({ servicioId, yaSubida }: { servicioId: string; yaSubida: boolean }) {
+export function SubirLiquidacion({ servicioId, yaSubida, secundario }: { servicioId: string; yaSubida: boolean; secundario?: boolean }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [pendiente, startTransition] = useTransition();
@@ -74,9 +74,10 @@ export function SubirLiquidacion({ servicioId, yaSubida }: { servicioId: string;
     <Dialog open={abierto} onOpenChange={setAbierto}>
       <DialogTrigger
         render={
-          <Button size="sm" variant={yaSubida ? "outline" : "default"}>
+          <Button size="sm" variant={yaSubida || secundario ? "outline" : "default"}>
             <FileUp className="size-3.5" />
-            {yaSubida ? "Subir liquidación actualizada" : "Subir la liquidación (PDF)"}
+            {/* Desde el 17-10 la liquidación la arma el CRM; subir un PDF hecho a mano queda para casos raros. */}
+            {secundario ? "Subir un PDF hecho a mano" : yaSubida ? "Subir liquidación actualizada" : "Subir la liquidación (PDF)"}
           </Button>
         }
       />
