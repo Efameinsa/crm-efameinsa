@@ -110,7 +110,7 @@ export async function registrarFactura(datos: {
   await Promise.all([
     notificarFinanzas({
       titulo: `Factura ${numero} · ${quien}`,
-      cuerpo: "Facturación registró la factura. Si la liquidación decía «factura pendiente», súbala actualizada con el número.",
+      cuerpo: "Contabilidad registró la factura: actualice la liquidación con «Generar liquidación», que ya trae el número.",
       url: `/finanzas/pedidos/${datos.servicioId}`,
       esPrueba,
     }),

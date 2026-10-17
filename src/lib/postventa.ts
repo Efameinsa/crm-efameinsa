@@ -99,6 +99,8 @@ export interface ServicioPostventa {
   entrega_en?: "planta" | "agencia" | "cliente" | null;
   con_instalacion?: boolean | null;
   monto_pagado: number | null;
+  /** Detracción o retención que el cliente paga a SUNAT y no a la empresa (0534): cuenta como pagado. */
+  retenido_monto?: number | null;
   pago_confirmado_at: string | null;
   /** Quién de Finanzas confirmó y por qué medio (0150). */
   pago_confirmado_detalle?: string | null;
@@ -392,7 +394,7 @@ export function faltanLetrasEnAlmacen(
 
 export function saldoPendiente(s: ServicioPostventa): number {
   if (s.monto == null) return 0;
-  return Math.max(0, Number(s.monto) - Number(s.monto_pagado ?? 0));
+  return Math.max(0, Number(s.monto) - Number(s.monto_pagado ?? 0) - Number(s.retenido_monto ?? 0));
 }
 
 /**
@@ -449,10 +451,12 @@ export function textoSinCobro(s: Pick<ServicioPostventa, "tipo_servicio"> & { ap
  * Es una función pura, sin base ni sesión, para poder probarla sola.
  */
 export function evaluarPagoParaDespacho(
-  s: Pick<ServicioPostventa, "monto" | "monto_pagado" | "pct_antes_despacho" | "informe_cierre_id" | "pago_confirmado_at">,
+  s: Pick<ServicioPostventa, "monto" | "monto_pagado" | "pct_antes_despacho" | "informe_cierre_id" | "pago_confirmado_at"> & { retenido_monto?: number | null },
 ): { pct: number | null; requerido: number; pagado: number; saldoConocido: boolean; cubierto: boolean } {
   const monto = Number(s.monto ?? 0);
-  const pagado = Number(s.monto_pagado ?? 0);
+  // Lo retenido (detracción/retención, 0534) está «liquidado y finiquitado»
+  // para el despacho: el cliente ya lo pagó, solo que a SUNAT.
+  const pagado = Number(s.monto_pagado ?? 0) + Number(s.retenido_monto ?? 0);
   const pct = s.pct_antes_despacho == null ? null : Math.min(100, Math.max(0, Number(s.pct_antes_despacho)));
   const requerido = Number((pct == null ? monto : (monto * pct) / 100).toFixed(2));
   const saldoConocido = s.informe_cierre_id != null || s.pago_confirmado_at != null || pagado > 0;

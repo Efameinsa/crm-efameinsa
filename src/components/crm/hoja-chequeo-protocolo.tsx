@@ -164,14 +164,19 @@ export function HojaChequeoProtocolo({
             className={`marca flex h-9 w-full items-center justify-center text-[16px] font-bold ${
               ch.marcas[k] === r
                 ? r === "ok"
-                  ? "bg-emerald-100 text-emerald-800"
-                  : "bg-red-100 text-red-700"
+                  ? "bg-emerald-600 text-white print:bg-transparent print:text-black"
+                  : "bg-red-600 text-white print:bg-transparent print:text-black"
                 : editable
                   ? // VACÍA PERO QUE SE NOTE QUE SE TOCA (Ariana, 17-10: «no sé cómo
                     // poner checks»). Era un cuadro blanco al lado del campo de
-                    // Observaciones, y el cursor de escribir la mandaba ahí. Ahora
-                    // la casilla muestra su ✓ o ✗ tenue; en papel sale en blanco.
-                    `${r === "ok" ? "text-emerald-700/30 hover:bg-emerald-50 hover:text-emerald-700" : "text-red-600/30 hover:bg-red-50 hover:text-red-600"} print:text-transparent`
+                    // Observaciones, y el cursor de escribir la mandaba ahí.
+                    // Primero se probó un ✓ verde tenue y se confundía con una
+                    // casilla MARCADA (se veía «todo en verde» con 0 guardadas).
+                    // Ahora: vacía = gris con borde punteado; marcada = llena,
+                    // verde o roja, con la marca en blanco. En papel, en blanco.
+                    `m-0.5 h-8 w-[calc(100%-4px)] rounded-sm border border-dashed border-neutral-400 text-[13px] text-neutral-300 ${
+                      r === "ok" ? "hover:border-emerald-600 hover:text-emerald-600" : "hover:border-red-600 hover:text-red-600"
+                    } print:border-0 print:text-transparent`
                   : ""
             } ${editable ? "cursor-pointer" : ""}`}
           >
@@ -215,7 +220,42 @@ export function HojaChequeoProtocolo({
       </>
     ) : null;
 
-  const prog = (k: string) => escrito(ch.prog[k], (v) => cambiar((c) => ({ ...c, prog: { ...c.prog, [k]: v } })), { max: 10, centro: true });
+  const ponerProg = (k: string, v: string) => cambiar((c) => ({ ...c, prog: { ...c.prog, [k]: v } }));
+  const prog = (k: string) => escrito(ch.prog[k], (v) => ponerProg(k, v), { max: 10, centro: true });
+
+  // CANT. CON TEXTO O CON CHECK (Santos, 17-10: «a veces se pone texto y a
+  // veces se pone check»). Clic derecho (o mantener apretado en la tablet)
+  // pone ✓ en la casilla; otro clic derecho o un toque la devuelve a texto.
+  const CHECK = "✓";
+  const cant = (k: string) =>
+    ch.prog[k] === CHECK ? (
+      <button
+        type="button"
+        disabled={!editable}
+        aria-label="Cantidad con check"
+        title={editable ? "Toque o clic derecho para volver a escribir" : undefined}
+        onClick={() => ponerProg(k, "")}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          ponerProg(k, "");
+        }}
+        className={`marca flex h-9 w-full items-center justify-center bg-emerald-100 text-[16px] font-bold text-emerald-800 ${editable ? "cursor-pointer hover:bg-emerald-200" : ""}`}
+      >
+        {CHECK}
+      </button>
+    ) : editable ? (
+      <div
+        title="Clic derecho: poner ✓"
+        onContextMenu={(e) => {
+          e.preventDefault();
+          ponerProg(k, CHECK);
+        }}
+      >
+        {prog(k)}
+      </div>
+    ) : (
+      prog(k)
+    );
 
   // La programación: de fábrica y de prueba, cada una con sus fases y el tiempo total (cantidad en gris, como el papel).
   const filasProgramacion = (["fabrica", "prueba"] as const).flatMap((tipo) => [
@@ -273,7 +313,9 @@ export function HojaChequeoProtocolo({
       {editable && (
         <p className="no-imprimir mb-2 rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-900">
           <b>Cómo se marca:</b> toque <b className="text-emerald-700">✓</b> (conforme) o <b className="text-red-600">✗</b> (con falla) en las dos columnas de la
-          derecha, o «N/A» si no aplica. «Observaciones» es solo para escribir, si hace falta. Al terminar, «Guardar protocolo» abajo.
+          derecha, o «N/A» si no aplica. «Observaciones» es solo para escribir, si hace falta.
+          {plantilla.programacion && <> En «CANT.» se escribe, o clic derecho (mantener apretado en la tablet) para poner <b className="text-emerald-700">✓</b>.</>} Al
+          terminar, «Guardar protocolo» abajo.
         </p>
       )}
       {/* CABECERA */}
@@ -441,7 +483,7 @@ export function HojaChequeoProtocolo({
                 return (
                   <Fragment key={modo}>
                     <td className={`${td} uppercase ${f.k ? "" : "underline"}`}>{f.titulo}</td>
-                    <td className={`${td} p-0 ${f.total ? gris : ""}`}>{k && !f.total ? prog(`${k}.cant`) : null}</td>
+                    <td className={`${td} p-0 ${f.total ? gris : ""}`}>{k && !f.total ? cant(`${k}.cant`) : null}</td>
                     <td className={`${td} p-0`}>{k ? prog(`${k}.min`) : null}</td>
                   </Fragment>
                 );
@@ -490,7 +532,11 @@ export function HojaChequeoProtocolo({
             {pendiente ? <Loader2 className="inline size-4 animate-spin" /> : "Guardar protocolo"}
           </button>
           <span className="text-[12px] text-neutral-700">
-            {faltan === todas.length ? "Ninguna casilla marcada (marque al menos una)" : `${todas.length - faltan} de ${todas.length} casillas marcadas · solo las que correspondan`}
+            {faltan === todas.length
+              ? Object.values(ch.prog).some((v) => v === "✓")
+                ? "Programación con ✓ · eso ya cuenta como hoja marcada"
+                : "Ninguna casilla marcada (marque al menos una)"
+              : `${todas.length - faltan} de ${todas.length} casillas marcadas · solo las que correspondan`}
             {fallas > 0 && <b className="ml-2 text-red-700">· {fallas} con falla ✗</b>}
             {noAplica > 0 && <span className="ml-2 text-neutral-500">· {noAplica} N/A</span>}
           </span>

@@ -24,6 +24,8 @@ export interface PedidoFinanzas {
   moneda: string;
   total: number | null;
   pagado: number;
+  /** Detracción o retención (0534): el cliente la pagó a SUNAT; cuenta como pagada. */
+  retenido: { tipo: "detraccion" | "retencion"; monto: number; cobradoAt: string | null } | null;
   requerido: number;
   falta: number;
   saldo: number;
@@ -75,7 +77,7 @@ export interface PedidoFinanzas {
 }
 
 const COLUMNAS =
-  "id, cuenta_id, cliente_texto, equipo, moneda, monto, monto_pagado, pct_antes_despacho, credito_dias, fecha_despacho, despachado_at, pago_observado_at, pago_observado_motivo, pago_observado_adjunto, pago_solicitado_at, urgencia_finanzas_at, urgencia_finanzas_motivo, urgencia_finanzas_n, pago_confirmado_at, pago_confirmado_detalle, pedido_ejecutado_at, liquidacion_at, liquidacion_subida_at, facturacion_observada_at, facturacion_observada_motivo, orden_facturar_at, orden_facturar_nota, orden_facturar_atendida_at, informe_cierre_id, apertura_empresa, numero_pedido_erp, cerrado_at, completado, created_at";
+  "id, cuenta_id, cliente_texto, equipo, moneda, monto, monto_pagado, retenido_tipo, retenido_monto, retenido_cobrado_at, pct_antes_despacho, credito_dias, fecha_despacho, despachado_at, pago_observado_at, pago_observado_motivo, pago_observado_adjunto, pago_solicitado_at, urgencia_finanzas_at, urgencia_finanzas_motivo, urgencia_finanzas_n, pago_confirmado_at, pago_confirmado_detalle, pedido_ejecutado_at, liquidacion_at, liquidacion_subida_at, facturacion_observada_at, facturacion_observada_motivo, orden_facturar_at, orden_facturar_nota, orden_facturar_atendida_at, informe_cierre_id, apertura_empresa, numero_pedido_erp, cerrado_at, completado, created_at";
 
 const limpiarCliente = (t: string | null) => (t ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "");
 const dia = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
@@ -122,6 +124,7 @@ async function armar(supabase: SupabaseClient, filas: Fila[]): Promise<PedidoFin
       const inf = porInforme.get(f.informe_cierre_id as string);
       const total = f.monto == null ? null : Number(f.monto);
       const pagado = Number(f.monto_pagado ?? 0);
+      const retenido = f.retenido_tipo && Number(f.retenido_monto ?? 0) > 0 ? Number(f.retenido_monto) : 0;
       const creditoDias = f.credito_dias == null ? null : Number(f.credito_dias);
       const despachadoAt = (f.despachado_at as string | null) ?? null;
       const venceEl = despachadoAt ? sumarDias(dia(despachadoAt), creditoDias ?? 0) : null;
@@ -136,9 +139,12 @@ async function armar(supabase: SupabaseClient, filas: Fila[]): Promise<PedidoFin
         moneda: (f.moneda as string | null) ?? "USD",
         total,
         pagado,
+        retenido: retenido > 0
+          ? { tipo: f.retenido_tipo as "detraccion" | "retencion", monto: retenido, cobradoAt: (f.retenido_cobrado_at as string | null) ?? null }
+          : null,
         requerido: pago.requerido,
-        falta: Math.max(0, Number((pago.requerido - pagado).toFixed(2))),
-        saldo: total == null ? 0 : Math.max(0, Number((total - pagado).toFixed(2))),
+        falta: Math.max(0, Number((pago.requerido - pagado - retenido).toFixed(2))),
+        saldo: total == null ? 0 : Math.max(0, Number((total - pagado - retenido).toFixed(2))),
         pct: pago.pct,
         condicion: textoCondicionPago(s),
         creditoDias,
