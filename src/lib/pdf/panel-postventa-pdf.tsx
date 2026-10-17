@@ -160,33 +160,34 @@ export function PanelPostventaPdf({
         <Kpi etiqueta="Sus pendientes" valor={String(totalPend)} sub="por atender" color="#eda100" />
       </View>
 
-      {/* Trabajo en equipo y respuesta (0530): la ayuda cuenta para quien la da. */}
+      {/* Trabajo en equipo y respuesta (0530): la ayuda cuenta para quien la da.
+          Va en una franja baja: como fila de Kpi empujaba los dos últimos
+          cuadros del panel a una hoja casi vacía. */}
       {panel.equipo && (
-        <View style={{ flexDirection: "row", gap: 6, marginBottom: 8 }}>
-          <Kpi
-            etiqueta="Ayudó a compañeras"
-            valor={String(panel.equipo.ayudasDadas)}
-            sub="gestiones en carpetas que lleva otra"
-            color="#7c3aed"
-          />
-          <Kpi
-            etiqueta="La ayudaron"
-            valor={String(panel.equipo.ayudasRecibidas)}
-            sub="gestiones de otras en sus carpetas"
-            color="#a78bfa"
-          />
-          <Kpi
-            etiqueta="Respuesta a Central"
-            valor={panel.equipo.medianaMin === null ? "—" : duracionOficina(panel.equipo.medianaMin)}
-            sub={`mediana · ${panel.equipo.atendidas} de ${panel.equipo.derivaciones} derivaciones (6 días)`}
-            color="#2a78d6"
-          />
-          <Kpi
-            etiqueta="Derivaciones sin gestión"
-            valor={String(panel.equipo.sinGestion)}
-            sub="de los últimos 6 días"
-            color={panel.equipo.sinGestion > 0 ? GRANATE : VERDE}
-          />
+        <View style={{ flexDirection: "row", borderWidth: 0.6, borderColor: "#DDD9D5", borderRadius: 4, marginBottom: 8 }}>
+          {[
+            { t: "Ayudó a compañeras", v: String(panel.equipo.ayudasDadas), s: "gestiones en carpetas de otra", c: "#7c3aed" },
+            { t: "La ayudaron", v: String(panel.equipo.ayudasRecibidas), s: "gestiones de otras en las suyas", c: "#a78bfa" },
+            {
+              t: "Respuesta a Central",
+              v: panel.equipo.medianaMin === null ? "—" : duracionOficina(panel.equipo.medianaMin),
+              s: `mediana · ${panel.equipo.atendidas} de ${panel.equipo.derivaciones} (6 días)`,
+              c: "#2a78d6",
+            },
+            { t: "Derivaciones sin gestión", v: String(panel.equipo.sinGestion), s: "últimos 6 días", c: panel.equipo.sinGestion > 0 ? GRANATE : VERDE },
+          ].map((k, i) => (
+            <View
+              key={k.t}
+              style={{ flex: 1, flexDirection: "row", alignItems: "center", paddingVertical: 4, paddingHorizontal: 6, borderLeftWidth: i ? 0.6 : 0, borderLeftColor: "#DDD9D5" }}
+            >
+              <View style={{ width: 3, height: 18, backgroundColor: k.c, borderRadius: 1, marginRight: 5 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 6, color: GRIS, textTransform: "uppercase" }}>{k.t}</Text>
+                <Text style={{ fontSize: 6, color: GRIS }}>{k.s}</Text>
+              </View>
+              <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold" }}>{k.v}</Text>
+            </View>
+          ))}
         </View>
       )}
 
