@@ -38,6 +38,7 @@ import { AnotarClienteReciente } from "@/components/crm/clientes-recientes";
 import { InformesTecnicosDelCliente } from "@/components/crm/informes-tecnicos-del-cliente";
 import { cierresDePostventa } from "@/lib/precios-postventa";
 import { VincularRazonSocial } from "@/components/crm/vincular-razon-social";
+import { MensajesMiCuenta } from "@/components/crm/mensajes-mi-cuenta";
 
 export async function FichaCuenta({
   cuentaId,
@@ -374,6 +375,8 @@ export async function FichaCuenta({
         {/* Reunión 23-09: lo vivo con el cliente y sus máquinas, al costado,
             para no tener que ir a Pedidos a buscarlo. */}
         <PendientesDelCliente cuentaId={cuenta.id} conEnlace={veTodoPostventa(perfilQueMira) && !comoCentral} />
+        {/* El chat de Mi cuenta en efameinsa.com (0528, Santos 17-10). */}
+        <MensajesMiCuenta cuentaId={cuenta.id} siempre />
         <InformesTecnicosDelCliente
           cuentaId={cuenta.id}
           conEnlace={(Boolean(perfilQueMira.es_postventa) && !perfilQueMira.solo_preventivo) || Boolean(perfilQueMira.es_almacen) || ["gerencia", "admin"].includes(perfilQueMira.rol)}

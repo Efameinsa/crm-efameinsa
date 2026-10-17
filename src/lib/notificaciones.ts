@@ -75,7 +75,10 @@ export type TipoNotificacion =
   // Queda menos de un día de saldo estimado en Google Ads (0421, gerencia 07-10): a admin.
   | "saldo_ads"
   // Pedidos al catálogo (0523, Santos 17-10): a Lesly, y la respuesta a quien pidió.
-  | "catalogo";
+  | "catalogo"
+  // Mi cuenta de efameinsa.com (0527/0528, Santos 17-10): el cliente confirmó que
+  // recibió su pedido o escribió por el chat de su perfil.
+  | "portal";
 
 interface Destinatario {
   userId?: string;

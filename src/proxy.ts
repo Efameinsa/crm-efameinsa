@@ -226,6 +226,9 @@ export const config = {
     // vendor: el «worker» de pdf.js que usa la app de Android para mostrar PDF
     // (public/vendor, 01-10-2026). Un worker pedido detrás de una redirección
     // al login no arranca; es código público y no lleva ningún dato.
-    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|offline|api/version|api/leads|api/webhooks|api/gasto-campania|api/cron|api/alertas|api/marketing/catalogo-whatsapp|api/campo/osmand|api/tasking|t/|vendor|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // api/portal: Mi cuenta de efameinsa.com pregunta servidor a servidor
+    // (contrato «Experiencia del cliente», 17-10). No trae cookies: su llave
+    // es la firma HMAC con PORTAL_SECRETO, que cada ruta comprueba.
+    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|offline|api/version|api/leads|api/webhooks|api/gasto-campania|api/cron|api/alertas|api/marketing/catalogo-whatsapp|api/campo/osmand|api/tasking|api/portal/|t/|vendor|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

@@ -28,6 +28,8 @@ import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
 import { guardaFichaPedido } from "@/lib/propuesta/guardas";
 import { ArrowLeft } from "lucide-react";
 import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
+import { TecnicoEnCaminoPanel } from "@/components/crm/tecnico-en-camino-panel";
+import { MensajesMiCuenta } from "@/components/crm/mensajes-mi-cuenta";
 import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
 import { EquipoConSeries } from "@/components/crm/equipo-con-series";
 import { DocumentosExpedientePedido, HerramientasPedido, PagoDelPedido, cargarExpedientePedido } from "@/components/crm/pedido-expediente-bloques";
@@ -230,6 +232,11 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
           />
         </div>
         <aside className="space-y-4">
+          {/* Mi cuenta de efameinsa.com (0527/0528): el técnico en camino y el chat del cliente. */}
+          {!(circuito.esRepuesto && !circuito.conInstalacion) && !circuito.esEmbalaje && !circuito.esAccesorio && (
+            <TecnicoEnCaminoPanel donde="pedido" id={servicio.id} />
+          )}
+          <MensajesMiCuenta cuentaId={(servicio as { cuenta_id?: string | null }).cuenta_id} servicioId={servicio.id} />
           {/* Todos los informes del pedido, cada uno abre su detalle (reunión 28-09). */}
           <InformesDelPedido servicio={servicio} equiposTexto={equiposTexto} />
           <div className="rounded-xl border border-border bg-card p-4 text-sm shadow-sm">

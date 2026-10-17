@@ -19,6 +19,7 @@ import { ETIQUETA_ESTADO_APERTURA, aperturaAbierta, estadoApertura } from "@/lib
 import { EquipoConSeries } from "@/components/crm/equipo-con-series";
 import { fechaCalendario } from "@/lib/fechas";
 import {
+  circuitoDe,
   queLoFrena,
   saldoPendiente,
   avancePedido,
@@ -36,6 +37,8 @@ import { CerrarPedidoAnterior } from "@/components/crm/cerrar-pedido-anterior";
 import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 import { documentosPorPaso } from "@/lib/documentos-por-paso";
 import { numeroInforme } from "@/lib/aperturas-llamada";
+import { TecnicoEnCaminoPanel } from "@/components/crm/tecnico-en-camino-panel";
+import { MensajesMiCuenta } from "@/components/crm/mensajes-mi-cuenta";
 
 export const dynamic = "force-dynamic";
 
@@ -157,6 +160,9 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
     : { data: null };
 
   const frena = queLoFrena(servicio);
+  // El técnico va al cliente cuando hay instalación, puesta en marcha o servicio (0527).
+  const circuitoPedido = circuitoDe(servicio);
+  const conTecnico = !(circuitoPedido.esRepuesto && !circuitoPedido.conInstalacion) && !circuitoPedido.esEmbalaje && !circuitoPedido.esAccesorio;
   const saldo = saldoPendiente(servicio);
   const total = Number(servicio.monto ?? 0);
   const pagado = Number(servicio.monto_pagado ?? 0);
@@ -450,6 +456,9 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
         />
 
         <div className="space-y-4">
+          {/* Mi cuenta de efameinsa.com (0527/0528): el técnico en camino y el chat del cliente. */}
+          {conTecnico && <TecnicoEnCaminoPanel donde="pedido" id={servicio.id} />}
+          <MensajesMiCuenta cuentaId={(servicio as { cuenta_id?: string | null }).cuenta_id} servicioId={servicio.id} />
           {/* Todos los informes del pedido, cada uno abre su detalle (reunión 28-09). */}
           <InformesDelPedido servicio={servicio} equiposTexto={equiposTexto} />
           <EquiposDelPedido candado={candadoProtocolo === true} servicioId={servicio.id} equipos={listaEquipos} modo="postventa" despachado={Boolean(servicio.despachado_at)} cliente={(servicio.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "")} />
