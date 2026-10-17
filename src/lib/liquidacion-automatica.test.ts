@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calcularLiquidacion, complementosIniciales, type BaseLiquidacion, type Complementos } from "./liquidacion-automatica";
+import { aplicarAjustes, calcularLiquidacion, complementosIniciales, type BaseLiquidacion, type Complementos } from "./liquidacion-automatica";
 
 // Los cuatro Excel de Jhon (reunión 17-10): contado, anticipos con comisión,
 // detracción de un servicio y saldo en letras.
@@ -95,5 +95,19 @@ describe("liquidación automática (0534)", () => {
     expect(l.bloques.at(-1)?.saldo).toBe(0);
     const l2 = calcularLiquidacion(base({ total: 100 }), { ...sin, letras: { cantidad: 3, cadaDias: 30, giro: "2026-05-21", interes: 0 } }, "2026-10-17");
     expect(l2.letras.reduce((n, x) => n + x.monto, 0)).toBeCloseTo(100, 2);
+  });
+
+  it("ajustes: el cliente y el recuadro escritos a mano mandan; los renglones editados recalculan el total", () => {
+    const b = base({});
+    const l = calcularLiquidacion(b, { ...sin, ajustes: { cliente: "OTRO NOMBRE SAC", rotulo: "operación en revisión", fecha: "2026-10-01" } }, "2026-10-17");
+    expect(l.base.cliente).toBe("OTRO NOMBRE SAC");
+    expect(l.rotulo).toBe("OPERACIÓN EN REVISIÓN");
+    expect(l.fecha).toBe("2026-10-01");
+    const a = aplicarAjustes(b, { renglones: [{ cantidad: 2, descripcion: "X", precioUnitario: 100, importe: 0, series: [" A1 ", ""] }] });
+    expect(a.subtotal).toBe(200);
+    expect(a.total).toBe(236);
+    expect(a.renglones[0].series).toEqual(["A1"]);
+    // Vacío = lo del CRM.
+    expect(aplicarAjustes(b, { cliente: "  " }).cliente).toBe("CLIENTE SAC");
   });
 });

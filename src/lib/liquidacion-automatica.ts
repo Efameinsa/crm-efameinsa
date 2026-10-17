@@ -22,6 +22,27 @@ import { textoCondicionPago } from "@/lib/postventa";
 
 export type TipoRetenido = "detraccion" | "retencion";
 
+/**
+ * LO QUE FINANZAS AJUSTA A MANO (Santos, 17-10: «que tenga un editor de
+ * campos para ajustar alguna parte que desee»). Cada campo vacío = se usa lo
+ * que trajo el CRM. Los renglones, si están, reemplazan a los del cierre y
+ * los totales se recalculan con ellos.
+ */
+export interface AjustesLiquidacion {
+  fecha?: string;
+  cliente?: string;
+  clienteDoc?: string;
+  pedido?: string;
+  renglones?: RenglonLiquidacion[] | null;
+  /** Por abono: cómo se escribe el banco y la operación en el papel. */
+  abonos?: Record<string, { medio?: string; operacion?: string }>;
+  formaPago?: string;
+  cotizacion?: string;
+  ordenCompra?: string;
+  /** El recuadro de la operación escrito a mano; vacío = lo calcula el CRM. */
+  rotulo?: string;
+}
+
 export interface Complementos {
   /** Factura de cada abono (id del abono → número), o «» = pendiente de factura. */
   facturaDeAbono: Record<string, string>;
@@ -29,6 +50,48 @@ export interface Complementos {
   letras: { cantidad: number; cadaDias: number; giro: string; interes: number } | null;
   guia: string;
   nota: string;
+  ajustes?: AjustesLiquidacion;
+}
+
+/** La base con los ajustes de Finanzas encima; los totales se recalculan si cambió algún renglón. */
+export function aplicarAjustes(b: BaseLiquidacion, a: AjustesLiquidacion | undefined): BaseLiquidacion {
+  if (!a) return b;
+  const t = (v: string | undefined) => (v?.trim() ? v.trim() : undefined);
+  let renglones = b.renglones;
+  let subtotal = b.subtotal, igv = b.igv, total = b.total;
+  if (a.renglones) {
+    renglones = a.renglones.map((r) => ({
+      ...r,
+      cantidad: Number(r.cantidad) || 0,
+      precioUnitario: Number(r.precioUnitario) || 0,
+      importe: redondear2((Number(r.cantidad) || 0) * (Number(r.precioUnitario) || 0)),
+      series: (r.series ?? []).map((x) => x.trim()).filter(Boolean),
+    }));
+    subtotal = redondear2(renglones.reduce((n, r) => n + r.importe, 0));
+    igv = redondear2(subtotal * 0.18);
+    total = redondear2(subtotal + igv);
+  }
+  const abonos = a.abonos
+    ? b.abonos.map((x) => {
+        const e = a.abonos![x.id];
+        return e ? { ...x, medio: t(e.medio) ?? x.medio, operacion: t(e.operacion) ?? x.operacion } : x;
+      })
+    : b.abonos;
+  return {
+    ...b,
+    cliente: t(a.cliente) ?? b.cliente,
+    clienteDoc: t(a.clienteDoc) ?? b.clienteDoc,
+    pedido: t(a.pedido) ?? b.pedido,
+    renglones,
+    series: a.renglones ? [] : b.series,
+    subtotal,
+    igv,
+    total,
+    abonos,
+    formaPago: t(a.formaPago) ?? b.formaPago,
+    cotizacion: t(a.cotizacion) ?? b.cotizacion,
+    ordenCompra: t(a.ordenCompra) ?? b.ordenCompra,
+  };
 }
 
 export interface RenglonLiquidacion {
@@ -169,11 +232,16 @@ export function complementosIniciales(b: BaseLiquidacion, hoy: string): Compleme
     ? { ...b.retenidoGuardado, pct: ant?.retenido?.pct ?? PCT_RETENIDO[b.retenidoGuardado.tipo] }
     : (ant?.retenido ?? null);
   const letras = ant?.letras ?? (b.letrasCantidad && b.letrasCantidad > 0 ? { cantidad: b.letrasCantidad, cadaDias: 30, giro: hoy, interes: 0 } : null);
-  return { facturaDeAbono, retenido, letras, guia: ant?.guia ?? "", nota: "" };
+  // Los ajustes de la anterior (cliente corregido, renglones…) se heredan; la fecha no.
+  const { fecha: _fecha, ...ajustes } = ant?.ajustes ?? {};
+  void _fecha;
+  return { facturaDeAbono, retenido, letras, guia: ant?.guia ?? "", nota: "", ajustes };
 }
 
 /** Arma la liquidación entera: bloques, saldo, letras, estado y notas. Pura (se prueba sin base). */
-export function calcularLiquidacion(b: BaseLiquidacion, c: Complementos, hoy: string): Liquidacion {
+export function calcularLiquidacion(b0: BaseLiquidacion, c: Complementos, hoy: string): Liquidacion {
+  const b = aplicarAjustes(b0, c.ajustes);
+  const fecha = /^\d{4}-\d{2}-\d{2}$/.test(c.ajustes?.fecha ?? "") ? c.ajustes!.fecha! : hoy;
   const abonos = [...b.abonos].sort((x, y) => x.fecha.localeCompare(y.fecha) || x.createdAt.localeCompare(y.createdAt));
   const ftDe = (a: AbonoLiquidacion) => (c.facturaDeAbono[a.id] ?? "").trim().toUpperCase();
 
@@ -282,6 +350,7 @@ export function calcularLiquidacion(b: BaseLiquidacion, c: Complementos, hoy: st
   if (cancelado && c.retenido && !c.retenido.cobrado) rotulo += ` · PENDIENTE COBRO DE ${NOMBRE_RETENIDO[c.retenido.tipo].toUpperCase()}`;
   if (!cancelado && !hayCola && comisionPendiente > 0) rotulo = "OPERACIÓN PENDIENTE: FALTA LA COMISIÓN DEL BANCO";
   if (!cancelado && letras.length) rotulo = `OPERACIÓN CON SALDO EN ${letras.length} LETRA${letras.length === 1 ? "" : "S"}`;
+  if (c.ajustes?.rotulo?.trim()) rotulo = c.ajustes.rotulo.trim().toUpperCase();
 
   // La factura del historial: con un abono sin factura, es un anticipo por
   // facturar (Contabilidad recibe el aviso); si no, la última emitida.
@@ -299,7 +368,7 @@ export function calcularLiquidacion(b: BaseLiquidacion, c: Complementos, hoy: st
   ];
   if (c.retenido) notas.push(`OPERACIÓN AFECTA A ${NOMBRE_RETENIDO[c.retenido.tipo].toUpperCase()} (${c.retenido.pct} %)`);
 
-  return { base: b, numero: b.yaHay + 1, fecha: hoy, bloques, comisiones, saldo, comisionPendiente, letras, estado, rotulo, facturaVigente, notas, notaLibre: c.nota.trim().toUpperCase() };
+  return { base: b, numero: b.yaHay + 1, fecha, bloques, comisiones, saldo, comisionPendiente, letras, estado, rotulo, facturaVigente, notas, notaLibre: c.nota.trim().toUpperCase() };
 }
 
 type Fila = Record<string, unknown>;

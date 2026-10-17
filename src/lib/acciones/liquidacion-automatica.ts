@@ -6,7 +6,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { hoyLima } from "@/lib/periodo";
 import { notificar, notificarCentral, notificarFacturacion } from "@/lib/notificaciones";
 import { enlaceCierreDelPedido } from "@/lib/enlace-cierre-central";
-import { calcularLiquidacion, cargarBaseLiquidacion, type BaseLiquidacion, type Complementos } from "@/lib/liquidacion-automatica";
+import { calcularLiquidacion, cargarBaseLiquidacion, type Complementos } from "@/lib/liquidacion-automatica";
 import { pdfDeLiquidacion } from "@/lib/pdf/liquidacion-servidor";
 import { textoParaNombreArchivo } from "@/lib/nombre-archivo";
 
@@ -23,14 +23,6 @@ function revisar(c: Complementos): string | null {
   if (c.letras && !(c.letras.cantidad >= 1 && c.letras.cantidad <= 36)) return "Las letras van de 1 a 36.";
   if (c.letras && !/^\d{4}-\d{2}-\d{2}$/.test(c.letras.giro)) return "Falta la fecha de giro de las letras.";
   return null;
-}
-
-/** Lo que el diálogo necesita al abrirse: el pedido ya leído y la fecha de hoy. */
-export async function prepararLiquidacion(servicioId: string): Promise<{ error: string | null; base?: BaseLiquidacion; hoy?: string }> {
-  const perfil = await requerirPerfil();
-  const base = await cargarBaseLiquidacion(await createClient(), servicioId, perfil.id);
-  if (!base) return { error: "No se encontró el pedido." };
-  return { error: null, base, hoy: hoyLima() };
 }
 
 /** La vista previa, sin guardar nada: el PDF en base64. */
