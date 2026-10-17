@@ -6,7 +6,7 @@ import { tituloPedido } from "@/lib/portal/traductor";
 import { leerPeticionPortal, noEncontrado, rechazo, soloPost, texto } from "@/lib/portal/peticion";
 
 /**
- * «YA LO RECIBÍ» (contrato «Experiencia del cliente», 17-10; columnas de la 0525).
+ * «YA LO RECIBÍ» (contrato «Experiencia del cliente», 17-10; columnas de la 0527).
  *
  * Cuerpo: { email?, telefono?, pedido_id, nota?, foto?: { nombre, tipo, contenido_base64 } }.
  * Marca la recepción una sola vez (idempotente): si ya estaba, no cambia la

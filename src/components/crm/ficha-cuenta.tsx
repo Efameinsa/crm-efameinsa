@@ -375,7 +375,7 @@ export async function FichaCuenta({
         {/* Reunión 23-09: lo vivo con el cliente y sus máquinas, al costado,
             para no tener que ir a Pedidos a buscarlo. */}
         <PendientesDelCliente cuentaId={cuenta.id} conEnlace={veTodoPostventa(perfilQueMira) && !comoCentral} />
-        {/* El chat de Mi cuenta en efameinsa.com (0526, Santos 17-10). */}
+        {/* El chat de Mi cuenta en efameinsa.com (0528, Santos 17-10). */}
         <MensajesMiCuenta cuentaId={cuenta.id} siempre />
         <InformesTecnicosDelCliente
           cuentaId={cuenta.id}

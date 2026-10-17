@@ -6,7 +6,7 @@ import { requerirPerfil } from "@/lib/auth";
 
 /**
  * Lo que el personal hace con Mi cuenta de efameinsa.com desde el CRM
- * (contrato «Experiencia del cliente», 17-10; migraciones 0525 y 0526):
+ * (contrato «Experiencia del cliente», 17-10; migraciones 0527 y 0528):
  * marcar los dos pasos del técnico y responder el chat del cliente.
  *
  * Todo va con la sesión de quien hace clic: las reglas de quién puede viven
@@ -18,7 +18,7 @@ import { requerirPerfil } from "@/lib/auth";
 const limpiar = (m: string) => m.replace(/^[A-Z0-9]{5}:\s*/, "");
 
 function comoFalla(mensaje: string) {
-  // Antes de aplicar la 0525/0526 la función o la tabla no existen: se dice con palabras.
+  // Antes de aplicar la 0527/0528 la función o la tabla no existen: se dice con palabras.
   if (/does not exist|could not find|schema cache|PGRST20[0-9]/i.test(mensaje)) {
     return { error: "Esta parte todavía no está activa en el sistema. Avise a operaciones." };
   }

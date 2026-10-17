@@ -3,7 +3,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { TecnicoEnCamino } from "@/components/crm/tecnico-en-camino";
 
 /**
- * Carga las dos marcas del técnico (0525) por su cuenta, para que la página
+ * Carga las dos marcas del técnico (0527) por su cuenta, para que la página
  * del pedido o del caso no dependa de que la migración ya esté aplicada: si
  * las columnas todavía no existen, el panel no aparece y nada más cambia.
  */

@@ -511,7 +511,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
             <ConQuienHablar cuentaId={a.cuenta_id ?? null} oportunidadId={a.oportunidad_id} />
           </SeccionPanel>
 
-          {/* Mi cuenta de efameinsa.com (0525/0526): el técnico en camino y el chat del cliente. */}
+          {/* Mi cuenta de efameinsa.com (0527/0528): el técnico en camino y el chat del cliente. */}
           <TecnicoEnCaminoPanel donde="caso" id={a.id} />
           <MensajesMiCuenta cuentaId={a.cuenta_id} atencionId={a.id} />
 

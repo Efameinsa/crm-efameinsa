@@ -160,7 +160,7 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
     : { data: null };
 
   const frena = queLoFrena(servicio);
-  // El técnico va al cliente cuando hay instalación, puesta en marcha o servicio (0525).
+  // El técnico va al cliente cuando hay instalación, puesta en marcha o servicio (0527).
   const circuitoPedido = circuitoDe(servicio);
   const conTecnico = !(circuitoPedido.esRepuesto && !circuitoPedido.conInstalacion) && !circuitoPedido.esEmbalaje && !circuitoPedido.esAccesorio;
   const saldo = saldoPendiente(servicio);
@@ -456,7 +456,7 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
         />
 
         <div className="space-y-4">
-          {/* Mi cuenta de efameinsa.com (0525/0526): el técnico en camino y el chat del cliente. */}
+          {/* Mi cuenta de efameinsa.com (0527/0528): el técnico en camino y el chat del cliente. */}
           {conTecnico && <TecnicoEnCaminoPanel donde="pedido" id={servicio.id} />}
           <MensajesMiCuenta cuentaId={(servicio as { cuenta_id?: string | null }).cuenta_id} servicioId={servicio.id} />
           {/* Todos los informes del pedido, cada uno abre su detalle (reunión 28-09). */}

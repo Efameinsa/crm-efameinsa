@@ -312,7 +312,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
             </div>
             <div className="space-y-4">
               <PendientesDelCliente cuentaId={cuenta.id} conEnlace={esArea} />
-              {/* El chat de Mi cuenta en efameinsa.com (0526, Santos 17-10). */}
+              {/* El chat de Mi cuenta en efameinsa.com (0528, Santos 17-10). */}
               <MensajesMiCuenta cuentaId={cuenta.id} siempre />
               <InformesTecnicosDelCliente cuentaId={cuenta.id} conEnlace={abreInformes} />
               <CorreosDeCampana cuentaId={cuenta.id} verTodo={`/nuevo/cliente/${cuenta.id}?tab=correos`} />

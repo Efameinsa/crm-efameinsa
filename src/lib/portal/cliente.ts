@@ -39,7 +39,7 @@ export interface IdentidadPortal {
 export interface ClienteIdentificado {
   cuentas: { id: string; razon_social: string; num_doc: string | null; comercial_id: string | null }[];
   nombre: string;
-  /** Pedidos de otra ficha donde esta persona figura como quien recibe (0525). */
+  /** Pedidos de otra ficha donde esta persona figura como quien recibe (0527). */
   pedidosComoReceptor: string[];
   /** Los correos de prueba ven también las filas de práctica (es_prueba). */
   incluyePrueba: boolean;
@@ -184,7 +184,7 @@ export async function identificarCliente(admin: Admin, ident: IdentidadPortal): 
     let q = admin.from("servicios_postventa").select("id, cuenta_id").eq("recibe_telefono_normalizado", conTel).limit(50);
     if (!incluyePrueba) q = q.eq("es_prueba", false);
     const { data, error } = await q;
-    // Antes de la 0525 la columna no existe: se sigue sin esta búsqueda.
+    // Antes de la 0527 la columna no existe: se sigue sin esta búsqueda.
     if (!error) {
       pedidosComoReceptor = ((data ?? []) as { id: string; cuenta_id: string | null }[])
         .filter((p) => !p.cuenta_id || !vivas.has(p.cuenta_id))

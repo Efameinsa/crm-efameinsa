@@ -76,7 +76,7 @@ export type TipoNotificacion =
   | "saldo_ads"
   // Pedidos al catálogo (0523, Santos 17-10): a Lesly, y la respuesta a quien pidió.
   | "catalogo"
-  // Mi cuenta de efameinsa.com (0525/0526, Santos 17-10): el cliente confirmó que
+  // Mi cuenta de efameinsa.com (0527/0528, Santos 17-10): el cliente confirmó que
   // recibió su pedido o escribió por el chat de su perfil.
   | "portal";
 

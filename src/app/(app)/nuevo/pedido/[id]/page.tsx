@@ -232,7 +232,7 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
           />
         </div>
         <aside className="space-y-4">
-          {/* Mi cuenta de efameinsa.com (0525/0526): el técnico en camino y el chat del cliente. */}
+          {/* Mi cuenta de efameinsa.com (0527/0528): el técnico en camino y el chat del cliente. */}
           {!(circuito.esRepuesto && !circuito.conInstalacion) && !circuito.esEmbalaje && !circuito.esAccesorio && (
             <TecnicoEnCaminoPanel donde="pedido" id={servicio.id} />
           )}

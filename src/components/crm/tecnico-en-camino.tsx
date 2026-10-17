@@ -10,7 +10,7 @@ import { fechaHoraLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 
 /**
- * «EL TÉCNICO SALIÓ HACIA EL CLIENTE» Y «EL TÉCNICO LLEGÓ AL LOCAL» (0525).
+ * «EL TÉCNICO SALIÓ HACIA EL CLIENTE» Y «EL TÉCNICO LLEGÓ AL LOCAL» (0527).
  *
  * Dos marcas con hora y nombre, como los demás pasos del pedido: el check se
  * pinta al tocar y, si el servidor dice que no, vuelve atrás y avisa. La

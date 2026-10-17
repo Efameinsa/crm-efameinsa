@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- 0525 · EL TÉCNICO VA EN CAMINO, EL TÉCNICO LLEGÓ, Y «YA LO RECIBÍ»
+-- 0527 · EL TÉCNICO VA EN CAMINO, EL TÉCNICO LLEGÓ, Y «YA LO RECIBÍ»
 -- ═══════════════════════════════════════════════════════════════════════════
 -- Santos, 17-10 (contrato «Experiencia del cliente»): el cliente ve en Mi
 -- cuenta de efameinsa.com todo su historial del CRM, recibe un aviso en cada
@@ -44,13 +44,13 @@ create index if not exists ix_servicios_pv_recibe_tel
   where recibe_telefono_normalizado is not null;
 
 comment on column public.servicios_postventa.recibido_cliente_at is
-  'El cliente confirmó en Mi cuenta (efameinsa.com) que recibió el pedido (0525).';
+  'El cliente confirmó en Mi cuenta (efameinsa.com) que recibió el pedido (0527).';
 comment on column public.servicios_postventa.recibido_cliente_fotos is
-  'Fotos que subió el cliente al confirmar la recepción: [{path, nombre, tipo, etiqueta:"recibido"}] en el bucket adjuntos (0525).';
+  'Fotos que subió el cliente al confirmar la recepción: [{path, nombre, tipo, etiqueta:"recibido"}] en el bucket adjuntos (0527).';
 comment on column public.servicios_postventa.tecnico_salio_at is
-  '«El técnico salió hacia el cliente» (0525): dispara el aviso «El técnico va en camino».';
+  '«El técnico salió hacia el cliente» (0527): dispara el aviso «El técnico va en camino».';
 comment on column public.servicios_postventa.tecnico_llego_at is
-  '«El técnico llegó al local» (0525).';
+  '«El técnico llegó al local» (0527).';
 
 alter table public.atenciones
   add column if not exists tecnico_salio_at timestamptz,

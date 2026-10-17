@@ -6,7 +6,7 @@ import { LimiteDeTasa } from "@/lib/campo-osmand";
 import { leerPeticionPortal, noEncontrado, rechazo, soloPost, texto } from "@/lib/portal/peticion";
 
 /**
- * EL CLIENTE ESCRIBE DESDE MI CUENTA (contrato «Experiencia del cliente», 17-10; tabla de la 0526).
+ * EL CLIENTE ESCRIBE DESDE MI CUENTA (contrato «Experiencia del cliente», 17-10; tabla de la 0528).
  *
  * Cuerpo: { email?, telefono?, texto (1..2000), pedido_id?, caso_id? }.
  * Guarda el mensaje en `portal_mensajes` y avisa al comercial dueño de la

@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- 0526 · MENSAJES DE MI CUENTA (el chat del cliente en efameinsa.com)
+-- 0528 · MENSAJES DE MI CUENTA (el chat del cliente en efameinsa.com)
 -- ═══════════════════════════════════════════════════════════════════════════
 -- Santos, 17-10: el cliente tiene un chat en su perfil de la web. Lo que
 -- escribe llega acá (POST /api/portal/mensaje, con la llave de servicio) y el
@@ -40,7 +40,7 @@ create index if not exists ix_portal_mensajes_sin_leer on public.portal_mensajes
   where leido_at is null and autor = 'cliente';
 
 comment on table public.portal_mensajes is
-  'Chat de Mi cuenta (efameinsa.com) con el cliente (0526). El cliente escribe vía /api/portal/mensaje; el personal responde desde la ficha.';
+  'Chat de Mi cuenta (efameinsa.com) con el cliente (0528). El cliente escribe vía /api/portal/mensaje; el personal responde desde la ficha.';
 
 alter table public.portal_mensajes enable row level security;
 

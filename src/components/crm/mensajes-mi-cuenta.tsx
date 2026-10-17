@@ -2,11 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { ChatMiCuenta, type MensajeMiCuenta } from "@/components/crm/chat-mi-cuenta";
 
 /**
- * «MENSAJES DE MI CUENTA» (0526): el chat que el cliente tiene en su perfil de
+ * «MENSAJES DE MI CUENTA» (0528): el chat que el cliente tiene en su perfil de
  * efameinsa.com, leído y respondido desde la ficha y desde el pedido o el caso.
  *
  * Lee con la sesión de quien mira: la RLS deja ver los mensajes de las fichas
- * que esa persona ya ve. Si la tabla todavía no existe (antes de la 0526) o
+ * que esa persona ya ve. Si la tabla todavía no existe (antes de la 0528) o
  * no hay mensajes y no se pidió mostrarla vacía, la sección no aparece.
  */
 export async function MensajesMiCuenta({
