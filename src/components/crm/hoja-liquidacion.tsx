@@ -103,7 +103,7 @@ export function HojaLiquidacion({ l, className }: { l: Liquidacion; className?: 
       </div>
 
       <div className="mt-1 flex gap-3">
-        <div className="w-44 shrink-0">
+        <div className={l.comisiones.length > 0 || l.notaLibre ? "w-44 shrink-0" : "hidden"}>
           {l.comisiones.length > 0 && (
             <div className="mt-2">
               <p className="font-bold">COMISIONES</p>
@@ -186,7 +186,7 @@ export function HojaLiquidacion({ l, className }: { l: Liquidacion; className?: 
 function Caja({ izquierda, rotulo, monto, sombra, rojo }: { izquierda?: string; rotulo: string; monto: string; sombra?: boolean; rojo?: boolean }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="flex-1 truncate text-right text-[10px] font-bold">{izquierda ?? ""}</span>
+      <span className="min-w-0 flex-1 break-words text-right text-[10px] font-bold leading-tight">{izquierda ?? ""}</span>
       <span className={cn("w-24 border border-black px-1 text-[10px] font-bold leading-4", sombra && "bg-[#A6A6A6]")}>{rotulo}</span>
       <span className={cn("w-24 border border-black px-1 text-right text-[10px] font-bold leading-4", sombra && "bg-[#A6A6A6]", rojo && "text-[#C00000]")}>{monto}</span>
     </div>
