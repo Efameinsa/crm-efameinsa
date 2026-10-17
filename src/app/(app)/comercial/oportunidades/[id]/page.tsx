@@ -1,4 +1,5 @@
-import { Phone, Mail, MapPin, FileText, CalendarClock, Building2, MessageCircle } from "lucide-react";
+import { Phone, Mail, MapPin, FileText, CalendarClock, Building2, MessageCircle, ArrowLeft } from "lucide-react";
+import { etiquetaTipoExpediente } from "@/lib/tipo-expediente";
 import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
 import { VincularRazonSocial } from "@/components/crm/vincular-razon-social";
 import { versionesAnteriores } from "@/lib/versiones-cotizacion";
@@ -540,19 +541,31 @@ export default async function OportunidadDetallePage({
 
   return (
     <div className="space-y-4">
+      {/* DÓNDE ESTOY Y CÓMO VUELVO (17-10, Ariana PV3). Desde la ficha, el
+          expediente se leía como «la ficha con más cosas», y la vuelta era un
+          enlace de 11 px bajo el nombre. La miga dice que esto es UN
+          expediente DEL cliente, y el botón regresa a su ficha. */}
+      {cuenta?.id && (
+        <nav aria-label="Ubicación" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          <Link
+            href={`/comercial/cartera/${cuenta.id}`}
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 font-medium text-foreground shadow-sm transition-colors hover:bg-accent"
+          >
+            <ArrowLeft className="size-3.5" /> Ficha del cliente
+          </Link>
+          <span className="truncate">
+            {cuenta.razon_social ?? "Cliente"} <span className="text-muted-foreground/60">›</span>{" "}
+            <span className="font-medium text-foreground">Expediente · {etiquetaTipoExpediente(oportunidad.tipo_postventa)}</span>
+          </span>
+        </nav>
+      )}
       {/* Encabezado: identidad de la cuenta + estado, siempre visible arriba */}
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-lg font-bold text-foreground">{cuenta?.razon_social ?? "Cuenta sin nombre"}</h1>
-            {/* Volver a la ficha principal del cliente (gerencia, 28-09: «ahí no
-                te lleva a la ficha principal»). El expediente es un caso; el
-                cliente, con todos sus expedientes, está en su ficha. */}
-            {cuenta?.id && (
-              <Link href={`/comercial/cartera/${cuenta.id}`} className="text-xs font-medium text-primary hover:underline">
-                Ir a la ficha del cliente (todos sus expedientes) →
-              </Link>
-            )}
+            {/* La vuelta a la ficha principal (gerencia, 28-09: «ahí no te lleva
+                a la ficha principal») subió a la miga de arriba (17-10). */}
             {/* Gestiones en el expediente equivocado (0514): las mueve quien puede arreglarlo. */}
             {["central", "admin", "gerencia", "operaciones"].includes(perfilQueMira.rol) && (
               <div className="mt-0.5">
@@ -828,13 +841,16 @@ export default async function OportunidadDetallePage({
                     se descubre: el 29-08 Brenda escribió «no desea equipos… desea
                     mmto, repuestos, se le indicó que se va a derivar con
                     postventa» y no tenía dónde apretar para que eso ocurriera.
-                    Central no lee las notas de gestión. */}
-                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
-                  <PideServicioBoton oportunidadId={oportunidad.id} />
-                  <span className="text-[11px] text-muted-foreground">
-                    Si al llamar resulta que no quiere equipos: quiere mantenimiento, repuestos o tiene una garantía.
-                  </span>
-                </div>
+                    Central no lee las notas de gestión. En un expediente que YA
+                    es de postventa no aplica (17-10): sobraba y confundía. */}
+                {oportunidad.tipo_postventa == null && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+                    <PideServicioBoton oportunidadId={oportunidad.id} />
+                    <span className="text-[11px] text-muted-foreground">
+                      Si al llamar resulta que no quiere equipos: quiere mantenimiento, repuestos o tiene una garantía.
+                    </span>
+                  </div>
+                )}
               </>
             ) : (
               <PedirExpedienteBoton
@@ -942,6 +958,10 @@ export default async function OportunidadDetallePage({
             )}
           </SeccionPanel>
 
+          {/* Interés de compra y segmento son de la venta de equipos (17-10):
+              en un caso de postventa no se califican, y el monto ya lo pone la
+              cotización (0188). */}
+          {oportunidad.tipo_postventa == null && (
           <SeccionPanel titulo="Calificación">
             <CalificacionOportunidad
               // Remonta si el interés cambió desde otro lado (el resultado
@@ -954,6 +974,7 @@ export default async function OportunidadDetallePage({
               segmentoInicial={oportunidad.segmento}
             />
           </SeccionPanel>
+          )}
 
           {cuenta?.id && (
             <SeccionPanel titulo="Infocorp" id="infocorp">

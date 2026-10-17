@@ -113,6 +113,7 @@ export function RegistroRapido({
   agendaDeOtro = null,
   esPostventa = false,
   tipoInicial,
+  alRegistrar,
 }: {
   oportunidadId: string;
   resultados?: ResultadoGestion[];
@@ -132,9 +133,15 @@ export function RegistroRapido({
    * el clic en el WhatsApp lleve directo a anotar la gestión) llega «whatsapp».
    */
   tipoInicial?: TipoGestion;
+  /** Se llama cuando la gestión quedó guardada (el panel de la ficha se cierra solo). */
+  alRegistrar?: () => void;
 }) {
   const reducido = useReducedMotion();
-  const [expandido, setExpandido] = useState(abiertoAlInicio);
+  // LOS TRES PASOS A LA VISTA (17-10, Ariana PV3: «tengo que presionar para
+  // que aparezcan más cosas»). Plegado, el formulario escondía «¿En qué
+  // quedó?», la próxima acción y el botón hasta escribir en «¿Qué pasó?»,
+  // mientras el aviso ámbar de arriba pedía agendar algo que no se veía.
+  const [expandido, setExpandido] = useState(true);
   const [tipo, setTipo] = useState<TipoGestion>(tipoInicial ?? "llamada");
   const [nota, setNota] = useState("");
   const [resultadoId, setResultadoId] = useState<number | null>(null);
@@ -193,7 +200,6 @@ export function RegistroRapido({
   }
 
   function limpiar() {
-    setExpandido(false);
     setTipo("llamada");
     setNota("");
     setResultadoId(null);
@@ -364,6 +370,7 @@ export function RegistroRapido({
       if (r1.aviso) {
         toast.info(r1.aviso, { duration: 8000 });
         limpiar();
+        alRegistrar?.();
         return;
       }
       toast.success(
@@ -376,6 +383,7 @@ export function RegistroRapido({
             : "Gestión registrada",
       );
       limpiar();
+      alRegistrar?.();
     });
   }
 
