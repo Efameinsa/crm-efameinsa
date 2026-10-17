@@ -18,6 +18,11 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 17-10 · Mi cuenta del cliente en efameinsa.com y avisos por cada estado (Santos)
+- **Qué pidió Santos:** que cada cliente tenga usuario y contraseña en efameinsa.com, entregados por correo y por un WhatsApp de atención al cliente; que vea desde su perfil su cotización, sus pedidos, repuestos, mantenimientos, documentos y fotos; que reciba un aviso en cada cambio de estado (embalado, salió, llegó a la agencia de su provincia, lo recibió, técnico enviado y llegó, puesta en marcha); y un chat. Objetivo: mejor experiencia del cliente y más opiniones en Google.
+- **Qué se hizo:** Mi cuenta ya lee el historial del CRM; en el CRM hay botones «El técnico salió / llegó», el «Ya lo recibí» del cliente y «Mensajes de Mi cuenta» en la ficha, el pedido y el caso. El motor de avisos quedó en **piloto**: solo la lista de prueba recibe de verdad.
+- **Pendiente:** el chip nuevo para el WhatsApp de atención al cliente (lo pide Santos), método de pago en Meta y aprobación de las plantillas; visto bueno de Santos a los textos; ilustraciones de los correos; ampliar la lista del piloto.
+
 ### 17-10 · El caso de postventa es de quien lo trabaja (Ariana, Santos)
 - **Qué pasó (ECOLAV, continuación del 16-10):** Central le derivó a Ariana el pedido de la válvula de gas, pero el cliente ya tenía un expediente abierto a nombre de Rubí y ahí se quedó. Ariana registró la llamada, armó la cotización, gerencia la aprobó y ella la confirmó, pero no la veía en su Kanban: «Mis oportunidades» muestra solo los casos propios, y el caso seguía siendo de Rubí. Además, la próxima acción había quedado en una llamada de septiembre, vencida.
 - **Qué se decidió (Santos, 17-10):** se aplica la regla de gerencia del 29-09, «cuando alguien lo gestiona es suyo», también entre las personas de postventa, no solo con los casos del área. Quien gestiona, cotiza o confirma se queda con el caso; a quien lo tenía le llega un aviso.
