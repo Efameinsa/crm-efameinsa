@@ -335,7 +335,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
         {pestana === "resumen" && (
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
             <div className="space-y-4">
-              <ExpedientesVivos vivas={vivas} verPrecios={verPrecios} conAnotar={anotaGestion} />
+              <ExpedientesVivos cuentaId={cuenta.id} vivas={vivas} verPrecios={verPrecios} conAnotar={anotaGestion} />
               {siguiente && (
                 <Link href={`/comercial/oportunidades/${siguiente.id}`} className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 transition-colors hover:bg-primary/10">
                   <div className="min-w-0 flex-1">
@@ -363,7 +363,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
 
         {pestana === "pedidos" && (
           <div className="max-w-3xl space-y-4">
-            <ExpedientesVivos vivas={vivas} verPrecios={verPrecios} conAnotar={anotaGestion} />
+            <ExpedientesVivos cuentaId={cuenta.id} vivas={vivas} verPrecios={verPrecios} conAnotar={anotaGestion} />
             <PendientesDelCliente cuentaId={cuenta.id} conEnlace={esArea} />
             <InformesTecnicosDelCliente cuentaId={cuenta.id} conEnlace={abreInformes} />
             {(pedidosAbiertos ?? 0) + (casosAbiertos ?? 0) === 0 && (
@@ -462,6 +462,8 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
 type ExpedienteVivo = {
   id: string; etapa: string; tipo_postventa: string | null; proxima_accion: string | null; proxima_accion_at: string | null;
   proxima_accion_hora: string | null; perfiles: { nombre: string; codigo_comercial: string | null } | null;
+  /** Si es de otra empresa del grupo, cuál (17-10). */
+  empresa?: { id: string; razon_social: string };
 };
 
 /** «Mantenimiento preventivo · Cotizada»: cómo se nombra un expediente fuera de su pantalla. */
@@ -496,9 +498,43 @@ const APROBACION: Record<string, { texto: string; clases: string }> = {
  * INVERSIONES TURÍSTICAS ALEGRÍA la cotización aprobada y confirmada solo
  * asomaba como una fila del historial, bajo el pliegue.
  */
-async function ExpedientesVivos({ vivas, verPrecios, conAnotar }: { vivas: ExpedienteVivo[]; verPrecios: boolean; conAnotar: boolean }) {
-  if (vivas.length === 0) return null;
+async function ExpedientesVivos({
+  cuentaId,
+  vivas: propias,
+  verPrecios,
+  conAnotar,
+}: {
+  cuentaId: string;
+  vivas: ExpedienteVivo[];
+  verPrecios: boolean;
+  conAnotar: boolean;
+}) {
   const supabase = await createClient();
+  // LOS DEL GRUPO TAMBIÉN (17-10, Ariana PV3). Una cadena de hoteles factura
+  // con varias razones sociales: la garantía de HOTELERA CUSCO (cotización
+  // Presu_1129-26) no se veía desde TURISMO COSTA DEL SOL, la empresa madre,
+  // y ella creía que el cliente no estaba en el CRM. Cada fila dice de qué
+  // empresa es; los permisos de siempre deciden cuáles se ven.
+  const { data: grupo } = await supabase.rpc("grupo_economico", { p_cuenta_id: cuentaId });
+  const otras = ((grupo ?? []) as { id: string; razon_social: string; es_esta: boolean }[]).filter((g) => !g.es_esta);
+  const { data: delGrupo } = otras.length
+    ? await supabase
+        .from("oportunidades")
+        .select("id, etapa, tipo_postventa, proxima_accion, proxima_accion_at, proxima_accion_hora, cuenta_id, perfiles:comercial_id(nombre, codigo_comercial)")
+        .in("cuenta_id", otras.map((g) => g.id))
+        .is("cerrada_at", null)
+        .not("etapa", "in", "(venta,rechazada,derivada,historico)")
+        .limit(30)
+    : { data: [] };
+  const vivas: ExpedienteVivo[] = [
+    ...propias,
+    ...((delGrupo ?? []) as unknown as (ExpedienteVivo & { cuenta_id: string })[]).map((o) => {
+      const g = otras.find((x) => x.id === o.cuenta_id)!;
+      return { ...o, empresa: { id: g.id, razon_social: g.razon_social } };
+    }),
+  ];
+  if (vivas.length === 0) return null;
+  const deOtras = vivas.length - propias.length;
   const ids = vivas.map((o) => o.id);
   const [{ data: cotizaciones }, { data: gestiones }] = await Promise.all([
     supabase
@@ -525,6 +561,11 @@ async function ExpedientesVivos({ vivas, verPrecios, conAnotar }: { vivas: Exped
     <div className="rounded-xl border border-border bg-card shadow-sm">
       <p className="border-b border-border px-4 py-3 text-[13px] font-bold uppercase tracking-wide text-foreground">
         Expedientes vivos ({vivas.length})
+        {deOtras > 0 && (
+          <span className="ml-2 text-[11px] font-medium normal-case tracking-normal text-muted-foreground">
+            {deOtras} de otra{deOtras === 1 ? "" : "s"} empresa{deOtras === 1 ? "" : "s"} del grupo
+          </span>
+        )}
       </p>
       <ul className="divide-y divide-border">
         {vivas.map((o) => {
@@ -538,6 +579,11 @@ async function ExpedientesVivos({ vivas, verPrecios, conAnotar }: { vivas: Exped
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <TipoExpedienteBadge tipo={o.tipo_postventa} grande />
                   <EtapaBadge etapa={o.etapa} />
+                  {o.empresa && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                      <Building2 className="size-3" /> {o.empresa.razon_social}
+                    </span>
+                  )}
                   <span className="text-[11px] text-muted-foreground">
                     {o.perfiles ? `${o.perfiles.codigo_comercial ?? ""} ${o.perfiles.nombre}`.trim() : "sin dueño"}
                   </span>

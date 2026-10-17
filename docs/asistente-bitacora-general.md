@@ -18,6 +18,12 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 17-10 · Grupo Turismo Costa del Sol: los hoteles se ven desde la empresa madre (Ariana, Santos)
+- **Qué pasó:** Gabriela cotizó una garantía para Hotelera Cusco (Costa del Sol Wyndham Cusco). Ariana tomó el caso y quería verla dentro de Turismo Costa del Sol, la cadena; creía que esa empresa no estaba en el CRM. Sí estaba, pero el grupo nunca se había armado y había varias fichas sueltas con nombres parecidos.
+- **Qué se decidió (Santos, 17-10):** la cotización se sigue facturando a Hotelera Cusco. Se colgaron del grupo Turismo Costa del Sol: Hotelera Cusco, Costa del Sol S A y sus sedes Chiclayo y Callao, y la sede Pucallpa. La cartera de cada ficha no cambió (quién se queda con el grupo sigue pendiente de gerencia).
+- **Qué se hizo en el CRM:** la ficha de una empresa con grupo muestra también los expedientes vivos de las otras empresas, con el nombre de cada una.
+- **Pendiente:** hay fichas «Turismo Costa del Sol» sin RUC que convendría unir a la que tiene RUC.
+
 ### 17-10 · Las casillas del protocolo se ven como botones (Ariana)
 - **Qué pasó:** Ariana (almacén) no podía «poner checks» en la hoja de chequeo. Sí tenía permiso: las casillas ✓ y ✗ eran cuadritos blancos vacíos al lado del campo de Observaciones, y al pasar el mouse salía el cursor de escribir.
 - **Qué se hizo:** las casillas vacías muestran su ✓ o ✗ tenue y se colorean al pasar el mouse; arriba de la hoja hay una línea que explica cómo marcar y que hay que «Guardar protocolo». En el papel impreso no cambia nada.
