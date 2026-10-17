@@ -12,6 +12,15 @@ Vigente al 17-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 
 ## Cronología de decisiones que tocan su trabajo
 
+### 17-10 · La liquidación se genera sola en el CRM (reunión de gerencia con Jhon y Santos)
+- **Qué se vio:** para cada liquidación Jhon copiaba a su plantilla de Excel los datos del pedido (cliente, RUC, equipos, series, montos, condiciones de pago) y le agregaba la factura, el N.º de operación, si es contado, anticipo o pendiente de factura, y notas (detracción, retención). Gerencia: «lo cual no tiene sentido, tiene que ser en automático».
+- **Qué se decidió:** el CRM arma la liquidación con todo lo que ya tiene; Finanzas solo complementa (factura de cada abono, detracción o retención, letras, nota), la valida y con eso Central continúa el pedido. Cada pago o factura nueva genera la liquidación siguiente (1, 2, 3…). «Por todos lados es una sola liquidación»: Jhon mostró sus cuatro modelos (contado normal, con anticipo y letras, con comisiones y de detracción) y todos quedan en el mismo formato.
+- **Circuito con Contabilidad (Jhon):** Finanzas genera la liquidación con «factura pendiente» → Contabilidad recibe el aviso y factura → al registrar la factura le llega el aviso a Finanzas → Finanzas genera la siguiente, que ya trae el número. La liquidación cae siempre en una sola mano: Finanzas.
+- **Comisiones:** si después de los abonos queda solo la comisión del banco, se avisa al comercial para que la cobre (es su responsabilidad) y a postventa solo para informar. Cuando el cliente la paga, se confirma el abono y se genera la liquidación final («cancelada»).
+- **Detracción o retención (servicios):** si el cliente pagó el 88 % y el 12 % fue a la detracción, la operación está cancelada; queda solo «pendiente cobro de la detracción» y eso no frena a postventa para despachar.
+- **Letras:** se indican cuántas, cada cuántos días, la fecha de giro e intereses, y la liquidación arma el cuadro. Gerencia dijo que esta parte «la podríamos afinar un poquito más» más adelante.
+- **Pendiente:** que Jhon pruebe con un pedido real y diga qué falta frente a su plantilla.
+
 ### 16-10 (noche) · Liquidaciones en secuencia, botón «Pagos» del comercial y descuento al final de la cotización
 - **Liquidaciones anteriores (consulta de Central, caso ABACHI):** parecía que la liquidación anterior se había borrado al subir la de cancelación. No se borra nada: en ABACHI estaban las tres (pago a cuenta, la actualizada con la factura y la de operación cancelada). Solo se veía el enlace a la última. Desde el 16-10, en Central > Cierres cada liquidación lleva su número en la secuencia (N.º 1 es la primera que subió Finanzas) y dice «Vigente» o «Anterior»; en el paso de la liquidación del pedido se ven todas.
 - **Dónde mira el comercial sus abonos (Katerine):** cada cierre emitido tiene un botón «Pagos» con los abonos que confirmó Finanzas y la comisión que descontó el banco. El voucher que llega después se sube en el mismo cierre, con el código de Central; **el pago lo sigue confirmando Finanzas**.

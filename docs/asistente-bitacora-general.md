@@ -18,6 +18,12 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 17-10 · La liquidación de Finanzas la arma el CRM (gerencia, Jhon, Santos)
+- Finanzas ya no copia el pedido a una plantilla de Excel: el CRM genera la liquidación con los datos del pedido, los abonos y las facturas; Finanzas completa lo que falta (factura de cada abono, detracción o retención, letras) y la valida. Con eso Central sigue el pedido.
+- Una liquidación nueva por cada pago o factura, siempre en el mismo formato.
+- La comisión que descuenta el banco la cobra el comercial; postventa recibe el aviso solo para saberlo.
+- Con detracción o retención la operación queda cancelada y postventa puede despachar aunque falte cobrarla.
+
 ### 17-10 · Grupo Turismo Costa del Sol: los hoteles se ven desde la empresa madre (Ariana, Santos)
 - **Qué pasó:** Gabriela cotizó una garantía para Hotelera Cusco (Costa del Sol Wyndham Cusco). Ariana tomó el caso y quería verla dentro de Turismo Costa del Sol, la cadena; creía que esa empresa no estaba en el CRM. Sí estaba, pero el grupo nunca se había armado y había varias fichas sueltas con nombres parecidos.
 - **Qué se decidió (Santos, 17-10):** la cotización se sigue facturando a Hotelera Cusco. Se colgaron del grupo Turismo Costa del Sol: Hotelera Cusco, Costa del Sol S A y sus sedes Chiclayo y Callao, y la sede Pucallpa. La cartera de cada ficha no cambió (quién se queda con el grupo sigue pendiente de gerencia).

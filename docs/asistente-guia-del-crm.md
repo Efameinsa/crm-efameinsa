@@ -141,7 +141,11 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Qué entra:** pedidos liberados, aperturas emitidas y pedidos de confirmación de pago.
 - **Qué hace:**
   - Confirma los abonos: «Por confirmar» → «Confirmados». Puede **observar** un pago.
-  - Sube liquidaciones con su estado de pago (pendiente, a cuenta o cancelado) y la factura, o «factura pendiente».
+  - **Genera la liquidación desde el CRM** (desde el 17-10, reunión de gerencia con Jhon). Ya no se copia el pedido a la plantilla de Excel: en el pedido de Finanzas, «Liquidaciones y facturas» → **«Generar liquidación N»**. El CRM pone solo el cliente y su RUC, el número de pedido, los renglones del cierre con precio unitario e importe, las series, subtotal, IGV y total, cada abono confirmado con su fecha, banco y N.º de operación, la comisión que descontó el banco, las facturas registradas, la forma de pago, la cotización y la orden de compra. Finanzas solo completa lo que falta: a qué factura va cada abono («Pendiente de factura» si todavía no sale), si la operación **afecta a detracción (12 %) o retención (3 %)** y si ya se cobró, si **el saldo va en letras** (cuántas, cada cuántos días, fecha de giro e intereses: arma el cuadro de letras), la guía y una nota. Mira la **vista previa** y pulsa **«Validar y enviar a Central»**: queda como la liquidación con el número siguiente y Central recibe el aviso para seguir el pedido.
+  - **Una liquidación por cada movimiento, siempre el mismo formato** (contado, anticipos, comisiones, detracción y letras son la misma liquidación; cambian las filas de abajo): entra un abono → liquidación nueva; Contabilidad registra la factura → a Finanzas le llega el aviso y genera la siguiente, que ya trae el número de factura. Si un abono queda «pendiente de factura», Contabilidad recibe el aviso «Por facturar» o «Nuevo anticipo por facturar». La liquidación la hace siempre Finanzas, nunca Contabilidad.
+  - **Comisión del banco en la liquidación:** el abono sale por lo que pagó el cliente y la comisión aparte; si el saldo que queda es la comisión, la liquidación dice «falta la comisión del banco», al **comercial** le llega el aviso para cobrarla (es su responsabilidad) y a postventa solo para que lo sepa.
+  - **Detracción o retención:** lo retenido cuenta como pagado. La liquidación sale «Operación cancelada · pendiente cobro de la detracción» y **postventa puede seguir con el despacho** aunque falte cobrarla.
+  - Subir un PDF hecho a mano sigue existiendo («Subir un PDF hecho a mano») para casos raros.
   - Da el **visto bueno de Finanzas** a las ventas con crédito o letras.
   - Atiende las «Órdenes de facturar y cobrar».
 - **Qué sale:** el pago confirmado, la liquidación vigente y el visto bueno con el estado de las letras.
@@ -395,7 +399,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Ve:** el expediente completo de lo que liquida, en solo lectura (cotización enlazada, OC, cierre, pedido, vouchers). Los vouchers de Finanzas solo los ven Finanzas y gerencia.
 - **Puede:**
   - confirmar u observar pagos;
-  - subir liquidaciones;
+  - generar y validar liquidaciones (el CRM las arma; ver 1.8);
   - dar el visto bueno a créditos y letras;
   - autorizar guías si Contabilidad no está;
   - atender órdenes de facturar;
@@ -412,7 +416,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - «Enviada al cliente».
 - **Autoriza las guías** de las aperturas (desde el 12-10) indicando el motivo de la guía (desde el 14-10) y el comprobante.
 - **«Ver el expediente» en cada apertura** (desde el 15-10, lo pidió Facturación): en «Aperturas por confirmar», también en las de contado y las ya confirmadas, despliega el cliente con su RUC, el cierre, el pedido, el comercial, el equipo, la forma de pago y las cifras, con el botón para abrir el cierre completo y sus adjuntos. En las ventas a crédito sigue dentro de «Ver la validación del crédito».
-- **Varios anticipos** (desde el 14-10): un pedido ya facturado vuelve a «Por facturar», con el aviso «Nuevo anticipo por facturar», cuando Finanzas sube una liquidación nueva con «factura pendiente» después de la última factura. Registrada la factura nueva, Finanzas actualiza la liquidación con el número.
+- **Varios anticipos** (desde el 14-10): un pedido ya facturado vuelve a «Por facturar», con el aviso «Nuevo anticipo por facturar», cuando Finanzas sube una liquidación nueva con «factura pendiente» después de la última factura. Registrada la factura nueva, Finanzas genera la liquidación siguiente, que ya trae el número (desde el 17-10).
 - **A crédito factura cuando postventa da la orden** (14-10): los días de crédito corren desde la factura, así que se espera a que el cliente confirme que el equipo llegó y está conforme.
 
 ### 2.8 Importaciones
