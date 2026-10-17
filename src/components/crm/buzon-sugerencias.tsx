@@ -11,7 +11,9 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { ImagePlus, X, Send, ChevronLeft, ChevronRight, MessageSquareReply, Inbox, Clock } from "lucide-react";
+import { ImagePlus, X, Send, ChevronLeft, ChevronRight, MessageSquareReply, Inbox, Clock, PackagePlus } from "lucide-react";
+import Link from "@/components/enlace";
+import { pareceDelCatalogo, pideUnRubro } from "@/lib/pedidos-catalogo";
 import { createClient } from "@/lib/supabase/client";
 import { enviarSugerencia, atenderSugerencia } from "@/lib/acciones/sugerencias";
 import {
@@ -124,8 +126,25 @@ export function FormularioSugerencia({ userId }: { userId: string }) {
     });
   }
 
+  // Productos, precios, stock y fichas no son del CRM: los actualiza Lesly
+  // (0523, Santos 17-10). Si lo escrito suena a eso, se dice antes de enviar.
+  const esDelCatalogo = pareceDelCatalogo(titulo, detalle);
+  const esUnRubro = !esDelCatalogo && pideUnRubro(`${titulo} ${detalle}`);
+  const hrefLesly = `/pedidos-catalogo?titulo=${encodeURIComponent(titulo.slice(0, 140))}&detalle=${encodeURIComponent(detalle.slice(0, 1500))}`;
+
   return (
     <div className="space-y-5">
+      <Link
+        href="/pedidos-catalogo"
+        prefetch={false}
+        className="flex items-start gap-2.5 rounded-lg border border-border bg-secondary/40 p-3 text-xs leading-snug text-muted-foreground hover:border-[#8B1510]/40"
+      >
+        <PackagePlus className="mt-0.5 size-4 shrink-0 text-[#8B1510]" />
+        <span>
+          <b className="text-foreground">¿Necesita un producto, un precio, el stock o corregir una ficha técnica?</b> Eso no es
+          del CRM: lo actualiza Lesly (operaciones). <span className="font-semibold text-[#8B1510]">Pídaselo a ella aquí →</span>
+        </span>
+      </Link>
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">1 · ¿Qué quiere contarnos?</p>
         <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
@@ -245,6 +264,27 @@ export function FormularioSugerencia({ userId }: { userId: string }) {
         )}
       </div>
 
+      {esDelCatalogo && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs leading-snug text-amber-900 dark:text-amber-200">
+          <span>
+            <b>Esto parece un pedido para Lesly</b> (producto, precio, stock o ficha). En el buzón del CRM tardaría más: se lo
+            tendrían que reenviar. Mándeselo directo, con lo que ya escribió.
+          </span>
+          <Link
+            href={hrefLesly}
+            prefetch={false}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-[#8B1510] px-3 text-xs font-semibold text-white hover:bg-[#7E1210]"
+          >
+            <PackagePlus className="size-3.5" /> Mandárselo a Lesly
+          </Link>
+        </div>
+      )}
+      {esUnRubro && (
+        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs leading-snug text-amber-900 dark:text-amber-200">
+          <b>¿Necesita un rubro que no está en la lista?</b> Lo puede agregar usted mismo, sin esperar: en la ficha del
+          cliente pulse «Cambiar rubro» y elija «＋ Agregar un rubro nuevo». Queda para todos.
+        </p>
+      )}
       <div className="flex items-center justify-end gap-3">
         <span className="text-[11px] leading-snug text-muted-foreground">
           Cada sugerencia suma <b className="text-foreground">3 puntos en Crece</b> (1 si es una duda), sin límite, y{" "}
@@ -262,7 +302,7 @@ export function FormularioSugerencia({ userId }: { userId: string }) {
 // Tarjeta, galería y lista
 // ---------------------------------------------------------------------------
 
-function Galeria({ adjuntos }: { adjuntos: Sugerencia["adjuntos"] }) {
+export function Galeria({ adjuntos }: { adjuntos: { path: string; nombre: string; url: string | null }[] }) {
   const [abierta, setAbierta] = useState<number | null>(null);
   const visibles = adjuntos.filter((a) => a.url);
   useEffect(() => {

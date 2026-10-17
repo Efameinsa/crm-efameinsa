@@ -18,6 +18,11 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 17-10 · Pedir a Lesly, la versión nueva sin recargas sorpresa y la ficha que llega al pedido (Santos)
+- **«Pedir a Lesly» (buzón del catálogo):** Santos: «crea un buzón para pedir productos o que Lesly actualice y que le llegue a Lesly, que eso no pidan en el buzón porque no tiene que ver con el CRM sino con operaciones». En el buzón del CRM llegaban pedidos de fichas técnicas, precios o stock que había que reenviarle. Desde el 17-10 hay un botón propio en la barra; Lesly los ve en «Pedidos al catálogo» y contesta («Lo estoy viendo», «Hecho» o «No procede»). Si alguien lo escribe en el buzón del CRM, el buzón le avisa y se lo pasa.
+- **Versión nueva sin recargas sorpresa:** el 16-10 se había hecho que el CRM se recargara solo si la pantalla llevaba 2 minutos quieta. Santos recordó que una recarga sola ya había hecho perder trabajo y molestaba. Desde el 17-10 vuelve la regla de siempre: la pantalla en uso nunca se recarga sola; la actualización llega al pasar a otra pantalla.
+- **La ficha corregida llega al pedido:** cuatro observaciones del buzón (06–16/10) eran nombres o RUC corregidos en la ficha que seguían viejos en el pedido o en la máquina. Desde el 17-10 se ponen al día solos en lo que sigue abierto.
+
 ### 16-10 (noche) · Cotizaciones: descuento al final del total y el aviso «falta confirmar» (Katerine, Ariana, Santos)
 - **Descuento o paquete especial (Katerine, a pedido de gerencia):** gerencia quería poder dejar un paquete en una cifra cerrada sin tocar el precio de cada equipo. Desde el 16-10, debajo del total del cotizador está «+ Agregar descuento o paquete especial» («Descuento» o «Descuento por paquete especial», con o sin IGV). En el PDF sale debajo del SUB TOTAL. **Todo descuento pasa por gerencia** antes de confirmar.
 - **Caso ECOLAV (Ariana):** Ariana armó una cotización en un expediente que estaba a nombre de Rubí; gerencia la aprobó y Ariana no la encontraba, aunque Rubí sí la veía. El aviso de aprobación solo le llegaba a la dueña del expediente y, al buscar al cliente, la lista escondía «Lo que pasó por gerencia».
