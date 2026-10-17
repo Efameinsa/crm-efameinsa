@@ -33,6 +33,8 @@ import {
 } from "@/lib/atenciones";
 import { cn } from "@/lib/utils";
 import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
+import { TecnicoEnCaminoPanel } from "@/components/crm/tecnico-en-camino-panel";
+import { MensajesMiCuenta } from "@/components/crm/mensajes-mi-cuenta";
 
 export const dynamic = "force-dynamic";
 
@@ -508,6 +510,10 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
           <SeccionPanel titulo="Con quién hablar">
             <ConQuienHablar cuentaId={a.cuenta_id ?? null} oportunidadId={a.oportunidad_id} />
           </SeccionPanel>
+
+          {/* Mi cuenta de efameinsa.com (0525/0526): el técnico en camino y el chat del cliente. */}
+          <TecnicoEnCaminoPanel donde="caso" id={a.id} />
+          <MensajesMiCuenta cuentaId={a.cuenta_id} atencionId={a.id} />
 
           {/* El clic de la garantía (Carlos, 01-09): cuando el equipo aún no
               está identificado, acá salen las series del cliente para
