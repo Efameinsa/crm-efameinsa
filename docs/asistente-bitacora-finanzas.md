@@ -1,6 +1,6 @@
 # Bitácora de Finanzas y Contabilidad: lo que se decidió alrededor del dinero
 
-Vigente al 16-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md, en especial 1.7 a 1.12, 2.6, 2.7 y 3.6) y la «Bitácora del CRM» (asistente-bitacora-general.md). Aquí no se repite cómo se usa cada pantalla: se cuenta **qué se decidió, cuándo, quién lo pidió y qué quedó en el aire**, para que pueda retomar el trabajo sin depender de la memoria de una reunión.
+Vigente al 17-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md, en especial 1.7 a 1.12, 2.6, 2.7 y 3.6) y la «Bitácora del CRM» (asistente-bitacora-general.md). Aquí no se repite cómo se usa cada pantalla: se cuenta **qué se decidió, cuándo, quién lo pidió y qué quedó en el aire**, para que pueda retomar el trabajo sin depender de la memoria de una reunión.
 
 ## Cómo leer esto
 
@@ -11,6 +11,11 @@ Vigente al 16-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 ---
 
 ## Cronología de decisiones que tocan su trabajo
+
+### 16-10 (noche) · Liquidaciones en secuencia, botón «Pagos» del comercial y descuento al final de la cotización
+- **Liquidaciones anteriores (consulta de Central, caso ABACHI):** parecía que la liquidación anterior se había borrado al subir la de cancelación. No se borra nada: en ABACHI estaban las tres (pago a cuenta, la actualizada con la factura y la de operación cancelada). Solo se veía el enlace a la última. Desde el 16-10, en Central > Cierres cada liquidación lleva su número en la secuencia (N.º 1 es la primera que subió Finanzas) y dice «Vigente» o «Anterior»; en el paso de la liquidación del pedido se ven todas.
+- **Dónde mira el comercial sus abonos (Katerine):** cada cierre emitido tiene un botón «Pagos» con los abonos que confirmó Finanzas y la comisión que descontó el banco. El voucher que llega después se sube en el mismo cierre, con el código de Central; **el pago lo sigue confirmando Finanzas**.
+- **Descuento al final del total (pedido de gerencia):** una cotización puede llevar «Descuento» o «Descuento por paquete especial» debajo del SUB TOTAL, siempre con aprobación de gerencia. Al pasar la cotización al cierre, el descuento se reparte entre los renglones, así que el total del cierre ya viene con descuento.
 
 ### 16-10 · Las consultas del comercial sobre el pago llegan por el CRM, con el voucher (Katerine)
 - **Qué contó Katerine:** el comercial le pregunta a Contabilidad si el abono del cliente tuvo comisión interplaza; normalmente le contesta Jhon y, si la hubo, le manda un pantallazo del monto para cobrárselo al cliente. Y cuando el cliente cancela el saldo, el comercial registraba una llamada y mandaba un correo a Contabilidad con el voucher. Todo eso iba por correo; gerencia indicó que ahora va por el CRM.

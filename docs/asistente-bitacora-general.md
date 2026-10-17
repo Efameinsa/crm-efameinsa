@@ -1,6 +1,6 @@
 # Bitácora del CRM Efameinsa: historia de las decisiones
 
-Vigente al 16-10-2026. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
+Vigente al 17-10-2026. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
 
 Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién decidió que postventa no vea precios?», «¿esto siempre fue así?» o «¿qué pasó con el caso X?».
 
@@ -17,6 +17,21 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 ---
 
 ## Cronología de reuniones y decisiones
+
+### 16-10 (noche) · Cotizaciones: descuento al final del total y el aviso «falta confirmar» (Katerine, Ariana, Santos)
+- **Descuento o paquete especial (Katerine, a pedido de gerencia):** gerencia quería poder dejar un paquete en una cifra cerrada sin tocar el precio de cada equipo. Desde el 16-10, debajo del total del cotizador está «+ Agregar descuento o paquete especial» («Descuento» o «Descuento por paquete especial», con o sin IGV). En el PDF sale debajo del SUB TOTAL. **Todo descuento pasa por gerencia** antes de confirmar.
+- **Caso ECOLAV (Ariana):** Ariana armó una cotización en un expediente que estaba a nombre de Rubí; gerencia la aprobó y Ariana no la encontraba, aunque Rubí sí la veía. El aviso de aprobación solo le llegaba a la dueña del expediente y, al buscar al cliente, la lista escondía «Lo que pasó por gerencia».
+- **Regla de Santos (16-10):** «todos deberían poder ver todo… no hay que estar supeditado a alguien en específico… pero la acción que cometa alguien debe quedar registrada con su nombre para rastrear».
+- **Qué se hizo:** el aviso «gerencia aprobó» le llega a quien armó la cotización y también al dueño; dice «falta confirmarla» y lleva directo al botón Confirmar. El borrador aprobado dice «aprobada · falta confirmar», y cada cotización muestra quién la hizo y quién la confirmó.
+
+### 16-10 (tarde) · Buzón: postventa, almacén y comerciales
+- **Contactos en casos de otra compañera (Ariana, COR-PORACION 3C):** no podía guardar el contacto porque el caso estaba a nombre de Rubí. Desde el 16-10, cualquiera de postventa agrega y corrige contactos en los clientes con caso de postventa, a nombre de quien sea (igual que ya pasaba al cotizar). Es la misma regla: el caso es del área.
+- **«SERVICIO E INSTALACIÓN DE:» (Rubí):** nueva opción en «¿Qué se va a hacer?» de la apertura, para cuando el técnico hace el servicio y la instalación que se vendió.
+- **Puesta en marcha de dos equipos (Ariana, Beneficencia de Huancayo):** el informe solo dejaba registrar un equipo. Ahora sale primero «Los 2 equipos, cada uno con su ficha»: se llena una vez y se guarda un informe por serie, cada uno con sus ciclos.
+- **«No corresponde» bien usado (Central, ABACHI):** el «servicio de transporte hacia la agencia» es un servicio, no una máquina, así que fue correcto quitarlo de la lista de equipos. El rodillo va por su propio pedido. La única fila que queda en un pedido no se puede quitar.
+- **Cliente rechazado que vuelve a escribir (Moisés, SUITE GENERIS):** se rechazó el 15-10; cuando el cliente escribió de nuevo el 16-10, el CRM abrió un expediente nuevo y el cliente salía dos veces. Se unieron en uno solo, «Cotizada». **Desde el 16-10**, si el cliente que el mismo comercial rechazó en los últimos 30 días vuelve, se reabre su expediente; y si se envía una cotización desde un expediente rechazado, pasa a «Cotizada». Antes solo se juntaba con expedientes abiertos.
+- **Las liquidaciones anteriores no se borran (Central):** la consulta fue que la liquidación anterior «se borró». No: cada liquidación queda guardada; solo se veía el enlace a la última. Ahora se ven todas, numeradas en orden y con «Vigente» o «Anterior».
+- **Pendiente (por confirmar con Santos):** en los últimos 30 días hubo unos 25 casos de expediente nuevo junto a uno rechazado del mismo comercial y cliente; no se tocaron y se unen si alguien lo pide.
 
 ### 16-10 (17:57) · Reunión de gerencia con Ariana y Santos: la agenda y el reporte de postventa
 - **Agenda de postventa:** todas ven el panorama completo del área (el «macro»), pero tiene que quedar a la vista **quién está gestionando qué**. Si Rubí ayuda en algo que tiene Ariana, se ve y queda registrada su acción. Las gestiones de cada una son las suyas; lo derivado a cada una, lo suyo.
@@ -221,114 +236,19 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 - **Después:** ese mismo día, a las 17:47, Ariana anuló el cierre 010-2026 con código (motivo «mala coordinación»). Ver la entrada de la tarde.
 
 ### 14-10 · Ajustes de almacén, Finanzas y cotizaciones (Santos con Lesly, Ariana, Katerine y Jhon)
-- **Crédito con letras: sin visto bueno de Finanzas no sale nada** (orden de Santos, a raíz de COFACO).
-  - Toda venta a crédito o con letras necesita el visto bueno de Finanzas para la apertura, la guía y la salida.
-  - Santos: «pueden salir con venta a crédito pero tienen que llevar sus letras».
-  - El almacén confirma que recibió las letras y luego se registra su entrega al cliente.
-  - Sin eso no hay doble check, ni siquiera con código de gerencia.
-- **Queda registrado quién hizo cada etapa del pedido y a qué hora.**
-- **Salida con saldo pendiente:** postventa ahora necesita código. Antes bastaba escribir un motivo. Casos: Cristo Rey y V y P ICE.
-- **Crédito sin adelanto:** basta el visto bueno de Finanzas (decisión de Santos). Antes el pedido quedaba trabado para siempre. Caso: Beneficencia de Huancayo.
-- **Hoja de chequeo del protocolo:**
-  - Ya no hay que marcar las 37 casillas; basta una (pedido de Ariana con la Beneficencia de Huancayo).
-  - Se agregó «Video de la prueba», opcional.
-  - El número de protocolo dejó de ser obligatorio. Santos: «en ese documento no va».
-- **Protocolos de equipos en stock** (pedido de Lesly):
-  - Hay una pestaña «Protocolos» en Almacén.
-  - El protocolo hecho a una máquina en stock pasa al pedido cuando esa serie se vende.
-  - Ojo: no marca la máquina como «probada». Falta el clic de embalaje.
-- **Cotizaciones de EFAMEINSA con cuentas bancarias** (aviso de Katerine). Antes solo las de OPEN las traían.
-- **Postventa puede corregir nombre, RUC y rubro de clientes sin dueño.** Caso: Hospital Chanka, de Rubí. Si el cliente tiene comercial, lo corrige su comercial.
-- **Asistente Efamein abierto a todo el personal** (Santos). Antes era solo para gerencia. Solo consulta, con permisos por área.
-- **Nuevo «REG por entregar»** (caso de Rubí, transmitido por Santos).
-  - Caso: Seventh Heaven (Cusco), venta de una calandria de noviembre de 2025 con cierre en Word, sin pedido en el CRM. El equipo sigue embalado en almacén y se entrega cuando el cliente termine de pagar.
-  - El REG normal (del 05-10) da el pedido por entregado y se habría saltado el visto bueno de Finanzas. Por eso el REG «por entregar» sigue el circuito normal: series del almacén, Finanzas, apertura, guía y salida.
-  - Regla práctica: si el equipo ya salió, REG normal; si sigue en almacén, REG por entregar.
-  - Se cargó como cierre EFAMEINSA 009-2026, con el informe, la cotización y el comprobante del adelanto. Las dos fichas del cliente se unieron en una (Central no veía nada porque miraba la ficha sin RUC).
-- **Pendientes:**
-  - Seventh Heaven: Central genera el pedido; Finanzas confirma lo pagado; después, apertura y salida.
-  - Jhon da el visto bueno tardío de COFACO.
-  - Carlos decide si el visto bueno de Finanzas aplica a todo crédito o solo a letras.
-  - Hay 58 pedidos por regularizar.
-  - ~~Faltan los protocolos de calandria, secadora y prensa~~: resuelto el mismo 14-10 (ver arriba).
+- Resumen: crédito o letras sin visto bueno de Finanzas no sale nada, ni con código (Santos, caso COFACO); queda quién hizo cada etapa del pedido y a qué hora; salida con saldo pendiente pide código (antes bastaba un motivo; Cristo Rey, V y P ICE); crédito sin adelanto basta con el visto bueno de Finanzas (Beneficencia de Huancayo); la hoja de chequeo basta con una casilla, video opcional y sin número de protocolo obligatorio; protocolos de equipos en stock que pasan al pedido al venderse la serie (Lesly); cuentas bancarias también en las cotizaciones de EFAMEINSA (Katerine); postventa corrige nombre, RUC y rubro de clientes sin dueño (Hospital Chanka); Efamein abierto a todo el personal; nace el «REG por entregar» para equipos que siguen en almacén (Seventh Heaven, EFAMEINSA 009-2026).
 
 ### 13-10 · Reunión de postventa (Carlos, Santos, Rubí, Ariana, Lesly)
-- **Agenda de postventa: solo lo abierto.**
-  - El «paso a paso» de pedidos muestra por defecto solo los pedidos abiertos, con enlace a cada pendiente.
-  - El botón «Abiertos / Todos» es grande y visible.
-  - Lo traído del Excel histórico ya no suma. Las cifras estaban infladas: se veían unos 144 pedidos «en curso» y los abiertos reales son unos 81.
-  - La agenda de postventa y su reporte diario en PDF traen la hoja «Pedidos abiertos: lo que falta, paso por paso».
-- **Primero el tipo de caso, después el texto** (Carlos: «¿y si no está mapeado? Otro, libre»).
-  - Al registrar la llamada se elige el tipo: revisión por garantía, capacitación, «Otro» con texto libre, etc.
-  - El tipo pasa al título de la apertura y se puede corregir ahí.
-  - «Servicio técnico» no es un tipo aparte.
-- **Gerencia devuelve renglones, no borra la cotización.**
-  - Gerencia puede devolver ítems puntuales con un comentario por ítem, y el borrador se conserva.
-  - Antes era así (desde el 15-09): rechazar mandaba todo a histórico y había que rehacer la cotización.
-  - Rechazar la cotización entera sigue existiendo, pero no viene marcado por defecto.
-- **Repuesto aprobado → orden «Preparar y embalar» al almacén.** Un repuesto no se prueba. Caso: el variador de Peruvian Nature, que había entrado como «equipo».
-- **Pedidos a crédito o con saldo cierran con «Orden a Finanzas para facturar y cobrar».** Lleva aviso y correo a Finanzas. Caso: Beneficencia de Huancayo. No aplica si ya está pagado completo.
-- **Apertura desde un caso con los equipos del cliente.**
-  - Caso: AGROCASAGRANDE, puesta en marcha de 2 secadoras que salía con una sola serie.
-  - Ahora se marcan los equipos de la ficha y la hoja agrupa cantidad y series.
-  - El informe de puesta en marcha pregunta «¿De qué equipo es?», hay botón «Otro informe» y se aceptan hasta 100 fotos.
-- **Hoja de chequeo del protocolo de lavadora** (pedido de Ariana, con la foto del papel).
-  - Está en el CRM con casillas, para usarla en tablet. Santos: «tiene que ser idéntico».
-  - Lesly pidió la opción «N/A» por COFACO (máquina de muestra sin quemador).
-- **«Probada y embalada» exige el protocolo completo** (Santos, caso COFACO).
-  - Por máquina se exige protocolo, foto, documento, ficha, serie, técnico y hoja de chequeo.
-  - Modificar después pide código.
-  - Ya no se pide subir el Word cuando el CRM genera la hoja.
-- **Botones «Sin stock» y «Ya llegó · hay stock»** (Lesly y Santos, caso Vidawasi). Antes se escribía «NO HAY STOCK» en el campo de la serie (pasó también con Prodeco del Sur y Peruvian Nature).
-- **Reportes de postventa por autor:** cada usuaria ve solo lo suyo, con un panel del día por línea de trabajo. Antes Rubí veía lo de toda el área.
-- **Lo que empieza en OPEN termina en OPEN** (Santos). Caso: la puesta en marcha de Choquehuanca salió con membrete EFAMEINSA siendo venta OPEN, porque el pedido venía del Excel sin cierre.
-- **Los cambios al CRM se piden por el buzón o directo a Santos, no a Lesly.**
-- **Ese día se regularizó:**
-  - El cierre Word de Vidawasi se subió como OPEN 058; falta que Central genere el pedido.
-  - En el pedido OPEN 057 (U.M. Raura), cada máquina quedó con su propia serie.
-- **Pendientes:**
-  - Lesly entrega la lista de stock y sin stock.
-  - Faltan los pedidos y cierres en físico con fotos (Vidawasi, primera visita de AGROCASAGRANDE).
-  - Faltan las fotos de Herrera y la depuración de «sin stock» de Ariana.
-  - Juan Carlos debe dar las cuentas de correo (para la casilla «informe enviado» con correo automático).
-  - Se piden: el reporte por rango de fechas, los rangos vacíos de numeración y una columna de empresa más ancha.
-  - Estas tareas dependen de esas entregas; no deben darse por atrasadas en el CRM mientras no lleguen.
+- Resumen: la agenda de postventa muestra por defecto solo lo abierto (lo del Excel histórico ya no suma); primero el tipo de caso y después el texto, con «Otro» libre (Carlos); gerencia devuelve renglones con comentario en lugar de borrar la cotización (antes, desde el 15-09, todo iba a histórico); repuesto aprobado → orden «Preparar y embalar» (no se prueba; Peruvian Nature); pedidos a crédito o con saldo cierran con «Orden a Finanzas para facturar y cobrar»; apertura desde un caso con los equipos del cliente e informe de puesta en marcha por equipo (AGROCASAGRANDE); hoja de chequeo de lavadora en el CRM, con «N/A» (Ariana, Lesly); «Probada y embalada» exige protocolo completo (COFACO); botones «Sin stock» / «Ya llegó · hay stock» (Vidawasi); reportes de postventa por autor; lo que empieza en OPEN termina en OPEN (Choquehuanca); los cambios se piden por el buzón o a Santos, no a Lesly. Sus pendientes están en «Pendientes».
 
 ### 12-10 · Reunión del lunes con el equipo (gerencia con Lesly, Central, postventa, almacén, Finanzas, marketing y comerciales)
-- **Acuerdo general: los errores del CRM se reportan por los canales oficiales** (buzón), para ajustar productos e inventario. Postventa y almacén deben darse retroalimentación sobre los despachos.
-- **«Punto uno» de almacén: el código debe traer la descripción.**
-  - Hace unas semanas se despachó una lavadora no apilable en vez de una apilable (Callao). Se puso el código y el CRM no mostró la descripción, así que nadie vio la diferencia con el cierre.
-  - Carlos pidió que el código traiga la descripción, que salte el error y que Central pueda comparar.
-  - Pendiente: depende de que Lesly o Importaciones indiquen de dónde sale el dato.
-- **Camión esperando unos 40 minutos por una apertura** (RUC o DNI autollenado).
-  - Falta aclarar si fue el CRM o el registro.
-  - Carlos pidió que Santos vaya con laptop a preguntar en el sitio, porque el almacén no da retroalimentación.
-- **Línea a mano con precio → pasa por gerencia** (Santos, caso NEWREST de Brenda).
-  - Toda línea escrita a mano con precio, hecha por un comercial, pide aprobación de gerencia. Las líneas a mano en cero no piden nada.
-  - Antes esas líneas no llegaban a gerencia.
-- **Contabilidad confirma la guía de la apertura**, y Finanzas si Contabilidad no está (pedido de Jhon por el buzón).
-- **La nota del destino final de la apertura es editable** (pedido de Rubí por el buzón).
-- **Caravedo:** se unieron las fichas de Brenda. Queda una tercera ficha en otra cartera, que decide gerencia.
-- **Corrección de una cotización a la Beneficencia de Huancayo:** se hizo por orden de Santos, como excepción. La pantalla frenaba un precio bajo lista que gerencia ya había aprobado. El error de pantalla sigue pendiente. En la reunión se autorizó cambiar la condición de pago a crédito; Katerine quedó en enviar la cotización corregida.
+- Resumen: los errores del CRM se reportan por el buzón; el código de almacén debe traer la descripción (lavadora no apilable despachada por error; pendiente de datos); camión que esperó por una apertura (por aclarar); línea a mano con precio pasa por gerencia (NEWREST); Contabilidad confirma la guía, y Finanzas si Contabilidad no está; nota del destino final editable (Rubí); Caravedo unida, queda una tercera ficha; corrección excepcional de una cotización de la Beneficencia de Huancayo por un error de pantalla que sigue pendiente.
 
 ### 10-10 y 09-10 · Ajustes del buzón y de Central
-- **Cotizaciones: botón «Anular»** (pedido de Rubí; lo ordenó Santos).
-  - Pide motivo y código de operaciones o de gerencia.
-  - No deja anular si ya hay venta o cierre.
-  - La regla viene del 03-09: las cotizaciones no se eliminan, se anulan.
-- **Derivar a postventa también pide código** (Carlos, transmitido por Santos el 09-10): «que no derive unilateralmente, nos está metiendo en problemas».
-- **Central: botón «Ver la historia de la empresa»** (Santos). Caso: llegó un contacto de Centrum PUCP con correo personal y no salió aviso, aunque la PUCP es cliente de un comercial. El buscador reconoce siglas.
-- **Corrección de lo pasado a Central incluye la vía y adjuntos.** Caso: Brenda registró una llamada como WhatsApp. Ahora «Pasar contacto a Central» exige elegir la vía.
-- **Formularios de Meta llegan al CRM** al comercial dueño de la campaña; si no tiene dueño, a Central. Cada formulario se conecta a mano.
-- **Plazo del viernes 09-10 para regularizar leads** (orden de Carlos del 07-10). Se envió un correo a los comerciales: regularizar informes y tipificaciones de los leads en el CRM. Es «mandatorio» y sirve para devolver a Google y Meta qué contactos sí cotizaron o compraron.
+- Resumen: botón «Anular» cotización con motivo y código (las cotizaciones no se eliminan, desde el 03-09); derivar a postventa pide código (Carlos); Central tiene «Ver la historia de la empresa» (Centrum PUCP); «Pasar contacto a Central» exige la vía; formularios de Meta llegan al comercial dueño de la campaña o a Central; plazo del 09-10 para regularizar leads (orden de Carlos).
 
 ### 07-10 · Reunión de gerencia (Carlos y Santos)
-- **Todo pedido de cambio va por el Buzón de sugerencias, sin excepciones.** Carlos: si no, «mejor no lo usamos». Pidió que el sistema tenga claras las reglas duras de negocio y que no haga cambios solo porque alguien los pida.
-- **Todas las sugerencias suman puntos en Crece, sin límite** (Santos). Antes eran hasta 3 por día, con tope mensual.
-- **Correos del CRM con marca de la empresa** y botón «Enviar por correo» en la apertura.
-- **Open se presenta como «Efameinsa Open»** (Carlos): «Open no se entiende», no mezclar logos.
-- **Postventa debe decir qué necesita de su agenda**, como la del comercial.
-- **Llamadas de la más reciente a la más antigua** (pedido de Lesly; hecho ese día).
+- Resumen: todo pedido de cambio va por el buzón, sin excepciones (Carlos); las sugerencias suman puntos en Crece; correos del CRM con marca y «Enviar por correo» en la apertura; Open se presenta como «Efameinsa Open»; postventa dice qué necesita de su agenda; llamadas de la más reciente a la más antigua (Lesly).
 
 ### 06-10 · Reunión de postventa y correos (gerencia, Lesly, Central)
 - Resumen: kit con cantidades editables en el cotizador (el precio nuevo va a gerencia; idea de Lesly); correos automáticos según la empresa del pedido (OPEN o EFAMEINSA) y los avisos también por correo; directorio y técnicos con DNI en la apertura; postventa ve el check verde cuando Finanzas autoriza la guía, y corregir una apertura emitida avisa a Finanzas y al almacén (Ninamango); apertura de servicio sin pedido desde el caso; WhatsApp de comerciales solo por la bandeja del CRM; los mantenimientos siguen el procedimiento de pedido y las líneas de servicio no piden serie; los cierres Word posteriores al CRM no son REG (San Fernando, Panaservice OPEN 037) y REG lleva series; garantía de las 2 secadoras de AGROCASAGRANDE a 36 meses; buscador de files; cuenta ALM2 de Ariana; perfil de Importaciones con «Por importar»; directorio del personal.
@@ -544,6 +464,7 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 - Reporte de postventa por rango de fechas, rangos vacíos de numeración y casilla «informe enviado» con correo automático (esta última espera las cuentas de correo de Juan Carlos).
 - Aviso «misma persona por otra puerta»: construido, sin confirmar que esté en uso.
 - Recordatorios automáticos de compromisos («te quedan 2 días»).
+- Expedientes nuevos que quedaron junto a uno rechazado del mismo comercial y cliente (unos 25 en 30 días, visto el 16-10): se unen cuando alguien lo pida, como SUITE GENERIS.
 
 **Depende de otras áreas**
 - **Lesly:** lista de stock y sin stock, códigos propios que faltan (por ejemplo FX180 y UY240), y pedidos y cierres en físico con fotos para regularizar.

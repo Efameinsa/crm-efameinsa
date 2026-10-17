@@ -1,6 +1,6 @@
 # Bitácora ampliada (gerencia, administración, Central y operaciones)
 
-Vigente al 16-10-2026. Complementa la «Bitácora del CRM» general (asistente-bitacora-general.md). Santos, 14-10: Central y operaciones (Lesly) deben tener el mismo contexto que gerencia —estados, montos, dinero— para continuar lo que se habló en las reuniones. Aquí va:
+Vigente al 17-10-2026. Complementa la «Bitácora del CRM» general (asistente-bitacora-general.md). Santos, 14-10: Central y operaciones (Lesly) deben tener el mismo contexto que gerencia —estados, montos, dinero— para continuar lo que se habló en las reuniones. Aquí va:
 - estrategia, presupuestos de publicidad y marketing;
 - web y campañas;
 - desempeño por comercial y metas;
@@ -16,6 +16,10 @@ Vigente al 16-10-2026. Complementa la «Bitácora del CRM» general (asistente-b
 ---
 
 ## Cronología
+
+### 16-10 (noche) · Precios: descuento por paquete al final del total (gerencia, por medio de Katerine)
+- **Qué quería gerencia:** mostrar paquetes a precio cerrado sin bajar el precio unitario de cada equipo. Ejemplo que se dio a Katerine: una cotización de unos 24 400 llevada a 24 000 con IGV, con un descuento de 423.64 «incluye IGV».
+- **Cómo queda:** el descuento se escribe en la moneda de la cotización, con o sin IGV; en el PDF se imprime sin IGV, debajo del SUB TOTAL. **Siempre pasa por gerencia** (bandeja de Aprobaciones) y el número de la cotización solo se gasta con el visto bueno. Si ya se aprobó y no se cambia, no se vuelve a pedir.
 
 ### 16-10 · Reunión de gerencia con Ariana y Santos (17:57): reparto en postventa
 - **Criterio para derivar en postventa:** gerencia mira cuánto avanza cada una, qué tan rápida es y cuánto le falta cerrar; a quien avanza más se le da más («así aprendemos más y experimentamos»).
