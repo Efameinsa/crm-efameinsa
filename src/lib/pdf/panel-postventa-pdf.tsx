@@ -169,9 +169,9 @@ export function PanelPostventaPdf({
             { t: "Ayudó a compañeras", v: String(panel.equipo.ayudasDadas), s: "gestiones en carpetas de otra", c: "#7c3aed" },
             { t: "La ayudaron", v: String(panel.equipo.ayudasRecibidas), s: "gestiones de otras en las suyas", c: "#a78bfa" },
             {
-              t: "Respuesta a Central",
+              t: "Respuesta",
               v: panel.equipo.medianaMin === null ? "—" : duracionOficina(panel.equipo.medianaMin),
-              s: `mediana · ${panel.equipo.atendidas} de ${panel.equipo.derivaciones} (6 días)`,
+              s: `mediana · ${panel.equipo.atendidas}/${panel.equipo.derivaciones} en 6 días`,
               c: "#2a78d6",
             },
             { t: "Derivaciones sin gestión", v: String(panel.equipo.sinGestion), s: "últimos 6 días", c: panel.equipo.sinGestion > 0 ? GRANATE : VERDE },
@@ -185,7 +185,7 @@ export function PanelPostventaPdf({
                 <Text style={{ fontSize: 6, color: GRIS, textTransform: "uppercase" }}>{k.t}</Text>
                 <Text style={{ fontSize: 6, color: GRIS }}>{k.s}</Text>
               </View>
-              <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold" }}>{k.v}</Text>
+              <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", marginLeft: 3 }}>{k.v}</Text>
             </View>
           ))}
         </View>
