@@ -320,6 +320,8 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **PV es el área; PV1, PV2 y PV3 son las personas** (gerencia, 29-09). La cuenta PV del área no tiene ingreso de usuario: su buzón de correo es el que conocen los clientes.
   - Un aviso dirigido a PV se reparte entre todas las personas de postventa activas.
   - Un caso del área pasa a ser de quien lo gestiona primero.
+  - **Entre las personas de postventa también: el caso es de quien lo está trabajando** (desde el 17-10). Si una registra una gestión, arma una cotización o confirma una cotización en un caso que está a nombre de otra compañera, el caso pasa a ella y aparece en su «Mis oportunidades» (tabla y Kanban). A quien lo tenía le llega un aviso; lo sigue viendo en Atenciones → Casos anteriores, y queda registrado quién hizo cada cosa.
+  - **Al confirmar una cotización queda el seguimiento:** si el expediente no tenía próxima acción o la tenía vencida, queda «Hacer seguimiento de la cotización …» para el siguiente día hábil, a nombre de quien la confirmó.
   - Central, al derivar, elige «Postventa (área)».
 - **PV1, PV2 y PV3 tienen permisos idénticos y no tienen cartera propia** (28-09 y 29-09). Nunca se asigna cartera a un perfil de postventa. Postventa atiende clientes de cualquier cartera sin quitárselos a nadie.
 - **Ve:**

@@ -18,6 +18,13 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 17-10 · El caso de postventa es de quien lo trabaja (Ariana, Santos)
+- **Qué pasó (ECOLAV, continuación del 16-10):** Central le derivó a Ariana el pedido de la válvula de gas, pero el cliente ya tenía un expediente abierto a nombre de Rubí y ahí se quedó. Ariana registró la llamada, armó la cotización, gerencia la aprobó y ella la confirmó, pero no la veía en su Kanban: «Mis oportunidades» muestra solo los casos propios, y el caso seguía siendo de Rubí. Además, la próxima acción había quedado en una llamada de septiembre, vencida.
+- **Qué se decidió (Santos, 17-10):** se aplica la regla de gerencia del 29-09, «cuando alguien lo gestiona es suyo», también entre las personas de postventa, no solo con los casos del área. Quien gestiona, cotiza o confirma se queda con el caso; a quien lo tenía le llega un aviso.
+- **Y al confirmar una cotización** queda «Hacer seguimiento de la cotización …» para el siguiente día hábil, si el expediente no tenía otra próxima acción vigente.
+- **El caso de ECOLAV ya está a nombre de Ariana**, con seguimiento para el lunes 19-10.
+- **Pendiente (Santos):** decidir si se pasan también los casos antiguos que hoy trabaja otra compañera (unos 30 entre Rubí, Gabriela y Ariana), y si se agrega una vista «del área» al Kanban de postventa.
+
 ### 17-10 · Pedir a Lesly, la versión nueva sin recargas sorpresa y la ficha que llega al pedido (Santos)
 - **«Pedir a Lesly» (buzón del catálogo):** Santos: «crea un buzón para pedir productos o que Lesly actualice y que le llegue a Lesly, que eso no pidan en el buzón porque no tiene que ver con el CRM sino con operaciones». En el buzón del CRM llegaban pedidos de fichas técnicas, precios o stock que había que reenviarle. Desde el 17-10 hay un botón propio en la barra; Lesly los ve en «Pedidos al catálogo» y contesta («Lo estoy viendo», «Hecho» o «No procede»). Si alguien lo escribe en el buzón del CRM, el buzón le avisa y se lo pasa.
 - **Versión nueva sin recargas sorpresa:** el 16-10 se había hecho que el CRM se recargara solo si la pantalla llevaba 2 minutos quieta. Santos recordó que una recarga sola ya había hecho perder trabajo y molestaba. Desde el 17-10 vuelve la regla de siempre: la pantalla en uso nunca se recarga sola; la actualización llega al pasar a otra pantalla.
