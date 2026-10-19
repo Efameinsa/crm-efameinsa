@@ -1,6 +1,6 @@
 # Bitácora del CRM Efameinsa: historia de las decisiones
 
-Vigente al 17-10-2026. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
+Vigente al 19-10-2026. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
 
 Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién decidió que postventa no vea precios?», «¿esto siempre fue así?» o «¿qué pasó con el caso X?».
 
@@ -451,7 +451,7 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 **Postventa**
 - **PV:** cuenta del área; nadie entra con ella.
 - **PV1 Rubí Simeon.**
-- **PV2 Gabriela Palacios.**
+- **PV2 Brenda Taboada** (desde el 19-10, además de su C1); lo anterior de PV2 figura como PV2-GP.
 - **PV3 Ariana Flores.**
 
 **Almacén**

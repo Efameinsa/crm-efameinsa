@@ -1,6 +1,6 @@
 # Base de conocimiento del CRM Efameinsa
 
-Vigente al 17-10-2026. Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
+Vigente al 19-10-2026. Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
 
 ## 0. Cómo usar este documento
 
@@ -160,7 +160,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 ### 1.9 Postventa recibe y prepara el pedido
 
-- **Dueño:** postventa (PV1 Rubí, PV2 Gabriela, PV3 Ariana).
+- **Dueño:** postventa (PV1 Rubí, PV2 Brenda Taboada, PV3 Ariana).
 - **Qué entra:** el pedido liberado.
 - **Pasos (varían según el tipo de pedido: equipo, repuesto, accesorio, embalaje, mantenimiento o servicio):**
   1. **«Pedido aprobado por postventa».** Es el acuse. Desde ahí corre el reloj del área.
@@ -1022,7 +1022,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 **Postventa**
 - PV1: Rubí.
-- PV2: Gabriela Palacios.
+- PV2: Brenda Taboada desde el 19-10 (además de su C1). El historial anterior de PV2 figura como Gabriela Palacios (PV2-GP).
 - PV3: Ariana Flores.
 
 **Otras áreas**
