@@ -15,10 +15,11 @@
  * queda fuera aunque solo lea: es el código de autorización vigente.
  */
 
-// central_test y comercial_test YA NO son de demostración (Santos 19-10): son las cuentas de
-// práctica de la PRUEBA DEL RECORRIDO del cliente (Central registra y deriva, el comercial cotiza
-// y cierra) y tienen que poder trabajar. Lo que hacen queda marcado es_prueba, como central0 y C0.
-export const CORREO_DEMO = /^(?!(?:central|comercial)_test@)[^@]+_test@efameinsa\.com$/i;
+// central_test, comercial_test, almacen_test, postventa_test, finanzas_test y operaciones_test YA
+// NO son de demostración (Santos 19-10): son las cuentas de práctica de la PRUEBA DEL RECORRIDO del
+// cliente (Central registra y deriva, el comercial cotiza y cierra, almacén, finanzas, operaciones y
+// postventa marcan los pasos del pedido) y tienen que poder trabajar. Lo que hacen queda marcado es_prueba, como central0 y C0.
+export const CORREO_DEMO = /^(?!(?:central|comercial|almacen|postventa|finanzas|operaciones)_test@)[^@]+_test@efameinsa\.com$/i;
 /** La pone el proxy con el id de la cuenta de demostración; la quita si viene de afuera. */
 export const CABECERA_DEMO = "x-crm-demo";
 /** Visible para el navegador: activa el candado también en el cliente. */
