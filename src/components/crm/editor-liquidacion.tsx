@@ -375,7 +375,7 @@ export function EditorLiquidacion({ base, hoy }: { base: BaseLiquidacion; hoy: s
             <p className="text-muted-foreground">
               Total {m(l.base.total)} · saldo <b className="text-foreground">{m(l.saldo)}</b>
               {l.comisionPendiente > 0 && ` · incluye ${m(l.comisionPendiente)} de comisión: se avisa al comercial para que la cobre`}
-              {l.facturaVigente ? ` · factura ${l.facturaVigente}` : " · abono sin factura: se avisa a Contabilidad para que facture"}
+              {l.facturaVigente ? ` · factura ${l.facturaVigente}` : " · factura pendiente: se avisa a Contabilidad para que facture"}
             </p>
           </div>
           <div className="max-h-[calc(100vh-9rem)] overflow-auto rounded-lg bg-secondary/60 p-3">

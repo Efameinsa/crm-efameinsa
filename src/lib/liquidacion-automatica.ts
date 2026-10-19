@@ -159,6 +159,8 @@ export interface BaseLiquidacion {
   esServicio: boolean;
   /** Lo que se completó en la última liquidación generada: la siguiente parte de ahí. */
   anteriores: Complementos | null;
+  /** Cuándo se validó esa última liquidación generada (para saber qué factura llegó después). */
+  anterioresAt?: string | null;
   /** Cuántas liquidaciones tiene ya el pedido: la nueva es la siguiente. */
   yaHay: number;
   retenidoGuardado: { tipo: TipoRetenido; monto: number; cobrado: boolean } | null;
@@ -239,7 +241,12 @@ export function complementosIniciales(b: BaseLiquidacion, hoy: string): Compleme
   // La del saldo: la última factura que no es de ningún abono (crédito: se factura antes de cobrar).
   const usadas = new Set(Object.values(facturaDeAbono).map((x) => x.trim().toUpperCase()).filter(Boolean));
   const libre = [...b.facturas].sort((x, y) => y.registradaAt.localeCompare(x.registradaAt)).find((f) => !usadas.has(f.numero.trim().toUpperCase()));
-  const facturaSaldo = ant?.facturaSaldo || libre?.numero || "";
+  // Si Finanzas la dejó en blanco a propósito (la factura se anuló con nota de
+  // crédito: Jhon, buzón 19-10), sigue en blanco hasta que Contabilidad
+  // registre otra después de esa liquidación.
+  const dejoEnBlanco = ant != null && ant.facturaSaldo === "";
+  const nueva = libre && (!b.anterioresAt || libre.registradaAt > b.anterioresAt) ? libre.numero : "";
+  const facturaSaldo = ant?.facturaSaldo || (dejoEnBlanco ? nueva : libre?.numero) || "";
   const retenido = b.retenidoGuardado
     ? { ...b.retenidoGuardado, pct: ant?.retenido?.pct ?? PCT_RETENIDO[b.retenidoGuardado.tipo] }
     : (ant?.retenido ?? null);
@@ -366,10 +373,13 @@ export function calcularLiquidacion(b0: BaseLiquidacion, c: Complementos, hoy: s
   if (c.ajustes?.rotulo?.trim()) rotulo = c.ajustes.rotulo.trim().toUpperCase();
 
   // La factura del historial: con un abono sin factura, es un anticipo por
-  // facturar (Contabilidad recibe el aviso); si no, la última emitida.
+  // facturar (Contabilidad recibe el aviso); si no, la que Finanzas puso en la
+  // liquidación, nunca una registrada que dejó en blanco (anulada con nota de
+  // crédito, Jhon 19-10). Toda la operación sin factura = por facturar.
   const sinFactura = abonos.some((a) => !ftDe(a));
+  const ultimaDeAbono = abonos.length ? ftDe(abonos[abonos.length - 1]) : "";
   const ultima = [...b.facturas].sort((x, y) => y.registradaAt.localeCompare(x.registradaAt))[0]?.numero ?? null;
-  const facturaVigente = sinFactura ? null : ftSaldo || ultima;
+  const facturaVigente = sinFactura ? null : ftSaldo || ultimaDeAbono || (hayCola ? null : ultima);
 
   const titulos = bloques.map((x) => x.filas[0].izquierda).filter((t) => t !== "PAGOS ANTERIORES");
   const notas = [
@@ -505,6 +515,7 @@ export async function cargarBaseLiquidacion(supabase: SupabaseClient, servicioId
     letrasCantidad: (f.letras_cantidad as number | null) ?? null,
     esServicio: /servicio|mantenimiento/i.test(tipoPedido) || /servicio|mantenimiento/i.test(String(f.equipo ?? "")),
     anteriores: (ultimaGenerada?.datos as Complementos | null) ?? null,
+    anterioresAt: (ultimaGenerada?.subida_at as string | undefined) ?? null,
     yaHay: liqs.length,
     retenidoGuardado:
       f.retenido_tipo && Number(f.retenido_monto ?? 0) > 0

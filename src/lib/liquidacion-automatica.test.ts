@@ -87,6 +87,21 @@ describe("liquidación automática (0534)", () => {
     expect(calcularLiquidacion(b, { ...c, facturaSaldo: "" }, "2026-10-17").bloques[0].filas[0].izquierda).toBe("FT PDTE");
   });
 
+  it("factura del saldo dejada en blanco (anulada con nota de crédito): queda pendiente y no vuelve sola (Jhon 19-10)", () => {
+    const ft = { numero: "E001-840", fechaEmision: "2026-10-16", registradaAt: "2026-10-16T23:22:00Z" };
+    const b = base({ facturas: [ft] });
+    const l = calcularLiquidacion(b, { ...sin, facturaSaldo: "" }, "2026-10-19");
+    expect(l.bloques[0].filas[0].izquierda).toBe("FT PDTE");
+    expect(l.facturaVigente).toBeNull();
+    expect(l.notas[0]).toBe("FACTURA: FT PDTE");
+    // La siguiente liquidación la trae en blanco…
+    const b2 = base({ facturas: [ft], anteriores: { ...sin, facturaSaldo: "" }, anterioresAt: "2026-10-19T13:58:00Z" });
+    expect(complementosIniciales(b2, "2026-10-19").facturaSaldo).toBe("");
+    // …hasta que Contabilidad registra la nueva.
+    const b3 = { ...b2, facturas: [ft, { numero: "E001-861", fechaEmision: "2026-10-19", registradaAt: "2026-10-19T15:00:00Z" }] };
+    expect(complementosIniciales(b3, "2026-10-19").facturaSaldo).toBe("E001-861");
+  });
+
   it("detracción: pagó el 88 % y el resto retenido → cancelada, pendiente cobro de la detracción", () => {
     const b = base({ esServicio: true, abonos: [abono("a", 1038.4)] });
     const l = calcularLiquidacion(b, { ...sin, retenido: { tipo: "detraccion", pct: 12, monto: 141.6, cobrado: false } }, "2026-10-17");
