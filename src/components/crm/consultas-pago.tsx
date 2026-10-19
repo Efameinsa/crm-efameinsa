@@ -30,7 +30,8 @@ export interface ConsultaPago {
   nota: string | null;
   createdAt: string;
   creadoPorNombre: string | null;
-  voucherUrl: string | null;
+  /** El primero y los demás (0535: el cliente pagó en varios depósitos). */
+  voucherUrls: string[];
   respondidaAt: string | null;
   respondidaPorNombre: string | null;
   respuesta: string | null;
@@ -69,6 +70,40 @@ function CampoArchivo({ etiqueta, archivo, onChange }: { etiqueta: string; archi
   );
 }
 
+const MAX_VOUCHERS = 10;
+
+/** Uno o varios vouchers (0535): el cliente a veces paga en dos o tres depósitos. */
+function CampoVouchers({ archivos, onChange }: { archivos: File[]; onChange: (f: File[]) => void }) {
+  return (
+    <div className="grid gap-1.5">
+      {archivos.map((a, i) => (
+        <div key={`${a.name}-${i}`} className="flex items-center justify-between gap-2 rounded-md border border-border px-2.5 py-1.5 text-sm">
+          <span className="truncate">{a.name}</span>
+          <button type="button" onClick={() => onChange(archivos.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-foreground" aria-label={`Quitar ${a.name}`}>
+            <X className="size-4" />
+          </button>
+        </div>
+      ))}
+      {archivos.length < MAX_VOUCHERS && (
+        <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-border px-2.5 py-2 text-sm text-muted-foreground hover:bg-accent">
+          <Paperclip className="size-4" />
+          {archivos.length ? "Agregar otro voucher" : "Adjuntar el voucher del cliente (imagen o PDF; puede elegir varios)"}
+          <input
+            type="file"
+            multiple
+            accept="image/*,application/pdf"
+            className="hidden"
+            onChange={(e) => {
+              onChange([...archivos, ...Array.from(e.target.files ?? [])].slice(0, MAX_VOUCHERS));
+              e.target.value = "";
+            }}
+          />
+        </label>
+      )}
+    </div>
+  );
+}
+
 /** Los dos botones del comercial en «Pagos» del pedido. */
 export function ConsultarPagoBotones({ servicioId }: { servicioId: string }) {
   return (
@@ -83,26 +118,27 @@ function DialogoConsulta({ servicioId, tipo }: { servicioId: string; tipo: Consu
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [pendiente, startTransition] = useTransition();
-  const [voucher, setVoucher] = useState<File | null>(null);
+  const [vouchers, setVouchers] = useState<File[]>([]);
   const [nota, setNota] = useState("");
   const [problema, setProblema] = useState<string | null>(null);
 
   function enviar() {
     setProblema(null);
-    if (!voucher) return setProblema("Adjunte el voucher que le mandó el cliente.");
+    if (!vouchers.length) return setProblema("Adjunte el voucher que le mandó el cliente.");
     startTransition(async () => {
-      let voucherPath: string;
+      let rutas: string[];
       try {
-        voucherPath = await subir("pagos-comercial", servicioId, voucher);
+        rutas = await Promise.all(vouchers.map((v) => subir("pagos-comercial", servicioId, v)));
       } catch (e) {
         setProblema(e instanceof Error ? e.message : "No se pudo subir el voucher. Vuelva a intentarlo.");
         return;
       }
-      const r = await consultarPagoAFinanzas({ servicioId, tipo, voucherPath, nota });
+      const [voucherPath, ...vouchersExtra] = rutas;
+      const r = await consultarPagoAFinanzas({ servicioId, tipo, voucherPath, vouchersExtra, nota });
       if (r.error) return setProblema(r.error);
       toast.success("Enviado a Finanzas. Su respuesta le llega a la campana y queda aquí.");
       setAbierto(false);
-      setVoucher(null);
+      setVouchers([]);
       setNota("");
       router.refresh();
     });
@@ -128,7 +164,7 @@ function DialogoConsulta({ servicioId, tipo }: { servicioId: string; tipo: Consu
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-2">
-          <CampoArchivo etiqueta="Adjuntar el voucher del cliente (imagen o PDF)" archivo={voucher} onChange={setVoucher} />
+          <CampoVouchers archivos={vouchers} onChange={setVouchers} />
           <Textarea
             value={nota}
             onChange={(e) => setNota(e.target.value)}
@@ -164,11 +200,11 @@ export function ListaConsultasPago({ consultas, servicioId, responder = false }:
             <span className="font-normal text-muted-foreground">
               · {c.creadoPorNombre ?? "Comercial"} · {fechaHoraLima(c.createdAt)}
             </span>
-            {c.voucherUrl && (
-              <a href={c.voucherUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
-                <Paperclip className="size-3.5" /> Ver el voucher
+            {c.voucherUrls.map((u, i) => (
+              <a key={u} href={u} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                <Paperclip className="size-3.5" /> {c.voucherUrls.length > 1 ? `Voucher ${i + 1}` : "Ver el voucher"}
               </a>
-            )}
+            ))}
           </p>
           {c.nota && <p className="text-xs text-muted-foreground">{c.nota}</p>}
           {c.respondidaAt ? (
