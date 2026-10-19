@@ -39,7 +39,11 @@ describe("el candado de las cuentas de demostración", () => {
   });
 
   it("reconoce solo las cuentas _test de la empresa", () => {
-    expect(CORREO_DEMO.test("central_test@efameinsa.com")).toBe(true);
+    expect(CORREO_DEMO.test("postventa_test@efameinsa.com")).toBe(true);
+    expect(CORREO_DEMO.test("almacen_test@efameinsa.com")).toBe(true);
+    // Las de la prueba del recorrido trabajan de verdad (19-10).
+    expect(CORREO_DEMO.test("central_test@efameinsa.com")).toBe(false);
+    expect(CORREO_DEMO.test("comercial_test@efameinsa.com")).toBe(false);
     expect(CORREO_DEMO.test("central@efameinsa.com")).toBe(false);
     expect(CORREO_DEMO.test("central_test@gmail.com")).toBe(false);
   });
