@@ -185,6 +185,7 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
     { data: informes },
     { count: equiposInstalados },
     { count: serviciosPostventa },
+    { count: expedientesAntiguos },
   ] = await Promise.all([
     supabase
       .from("contactos")
@@ -228,6 +229,14 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
     // no). Aun así el comercial tiene la última palabra en el formulario.
     supabase.from("equipos_instalados").select("id", { count: "exact", head: true }).eq("cuenta_id", cuentaId),
     supabase.from("servicios_postventa").select("id", { count: "exact", head: true }).eq("cuenta_id", cuentaId),
+    // ⚠️ 19-10, Katerine (C5): cerró ANDEX SOLUTION en su expediente del
+    // Excel (anterior al CRM) y el cierre 012-2026 salió «Cliente nuevo».
+    // Un cliente que ya venía de un expediente antiguo es cliente antiguo.
+    supabase
+      .from("oportunidades")
+      .select("id", { count: "exact", head: true })
+      .eq("cuenta_id", cuentaId)
+      .eq("origen", "historico_excel"),
   ]);
 
   // Solo las ventas nacidas EN el CRM: las 626 importadas del Excel son
@@ -346,7 +355,11 @@ export async function prellenarInforme(cuentaId: string): Promise<{ error: strin
         razon_social: cuenta.razon_social,
         num_doc: cuenta.num_doc,
         direccion: direccionCliente,
-        esNueva: (ventas ?? []).length === 0 && !(equiposInstalados ?? 0) && !(serviciosPostventa ?? 0),
+        esNueva:
+          (ventas ?? []).length === 0 &&
+          !(equiposInstalados ?? 0) &&
+          !(serviciosPostventa ?? 0) &&
+          !(expedientesAntiguos ?? 0),
       },
       contactos: (contactos ?? []).map((c) => ({
         area: c.cargo,

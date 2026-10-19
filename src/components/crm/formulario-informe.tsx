@@ -1055,7 +1055,7 @@ export function FormularioInforme({
                   tenía). Un cliente puede tener varias direcciones, así que la
                   del documento se escribe aquí y no toca la ficha. */}
               <div className="grid gap-2 sm:grid-cols-[12rem_1fr]">
-                <Campo etiqueta="Cliente" pista={cuenta.esNueva ? "el CRM no le conoce compras" : "ya nos compró antes"}>
+                <Campo etiqueta="Cliente" pista={cuenta.esNueva ? "el CRM no le conoce compras ni expediente antiguo" : "ya nos compró o viene de un expediente antiguo"}>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     <Pastilla activa={!clienteNuevo} onClick={() => setClienteNuevo(false)}>
                       Antiguo
@@ -1107,9 +1107,23 @@ export function FormularioInforme({
                 {clienteDoc.trim() || "sin RUC / DNI"}
                 {serie === "OPEN" ? " · factura Open Investments" : " · factura Efameinsa"}
               </p>
+              {/* ANTIGUO/NUEVO SE CAMBIA SIN ABRIR «EDITAR» (19-10). Andex salió
+                  «nuevo» en el 012-2026 y Katerine no lo vio: solo era una
+                  palabra en gris. Ahora se ve y se toca aquí, también al
+                  corregir un cierre ya emitido. */}
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground">Cliente</span>
+                <Pastilla activa={!clienteNuevo} onClick={() => setClienteNuevo(false)}>
+                  Antiguo
+                </Pastilla>
+                <Pastilla activa={clienteNuevo} onClick={() => setClienteNuevo(true)}>
+                  Nuevo
+                </Pastilla>
+                <span className="text-[11px] text-muted-foreground">
+                  {cuenta.esNueva ? "el CRM no le conoce compras ni expediente antiguo" : "ya nos compró o viene de un expediente antiguo"}
+                </span>
+              </div>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {clienteNuevo ? "Cliente nuevo" : "Cliente antiguo"}
-                {" · "}
                 {clienteDireccion.trim() ? (
                   clienteDireccion
                 ) : (
