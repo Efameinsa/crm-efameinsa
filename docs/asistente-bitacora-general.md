@@ -18,6 +18,11 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 19-10 · Apertura que «no llegaba» y constancias de pago para Central (Santos; buzón de Jhon)
+- **Apertura de VIDAWASI (PED-0035-2026):** se avisó que la apertura no le llegaba ni a Lesly ni a Finanzas. Los avisos sí habían llegado, pero al programar el despacho se pulsó también «Registrar la salida» por error; con eso el CRM la da por despachada y la saca de «Por confirmar» y de las listas del almacén. Santos deshizo esa acción y se mandaron avisos nuevos. **Regla práctica:** «Registrar la salida» es solo cuando el equipo de verdad salió; si una apertura avisada no aparece en la lista, revisar si figura como ya salida y pedir a Santos que lo deshaga. Pendiente: propuesta de frenar ese botón mientras la guía no esté confirmada (por confirmar).
+- **Central ve la constancia de pago (buzón de Jhon):** en Central > Cierres, en «Para el expediente físico» y en el botón «Expediente» del cierre, sale «Constancias de pago» con «Abrir / imprimir», para adjuntarla al expediente físico junto con la liquidación y la factura.
+- **Liquidación (buzón de Jhon):** la pantalla de liquidación de Finanzas tiene a la vista el expediente del cierre para revisarlo antes de validar, y lo que el cierre entrega gratis sale aparte, sin cobrarse. Detalle en la bitácora de Finanzas.
+
 ### 19-10 · Cierres: el cliente de un expediente antiguo sale como «cliente antiguo» (pedido de una comercial, Santos)
 - **Qué pasó:** se emitió el cierre de un cliente que venía de un expediente antiguo (de los Excel anteriores al CRM) y salió como «cliente nuevo», porque el CRM solo miraba las ventas registradas.
 - **Qué se hizo:** el CRM ahora propone «Antiguo» también cuando el cliente viene de un expediente antiguo. Las pastillas «Antiguo / Nuevo» están a la vista en «Se le factura a» y en la corrección del cierre emitido («Editar», con código de Central). Ese cierre se corrigió a «cliente antiguo». Antes era: el dato estaba escondido tras «Editar» y solo se proponía antiguo si había ventas, equipos o servicios.
@@ -414,6 +419,8 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 - **Reseñas de Google por parte del personal:** en revisión. Google prohíbe reseñas de empleados con incentivo; se recomendó premiar que el personal pida reseñas a clientes. Consulte a gerencia antes de dejar o pedir reseñas.
 
 **Depende de Santos (CRM)**
+- **Cierres emitidos como «cliente nuevo» con expediente antiguo** (19-10): quedan 17 por decidir si se pasan a «antiguo»; ese mismo día solo se corrigió el que motivó la regla.
+- **Frenar «Registrar la salida» desde postventa** mientras la guía no esté confirmada (propuesta del 19-10, caso VIDAWASI, sin respuesta).
 - El código de producto debe mostrar su descripción («punto uno» de almacén). Depende de los datos del catálogo.
 - El camión que esperó por una apertura: falta aclarar si fue el CRM o el registro.
 - Error de pantalla que frena corregir una cotización con precio bajo lista ya aprobado.

@@ -12,6 +12,18 @@ Vigente al 19-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 
 ## Cronología de decisiones que tocan su trabajo
 
+### 19-10 · Buzón de Jhon: expediente en la liquidación, entrega gratuita y constancia de pago para Central
+- **El expediente dentro de la liquidación:** Jhon preguntó si, al generar la liquidación automática, ya no hacía falta revisar el expediente («¿se sobreentiende que está todo bien?»). No: el CRM no da nada por bueno solo. Desde el 19-10, en la pantalla «Generar liquidación», junto a «Ver el PDF», está el botón «Expediente» (voucher, orden de compra, cotización y demás papeles del cierre, en solo lectura). Finanzas revisa lo que necesite y recién entonces pulsa «Validar y enviar a Central».
+- **Entrega gratuita (caso VIDAWASI, PED-0035-2026):** lo que el cierre entrega gratis (el bloque «VENTA 2 – GRATUITO») no salía en la liquidación. Jhon pidió que aparezca en el detalle y en un recuadro propio, sin sumar a la base imponible, al IGV ni al total por cobrar. Desde el 19-10 sale en el detalle con «ENTREGA GRATUITA · NO SE COBRA» y en el recuadro «ENTREGA GRATUITA» debajo del TOTAL; en el editor cada línea tiene la casilla «Entrega gratuita». En VIDAWASI fue el kit de mangueras (US$ 399, aparte). Su Liquidación N.º 1, ya validada, no cambió; si se quiere el papel con el recuadro, se genera de nuevo y sale como N.º 2.
+- **Constancia de pago para el expediente físico:** Central no podía ver la constancia que Finanzas sube al confirmar un abono, para imprimirla. Desde el 19-10, en Central > Cierres («Para el expediente físico» y botón «Expediente» del cierre) sale «Constancias de pago»: monto, fecha, banco, N.º de operación, quién confirmó y «Abrir / imprimir». Ya no hay que mandársela aparte. Si el abono se confirmó sin adjuntarla, dice «Finanzas no adjuntó la constancia»: **adjunte siempre la constancia al confirmar**.
+- **Primera liquidación generada y validada:** VIDAWASI N.º 1 (Jhon, 19-10).
+
+### 19-10 · VIDAWASI: la apertura «no llegaba» a Finanzas ni al almacén
+- **Qué pasó:** postventa emitió y envió la apertura, y los avisos sí llegaron (Jhon los leyó), pero la apertura no aparecía en «Aperturas por confirmar» ni en las listas del almacén. Al programar el despacho, desde postventa se pulsó también «Registrar la salida» (por error, segundos después). Con la salida marcada, el CRM la da por despachada: la saca de «Por confirmar» y el almacén la ve en «Ya salieron».
+- **Qué se hizo (Santos, 19-10):** se deshizo la salida; la apertura quedó emitida y enviada, sin guía confirmada, y llegaron avisos nuevos a Finanzas, Facturación, operaciones y almacén.
+- **Si vuelve a pasar** («me avisaron pero no la veo en la lista»): revisar si el pedido figura como ya salido sin guía; se corrige deshaciendo esa acción (Santos).
+- **Pendiente (propuesta a Santos, sin respuesta):** que «Registrar la salida» desde postventa quede frenado mientras Contabilidad o Finanzas no confirmen la guía.
+
 ### 19-10 · La consulta del comercial puede traer varios vouchers
 - Desde el 19-10 (pedido de una comercial), «Avisar que el cliente canceló» y «Preguntar si hubo comisión» aceptan hasta 10 vouchers; en «Consultas del comercial» aparecen como «Voucher 1, 2…». **Revíselos todos antes de confirmar el abono.**
 
@@ -26,7 +38,7 @@ Vigente al 19-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 - **Mismo día (Santos, después):** «la generación debe ser automática y tener un editor de campos para ajustar lo que desee». La liquidación pasó a una pantalla propia con todos los campos editables a la izquierda y la hoja en vivo a la derecha.
 - **Mismo día (buzón de Jhon, tarde):** «no sé el cuadro donde debería colocar el número de factura». El campo de factura solo salía junto a cada abono, así que en una venta a crédito sin abonos (Beneficencia de Huancayo, PED-0022-2026) no había dónde ponerla. Ahora, en «Abonos y facturas», hay un recuadro «Toda la operación» (o «Lo que falta cobrar» si ya hay abonos) con «N.º de factura»: viene llenado con la última factura registrada por Contabilidad que no es de ningún abono; si queda vacío sale «FT PDTE». El número va a la hoja, a la NOTA y queda en el historial de la liquidación. También se arregló que la factura y el banco salieran cortados con «…» en la hoja en vivo.
 - **19-10 (buzón de Jhon):** en ese mismo pedido la E001-840 se anuló con nota de crédito. Jhon dejó el N.º de factura en blanco para que quedara pendiente, pero el CRM seguía guardando la E001-840 en el historial y la volvía a poner en la liquidación siguiente. Ahora, si se deja en blanco, queda «Factura pendiente», no vuelve sola y Contabilidad recibe el aviso «Otra vez por facturar». Se corrigieron sus liquidaciones N.º 2 y N.º 3. Pendiente: las facturas del pedido no se pueden marcar como «anulada», así que la E001-840 sigue en la lista.
-- **Pendiente:** que Jhon pruebe con un pedido real y diga qué falta frente a su plantilla. Hasta el 17-10 en la noche ninguna liquidación generada había sido validada todavía.
+- **Pendiente:** que Jhon pruebe con un pedido real y diga qué falta frente a su plantilla. Hasta el 17-10 en la noche ninguna liquidación generada había sido validada todavía. **Actualización 19-10:** Jhon validó la primera (VIDAWASI N.º 1) y desde su buzón ya salieron tres mejoras (factura en blanco, expediente a la vista y entrega gratuita).
 
 ### 16-10 (noche) · Liquidaciones en secuencia, botón «Pagos» del comercial y descuento al final de la cotización
 - **Liquidaciones anteriores (consulta de Central, caso ABACHI):** parecía que la liquidación anterior se había borrado al subir la de cancelación. No se borra nada: en ABACHI estaban las tres (pago a cuenta, la actualizada con la factura y la de operación cancelada). Solo se veía el enlace a la última. Desde el 16-10, en Central > Cierres cada liquidación lleva su número en la secuencia (N.º 1 es la primera que subió Finanzas) y dice «Vigente» o «Anterior»; en el paso de la liquidación del pedido se ven todas.
@@ -117,51 +129,15 @@ Vigente al 19-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 - El detalle del pedido para Finanzas muestra si la operación es **OPEN o EFAMEINSA**, para buscar el abono en la carpeta y el banco correctos.
 - Orden de búsqueda: la empresa del cierre; si no hay cierre, la anotada en la apertura; si no hay nada, Finanzas la marca.
 
-### 06-10 · Apertura → Finanzas → almacén (reunión de postventa y correos)
-- Postventa ve un check verde cuando se autoriza la guía y recibe aviso.
-- **Si postventa corrige una apertura emitida** (dirección mal escrita, fecha, guía), la autorización de la guía se anula y Finanzas y el almacén deben volver a aprobar.
-- El almacén tiene la tarjeta «Guías autorizadas por Finanzas». Caso: Ninamango, que Lesly no encontraba.
-- **Correos automáticos según la empresa del pedido:** si nació en OPEN, salen correos de OPEN. Las cuentas del CRM para Finanzas y Facturación no son los correos que el área usa a diario; los avisos por correo van al correo del área que figura en el Directorio.
-
-### 02-10 y 03-10 · Comprobante en la guía y aviso al emitir (Lesly)
-- **Al emitir la apertura también se avisa a Finanzas.** Antes solo avisaba al «enviar al almacén»; el pedido de Tomy Jiro quedó sin aviso.
-- **La guía lleva tipo y número de comprobante:** factura, boleta o sin comprobante. El número es obligatorio si hay factura o boleta.
-- **Abonos confirmados se filtran por el día en que se confirmaron en el CRM**, con atajos hoy y ayer.
-- **La forma de pago de una cotización trae su saldo** y avisa en ámbar si se contradice (caso: Gabriela marcó «al contado» y salió 30/70, Agrícola Huarmey).
-
-### 30-09 · Apurar a Finanzas, cobranza y devoluciones
-- **«Apurar a Finanzas»** desde la tarjeta del cierre (pedido de Central, caso Ninamango): cuando falta la liquidación. Un aviso cada 10 minutos; desde el segundo, se entera gerencia. Solo funciona si el pedido ya tiene número; sin número, Finanzas no lo ve en «Liquidar».
-- **Devolver un cierre que ya está en Finanzas pide código** de gerencia: Finanzas ya trabaja sobre él.
-- **«Gestión de cobranza»** como resultado posible de una gestión del comercial («¿En qué quedó?»), con acción sugerida a dos días.
-- Caso Cristo Rey: salió con saldo y bastó un motivo escrito. Desde el 14-10 eso ya no basta.
-
-### 29-09 · Facturación
-- Contabilidad es la cuenta de Facturación (decisión de Santos). Marca «Enviada al cliente» en cada factura (se puede deshacer).
-- En «Por facturar» cada fila muestra la liquidación vigente y las anteriores con su PDF.
-- El pedido de Julca (OPEN 024) se reinició para que Central lo genere con la serie correcta; **la factura con la serie errada la corrige Finanzas aparte** (por confirmar si ya se hizo).
-
-### 25-09 · Reunión con Central y Finanzas (rol Facturación)
-- Nace la cuenta de **Facturación** con «Por facturar», «Observados» (revisión automática de empresa, RUC, moneda, monto con IGV y orden de compra) y «Facturados».
-- **Finanzas ve el expediente completo en solo lectura** (cotización enlazada, orden de compra, cierre, pedido). **Los vouchers que sube Finanzas solo los ven Finanzas y gerencia.**
-- Finanzas sube liquidaciones con estado de pago (pendiente, a cuenta, cancelado) y la factura o «factura pendiente». Queda el historial de liquidaciones.
-- **Salida con saldo pendiente solo con autorización.** Cada documento sigue la empresa con la que empezó su cadena.
-- Central puede imprimir liquidaciones y facturas también en pedidos liberados y levanta las observaciones de Facturación.
-
-### 24-09 · Urgencia a Finanzas
-- Central pidió una alerta para «pedidos urgentes porque el cliente requiere factura o quieren despachar». Nace **«Urgencia a Finanzas»**: ventana que no se cierra sola, el pedido sale primero y en rojo en «Pagos por confirmar». Desde el segundo aviso por el mismo pedido, gerencia se entera.
-
-### 23-09 · Finanzas con cuenta propia y liquidación con PDF (gerencia)
-- **Finanzas tiene cuenta propia** (Carlos): Jhon confirma los pagos él mismo, con «Por confirmar», «Confirmados», «Cuentas por cobrar» y la opción de **observar** un pago.
-- **Central acepta o rechaza la liquidación viendo el PDF de Finanzas**; «Aceptar» exige el PDF. Ejecutar un pedido sin liquidación pide código.
-- **El descuento del banco se anota y se avisa al comercial**, con evidencia.
-- Postventa ya no registra pagos a mano: pulsa «Solicitar confirmación a Finanzas».
-- **Open Investments es la primera opción de facturación** (gerencia): clientes nuevos van a OPEN; si un cliente antiguo pide EFAMEINSA, se intenta mantener OPEN y, si insiste, se factura con EFAMEINSA.
-
-### 14-09 · La condición de pago manda en el despacho (Carlos)
-- **Se compara lo pagado con lo acordado antes del despacho, no con el total.** Carlos: la venta a crédito es lo normal de la casa («30 % al contado y lo que falta a crédito, o a todo crédito; siempre ha sido así»).
-- El cierre exige porcentaje antes del despacho y días de crédito. Finanzas tiene la opción «entró el adelanto acordado».
-- Cuentas por cobrar calcula el vencimiento como fecha de despacho más días de crédito.
-- **Check «incluye IGV» por renglón:** se cotiza neto; el check solo se usa cuando la venta se cerró en una cifra redonda con IGV (un comercial dividió a mano entre 1,18 y salió un centavo de menos).
+### Del 14-09 al 06-10 (resumido)
+- **06-10 · Apertura → Finanzas → almacén:** si postventa corrige una apertura emitida, la autorización de la guía se anula y Finanzas y el almacén vuelven a aprobar; el almacén tiene «Guías autorizadas por Finanzas» (caso Ninamango); los correos automáticos salen de la empresa del pedido (OPEN o EFAMEINSA) al correo del área del Directorio.
+- **02 y 03-10 (Lesly):** al emitir la apertura también se avisa a Finanzas (caso Tomy Jiro); la guía lleva tipo y número de comprobante (obligatorio si hay factura o boleta); los abonos confirmados se filtran por el día de confirmación; la forma de pago de la cotización trae su saldo y avisa si se contradice (Agrícola Huarmey).
+- **30-09:** «Apurar a Finanzas» desde la tarjeta del cierre (un aviso cada 10 minutos; desde el segundo se entera gerencia; solo con número de pedido); devolver un cierre que ya está en Finanzas pide código; «Gestión de cobranza» como resultado de una gestión; Cristo Rey salió con saldo con un motivo escrito (desde el 14-10 ya no basta).
+- **29-09:** Contabilidad es la cuenta de Facturación y marca «Enviada al cliente»; «Por facturar» muestra la liquidación vigente y las anteriores; Julca (OPEN 024) se reinició y la factura con serie errada la corrige Finanzas aparte (por confirmar).
+- **25-09 (Central y Finanzas):** nace Facturación («Por facturar», «Observados», «Facturados»); Finanzas ve el expediente completo en solo lectura y sus vouchers solo los ven Finanzas y gerencia; liquidación con estado de pago e historial; salida con saldo solo con autorización; cada documento sigue la empresa de su cadena.
+- **24-09:** nace «Urgencia a Finanzas» (el pedido sale primero y en rojo; desde el segundo aviso se entera gerencia).
+- **23-09 (gerencia):** Finanzas con cuenta propia (confirma, observa, cuentas por cobrar); Central acepta la liquidación viendo el PDF y ejecutar sin liquidación pide código; el descuento del banco se avisa al comercial con evidencia; postventa pide la confirmación a Finanzas; **Open Investments es la primera opción de facturación** (si un cliente antiguo insiste en EFAMEINSA, se factura con EFAMEINSA).
+- **14-09 (Carlos):** **se compara lo pagado con lo acordado antes del despacho, no con el total** (la venta a crédito es lo normal); el cierre exige porcentaje antes del despacho y días de crédito; vencimiento = despacho + días de crédito; «incluye IGV» por renglón solo para cifras redondas con IGV.
 
 ### Agosto y septiembre · Política base
 - Política general de pago: **30 % de adelanto y 70 % antes del despacho**; se aceptó al menos un caso 50/35/15. La venta a crédito es normal.
@@ -242,6 +218,8 @@ Dos excepciones: los pedidos **sin cobro** (garantía, servicio desde un caso) n
 - Error de pantalla que frena corregir una cotización con un precio bajo lista ya aprobado (Beneficencia de Huancayo).
 - Las cuentas bancarias de OPEN se copiaron de un modelo antiguo y no se han verificado contra el banco **(por confirmar)**. Si cambian las cuentas de una empresa, avise a Santos para actualizar el PDF de la cotización.
 - La empresa del documento cuando el cliente no tiene ningún cierre todavía cae en EFAMEINSA por defecto; falta usar la empresa de la venta histórica.
+- Las facturas del pedido no se pueden marcar «anulada» (caso E001-840, PED-0022-2026, anulada con nota de crédito): sigue en la lista; se hará si se repite.
+- Propuesta del 19-10 (caso VIDAWASI): frenar «Registrar la salida» desde postventa mientras la guía no esté confirmada **(por confirmar con Santos)**.
 
 ---
 
