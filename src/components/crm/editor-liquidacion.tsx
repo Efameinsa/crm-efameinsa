@@ -19,6 +19,7 @@ import {
 } from "@/lib/liquidacion-automatica";
 import { redondear2 } from "@/lib/igv";
 import { HojaLiquidacion } from "@/components/crm/hoja-liquidacion";
+import { DialogoAbono } from "@/components/crm/acciones-finanzas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -279,6 +280,20 @@ export function EditorLiquidacion({
                 </div>
               </div>
             )}
+            {/* Buzón Jhon 19-10: si el abono ya se ve en la cuenta, se confirma aquí y entra a esta misma liquidación. */}
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-md border border-dashed border-border p-2">
+              <p className="text-xs text-muted-foreground">
+                ¿El cliente ya abonó y lo ve en la cuenta? Confírmelo aquí: entra a esta liquidación sin perder lo que ya ajustó.
+              </p>
+              <DialogoAbono
+                servicioId={base.servicioId}
+                cliente={base.cliente}
+                moneda={base.moneda}
+                sugerido={l.hayCola ? (l.bloques[l.bloques.length - 1]?.filas[0].monto ?? 0) : 0}
+                cuenta={base.empresa === "OPEN" ? "Open Investments" : "Efameinsa"}
+                variante="outline"
+              />
+            </div>
             <datalist id={`facturas-${base.servicioId}`}>
               {base.facturas.map((f) => (
                 <option key={f.numero} value={f.numero} />

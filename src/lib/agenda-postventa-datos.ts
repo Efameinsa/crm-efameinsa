@@ -26,7 +26,7 @@ import {
  */
 export async function cargarEventosPostventa(
   supabase: SupabaseClient,
-  perfil: { id: string; rol: string; es_postventa?: boolean | null; hace_postventa?: boolean | null },
+  perfil: { id: string; rol: string; es_postventa?: boolean | null; hace_postventa?: boolean | null; ve_agenda_del_area?: boolean | null },
   desde: string,
   hasta: string,
   /** El reporte diario es de UNA persona: sus casos, no los de la compañera (reunión 23-09). */
@@ -45,6 +45,17 @@ export async function cargarEventosPostventa(
     .lte("proxima_accion_at", hasta)
     .limit(300);
   if (!verTodo) consultaCasos = consultaCasos.eq("comercial_id", perfil.id);
+  // LAS TAREAS DE LAS TRES (0537, Santos 19-10: Brenda «debe tener acceso a
+  // todo»). Con la marca, las de todas las postventas —la base solo le deja
+  // leer las de quienes son del área—; sin ella, o en su reporte, las suyas.
+  const tareasDelArea = Boolean(perfil.ve_agenda_del_area) && !opciones.soloMisCasos;
+  let consultaTareas = supabase
+    .from("tareas_agenda")
+    .select("id, comercial_id, titulo, fecha, hora, completada")
+    .gte("fecha", desde)
+    .lte("fecha", hasta)
+    .limit(tareasDelArea ? 400 : 200);
+  if (!tareasDelArea) consultaTareas = consultaTareas.eq("comercial_id", perfil.id);
 
   const [{ data: pedidos }, { data: casos }, { data: tareas }, { data: programadas }, { data: visitas }, { data: llamadas }] = await Promise.all([
     supabase
@@ -58,13 +69,7 @@ export async function cargarEventosPostventa(
     // Las tareas personales (0028): antes solo se veían en «Mi agenda», que
     // el área ya no tiene en su menú — Santos, 31-08, mirando la semana:
     // «se crean desde ahí pero se ven en otra pantalla, lo cual es absurdo».
-    supabase
-      .from("tareas_agenda")
-      .select("id, titulo, fecha, hora, completada")
-      .eq("comercial_id", perfil.id)
-      .gte("fecha", desde)
-      .lte("fecha", hasta)
-      .limit(200),
+    consultaTareas,
     // Las atenciones con día y técnico, y quién viene a la planta (0238).
     supabase
       .from("atenciones")
@@ -121,7 +126,22 @@ export async function cargarEventosPostventa(
     })
     .map(eventoDeCaso)
     .filter((e): e is EventoCalendario => e !== null);
-  const eventosTareas = ((tareas ?? []) as unknown as TareaAgendable[]).map(eventoDeTarea);
+  const listaTareas = (tareas ?? []) as unknown as (TareaAgendable & { comercial_id: string })[];
+  // La de otra se rotula con su código («PV1 · Rubí»): no es «Personal» de quien mira.
+  const ajenas = [...new Set(listaTareas.map((t) => t.comercial_id).filter((id) => id !== perfil.id))];
+  const { data: duenas } = ajenas.length
+    ? await supabase.from("perfiles").select("id, nombre, codigo_comercial").in("id", ajenas)
+    : { data: [] };
+  const rotulo = new Map(
+    ((duenas ?? []) as { id: string; nombre: string | null; codigo_comercial: string | null }[]).map((d) => [
+      d.id,
+      [d.codigo_comercial, d.nombre?.split(" ")[0]].filter(Boolean).join(" · ") || "Otra postventa",
+    ]),
+  );
+  const eventosTareas = listaTareas.map((t) => {
+    const e = eventoDeTarea(t);
+    return t.comercial_id === perfil.id ? e : { ...e, cliente: rotulo.get(t.comercial_id) ?? "Otra postventa", href: "/postventa/agenda" };
+  });
   const eventosAtenciones = ((programadas ?? []) as unknown as {
     id: string; cuenta_id: string | null; tipo: string; programada_at: string; tecnico: string | null; cliente_texto: string | null; cerrado_at: string | null;
     cuentas: { razon_social: string; departamento: string | null } | null;
