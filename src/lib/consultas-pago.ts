@@ -12,14 +12,14 @@ export async function consultasDelPedido(servicioId: string, moneda: string): Pr
   const admin = createAdminClient();
   const { data } = await admin
     .from("consultas_pago")
-    .select("id, tipo, nota, voucher_path, creado_por, created_at, respondida_at, respondida_por, respuesta, comision_monto, respuesta_adjunto")
+    .select("id, tipo, nota, voucher_path, vouchers_extra, creado_por, created_at, respondida_at, respondida_por, respuesta, comision_monto, respuesta_adjunto")
     .eq("servicio_id", servicioId)
     .order("created_at", { ascending: false });
   const filas = data ?? [];
   if (!filas.length) return [];
 
   const personas = [...new Set(filas.flatMap((f) => [f.creado_por, f.respondida_por]).filter(Boolean))] as string[];
-  const rutas = filas.flatMap((f) => [f.voucher_path, f.respuesta_adjunto]).filter(Boolean) as string[];
+  const rutas = filas.flatMap((f) => [f.voucher_path, ...((f.vouchers_extra as string[] | null) ?? []), f.respuesta_adjunto]).filter(Boolean) as string[];
   const [{ data: perfiles }, { data: firmadas }] = await Promise.all([
     admin.from("perfiles").select("id, nombre").in("id", personas),
     admin.storage.from("adjuntos").createSignedUrls(rutas, 3600),
@@ -33,7 +33,7 @@ export async function consultasDelPedido(servicioId: string, moneda: string): Pr
     nota: f.nota,
     createdAt: f.created_at,
     creadoPorNombre: nombre.get(f.creado_por) ?? null,
-    voucherUrl: url.get(f.voucher_path) ?? null,
+    voucherUrls: [f.voucher_path, ...((f.vouchers_extra as string[] | null) ?? [])].map((p) => url.get(p)).filter(Boolean) as string[],
     respondidaAt: f.respondida_at,
     respondidaPorNombre: f.respondida_por ? (nombre.get(f.respondida_por) ?? null) : null,
     respuesta: f.respuesta,
