@@ -270,6 +270,9 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **«Ya lo recibí»:** el cliente lo confirma desde Mi cuenta cuando el equipo está en la agencia o salió de planta. Queda en el pedido con hora y nota; al dueño de la cuenta y a postventa les llega un aviso.
 - **Mensajes de Mi cuenta:** lo que el cliente escribe en su chat aparece en la ficha del cliente y en el pedido o caso («Mensajes de Mi cuenta») y avisa al comercial dueño (y a postventa si es de un pedido o caso). Se responde desde ahí con su nombre; al cliente le llega el aviso «Tiene una respuesta de Efameinsa».
 
+- **Cuentas de la prueba del recorrido (19-10):** central_test@efameinsa.com (Central de prueba) y comercial_test@efameinsa.com (Comercial de prueba, código CT) son cuentas de práctica que sí trabajan. Lo que registran es práctica: no entra en reportes ni en la carga de nadie, y la bandeja de central_test solo muestra contactos de práctica. Sirven para recorrer la venta y la postventa con un cliente ficticio (correo soypuromarketing@gmail.com, celular 949 304 862) y ver llegar cada aviso a Santos. Las demás cuentas «_test» siguen siendo de demostración, en solo lectura.
+- **Revisión de los avisos por gerencia:** en mkt.efameinsa.com, Revisión, cada correo y WhatsApp lleva los botones Aprobado, Observación y No va; también cada secuencia. Gerencia entra con una clave propia de mkt y solo revisa (no edita).
+
 ---
 
 ## 2. Qué ve y qué puede hacer cada rol
