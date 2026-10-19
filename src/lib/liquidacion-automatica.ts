@@ -73,7 +73,7 @@ export function aplicarAjustes(b: BaseLiquidacion, a: AjustesLiquidacion | undef
       importe: redondear2((Number(r.cantidad) || 0) * (Number(r.precioUnitario) || 0)),
       series: (r.series ?? []).map((x) => x.trim()).filter(Boolean),
     }));
-    subtotal = redondear2(renglones.reduce((n, r) => n + r.importe, 0));
+    subtotal = redondear2(renglones.filter((r) => !r.gratuito).reduce((n, r) => n + r.importe, 0));
     igv = redondear2(subtotal * 0.18);
     total = redondear2(subtotal + igv);
   }
@@ -90,6 +90,7 @@ export function aplicarAjustes(b: BaseLiquidacion, a: AjustesLiquidacion | undef
     pedido: t(a.pedido) ?? b.pedido,
     renglones,
     series: a.renglones ? [] : b.series,
+    gratuito: valorGratuito(renglones),
     subtotal,
     igv,
     total,
@@ -107,7 +108,17 @@ export interface RenglonLiquidacion {
   importe: number;
   /** Las series de ese renglón, como en la plantilla («SERIE: …» debajo del equipo). */
   series: string[];
+  /**
+   * Entrega gratuita (el bloque «VENTA 2 – GRATUITO» del cierre): sale en el
+   * detalle con su valor, pero no entra a la base imponible, al IGV ni al total
+   * por cobrar (Jhon, buzón 19-10).
+   */
+  gratuito?: boolean;
 }
+
+/** El valor de lo que se entrega gratis (sin IGV): va en su propio recuadro, aparte del total. */
+export const valorGratuito = (renglones: RenglonLiquidacion[]) =>
+  redondear2(renglones.filter((r) => r.gratuito).reduce((n, r) => n + r.importe, 0));
 
 export interface AbonoLiquidacion {
   id: string;
@@ -145,6 +156,8 @@ export interface BaseLiquidacion {
   renglones: RenglonLiquidacion[];
   /** Series que no se pudieron poner bajo un renglón. */
   series: string[];
+  /** Lo que se entrega gratis: no suma al subtotal, al IGV ni al total. */
+  gratuito: number;
   subtotal: number;
   igv: number;
   total: number;
@@ -435,17 +448,21 @@ export async function cargarBaseLiquidacion(supabase: SupabaseClient, servicioId
   const cuenta = cuentaQ.data as Fila | null;
   const serie = ((i?.serie ?? f.apertura_empresa) as "EFAMEINSA" | "OPEN" | null) ?? "EFAMEINSA";
 
-  const items = ((i?.items as ItemGuardado[] | null) ?? []).filter((x) => x.bloque !== "gratuito" && Number(x.cantidad) > 0);
+  const todos = ((i?.items as ItemGuardado[] | null) ?? []).filter((x) => Number(x.cantidad) > 0);
+  const items = todos.filter((x) => x.bloque !== "gratuito");
+  const gratis = todos.filter((x) => x.bloque === "gratuito");
   let renglones: RenglonLiquidacion[];
   let totales: { subtotal: number; igv: number; total: number };
   if (items.length) {
     totales = totalesConIgv(items.map((x) => ({ cantidad: Number(x.cantidad), precio_unitario: Number(x.precio_unitario), precio_con_igv: x.precio_con_igv })));
-    renglones = items.map((x) => ({
+    // Lo vendido primero y, al final, lo que se entrega gratis (no suma).
+    renglones = [...items, ...gratis].map((x) => ({
       cantidad: Number(x.cantidad),
       descripcion: String(x.descripcion ?? "").trim(),
       precioUnitario: Number(x.precio_unitario),
       importe: redondear2(Number(x.cantidad) * Number(x.precio_unitario)),
       series: [],
+      ...(x.bloque === "gratuito" ? { gratuito: true } : {}),
     }));
   } else {
     // Sin cierre en el CRM (pedido del Excel): un renglón con el equipo y el monto del pedido.
@@ -460,10 +477,11 @@ export async function cargarBaseLiquidacion(supabase: SupabaseClient, servicioId
     const sn = String(e.serie ?? "").trim();
     if (!sn) continue;
     const cabeza = normal(String(e.descripcion ?? "").split("\n")[0]);
+    const vendidos = renglones.filter((x) => !x.gratuito);
     const r =
-      renglones.length === 1
-        ? renglones[0]
-        : renglones.find((x) => {
+      vendidos.length === 1
+        ? vendidos[0]
+        : vendidos.find((x) => {
             const rc = normal(x.descripcion.split("\n")[0]);
             return cabeza && rc && (rc === cabeza || rc.includes(cabeza) || cabeza.includes(rc));
           });
@@ -501,6 +519,7 @@ export async function cargarBaseLiquidacion(supabase: SupabaseClient, servicioId
     moneda: (f.moneda as string | null) ?? (i?.moneda as string | null) ?? "USD",
     renglones,
     series: sueltas,
+    gratuito: valorGratuito(renglones),
     subtotal: totales.subtotal,
     igv: redondear2(totalPedido - totales.subtotal),
     total: totalPedido,

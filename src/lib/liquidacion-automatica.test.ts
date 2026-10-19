@@ -12,6 +12,7 @@ const base = (o: Partial<BaseLiquidacion>): BaseLiquidacion => ({
   moneda: "USD",
   renglones: [{ cantidad: 1, descripcion: "LAVADORA", precioUnitario: 1000, importe: 1000, series: [] }],
   series: [],
+  gratuito: 0,
   subtotal: 1000,
   igv: 180,
   total: 1180,
@@ -137,5 +138,30 @@ describe("liquidación automática (0534)", () => {
     expect(a.renglones[0].series).toEqual(["A1"]);
     // Vacío = lo del CRM.
     expect(aplicarAjustes(b, { cliente: "  " }).cliente).toBe("CLIENTE SAC");
+  });
+
+  it("entrega gratuita (buzón Jhon 19-10): sale en el detalle y aparte, sin sumar a la base, al IGV ni al total", () => {
+    const b = base({
+      renglones: [
+        { cantidad: 1, descripcion: "LAVADORA", precioUnitario: 13999, importe: 13999, series: [] },
+        { cantidad: 1, descripcion: "BONIFICACION GRATUITA\nKIT DE MANGUERAS", precioUnitario: 399, importe: 399, series: [], gratuito: true },
+      ],
+      gratuito: 399,
+      subtotal: 13999,
+      igv: 2519.82,
+      total: 16518.82,
+      abonos: [abono("a", 16518.82)],
+    });
+    const l = calcularLiquidacion(b, complementosIniciales(b, "2026-10-19"), "2026-10-19");
+    expect(l.base.renglones).toHaveLength(2);
+    expect(l.base.gratuito).toBe(399);
+    expect(l.base.total).toBe(16518.82);
+    expect(l.estado).toBe("cancelado");
+    // Editando las líneas a mano, la gratuita sigue sin sumar.
+    const e = aplicarAjustes(b, { renglones: b.renglones.map((r) => ({ ...r, precioUnitario: r.gratuito ? 450 : r.precioUnitario })) });
+    expect(e.subtotal).toBe(13999);
+    expect(e.igv).toBe(2519.82);
+    expect(e.total).toBe(16518.82);
+    expect(e.gratuito).toBe(450);
   });
 });

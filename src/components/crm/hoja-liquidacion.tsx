@@ -72,6 +72,7 @@ export function HojaLiquidacion({ l, className }: { l: Liquidacion; className?: 
                   {r.series.map((s) => (
                     <p key={s}>SERIE: {s}</p>
                   ))}
+                  {r.gratuito && <p className="font-bold">ENTREGA GRATUITA · NO SE COBRA</p>}
                 </td>
                 <td className="border-r-[1.5px] border-black px-1 pt-2">
                   <span className="flex justify-between"><span>{simbolo}</span><span>{cifra(r.precioUnitario)}</span></span>
@@ -100,6 +101,12 @@ export function HojaLiquidacion({ l, className }: { l: Liquidacion; className?: 
         <Caja rotulo="SUB TOTAL" monto={m(b.subtotal)} />
         <Caja rotulo="IGV 18%" monto={m(b.igv)} />
         <Caja rotulo="TOTAL" monto={m(b.total)} sombra />
+        {/* Lo gratuito, en su propio recuadro: no entra a la base imponible, al IGV ni al total (Jhon, buzón 19-10). */}
+        {b.gratuito > 0 && (
+          <div className="pt-1">
+            <Caja izquierda="NO SUMA A LA BASE IMPONIBLE, AL IGV NI AL TOTAL" rotulo="ENTREGA GRATUITA" monto={m(b.gratuito)} />
+          </div>
+        )}
       </div>
 
       <div className="mt-1 flex gap-3">
@@ -187,7 +194,7 @@ function Caja({ izquierda, rotulo, monto, sombra, rojo }: { izquierda?: string; 
   return (
     <div className="flex items-center gap-1.5">
       <span className="min-w-0 flex-1 break-words text-right text-[10px] font-bold leading-tight">{izquierda ?? ""}</span>
-      <span className={cn("w-24 border border-black px-1 text-[10px] font-bold leading-4", sombra && "bg-[#A6A6A6]")}>{rotulo}</span>
+      <span className={cn("w-24 whitespace-nowrap border border-black px-1 font-bold leading-4", rotulo.length > 14 ? "text-[8.5px]" : "text-[10px]", sombra && "bg-[#A6A6A6]")}>{rotulo}</span>
       <span className={cn("w-24 border border-black px-1 text-right text-[10px] font-bold leading-4", sombra && "bg-[#A6A6A6]", rojo && "text-[#C00000]")}>{monto}</span>
     </div>
   );
