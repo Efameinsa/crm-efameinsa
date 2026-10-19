@@ -34,7 +34,16 @@ import { cn } from "@/lib/utils";
  * liquidación N.º siguiente y avisa a Central (y a Contabilidad si hay un
  * abono sin factura, al comercial si falta la comisión del banco).
  */
-export function EditorLiquidacion({ base, hoy }: { base: BaseLiquidacion; hoy: string }) {
+export function EditorLiquidacion({
+  base,
+  hoy,
+  expediente,
+}: {
+  base: BaseLiquidacion;
+  hoy: string;
+  /** El botón «Expediente» del cierre (voucher, OC, cotización), para revisar antes de validar (buzón Jhon 19-10). */
+  expediente?: ReactNode;
+}) {
   const router = useRouter();
   const [c, setC] = useState<Complementos>(() => complementosIniciales(base, hoy));
   const [pendiente, startTransition] = useTransition();
@@ -108,6 +117,7 @@ export function EditorLiquidacion({ base, hoy }: { base: BaseLiquidacion; hoy: s
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {expediente}
           {hayAjustes && (
             <Button variant="ghost" size="sm" onClick={() => setC((v) => ({ ...v, ajustes: {} }))} disabled={pendiente}>
               <RotateCcw className="size-3.5" />
@@ -128,6 +138,7 @@ export function EditorLiquidacion({ base, hoy }: { base: BaseLiquidacion; hoy: s
       <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
         <b>El CRM ya llenó todo</b> con el pedido, el cierre, las series, los abonos que usted confirmó y las facturas de Contabilidad. Corrija lo que quiera
         a la izquierda: la hoja de la derecha es la que sale. Cuando esté bien, <b>«Validar y enviar a Central»</b>.
+        {expediente ? <> Para revisar el voucher, la orden de compra o la cotización, abra <b>«Expediente»</b> (arriba).</> : null}
       </div>
 
       {problema && (
