@@ -503,9 +503,27 @@ export function VistaCierre({
                 <Campo etiqueta="Asunto">
                   <Input value={b.asunto} onChange={(e) => set("asunto", e.target.value)} />
                 </Campo>
-                <label className="flex items-center gap-2 text-xs">
-                  <input type="checkbox" checked={b.cliente_nuevo} onChange={(e) => set("cliente_nuevo", e.target.checked)} /> Cliente nuevo
-                </label>
+                <div>
+                  <span className="mb-0.5 block text-[11px] font-medium text-muted-foreground">Cliente</span>
+                  <span className="flex gap-1.5">
+                    {([false, true] as const).map((nuevo) => (
+                      <button
+                        key={String(nuevo)}
+                        type="button"
+                        onClick={() => set("cliente_nuevo", nuevo)}
+                        aria-pressed={b.cliente_nuevo === nuevo}
+                        className={cn(
+                          "rounded-full border px-3 py-1 text-xs transition-colors",
+                          b.cliente_nuevo === nuevo
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background text-foreground hover:bg-accent",
+                        )}
+                      >
+                        {nuevo ? "Nuevo" : "Antiguo"}
+                      </button>
+                    ))}
+                  </span>
+                </div>
                 <label className="flex items-center gap-2 text-xs">
                   <input type="checkbox" checked={b.urgente} onChange={(e) => set("urgente", e.target.checked)} /> Urgente
                 </label>
@@ -542,14 +560,14 @@ export function VistaCierre({
                       <dd className="text-foreground">{informe.referencia}</dd>
                     </>
                   )}
-                  {informe.clienteNuevo && (
-                    <>
-                      <dt />
-                      <dd>
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Cliente nuevo</span>
-                      </dd>
-                    </>
-                  )}
+                  <dt className="text-muted-foreground">Cliente</dt>
+                  <dd>
+                    {informe.clienteNuevo ? (
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Nuevo</span>
+                    ) : (
+                      <span className="font-medium text-foreground">Antiguo</span>
+                    )}
+                  </dd>
                 </dl>
               </div>
             )}
