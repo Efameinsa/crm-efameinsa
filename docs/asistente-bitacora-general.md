@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 19-10 · Brenda ve la agenda de las tres postventas (Santos)
+- Santos: «Brenda debe tener acceso a todo… que pueda ver la agenda de las tres postventa para que vea todo». Brenda lleva postventa 2 desde ese día.
+- El calendario del área ya era el mismo para las tres; lo que faltaba eran las tareas y pendientes anotados de cada una. Desde el 19-10 Brenda ve también los de Rubí y Ariana, con el nombre de quien los anotó, solo para consultarlos. Rubí y Ariana siguen viendo solo los suyos (si se quiere lo mismo para ellas, se pide a Santos).
+
 ### 19-10 · Apertura que «no llegaba» y constancias de pago para Central (Santos; buzón de Jhon)
 - **Apertura de VIDAWASI (PED-0035-2026):** se avisó que la apertura no le llegaba ni a Lesly ni a Finanzas. Los avisos sí habían llegado, pero al programar el despacho se pulsó también «Registrar la salida» por error; con eso el CRM la da por despachada y la saca de «Por confirmar» y de las listas del almacén. Santos deshizo esa acción y se mandaron avisos nuevos. **Regla práctica:** «Registrar la salida» es solo cuando el equipo de verdad salió; si una apertura avisada no aparece en la lista, revisar si figura como ya salida y pedir a Santos que lo deshaga. Pendiente: propuesta de frenar ese botón mientras la guía no esté confirmada (por confirmar).
 - **Central ve la constancia de pago (buzón de Jhon):** en Central > Cierres, en «Para el expediente físico» y en el botón «Expediente» del cierre, sale «Constancias de pago» con «Abrir / imprimir», para adjuntarla al expediente físico junto con la liquidación y la factura.
