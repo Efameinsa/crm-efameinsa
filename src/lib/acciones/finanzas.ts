@@ -229,6 +229,8 @@ export async function consultarPagoAFinanzas(datos: {
   servicioId: string;
   tipo: "comision" | "cancelo";
   voucherPath: string;
+  /** Los demás vouchers del mismo pago (0535): el cliente pagó en varios depósitos. */
+  vouchersExtra?: string[];
   nota?: string;
 }): Promise<Resultado> {
   const perfil = await requerirPerfil();
@@ -238,6 +240,7 @@ export async function consultarPagoAFinanzas(datos: {
     p_tipo: datos.tipo,
     p_voucher: datos.voucherPath,
     p_nota: datos.nota?.trim() || null,
+    p_vouchers_extra: datos.vouchersExtra?.length ? datos.vouchersExtra : null,
   });
   if (error) return { error: limpiar(error.message) };
   const { data: s } = await createAdminClient()
@@ -248,13 +251,14 @@ export async function consultarPagoAFinanzas(datos: {
   const cliente = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
   const pedido = s?.numero_pedido_erp ? ` del pedido ${s.numero_pedido_erp}` : "";
   const quien = perfil.nombre ?? "El comercial";
+  const cuantos = 1 + (datos.vouchersExtra?.length ?? 0);
   const nota = datos.nota?.trim() ? ` Nota: ${datos.nota.trim()}` : "";
   await notificarFinanzas({
     titulo: datos.tipo === "comision" ? `¿Hubo comisión? · ${cliente}` : `El cliente canceló · ${cliente}`,
     cuerpo:
       datos.tipo === "comision"
-        ? `${quien} pregunta si el abono${pedido} tuvo comisión interplaza o bancaria. El voucher está en el pedido.${nota}`
-        : `${quien} avisa que el cliente canceló${pedido} y adjunta el voucher: ubíquelo en el banco y confirme el abono.${nota}`,
+        ? `${quien} pregunta si el abono${pedido} tuvo comisión interplaza o bancaria. ${cuantos > 1 ? `Los ${cuantos} vouchers están` : "El voucher está"} en el pedido.${nota}`
+        : `${quien} avisa que el cliente canceló${pedido} y adjunta ${cuantos > 1 ? `${cuantos} vouchers: ubíquelos` : "el voucher: ubíquelo"} en el banco y confirme el abono.${nota}`,
     url: `/finanzas/pedidos/${datos.servicioId}`,
     esPrueba: s?.es_prueba === true,
   });
