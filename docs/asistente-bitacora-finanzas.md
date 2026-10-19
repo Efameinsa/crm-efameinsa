@@ -1,6 +1,6 @@
 # Bitácora de Finanzas y Contabilidad: lo que se decidió alrededor del dinero
 
-Vigente al 17-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md, en especial 1.7 a 1.12, 2.6, 2.7 y 3.6) y la «Bitácora del CRM» (asistente-bitacora-general.md). Aquí no se repite cómo se usa cada pantalla: se cuenta **qué se decidió, cuándo, quién lo pidió y qué quedó en el aire**, para que pueda retomar el trabajo sin depender de la memoria de una reunión.
+Vigente al 19-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md, en especial 1.7 a 1.12, 2.6, 2.7 y 3.6) y la «Bitácora del CRM» (asistente-bitacora-general.md). Aquí no se repite cómo se usa cada pantalla: se cuenta **qué se decidió, cuándo, quién lo pidió y qué quedó en el aire**, para que pueda retomar el trabajo sin depender de la memoria de una reunión.
 
 ## Cómo leer esto
 
@@ -11,6 +11,9 @@ Vigente al 17-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 ---
 
 ## Cronología de decisiones que tocan su trabajo
+
+### 19-10 · La consulta del comercial puede traer varios vouchers
+- Desde el 19-10 (pedido de una comercial), «Avisar que el cliente canceló» y «Preguntar si hubo comisión» aceptan hasta 10 vouchers; en «Consultas del comercial» aparecen como «Voucher 1, 2…». **Revíselos todos antes de confirmar el abono.**
 
 ### 17-10 · La liquidación se genera sola en el CRM (reunión de gerencia con Jhon y Santos)
 - **Qué se vio:** para cada liquidación Jhon copiaba a su plantilla de Excel los datos del pedido (cliente, RUC, equipos, series, montos, condiciones de pago) y le agregaba la factura, el N.º de operación, si es contado, anticipo o pendiente de factura, y notas (detracción, retención). Gerencia: «lo cual no tiene sentido, tiene que ser en automático».

@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 19-10 · Pagos: varios vouchers (pedido de una comercial)
+- **Qué pidió:** en «Pagos» del pedido, «Avisar que el cliente canceló» solo permitía un voucher; pidió poder agregar más.
+- **Qué se hizo:** los dos botones de «Consultar a Finanzas» («Avisar que el cliente canceló» y «Preguntar si hubo comisión») aceptan hasta 10 vouchers: se eligen varios a la vez o con «Agregar otro voucher», y cada uno se puede quitar antes de enviar. Finanzas los ve como «Voucher 1, 2…». Antes era: un solo voucher.
+
 ### 17-10 · Buzón: el aviso lleva al pedido, servicio sin Word y la ficha con pestañas para Central (Central, Lesly)
 - **El aviso abre el pedido (Central):** desde el aviso nuevo de la campana no se podía ir directo al cliente para imprimir la factura o la liquidación que acababa de entrar. Desde el 17-10, los avisos de liquidación, factura, observación de Facturación, series listas y cierre corregido traen «Abrir el pedido», que abre Central > Cierres ya buscado por el número de pedido, con «Abrir / imprimir» de cada liquidación y factura. Los avisos que ya estaban en la campana también quedaron con el enlace.
 - **Una fila de SERVICIO no pide Word (Lesly, ABACHI):** en la prueba y embalaje de un servicio (embalaje en madera), el CRM pedía subir el Word del informe aunque el informe lo genera el sistema. Desde el 17-10, si la fila del pedido es un servicio (embalaje, transporte, instalación…) y no una máquina, para «Probada y embalada» bastan las fotos y el técnico; el Word es opcional. Para las máquinas todo sigue igual (ver 13-10, COFACO).
