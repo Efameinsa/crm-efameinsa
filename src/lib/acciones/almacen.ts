@@ -409,6 +409,33 @@ export async function registrarAgencia(
   return ok(servicioId);
 }
 
+/**
+ * Corregir la entrega ya registrada (0538, buzón del almacén 19-10): agencia,
+ * N.º de guía, quién recibió y las fotos (cada foto nueva reemplaza a la de su
+ * mismo tipo). Postventa recibe el aviso con la guía anterior y la nueva.
+ */
+export async function corregirAgencia(
+  servicioId: string,
+  datos: { transportista?: string; guia: string; guiaAnterior: string | null; fotos: Foto[]; recibe?: string; cliente: string },
+) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("almacen_corregir_agencia", {
+    p_servicio: servicioId,
+    p_transportista: datos.transportista?.trim() || null,
+    p_guia: datos.guia.trim(),
+    p_fotos: datos.fotos,
+    p_recibe: datos.recibe?.trim() || null,
+  });
+  if (error) return { error: limpiar(error.message) };
+  const guia = datos.guia.trim();
+  const cambios = [
+    datos.guiaAnterior && datos.guiaAnterior !== guia ? `guía ${datos.guiaAnterior} → ${guia}` : `guía ${guia}`,
+    datos.fotos.length ? `${datos.fotos.length} ${datos.fotos.length === 1 ? "foto nueva" : "fotos nuevas"}` : "",
+  ].filter(Boolean);
+  await avisarPostventa(`El almacén corrigió la entrega · ${datos.cliente}`, `${cambios.join(" · ")}. Revise la entrega.`, `/postventa/pedidos/${servicioId}`);
+  return ok(servicioId);
+}
+
 /** El doble check de postventa (0246). */
 export async function verificarDespacho(servicioId: string) {
   const supabase = await createClient();
