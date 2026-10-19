@@ -114,18 +114,21 @@ function hoyLima() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 }
 
-function DialogoAbono({
+/** También se usa suelto en el editor de la liquidación (buzón Jhon 19-10: el abono se confirma ahí mismo). */
+export function DialogoAbono({
   servicioId,
   cliente,
   moneda,
   sugerido,
   cuenta,
+  variante = "default",
 }: {
   servicioId: string;
   cliente: string;
   moneda: string;
   sugerido: number;
   cuenta: string | null;
+  variante?: "default" | "outline";
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
@@ -194,7 +197,7 @@ function DialogoAbono({
     <Dialog open={abierto} onOpenChange={setAbierto}>
       <DialogTrigger
         render={
-          <Button size="sm">
+          <Button size="sm" variant={variante}>
             <BadgeCheck className="size-4" />
             Confirmar abono
           </Button>
