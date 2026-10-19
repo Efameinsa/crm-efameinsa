@@ -3,9 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, Loader2, PackageCheck, Truck, FileCheck2, Warehouse } from "lucide-react";
+import { Check, Loader2, PackageCheck, Pencil, Truck, FileCheck2, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { marcarProbado, confirmarListo, registrarSalida, registrarAgencia, autorizarSalidaConSaldo } from "@/lib/acciones/almacen";
+import { marcarProbado, confirmarListo, registrarSalida, registrarAgencia, corregirAgencia, autorizarSalidaConSaldo } from "@/lib/acciones/almacen";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
 import { bloquesPedido, circuitoDe, esProvincia, faltanFotosDeCarga, faltanLetrasEnAlmacen, faltaVistoBuenoFinanzas, type FotoAlmacen, type ServicioPostventa } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
@@ -109,6 +109,32 @@ export function PedidoAlmacen({
   const enPlanta = lugarEntrega === "planta";
   const enCliente = lugarEntrega === "cliente" || enPlanta;
   const [fotosEntrega, setFotosEntrega] = useState<Archivos>({});
+  // CORREGIR LA ENTREGA YA REGISTRADA (buzón del almacén, 19-10, ABACHI
+  // EG07-928; 0538): la misma tarjeta vuelve a abrirse con lo guardado y cada
+  // foto nueva reemplaza a la de su tipo; las que no se cambian quedan.
+  const [corrigiendo, setCorrigiendo] = useState(false);
+  const fotosGuardadas = servicio.agencia_fotos ?? [];
+  function abrirCorreccion() {
+    setTransportista(servicio.transportista ?? "");
+    setGuia(servicio.guia ?? "");
+    setRecibe(servicio.recibe_nombre ?? "");
+    setFotoGuia(null);
+    setFotoMaquina(null);
+    setFotosEntrega({});
+    setLugarEntrega(
+      fotosGuardadas.some((f) => f?.etiqueta === "en_planta")
+        ? "planta"
+        : fotosGuardadas.some((f) => f?.etiqueta === "en_local" || f?.etiqueta === "recibe")
+          ? "cliente"
+          : "agencia",
+    );
+    setProblema(null);
+    setCorrigiendo(true);
+  }
+  const yaTiene = (etiqueta: string, serie?: string | null) =>
+    fotosGuardadas.some((f) => f?.etiqueta === etiqueta && (serie === undefined || (f?.serie ?? null) === (serie ?? null)));
+  const tituloFoto = (titulo: string, etiqueta: string, serie?: string | null) =>
+    corrigiendo && yaTiene(etiqueta, serie) ? `${titulo} (ya hay una: suba otra solo para cambiarla)` : titulo;
 
   async function subir(archivos: { file: File; etiqueta: string; maquina?: MaquinaDeLaSalida }[]): Promise<FotoAlmacen[] | null> {
     const storage = createClient().storage.from("adjuntos");
@@ -460,8 +486,17 @@ export function PedidoAlmacen({
       )}
 
       {/* 4 · En la agencia, o en la casa o el local del cliente (Lima) */}
-      {!esServicio && servicio.despachado_at && !servicio.agencia_at && (
-        <Tarjeta icono={PackageCheck} titulo={enPlanta ? "Recogido en nuestras instalaciones" : enCliente ? "Entregado en la casa o el local del cliente" : "En la agencia o en el cliente"} tono="activa">
+      {!esServicio && servicio.despachado_at && (!servicio.agencia_at || corrigiendo) && (
+        <Tarjeta
+          icono={corrigiendo ? Pencil : PackageCheck}
+          titulo={`${corrigiendo ? "Corregir: " : ""}${enPlanta ? "Recogido en nuestras instalaciones" : enCliente ? "Entregado en la casa o el local del cliente" : "En la agencia o en el cliente"}`}
+          tono="activa"
+        >
+          {corrigiendo && (
+            <p className="text-xs text-muted-foreground">
+              Cambie lo que esté mal y guarde. Las fotos que no cambie se quedan como están; si sube una nueva, reemplaza a la anterior del mismo tipo. Postventa recibe el aviso de la corrección.
+            </p>
+          )}
           <div className="flex flex-wrap gap-1.5">
             {([
               ["agencia", "En la agencia (provincia)"],
@@ -504,22 +539,26 @@ export function PedidoAlmacen({
           </div>
           {enCliente ? (
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              <TomarOSubir titulo="Guía firmada por el cliente" archivo={fotoGuia} onChange={setFotoGuia} compacto />
+              <TomarOSubir titulo={tituloFoto("Guía firmada por el cliente", "guia")} archivo={fotoGuia} onChange={setFotoGuia} compacto />
               {(maquinas.length ? maquinas : [{ clave: "unica", titulo: "Máquina entregada", serie: null }]).map((m) => (
                 <TomarOSubir
                   key={m.clave}
-                  titulo={maquinas.length > 1 ? `${m.titulo}${m.serie ? ` · ${m.serie}` : ""}` : enPlanta ? "Máquina cargada en el vehículo del cliente" : "Máquina en el local del cliente"}
+                  titulo={tituloFoto(
+                    maquinas.length > 1 ? `${m.titulo}${m.serie ? ` · ${m.serie}` : ""}` : enPlanta ? "Máquina cargada en el vehículo del cliente" : "Máquina en el local del cliente",
+                    enPlanta ? "en_planta" : "en_local",
+                    maquinas.length ? m.serie : null,
+                  )}
                   archivo={fotosEntrega[m.clave] ?? null}
                   onChange={(f) => setFotosEntrega((x) => ({ ...x, [m.clave]: f }))}
                   compacto
                 />
               ))}
-              <TomarOSubir titulo={enPlanta ? "Quien la recoge, con la máquina" : "Quien recibe, con la máquina"} archivo={fotosEntrega.recibe ?? null} onChange={(f) => setFotosEntrega((x) => ({ ...x, recibe: f }))} compacto />
+              <TomarOSubir titulo={tituloFoto(enPlanta ? "Quien la recoge, con la máquina" : "Quien recibe, con la máquina", "recibe")} archivo={fotosEntrega.recibe ?? null} onChange={(f) => setFotosEntrega((x) => ({ ...x, recibe: f }))} compacto />
             </div>
           ) : (
           <div className="grid gap-2 sm:grid-cols-2">
-            <TomarOSubir titulo="Foto de la guía" archivo={fotoGuia} onChange={setFotoGuia} compacto />
-            <TomarOSubir titulo="Foto de la máquina entregada" archivo={fotoMaquina} onChange={setFotoMaquina} compacto />
+            <TomarOSubir titulo={tituloFoto("Foto de la guía", "guia")} archivo={fotoGuia} onChange={setFotoGuia} compacto />
+            <TomarOSubir titulo={tituloFoto("Foto de la máquina entregada", "maquina")} archivo={fotoMaquina} onChange={setFotoMaquina} compacto />
           </div>
           )}
           {avisoEn("entrega")}
@@ -543,24 +582,40 @@ export function PedidoAlmacen({
                       ],
                 );
                 if (!fotos) return { error: "No se subieron los archivos. Revise la conexión y vuelva a intentar." };
+                if (corrigiendo) {
+                  const r = await corregirAgencia(servicio.id, { transportista, guia, guiaAnterior: servicio.guia ?? null, fotos, recibe, cliente });
+                  if (!r.error) setCorrigiendo(false);
+                  return r;
+                }
                 return registrarAgencia(servicio.id, { transportista, guia, fotos, recibe, cliente, enCliente, enPlanta });
-              }, enPlanta ? "Recojo en nuestras instalaciones registrado. Postventa da el doble check." : enCliente ? "Entrega en el local del cliente registrada. Postventa da el doble check." : "Entrega registrada con su guía. Postventa da el doble check.", "entrega")
+              }, corrigiendo ? "Entrega corregida. Postventa ya tiene el aviso." : enPlanta ? "Recojo en nuestras instalaciones registrado. Postventa da el doble check." : enCliente ? "Entrega en el local del cliente registrada. Postventa da el doble check." : "Entrega registrada con su guía. Postventa da el doble check.", "entrega")
             }
           >
-            {pendiente ? <Loader2 className="size-4 animate-spin" /> : <PackageCheck className="size-4" />}
-            {enPlanta ? "Lo recogió el cliente" : enCliente ? "Entregado al cliente" : "Entregado con guía"}
+            {pendiente ? <Loader2 className="size-4 animate-spin" /> : corrigiendo ? <Check className="size-4" /> : <PackageCheck className="size-4" />}
+            {corrigiendo ? "Guardar la corrección" : enPlanta ? "Lo recogió el cliente" : enCliente ? "Entregado al cliente" : "Entregado con guía"}
           </Button>
+          {corrigiendo && (
+            <Button size="sm" variant="ghost" disabled={pendiente} onClick={() => { setCorrigiendo(false); setProblema(null); }}>
+              Cancelar
+            </Button>
+          )}
         </Tarjeta>
       )}
 
-      {!esServicio && servicio.agencia_at && (
-        <div className="rounded-xl border border-[#1E7F4F]/30 bg-[#1E7F4F]/5 p-4 text-sm text-[#1E7F4F]">
+      {!esServicio && servicio.agencia_at && !corrigiendo && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#1E7F4F]/30 bg-[#1E7F4F]/5 p-4 text-sm text-[#1E7F4F]">
+          <span>
           <Check className="mr-1 inline size-4" />
           {(servicio.agencia_fotos ?? []).some((f) => f?.etiqueta === "en_planta")
             ? "Recogido por el cliente en nuestras instalaciones"
             : (servicio.agencia_fotos ?? []).some((f) => f?.etiqueta === "en_local" || f?.etiqueta === "recibe")
               ? "Entregado en el local del cliente"
               : "Despachado"} con guía {servicio.guia}. {servicio.despacho_verificado_at ? "Postventa ya lo verificó." : "Falta el doble check de postventa."}
+          </span>
+          <Button size="sm" variant="outline" onClick={abrirCorreccion}>
+            <Pencil className="size-4" />
+            Corregir la guía o las fotos
+          </Button>
         </div>
       )}
     </div>

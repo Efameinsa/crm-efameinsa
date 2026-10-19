@@ -77,7 +77,7 @@ const ETIQUETA_TIPO_PV: Record<string, string> = ETIQUETA_TIPO_EXPEDIENTE;
  * Se pide el conteo exacto y un tope que no recorte en silencio; si algún día
  * se pasa, la pantalla lo dice.
  */
-function consultaBandeja(supabase: Awaited<ReturnType<typeof createClient>>, modoEnsayo: boolean) {
+function consultaBandeja(supabase: Awaited<ReturnType<typeof createClient>>, modoEnsayo: boolean, soloPractica = false) {
   const q = supabase
     .from("leads")
     .select(
@@ -85,7 +85,9 @@ function consultaBandeja(supabase: Awaited<ReturnType<typeof createClient>>, mod
       { count: "exact" },
     )
     .eq("estado", "pendiente_triaje");
-  return (modoEnsayo ? q : q.eq("es_prueba", false))
+  // Una cuenta de práctica (central_test, 19-10: la prueba del recorrido) ve SOLO los contactos
+  // de práctica: así no puede derivar por error uno real.
+  return (soloPractica ? q.eq("es_prueba", true) : modoEnsayo ? q : q.eq("es_prueba", false))
     .order("recibido_at", { ascending: true })
     .limit(TOPE_BANDEJA);
 }
@@ -122,7 +124,7 @@ export default async function CentralPage() {
     // misma consulta, así que «N pendientes» pasa a ser lo que Central de
     // verdad tiene que repartir. (es_prueba es NOT NULL default false: el .eq
     // no deja filas fuera por null.)
-    consultaBandeja(supabase, modoEnsayo),
+    consultaBandeja(supabase, modoEnsayo, perfil.es_prueba === true),
     supabase
       .from("perfiles")
       .select("id, nombre, codigo_comercial, codigo_anterior, es_postventa")

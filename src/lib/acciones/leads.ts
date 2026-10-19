@@ -164,6 +164,10 @@ export async function registrarContacto(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sesión expirada" };
+  // Lo que registra una cuenta de práctica (central_test, la prueba del recorrido, 19-10) es un
+  // contacto de práctica: no cuenta como carga de nadie y no le avisa a gerencia.
+  const { data: quienRegistra } = await supabase.from("perfiles").select("es_prueba").eq("id", user.id).maybeSingle();
+  const esPrueba = quienRegistra?.es_prueba === true;
 
   // EL MISMO CONTACTO DOS VECES NO. Almacén, 29-09: PRO-10052 a las 11:00 y
   // PRO-10053 a las 11:01, iguales; Katerine el 24-09 (PRO-09876/09877), y 9
@@ -230,6 +234,7 @@ export async function registrarContacto(
       mensaje: d.mensaje || null,
       adjuntos,
       recibido_por: user.id,
+      es_prueba: esPrueba,
       codigo_campania_wa: codigoCampaniaWa,
       plataforma_campania_wa: plataformaCampaniaWa,
     })
@@ -238,7 +243,7 @@ export async function registrarContacto(
 
   if (error) return { error: error.message };
 
-  if (esComercial) {
+  if (esComercial && !esPrueba) {
     const canalLegible = CANAL_LABEL[d.canal] ?? d.canal;
     const cuerpo = d.razon_social
       ? `${d.nombre_contacto} · ${canalLegible} · ${d.razon_social}`
