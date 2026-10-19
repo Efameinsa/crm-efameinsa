@@ -1,10 +1,12 @@
-import { FileText, Printer, ReceiptText } from "lucide-react";
+import { BadgeCheck, FileText, Printer, ReceiptText } from "lucide-react";
 import { etiquetaEstadoPago, type DocumentosDeFinanzas } from "@/lib/documentos-finanzas";
 import { cn } from "@/lib/utils";
 
 const cuando = (iso: string) =>
   new Date(iso).toLocaleString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 const diaDe = (fecha: string) => new Date(`${fecha}T12:00:00-05:00`).toLocaleDateString("es-PE", { timeZone: "America/Lima" });
+const monto = (moneda: string, n: number) =>
+  `${moneda === "PEN" ? "S/" : "US$"} ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const TONO_PAGO: Record<string, string> = {
   cancelado: "bg-[#1E7F4F]/10 text-[#1E7F4F]",
@@ -28,10 +30,13 @@ const TONO_PAGO: Record<string, string> = {
 export function DocumentosFinanzasLista({ docs, titulo = true }: { docs: DocumentosDeFinanzas | undefined; titulo?: boolean }) {
   const liq = docs?.liquidaciones ?? [];
   const fac = docs?.facturas ?? [];
-  if (liq.length === 0 && fac.length === 0) {
+  // Solo vienen cuando la página las pidió (Central, buzón Jhon 19-10).
+  const con = docs?.constancias;
+  if (liq.length === 0 && fac.length === 0 && !con?.length) {
     return <p className="text-xs text-muted-foreground">Todavía no hay liquidación ni factura en este pedido.</p>;
   }
   return (
+    <div className="space-y-3">
     <div className="grid gap-3 text-xs sm:grid-cols-2">
       <div>
         {titulo && (
@@ -102,6 +107,39 @@ export function DocumentosFinanzasLista({ docs, titulo = true }: { docs: Documen
           </ul>
         )}
       </div>
+    </div>
+    {con && (
+      <div className="text-xs">
+        {titulo && (
+          <p className="mb-1 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            <BadgeCheck className="size-3.5" /> Constancias de pago · {con.length}
+          </p>
+        )}
+        {con.length === 0 ? (
+          <p className="text-muted-foreground">Finanzas todavía no confirma ningún abono.</p>
+        ) : (
+          <ul className="grid gap-1.5 sm:grid-cols-2">
+            {con.map((c) => (
+              <li key={c.id} className="rounded-md border border-border p-2">
+                <p className="font-semibold text-foreground">{monto(c.moneda, c.monto)}</p>
+                <p className="text-muted-foreground">
+                  {diaDe(c.fechaAbono)} · {c.medio}
+                  {c.operacion ? ` · op. ${c.operacion}` : ""}
+                  {c.registradoPor ? ` · confirmó ${c.registradoPor}` : ""}
+                </p>
+                {c.url ? (
+                  <a href={c.url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 font-semibold text-primary hover:underline">
+                    <Printer className="size-3.5" /> Abrir / imprimir
+                  </a>
+                ) : (
+                  <p className="mt-1 text-muted-foreground">Finanzas no adjuntó la constancia.</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    )}
     </div>
   );
 }

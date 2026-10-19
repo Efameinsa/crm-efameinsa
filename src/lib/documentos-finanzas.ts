@@ -46,6 +46,69 @@ export interface FacturaFirmada {
 export interface DocumentosDeFinanzas {
   liquidaciones: LiquidacionFirmada[];
   facturas: FacturaFirmada[];
+  /** Solo para Central: las constancias de los abonos que confirmó Finanzas. */
+  constancias?: ConstanciaDePago[];
+}
+
+export interface ConstanciaDePago {
+  id: string;
+  monto: number;
+  moneda: string;
+  fechaAbono: string;
+  operacion: string;
+  medio: string;
+  url: string | null;
+  registradoPor: string | null;
+}
+
+/**
+ * LAS CONSTANCIAS DE PAGO, PARA EL EXPEDIENTE FÍSICO (buzón Jhon 19-10,
+ * VIDAWASI PED-0035-2026): «Central no puede ver la constancia de pago para
+ * que la pueda imprimir y adjuntar al expediente».
+ *
+ * Los abonos (pagos_pedido) y sus capturas (finanzas/…) siguen cerrados por
+ * RLS para todos menos Finanzas y gerencia: acá se leen con la cuenta de
+ * servicio, solo de los pedidos que la página ya le mostró a Central con su
+ * sesión, y se firman por una hora. Se agregan al mapa de documentosDeFinanzas
+ * (un pedido con solo constancias también entra).
+ */
+export async function agregarConstanciasDePago(
+  admin: SupabaseClient,
+  mapa: Map<string, DocumentosDeFinanzas>,
+  servicioIds: string[],
+): Promise<void> {
+  const ids = [...new Set(servicioIds.filter(Boolean))];
+  if (ids.length === 0) return;
+  const filas: Fila[] = [];
+  for (let i = 0; i < ids.length; i += 50) {
+    const { data } = await admin
+      .from("pagos_pedido")
+      .select("id, servicio_id, monto, moneda, fecha_abono, operacion, medio, captura_path, created_at, perfiles!pagos_pedido_registrado_por_fkey(nombre)")
+      .in("servicio_id", ids.slice(i, i + 50))
+      .order("created_at", { ascending: true });
+    filas.push(...((data ?? []) as Fila[]));
+  }
+  const rutas = filas.map((f) => f.captura_path as string | null).filter(Boolean) as string[];
+  const urls = new Map<string, string>();
+  if (rutas.length) {
+    const { data: firmadas } = await admin.storage.from("adjuntos").createSignedUrls(rutas, 3600);
+    for (const x of firmadas ?? []) if (x.path && x.signedUrl) urls.set(x.path, x.signedUrl);
+  }
+  for (const f of filas) {
+    const id = f.servicio_id as string;
+    let d = mapa.get(id);
+    if (!d) mapa.set(id, (d = { liquidaciones: [], facturas: [] }));
+    (d.constancias ??= []).push({
+      id: f.id as string,
+      monto: Number(f.monto),
+      moneda: (f.moneda as string) ?? "USD",
+      fechaAbono: f.fecha_abono as string,
+      operacion: (f.operacion as string) ?? "",
+      medio: (f.medio as string) ?? "",
+      url: f.captura_path ? (urls.get(f.captura_path as string) ?? null) : null,
+      registradoPor: ((f.perfiles as { nombre?: string } | null)?.nombre ?? null),
+    });
+  }
 }
 
 /**

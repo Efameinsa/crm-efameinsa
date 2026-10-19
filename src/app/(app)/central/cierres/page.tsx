@@ -2,6 +2,7 @@ import Link from "@/components/enlace";
 import { AlertTriangle, Ban, CheckCircle2, Package, Printer, Search, Truck } from "lucide-react";
 import { requerirRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ChecksPedidoCentral } from "@/components/crm/checks-pedido-central";
@@ -9,7 +10,7 @@ import { PasosPedidoCentral } from "@/components/crm/pasos-pedido-central";
 import { ExpedienteCierre } from "@/components/crm/expediente-cierre";
 import { DocumentosFinanzasLista } from "@/components/crm/documentos-finanzas-lista";
 import { LevantarObservacion } from "@/components/crm/acciones-facturacion";
-import { documentosDeFinanzas } from "@/lib/documentos-finanzas";
+import { agregarConstanciasDePago, documentosDeFinanzas } from "@/lib/documentos-finanzas";
 import { AnularCierreBoton } from "@/components/crm/anular-cierre-boton";
 import { DevolverCierreBoton } from "@/components/crm/devolver-cierre-boton";
 import { firmarAdjuntosDeCierres, type AdjuntoCierre } from "@/lib/adjuntos-cierre";
@@ -287,10 +288,11 @@ export default async function CierresCentralPage({
   // liberar el pedido «ya no tengo acceso a verla». Gerencia: Central imprime
   // la liquidación y la factura y arma el expediente físico; Finanzas no carga
   // papel. Se muestran en todo pedido que ya tenga alguna, liberado o no.
-  const docsFinanzas = await documentosDeFinanzas(
-    supabase,
-    filas.map((f) => pedidoPorInforme.get(f.id)?.id as string | undefined).filter((x): x is string => Boolean(x)),
-  );
+  const idsConPedido = filas.map((f) => pedidoPorInforme.get(f.id)?.id as string | undefined).filter((x): x is string => Boolean(x));
+  const docsFinanzas = await documentosDeFinanzas(supabase, idsConPedido);
+  // Y la constancia de cada abono que confirmó Finanzas (buzón Jhon 19-10):
+  // Central también la imprime para el expediente.
+  await agregarConstanciasDePago(createAdminClient(), docsFinanzas, idsConPedido);
 
   // La liquidación que subió Finanzas (0290), firmada para abrirla desde acá.
   const pedidosConPdf = (pedidos ?? []).filter((p) => (p.liquidacion_adjunto as { path?: string } | null)?.path);
@@ -665,7 +667,7 @@ export default async function CierresCentralPage({
                       )}
                       {docs && (
                         <>
-                          <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Para el expediente físico: liquidación y factura</p>
+                          <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Para el expediente físico: liquidación, factura y constancia de pago</p>
                           <DocumentosFinanzasLista docs={docs} />
                         </>
                       )}
