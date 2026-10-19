@@ -84,10 +84,12 @@ export async function validarLiquidacion(servicioId: string, c: Complementos): P
     }),
   ];
   if (!l.facturaVigente) {
+    // Sin abono por facturar: Finanzas dejó en blanco la factura de la operación (anulada con nota de crédito, Jhon 19-10).
+    const abonoSinFactura = base.abonos.some((a) => !c.facturaDeAbono[a.id]?.trim());
     avisos.push(
       notificarFacturacion({
-        titulo: base.facturas.length ? `Nuevo anticipo por facturar · ${quien}` : `Por facturar · ${quien}`,
-        cuerpo: `Finanzas validó la liquidación ${numero}${pedido} con un abono pendiente de factura. Facture y regístrela: Finanzas recibe el aviso para actualizar la liquidación.`,
+        titulo: !base.facturas.length ? `Por facturar · ${quien}` : abonoSinFactura ? `Nuevo anticipo por facturar · ${quien}` : `Otra vez por facturar · ${quien}`,
+        cuerpo: `Finanzas validó la liquidación ${numero}${pedido} con ${abonoSinFactura ? "un abono" : "la operación"} pendiente de factura. Facture y regístrela: Finanzas recibe el aviso para actualizar la liquidación.`,
         url: "/facturacion",
         esPrueba,
       }),

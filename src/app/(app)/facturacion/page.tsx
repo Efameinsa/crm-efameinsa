@@ -144,9 +144,10 @@ function FilaPorFacturar({
             <p className="mt-1 flex items-start gap-1 rounded-md bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-900">
               <AlertTriangle className="mt-0.5 size-3.5 flex-none" />
               <span>
-                Nuevo anticipo por facturar: ya tiene {facturas.length === 1 ? "la factura" : "las facturas"} {facturas.map((f) => f.numero).join(", ")}, y
+                Otra vez por facturar: ya tiene {facturas.length === 1 ? "la factura" : "las facturas"} {facturas.map((f) => f.numero).join(", ")}, y
                 Finanzas subió el {fechaHoraLima(nuevoAnticipo.subidaAt)} una liquidación nueva con factura pendiente
-                {nuevoAnticipo.nota ? ` («${nuevoAnticipo.nota}»)` : ""}. Facture este pago y regístrelo.
+                {nuevoAnticipo.nota ? ` («${nuevoAnticipo.nota}»)` : ""}: un anticipo nuevo, o una factura anulada con nota de crédito. Emita la que
+                corresponde y regístrela.
               </span>
             </p>
           )}
