@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 19-10 · Validación de los avisos al cliente: gerencia opina y prueba del recorrido (Santos)
+- **Revisión por gerencia en mkt.efameinsa.com:** los gerentes (C.R. y K.Y. Cabrejos) entran con su correo del CRM y una clave propia de esa herramienta (no cambia su clave del CRM). Ven todo, pero no editan: en cada correo, cada WhatsApp y cada secuencia dejan su opinión con **Aprobado**, **Observación** (con nota) o **No va**. La opinión queda con su nombre y se ve en Revisión, en Plantillas y al costado de cada secuencia. Etapa de validación: nada se envía a clientes.
+- **Prueba del recorrido (antes «Avisos»):** para validar sin escribirle a ningún cliente se simula uno que entra por Central y recorre venta y postventa con **central_test@efameinsa.com** (registra y deriva) y **comercial_test@efameinsa.com** (cotiza y cierra). Antes eran cuentas de demostración de solo lectura; ahora trabajan como cuentas de práctica: lo que registran queda como práctica (no cuenta en reportes ni avisa a gerencia) y la bandeja de central_test muestra solo contactos de práctica. Cada paso le manda el correo y el WhatsApp del momento solo a Santos (lista piloto); el WhatsApp sale por el número vinculado por QR (el de Santos), con imagen.
+- **Contacto de práctica derivado:** le llega «Gracias por su consulta» (T01). A los contactos reales se lo mandará la secuencia de lead nuevo cuando se encienda.
 ### 19-10 · Brenda ve la agenda de las tres postventas (Santos)
 - Santos: «Brenda debe tener acceso a todo… que pueda ver la agenda de las tres postventa para que vea todo». Brenda lleva postventa 2 desde ese día.
 - El calendario del área ya era el mismo para las tres; lo que faltaba eran las tareas y pendientes anotados de cada una. Desde el 19-10 Brenda ve también los de Rubí y Ariana, con el nombre de quien los anotó, solo para consultarlos. Rubí y Ariana siguen viendo solo los suyos (si se quiere lo mismo para ellas, se pide a Santos).
