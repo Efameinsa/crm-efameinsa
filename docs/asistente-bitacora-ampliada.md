@@ -1,6 +1,6 @@
 # Bitácora ampliada (gerencia, administración, Central y operaciones)
 
-Vigente al 17-10-2026. Complementa la «Bitácora del CRM» general (asistente-bitacora-general.md). Santos, 14-10: Central y operaciones (Lesly) deben tener el mismo contexto que gerencia —estados, montos, dinero— para continuar lo que se habló en las reuniones. Aquí va:
+Vigente al 19-10-2026. Complementa la «Bitácora del CRM» general (asistente-bitacora-general.md). Santos, 14-10: Central y operaciones (Lesly) deben tener el mismo contexto que gerencia —estados, montos, dinero— para continuar lo que se habló en las reuniones. Aquí va:
 - estrategia, presupuestos de publicidad y marketing;
 - web y campañas;
 - desempeño por comercial y metas;
@@ -16,6 +16,12 @@ Vigente al 17-10-2026. Complementa la «Bitácora del CRM» general (asistente-b
 ---
 
 ## Cronología
+
+### 18-10 y 19-10 · Efamein le dio «0» al gerente en el cuadro de seguimientos (defecto conocido, sin arreglar)
+- **Qué pasó:** el 18-10 a las 23:07 el gerente pidió a Efamein un cuadro comparativo de seguimientos de los cuatro comerciales y la respuesta fue «0 gestiones y 0 cotizaciones en 12 semanas». Los datos sí existían: del 1 al 18-10, C1 637 gestiones efectivas, C2 884, C4 231 y C5 470 (Santos lo verificó el 19-10).
+- **Por qué:** pasadas las 19:00 (hora de Lima) el CRM calcula mal el «lunes de la semana» (le sale martes) y el historial semanal queda en 0; las gestiones registradas después de las 19:00 también se cuentan mal. Además, a un comercial con muchas gestiones (C5, más de 1 600 en 12 semanas) se le cuentan menos de las que tiene. Afecta también el panel de gerencia por comercial cuando se mira de noche.
+- **Mientras no se arregle:** si el historial por semanas sale en 0 o muy bajo, sobre todo de noche, no es que el comercial no trabajó: avise que es un defecto conocido y sugiera revisar el panel de día o pedir el dato a Santos.
+- **Pendiente (Santos):** corregir el cálculo de la semana y el conteo de gestiones.
 
 ### 16-10 (noche) · Precios: descuento por paquete al final del total (gerencia, por medio de Katerine)
 - **Qué quería gerencia:** mostrar paquetes a precio cerrado sin bajar el precio unitario de cada equipo. Ejemplo que se dio a Katerine: una cotización de unos 24 400 llevada a 24 000 con IGV, con un descuento de 423.64 «incluye IGV».
@@ -329,6 +335,9 @@ Vigente al 17-10-2026. Complementa la «Bitácora del CRM» general (asistente-b
 ---
 
 ## Pendientes de gerencia
+
+**Del 19-10**
+- **Historial semanal de gestiones en 0 de noche** (Efamein y panel por comercial): lo corrige Santos; mientras tanto, no leer ese 0 como falta de trabajo.
 
 **Del 15-10**
 - **Carteras de C6 y C9:** a quién se entregan (los dos usuarios se desactivaron el 15-10).
