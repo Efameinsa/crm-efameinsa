@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 19-10 · Cierres: el cliente de un expediente antiguo sale como «cliente antiguo» (pedido de una comercial, Santos)
+- **Qué pasó:** se emitió el cierre de un cliente que venía de un expediente antiguo (de los Excel anteriores al CRM) y salió como «cliente nuevo», porque el CRM solo miraba las ventas registradas.
+- **Qué se hizo:** el CRM ahora propone «Antiguo» también cuando el cliente viene de un expediente antiguo. Las pastillas «Antiguo / Nuevo» están a la vista en «Se le factura a» y en la corrección del cierre emitido («Editar», con código de Central). Ese cierre se corrigió a «cliente antiguo». Antes era: el dato estaba escondido tras «Editar» y solo se proponía antiguo si había ventas, equipos o servicios.
+
 ### 19-10 · Pagos: varios vouchers (pedido de una comercial)
 - **Qué pidió:** en «Pagos» del pedido, «Avisar que el cliente canceló» solo permitía un voucher; pidió poder agregar más.
 - **Qué se hizo:** los dos botones de «Consultar a Finanzas» («Avisar que el cliente canceló» y «Preguntar si hubo comisión») aceptan hasta 10 vouchers: se eligen varios a la vez o con «Agregar otro voucher», y cada uno se puede quitar antes de enviar. Finanzas los ve como «Voucher 1, 2…». Antes era: un solo voucher.
