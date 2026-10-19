@@ -34,7 +34,16 @@ import { cn } from "@/lib/utils";
  * liquidación N.º siguiente y avisa a Central (y a Contabilidad si hay un
  * abono sin factura, al comercial si falta la comisión del banco).
  */
-export function EditorLiquidacion({ base, hoy }: { base: BaseLiquidacion; hoy: string }) {
+export function EditorLiquidacion({
+  base,
+  hoy,
+  expediente,
+}: {
+  base: BaseLiquidacion;
+  hoy: string;
+  /** El botón «Expediente» del cierre (voucher, OC, cotización), para revisar antes de validar (buzón Jhon 19-10). */
+  expediente?: ReactNode;
+}) {
   const router = useRouter();
   const [c, setC] = useState<Complementos>(() => complementosIniciales(base, hoy));
   const [pendiente, startTransition] = useTransition();
@@ -108,6 +117,7 @@ export function EditorLiquidacion({ base, hoy }: { base: BaseLiquidacion; hoy: s
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {expediente}
           {hayAjustes && (
             <Button variant="ghost" size="sm" onClick={() => setC((v) => ({ ...v, ajustes: {} }))} disabled={pendiente}>
               <RotateCcw className="size-3.5" />
@@ -128,6 +138,7 @@ export function EditorLiquidacion({ base, hoy }: { base: BaseLiquidacion; hoy: s
       <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
         <b>El CRM ya llenó todo</b> con el pedido, el cierre, las series, los abonos que usted confirmó y las facturas de Contabilidad. Corrija lo que quiera
         a la izquierda: la hoja de la derecha es la que sale. Cuando esté bien, <b>«Validar y enviar a Central»</b>.
+        {expediente ? <> Para revisar el voucher, la orden de compra o la cotización, abra <b>«Expediente»</b> (arriba).</> : null}
       </div>
 
       {problema && (
@@ -168,7 +179,7 @@ export function EditorLiquidacion({ base, hoy }: { base: BaseLiquidacion; hoy: s
           >
             <div className="space-y-2">
               {renglones.map((r, i) => (
-                <div key={i} className="rounded-md border border-border p-2">
+                <div key={i} className={cn("rounded-md border p-2", r.gratuito ? "border-dashed border-emerald-400 bg-emerald-50/40" : "border-border")}>
                   <div className="flex flex-wrap items-end gap-2">
                     <Campo label="Cant.">
                       <Input type="number" min={0} step="1" value={r.cantidad} onChange={(e) => editarRenglon(i, { cantidad: Number(e.target.value) })} className="h-8 w-16 text-center" />
@@ -176,8 +187,12 @@ export function EditorLiquidacion({ base, hoy }: { base: BaseLiquidacion; hoy: s
                     <Campo label={`Precio unit. (${simbolo}, sin IGV)`}>
                       <Input type="number" min={0} step="0.01" value={r.precioUnitario} onChange={(e) => editarRenglon(i, { precioUnitario: Number(e.target.value) })} className="h-8 w-32 text-right" />
                     </Campo>
+                    <label className="flex h-8 cursor-pointer items-center gap-1.5 text-xs" title="Se entrega sin costo: sale en el detalle y en su recuadro, pero no suma a la base imponible, al IGV ni al total">
+                      <input type="checkbox" checked={Boolean(r.gratuito)} onChange={(e) => editarRenglon(i, { gratuito: e.target.checked })} className="size-3.5 accent-primary" />
+                      Entrega gratuita
+                    </label>
                     <div className="ml-auto text-right text-xs">
-                      <p className="text-[11px] text-muted-foreground">Importe</p>
+                      <p className="text-[11px] text-muted-foreground">{r.gratuito ? "Valor (no suma)" : "Importe"}</p>
                       <p className="font-semibold tabular-nums">{m(redondear2(r.cantidad * r.precioUnitario))}</p>
                     </div>
                     <button type="button" onClick={() => quitarRenglon(i)} className="text-muted-foreground hover:text-destructive" aria-label="Quitar esta línea" title="Quitar esta línea">
@@ -197,10 +212,13 @@ export function EditorLiquidacion({ base, hoy }: { base: BaseLiquidacion; hoy: s
                   {base.series.length} serie{base.series.length === 1 ? "" : "s"} del pedido no se pudo{base.series.length === 1 ? "" : "ieron"} ubicar bajo un equipo: salen aparte. Si edita cualquier línea, pasan a la última.
                 </p>
               )}
-              <div className="flex justify-end gap-4 text-xs">
+              <div className="flex flex-wrap justify-end gap-x-4 gap-y-1 text-xs">
                 <span>Sub total <b className="tabular-nums">{m(l.base.subtotal)}</b></span>
                 <span>IGV <b className="tabular-nums">{m(l.base.igv)}</b></span>
                 <span>Total <b className="tabular-nums">{m(l.base.total)}</b></span>
+                {l.base.gratuito > 0 && (
+                  <span className="text-emerald-800">Entrega gratuita <b className="tabular-nums">{m(l.base.gratuito)}</b> (aparte, no suma)</span>
+                )}
               </div>
             </div>
           </Seccion>

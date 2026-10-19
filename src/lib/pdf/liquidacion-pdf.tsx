@@ -108,6 +108,7 @@ export function LiquidacionPdf({ l, logoBuffer, vistaPrevia }: { l: Liquidacion;
                   {r.series.map((s) => (
                     <Text key={s}>SERIE: {s}</Text>
                   ))}
+                  {r.gratuito && <Text style={e.b}>ENTREGA GRATUITA · NO SE COBRA</Text>}
                 </View>
                 <View style={[e.td, e.cPre, { paddingTop: 6, flexDirection: "row", justifyContent: "space-between" }]}>
                   <Text>{simbolo}</Text>
@@ -145,6 +146,12 @@ export function LiquidacionPdf({ l, logoBuffer, vistaPrevia }: { l: Liquidacion;
           <Caja rotulo="SUB TOTAL" monto={m(b.subtotal)} />
           <Caja rotulo="IGV 18%" monto={m(b.igv)} />
           <Caja izquierda="" rotulo="TOTAL" monto={m(b.total)} sombra />
+          {/* Lo gratuito, en su propio recuadro: no entra a la base imponible, al IGV ni al total (Jhon, buzón 19-10). */}
+          {b.gratuito > 0 && (
+            <View style={{ marginTop: 4 }}>
+              <Caja izquierda="NO SUMA A LA BASE IMPONIBLE, AL IGV NI AL TOTAL" rotulo="ENTREGA GRATUITA" monto={m(b.gratuito)} />
+            </View>
+          )}
         </View>
 
         {/* La nota de Finanzas y las comisiones van a la izquierda, como en el Excel. */}
@@ -242,7 +249,7 @@ function Caja({ izquierda, rotulo, monto, sombra, rojo }: { izquierda?: string; 
   return (
     <View style={{ flexDirection: "row", alignItems: "center" }}>
       <Text style={e.izq}>{izquierda ?? ""}</Text>
-      <Text style={[e.cajaRot, { minHeight: 12 }, sombra ? { backgroundColor: SOMBRA } : {}]}>{rotulo}</Text>
+      <Text style={[e.cajaRot, { minHeight: 12 }, rotulo.length > 14 ? { fontSize: 7 } : {}, sombra ? { backgroundColor: SOMBRA } : {}]}>{rotulo}</Text>
       <Text style={[e.cajaMon, { minHeight: 12 }, sombra ? { backgroundColor: SOMBRA } : {}, rojo ? { color: ROJO } : {}]}>{monto}</Text>
     </View>
   );
