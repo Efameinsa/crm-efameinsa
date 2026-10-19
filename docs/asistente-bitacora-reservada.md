@@ -1,8 +1,15 @@
 # Bitácora reservada (solo gerencia y administración)
 
-Vigente al 15-10-2026. Temas de personal y control que no van ni a Central ni a operaciones: se trata de compañeros de trabajo. Complementa la bitácora ampliada.
+Vigente al 19-10-2026. Temas de personal y control que no van ni a Central ni a operaciones: se trata de compañeros de trabajo. Complementa la bitácora ampliada.
 
 **Regla de uso:** no comparta nada de esto con nadie que no sea gerencia o administración, ni lo insinúe.
+
+- 19-10 · Cuenta de postventa 2 pasa a Brenda (Santos)
+  - **Desde el 19-10 la cuenta de postventa 2 (PV2) la usa Brenda Taboada**, en paralelo con su cuenta comercial (C1), que sigue igual. Lo ordenó Santos.
+  - **Se dejó como usuario nuevo** para que sus gestiones de postventa se midan desde cero (Santos: «como si empezara con cero»). Por eso no se renombró la cuenta anterior: renombrarla le habría pasado a Brenda la historia y las cifras de Gabriela.
+  - **Todo lo hecho antes por Gabriela Palacios** (gestiones, presupuestos, cierres, reportes y sus puntos de Crece) sigue a nombre de Gabriela. Su cuenta quedó desactivada con el código PV2-GP; en Crece también se archivó.
+  - **Lo abierto pasó a Brenda (PV2):** los expedientes, atenciones y pedidos de postventa que Gabriela tenía abiertos.
+  - Pendiente: agregar a Brenda como PV2 en la lista de personas de las reuniones (sigue la fila de Gabriela).
 
 - 15-10 (reunión de Carlos con Santos)
   - **Desiré (C9) y Abel (C6) dejaron la empresa.** Sus usuarios se desactivaron el 15-10 por la mañana (dejan de recibir leads y se les cerraron las sesiones). Ninguno recibía leads desde el 05-10. Carlos: nadie avisó a Santos a tiempo; cuando alguien se va, hay que avisar por correo el mismo día y bloquear su usuario, porque el CRM se abre desde cualquier parte.
