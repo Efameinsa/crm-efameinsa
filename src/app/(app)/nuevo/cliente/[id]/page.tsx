@@ -47,6 +47,8 @@ import { VincularRazonSocial } from "@/components/crm/vincular-razon-social";
 import { tituloDelTipo, type TipoAtencion } from "@/lib/atenciones";
 import { AperturaServicioCaso, type CasoParaApertura } from "@/components/crm/apertura-servicio-caso";
 import { CorreosDeCampana, HistorialCorreosDeCampana } from "@/components/crm/correos-de-campana";
+import { LlamadasDelCliente } from "@/components/crm/llamadas-del-cliente";
+import { BotonLlamar } from "@/components/crm/boton-llamar";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +58,7 @@ const PESTANAS = [
   { clave: "equipos", etiqueta: "Equipos" },
   { clave: "ventas", etiqueta: "Ventas" },
   { clave: "historial", etiqueta: "Historial" },
+  { clave: "llamadas", etiqueta: "Llamadas" },
   { clave: "correos", etiqueta: "Correos de campaña" },
   { clave: "documentos", etiqueta: "Documentos y sedes" },
   { clave: "contactos", etiqueta: "Datos y contactos" },
@@ -236,7 +239,12 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
               {principal && (
                 <span className="inline-flex items-center gap-1">
                   <UserRound className="size-3.5" /> {principal.nombre}
-                  {principal.telefono ? ` · ${principal.telefono}` : ""}
+                  {principal.telefono ? (
+                    <>
+                      {" · "}
+                      {comoCentral ? principal.telefono : <BotonLlamar numero={principal.telefono} cuentaId={cuenta.id} contactoId={principal.id} />}
+                    </>
+                  ) : null}
                 </span>
               )}
               {cuenta.cartera_desde && <span>Cliente desde {fechaLima(cuenta.cartera_desde)}</span>}
@@ -431,6 +439,8 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
         )}
 
         {pestana === "historial" && <HistorialCompleto cuentaId={cuenta.id} verPrecios={verPrecios} />}
+
+        {pestana === "llamadas" && <LlamadasDelCliente cuentaId={cuenta.id} comoPestana />}
 
         {pestana === "correos" && <HistorialCorreosDeCampana cuentaId={cuenta.id} />}
 

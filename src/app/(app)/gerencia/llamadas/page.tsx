@@ -111,7 +111,7 @@ export default async function LlamadasGerenciaPage({ searchParams }: { searchPar
 
   const diaAnterior = new Date(desde.getTime() - 86_400_000).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
   const diaSiguiente = new Date(desde.getTime() + 86_400_000 + 3_600_000).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
-  const enlace = (d: string) => `/gerencia/llamadas?dia=${d}${comercialFiltro ? `&comercial=${comercialFiltro}` : ""}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
+  const enlace = (d: string) => `?dia=${d}${comercialFiltro ? `&comercial=${comercialFiltro}` : ""}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
 
   return (
     <div className="space-y-4">

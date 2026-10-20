@@ -23,12 +23,17 @@ export function BotonLlamar({
   cuentaId,
   contactoId,
   etiqueta,
+  className,
+  conIcono = true,
 }: {
   numero: string;
   cuentaId?: string;
   contactoId?: string;
   /** Texto a la vista (por defecto, el número). */
   etiqueta?: string;
+  /** Para que se vea igual que el enlace al que reemplaza. */
+  className?: string;
+  conIcono?: boolean;
 }) {
   const limpio = numero.replace(/[^\d+]/g, "");
   const pendiente = useRef<{ id: string; inicio: Date } | null>(null);
@@ -90,9 +95,11 @@ export function BotonLlamar({
   }
 
   return (
-    <>
-      <a href={`tel:${limpio}`} onClick={llamar} className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
-        <Phone className="size-3.5 flex-none" />
+    // El clic no sube: dentro de una fila clicable (la cartera) tocar el número es llamar, no abrir la ficha.
+    // Vale también para el cuadro de abajo, que React hace subir por el árbol aunque se pinte aparte.
+    <span className="inline-flex" onClick={(e) => e.stopPropagation()}>
+      <a href={`tel:${limpio}`} onClick={llamar} className={className ?? "inline-flex items-center gap-1 font-medium text-primary hover:underline"}>
+        {conIcono && <Phone className="size-3.5 flex-none" />}
         {etiqueta ?? numero}
       </a>
       <Dialog open={preguntar} onOpenChange={(abierto) => !abierto && descartar()}>
@@ -128,6 +135,6 @@ export function BotonLlamar({
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </span>
   );
 }
