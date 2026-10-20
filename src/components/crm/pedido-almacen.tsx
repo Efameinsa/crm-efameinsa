@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { TomarOSubir, TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
+import { NumeroDeProtocolo } from "@/components/crm/numero-de-protocolo";
 import { LetrasDelPedido } from "@/components/crm/letras-del-pedido";
 
 /**
@@ -81,7 +82,7 @@ export function PedidoAlmacen({
   const postventaCumplio = servicio.apertura_despacho_at != null;
 
   // Probar y embalar
-  const [protocolo, setProtocolo] = useState(servicio.protocolo_prueba_ref ?? "");
+  const protocolo = servicio.protocolo_prueba_ref ?? "";
   const [notaPrueba, setNotaPrueba] = useState("");
   const [fotosProtocolo, setFotosProtocolo] = useState<File[]>([]);
   // Listo
@@ -251,8 +252,8 @@ export function PedidoAlmacen({
           </p>
           <div className="grid gap-2 sm:grid-cols-[12rem_1fr]">
             <div className="grid gap-1">
-              <Label className="text-xs">N.º de protocolo (opcional)</Label>
-              <Input value={protocolo} onChange={(e) => setProtocolo(e.target.value)} placeholder="ej. PROT-2026-045" />
+              <Label className="text-xs">N.º de protocolo</Label>
+              <NumeroDeProtocolo numero={protocolo} className="h-9" />
             </div>
             <div className="grid gap-1">
               <Label className="text-xs">Nota</Label>
