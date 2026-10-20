@@ -1,6 +1,6 @@
 # Base de conocimiento del CRM Efameinsa
 
-Vigente al 20-10-2026. Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
+Vigente al 20-10-2026 (noche). Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
 
 ## 0. Cómo usar este documento
 
@@ -196,6 +196,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 ### 1.11 Almacén: prueba, embalaje y despacho
 
 **Fotos del despacho** (desde el 20-10): el almacén sube las fotos de la carga en planta y, si va por agencia, la foto en la agencia con la guía. Las dos salen como pendientes en «Mi día» hasta subirlas. Postventa las ve en el pedido con su título y puede «Pedir al almacén» (una vez cada 4 horas).
+**Panorama del almacén** (desde el 20-10): arriba está la tarjeta «Faltan fotos» (cuántas de planta y cuántas de agencia) y el grupo «Equipos que llegan a planta». Lesly: «en el panorama de pendientes no le sale».
 **Equipos que llegan a planta** (desde el 20-10): la orden de recepción (REC-00001…) la da postventa desde el caso. El almacén registra que llegó (con fotos), la revisión (técnico y diagnóstico) y qué sigue (devolver o cotizar).
 
 - **Dueño:** almacén (Jeysson, cuenta ALM; Ariana, cuenta ALM2). Lesly supervisa desde operaciones.
@@ -489,6 +490,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 **Unir fichas y fichas sueltas** (desde el 16-10)
 - **Unir dos fichas del mismo cliente:** desde «¿Es el mismo cliente?» en la ficha o el caso, o desde el aviso de una serie que ya está en otra ficha («Revisar y unir las dos fichas»). Se ven las dos fichas, cuál se une y cuál se queda (se queda la que tiene RUC), se escribe el motivo y se pide el **código de operaciones**. Si las dos tienen RUC propio, solo gerencia o administración pueden unirlas (lo deciden ellos: pueden ser empresas distintas o sedes).
+- **«Unir con otra ficha»** (desde el 20-10, caso de Katerine con Lavanderías GLUP): cuando el CRM no sugiere la pareja, el comercial la busca él mismo. El botón está en la ficha del cliente (bloque «Cliente y contactos») y en el expediente (debajo de «Corregir datos del cliente»). Se busca la otra ficha por nombre, RUC o DNI, celular o nombre de un contacto; se elige **cuál se queda como principal** (el CRM propone la que tiene RUC o DNI, porque es con la que se cotiza y factura) y se escribe el motivo. **Si las dos fichas son de la cartera de quien une, no pide código** (no mueve el cliente de nadie); si alguna es de otra cartera, pide el código de operaciones como siempre. Al unir, el expediente comercial abierto y sin papeles de la ficha que se une se suma solo al expediente vivo del mismo comercial en la ficha que queda, y un contacto con el mismo celular no se duplica. Todo queda en el registro de acciones y administración lo puede deshacer.
 - **Fichas sueltas:** fichas sin expedientes, casos, máquinas, prospectos, cierres, pedidos ni cotizaciones. Administración, gerencia y operaciones las ven en «Fichas sueltas» y las archivan con un motivo (duplicada sin datos, proveedor, prueba…). Una ficha archivada sale de las listas de clientes pero no se borra; se restaura desde «Archivadas», y **vuelve sola** si le entra un expediente, un caso o un prospecto. Si la ficha suelta es el duplicado de una con historia, lo correcto es unirla, no archivarla.
 
 **Ficha, expediente y cartera**
@@ -543,6 +545,8 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 **Fichas duplicadas**
 - **«Es un cliente que ya tenemos» / «Unir a esta ficha».** Une un contacto o prospecto a la ficha existente. Busca por nombre, RUC, correo o dominio del correo; el dominio solo sirve si no es un correo personal y apunta a una única ficha. La ficha conserva su comercial. Solo pide código si el contacto ya estaba derivado a otro comercial.
 - **«¿Es el mismo cliente?»** El CRM sugiere fichas parecidas. Unir pide código de operaciones y nunca es automático.
+- **«Unir con otra ficha».** Si el CRM no sugirió la pareja, el comercial la busca (nombre, RUC, celular o contacto) desde la ficha o el expediente y elige cuál queda como principal. Sin código si las dos fichas son de su cartera.
+- **El que escribe ya es contacto de la ficha.** Desde el 20-10, si el celular y el nombre de la persona coinciden con un contacto de una ficha (aunque la razón social sea otra, como Dennis Gallardo en Lavanderías GLUP), el CRM lo une a esa ficha al derivar, en vez de abrir una nueva.
   - **Si las fichas son de carteras distintas, decide gerencia.**
   - Entre dos fichas con RUC (persona natural y empresa) se queda la de la empresa que factura.
 - **Ficha «cascarón».** Los formularios de Google Ads solo traen nombre, teléfono y ciudad, y abren una ficha sin RUC. Si coinciden teléfono y correo, el CRM la reconoce como el mismo cliente.
@@ -803,7 +807,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - el protocolo o informe en PDF o Word;
   - la ficha (modelo de la placa, serie, técnico);
   - en la hoja de chequeo, si hay plantilla, al menos una casilla marcada (desde el 14-10 no se exigen todas: se marca solo lo que corresponde).
-- **El N.º de protocolo ya no se exige** (Santos, 14-10: «en ese documento no va el número de protocolo»). Es opcional.
+- **El N.º de protocolo lo pone el CRM, correlativo** (desde el 20-10, pedido de Lesly). No se escribe: sale al marcar «Probada y embalada» (o «Protocolo terminado» en un equipo en stock), con el formato 0003-2026, 0004-2026…, y vuelve a 0001 cada año. Aparece en el pedido y en el informe de prueba y embalaje. La secadora de una torre lleva el número de su lavadora; un kit de repuestos, uno solo; el equipo que viene con protocolo de stock conserva el suyo. Los protocolos marcados antes no cambian. Antes era una casilla opcional (Santos, 14-10).
 - **Excepciones:**
   - Las máquinas con hoja de chequeo en el sistema (lavadora, secadora —también la de una torre—, desmanchadora, prensa de planchado, rodillo o calandria y calderín) no exigen PDF ni Word, porque el sistema ya lo genera.
   - Las que no tienen hoja (centrífuga, ablandador y otras) sí lo exigen.
@@ -812,7 +816,9 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Pedido de repuestos con varias piezas = un KIT, un solo protocolo** (desde el 16-10, a pedido de Ariana, con el kit de instalación a gas de LINO ESPIRITU). En el pedido del almacén sale el bloque **«Protocolo del kit completo»**: se suben una vez las fotos del kit armado (video y PDF opcionales), el técnico y la fecha, y **«Kit completo probado y embalado»** marca todas las piezas que van en el despacho. Las filas de las piezas ya no piden fotos una por una; las fotos que ya se habían subido pieza por pieza también cuentan. El informe de prueba y embalaje sale en **una sola hoja**: «INFORME DE PROTOCOLO DE PRUEBA DE KIT DE REPUESTOS» (el nombre del kit se cambia en «Completar o corregir los datos de esta hoja»), con la tabla de piezas, su código y su cantidad, y todas las fotos juntas.
 - **Hojas de chequeo** (lavadora desde el 13-10; secadora, desmanchadora, prensa, rodillo/calandria y calderín desde el 14-10): replican el papel, casilla por casilla. Prensa, rodillo y calderín se marcan por tipo de energía (gas, eléctrico, vapor). Cada renglón se marca ✓, ✗ o **«N/A»**. Desde el 14-10 basta con marcar lo que corresponde (al menos una casilla); los vacíos ya no frenan. **Cómo se marca** (17-10, Ariana): se toca el ✓ (conforme) o el ✗ (con falla) en las dos columnas de la derecha de cada renglón —en pantalla se ven tenues hasta marcarlas; en papel salen en blanco—. El campo «Observaciones» es solo texto. Al terminar se aprieta «Guardar protocolo» abajo; si no, lo marcado se pierde. Una casilla vacía se ve gris con borde punteado; marcada, llena en verde (✓) o rojo (✗). **Un ✓ en la columna «CANT.» de Programación (clic derecho o mantener apretado) también cuenta como hoja marcada** para «Probada y embalada» (desde el 17-10).
 - **Protocolo de equipo en stock** (desde el 14-10, pedido de Lesly): en Almacén → pestaña **«Protocolos»** se puede hacer el protocolo de una máquina que todavía no tiene pedido, por su serie, con la misma hoja (ficha, fotos, video, PDF y hoja de chequeo). Al darlo por terminado pasa solo a la máquina del pedido que tenga esa serie, y en el pedido solo falta marcar «Probada y embalada». Desde que pasó al pedido, se corrige en el pedido.
-- **Pestaña «Protocolos»** (Almacén): lista todos los protocolos, de pedidos y de stock, con N.º, serie, técnico, fecha y estado; tiene buscador y filtros.
+- **Pestaña «Protocolos»** (Almacén): lista todos los protocolos, de pedidos y de stock, con N.º, serie, técnico, fecha y estado; tiene buscador y filtros. Desde el 20-10, «Mi día» del almacén tiene arriba los botones «Protocolos» y «Subir protocolo de equipo en stock».
+- **Búsquedas del almacén** (desde el 20-10, buzón del almacén): en Pedidos, «Todos los pedidos en curso» encuentra también los pedidos cerrados; busca palabra por palabra, sugiere los parecidos si el nombre está mal escrito y avisa si el filtro de fechas lo esconde. «Aperturas de postventa» tiene su propio buscador (cliente, equipo o N.º de pedido) e incluye las de pedidos cerrados.
+- **«Salieron, falta la guía»** solo lista los pedidos que llevan guía. Las revisiones técnicas no llevan guía (sale el técnico, no una máquina): para el almacén ya están hechas y las cierra postventa con el informe del técnico.
 - **El video de la prueba es opcional** y no reemplaza al protocolo.
 - **Por qué existe esta regla** (13-10): se marcó una máquina como probada sin una sola foto ni documento. «Tiene que estar todo… y si hay que modificar, que pida el código».
 - **Modificar una máquina ya «probada y embalada»** (protocolo, hoja, fotos) pide el código de operaciones, con motivo.
@@ -1116,7 +1122,7 @@ Use «Pedir este cliente para su cartera», con motivo y el código que dicta ge
 Cuando pasa 3 meses sin venta (regla del 23-09; antes eran 6). Aun así no se mueve solo: gerencia revisa la cartera liberable y redistribuye cada 3 meses. (3.1)
 
 **17. El cliente aparece dos veces. ¿Cómo uno las fichas?**
-Desde el aviso «¿Es el mismo cliente?», con «Unir a esta ficha», que pide código de operaciones. Si las dos fichas son de carteras distintas, decide gerencia. Nunca se borra una ficha: se une. Si el cliente compra con otra razón social, no se une: va como empresa del grupo. (3.1)
+Desde el aviso «¿Es el mismo cliente?», con «Unir a esta ficha», que pide código de operaciones; o, si el CRM no sugirió la pareja, con «Unir con otra ficha» en la ficha o el expediente: se busca la otra ficha y se elige cuál queda como principal (sin código si las dos son de su cartera). Si las dos fichas son de carteras distintas, decide gerencia. Nunca se borra una ficha: se une. Si el cliente compra con otra razón social, no se une: va como empresa del grupo. (3.1)
 
 **18. «No me aparece el seguimiento que hice.» ¿Dónde está?**
 Casi siempre está en otra ficha o en otro expediente del mismo cliente: nombre comercial o razón social, o una ficha sin RUC de un anuncio. Busque por RUC y por parte del nombre. La ficha también le indica si el cliente fue atendido en otra ficha. (3.1)

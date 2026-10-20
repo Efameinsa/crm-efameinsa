@@ -1,4 +1,4 @@
-import { AlertTriangle, ClipboardCheck, FileText, PhoneForwarded, Truck } from "lucide-react";
+import { AlertTriangle, ClipboardCheck, FileText, PhoneForwarded, Truck, Camera } from "lucide-react";
 import Link from "@/components/enlace";
 import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
@@ -17,7 +17,7 @@ import { Chips, FilaTrabajo, Grupo, Numero, Vacio, haceCuanto, type DatosFila, t
  * Todo se hace en el pedido; acá solo se lee.
  */
 type Cliente = Awaited<ReturnType<typeof createClient>>;
-type Clave = "despachar" | "llamadas" | "probar" | "fotos" | "guia" | "sinApertura" | "adelantar";
+type Clave = "despachar" | "llamadas" | "probar" | "fotos" | "guia" | "recepcion" | "sinApertura" | "adelantar";
 
 const sinRuc = (s: string | null | undefined) => (s ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "");
 const primeraLinea = (s: string | null | undefined) => (s ?? "").split("\n")[0].trim();
@@ -37,6 +37,8 @@ const GRUPOS: { clave: Clave; titulo: string; ayuda: string; tono: Tono }[] = [
   // Auditoría 25-09: la lista de siempre lo avisaba y esta vista no.
   { clave: "fotos", titulo: "Salieron, faltan fotos del despacho", ayuda: "Suba las fotos de la máquina puesta en el transporte (planta) y, si fue por agencia, la de la agencia con la guía.", tono: "atencion" },
   { clave: "guia", titulo: "Salieron, falta la guía", ayuda: "Suba la foto de la guía en la agencia.", tono: "atencion" },
+  // Los equipos que llegan a planta (0557, gerencia 20-10): recibir con fotos y revisar.
+  { clave: "recepcion", titulo: "Equipos que llegan a planta", ayuda: "Postventa avisó que llega un equipo por garantía o revisión: registre que llegó (con fotos) y la revisión con el técnico.", tono: "atencion" },
   { clave: "sinApertura", titulo: "Con fecha, sin apertura", ayuda: "Postventa puso fecha pero no emitió la apertura: todavía no hay nada que preparar.", tono: "neutro" },
   { clave: "adelantar", titulo: "Para adelantar", ayuda: "Aprobados; postventa todavía no pidió la prueba.", tono: "neutro" },
 ];
@@ -81,7 +83,7 @@ async function clasificar(supabase: Cliente): Promise<Record<Clave, DatosFila[]>
       sub: [primeraLinea(s.equipo) || "Pedido", tipo, destino].filter(Boolean).join(" · "),
     };
   };
-  const out: Record<Clave, (DatosFila & { orden: string })[]> = { despachar: [], llamadas: [], probar: [], fotos: [], guia: [], sinApertura: [], adelantar: [] };
+  const out: Record<Clave, (DatosFila & { orden: string })[]> = { despachar: [], llamadas: [], probar: [], fotos: [], guia: [], recepcion: [], sinApertura: [], adelantar: [] };
 
   // Las llamadas que esperan al almacén: el mismo criterio que «Mi día» (sin anular y sin informe).
   const { data: llamadas } = await supabase
@@ -106,6 +108,27 @@ async function clasificar(supabase: Cliente): Promise<Record<Clave, DatosFila[]>
       espera: a.tomada_at ? "Tomada: falta subir el informe" : "Nadie la tomó todavía",
       tono,
       accion: { etiqueta: a.tomada_at ? "Subir el informe" : "Tomar la llamada", href: `/aperturas/${a.id}` },
+    });
+  }
+
+  // Equipos que llegan a planta (0557): recibir y revisar.
+  const { data: recepciones } = await supabase
+    .from("recepciones_equipo")
+    .select("id, codigo, equipo_texto, fecha_estimada, recibido_at, revisado_at, created_at, cuentas(razon_social)")
+    .is("listo_at", null)
+    .is("anulada_at", null)
+    .limit(100);
+  for (const r of (recepciones ?? []) as unknown as { id: string; codigo: string; equipo_texto: string; fecha_estimada: string | null; recibido_at: string | null; revisado_at: string | null; created_at: string; cuentas: { razon_social: string } | null }[]) {
+    const href = `/recepciones/${r.id}`;
+    const llega = r.fecha_estimada && r.fecha_estimada > hoy;
+    out.recepcion.push({
+      titulo: sinRuc(r.cuentas?.razon_social),
+      href,
+      sub: `${r.codigo} · ${r.equipo_texto}`,
+      orden: r.created_at,
+      estado: { texto: r.recibido_at ? "Llegó · falta la revisión" : llega ? `Llega el ${ddmm(r.fecha_estimada!, hoy)}` : "Por recibir", tono: llega ? "neutro" : "atencion" },
+      tono: llega ? "neutro" : "atencion",
+      accion: { etiqueta: r.recibido_at ? "Registrar revisión" : "Registrar llegada", href },
     });
   }
 
@@ -195,7 +218,8 @@ async function clasificar(supabase: Cliente): Promise<Record<Clave, DatosFila[]>
 /** El número de la pestaña: lo que el almacén puede mover (despachar con apertura, llamadas sin informe, probar, guía). */
 export async function conteo(supabase: Cliente): Promise<number> {
   const g = await clasificar(supabase);
-  return g.despachar.length + g.llamadas.length + g.probar.length + g.guia.length;
+  // Las fotos del despacho y los equipos que llegan también son trabajo del almacén (gerencia 20-10).
+  return g.despachar.length + g.llamadas.length + g.probar.length + g.guia.length + g.fotos.length + g.recepcion.length;
 }
 
 export default async function AlmacenPedidos({ searchParams, base }: PropsVista) {
@@ -207,6 +231,10 @@ export default async function AlmacenPedidos({ searchParams, base }: PropsVista)
   const atrasados = grupos.despachar.filter((f) => f.estado?.tono === "urgente").length + grupos.probar.filter((f) => f.estado?.tono === "urgente").length;
   const llamadasAtrasadas = grupos.llamadas.filter((f) => f.estado?.tono === "urgente").length;
   const deHoy = grupos.despachar.filter((f) => f.estado?.texto.startsWith("Sale hoy")).length;
+  // LESLY Y GERENCIA 20-10: «en el panorama de pendientes no le sale»; «que le salga cuál es su
+  // función: agregar las fotos del despacho en planta y en la agencia».
+  const fotosPlanta = grupos.fotos.filter((f) => /planta/.test(f.estado?.texto ?? "")).length;
+  const fotosAgencia = grupos.fotos.filter((f) => /agencia/.test(f.estado?.texto ?? "")).length;
 
   if (total === 0) {
     return (
@@ -221,12 +249,13 @@ export default async function AlmacenPedidos({ searchParams, base }: PropsVista)
   const visibles = ver ? GRUPOS.filter((g) => g.clave === ver) : GRUPOS;
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <Numero icono={AlertTriangle} etiqueta="Atrasados" valor={atrasados} sub="Despachos con apertura o pruebas fuera de fecha" tono="urgente" href={url(grupos.despachar.some((f) => f.estado?.tono === "urgente") ? "despachar" : "probar")} />
         <Numero icono={Truck} etiqueta="Salen hoy" valor={deHoy} sub="Con apertura y fecha de hoy" tono="atencion" href={url("despachar")} />
         <Numero icono={PhoneForwarded} etiqueta="Llamadas sin informe" valor={grupos.llamadas.length} sub={llamadasAtrasadas ? `${llamadasAtrasadas} atrasadas o urgentes` : "Derivadas por postventa"} tono={llamadasAtrasadas ? "urgente" : "atencion"} href={url("llamadas")} />
         <Numero icono={ClipboardCheck} etiqueta="Por probar" valor={grupos.probar.length} sub="Postventa pidió la prueba" tono="atencion" href={url("probar")} />
         <Numero icono={FileText} etiqueta="Falta la guía" valor={grupos.guia.length} sub="Ya salieron" tono="atencion" href={url("guia")} />
+        <Numero icono={Camera} etiqueta="Faltan fotos" valor={grupos.fotos.length} sub={`Despacho: ${fotosPlanta} de planta · ${fotosAgencia} de agencia`} tono="atencion" href={url("fotos")} />
       </div>
 
       <Chips

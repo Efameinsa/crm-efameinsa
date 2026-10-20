@@ -33,6 +33,8 @@ import { ReasignarCarteraBoton } from "@/components/crm/reasignar-cartera-boton"
 import { AccionNuevoInforme } from "@/components/crm/secciones-cliente";
 import { ContactosEditables, type ContactoEditable } from "@/components/crm/contactos-editables";
 import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
+import { UnirConOtraFicha } from "@/components/crm/unir-con-otra-ficha";
+import { cargarSupervisores } from "@/lib/supervisores";
 import { CambiarRubro } from "@/components/crm/cambiar-rubro";
 import { DocumentosDelServidor } from "@/components/crm/documentos-del-servidor";
 import { OfrecerMantenimientoBoton } from "@/components/crm/ofrecer-mantenimiento-boton";
@@ -142,6 +144,14 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
       .limit(20),
   ]);
   const dueno = cuenta.perfiles as unknown as { nombre: string; codigo_comercial: string | null } | null;
+  // Para «Unir con otra ficha» (0558): a quién pedirle el código si hace falta.
+  const supervisoresUnion = await cargarSupervisores(supabase);
+  const fichaParaUnir = {
+    id: cuenta.id,
+    razonSocial: cuenta.razon_social,
+    documento: cuenta.tipo_doc !== "SIN_DOC" ? (cuenta.num_doc as string | null) : null,
+    comercial: dueno ? `${dueno.codigo_comercial ? dueno.codigo_comercial + " " : ""}${dueno.nombre}` : null,
+  };
   const contactos = (cuenta.contactos ?? []) as unknown as ContactoEditable[];
   // Un operativo (0352: quien recibe, el técnico) no es la cara del cliente: va último.
   const principal = contactos.find((c) => c.es_principal) ?? contactos.find((c) => c.categoria !== "operativo") ?? contactos[0];
@@ -294,6 +304,8 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
               {(cuenta.comercial_id === perfil.id || comoGerencia || perfil.rol === "central") && (
                 <VincularRazonSocial cuentaId={cuenta.id} razonSocial={cuenta.razon_social} />
               )}
+              {/* 0558 (Katerine 20-10): el mismo cliente con dos fichas se une desde acá, buscando la otra. */}
+              {!cuenta.fusionada_en && <UnirConOtraFicha variante="enlace" cuenta={fichaParaUnir} supervisores={supervisoresUnion} className="rounded-md px-2 py-1 text-[11px]" />}
               <Link
                 href={comoCentral ? `/central/clientes/${cuenta.id}?hoy=1` : comoGerencia ? `/gerencia/clientes/${cuenta.id}?hoy=1` : `/comercial/cartera/${cuenta.id}?hoy=1`}
                 className="rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:underline"
@@ -462,6 +474,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
                 abrirAlEntrar={corregir === "1"}
                 soloLectura={comoCentral}
               />
+              {!cuenta.fusionada_en && <UnirConOtraFicha cuenta={fichaParaUnir} supervisores={supervisoresUnion} />}
               {!comoCentral && (rubros ?? []).length > 0 && (
                 <CambiarRubro
                   cuentaId={cuenta.id}

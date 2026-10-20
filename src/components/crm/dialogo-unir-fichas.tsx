@@ -35,6 +35,7 @@ export function DialogoUnirFichas({
   destino,
   supervisores = [],
   motivoInicial = "",
+  sinCodigoPorque = null,
   alUnir,
 }: {
   abierto: boolean;
@@ -43,6 +44,12 @@ export function DialogoUnirFichas({
   destino: FichaEnUnion;
   supervisores?: { id: string; nombre: string; rol?: string }[];
   motivoInicial?: string;
+  /**
+   * 0558: cuando las dos fichas son del comercial que las une no se mueve la
+   * cartera de nadie y la base no pide el código. Acá va la razón, para
+   * decirla en vez de mostrar un campo de código que no hace falta.
+   */
+  sinCodigoPorque?: string | null;
   alUnir?: (resumen: string) => void;
 }) {
   const router = useRouter();
@@ -60,7 +67,7 @@ export function DialogoUnirFichas({
     permisoSinPin().then((r) => setSinPinHasta(r.hasta));
   }, [abierto, motivoInicial]);
 
-  const sinPin = sinPinHasta !== null;
+  const sinPin = sinPinHasta !== null || Boolean(sinCodigoPorque);
   const digitos = pin.replace(/[^0-9]/g, "").length;
   const falta = motivo.trim().length < 10 ? "Escriba por qué es el mismo cliente (mínimo una frase)." : !sinPin && digitos !== 4 ? "Falta el código de operaciones." : null;
 
@@ -121,7 +128,12 @@ export function DialogoUnirFichas({
           />
         </div>
 
-        {sinPin ? (
+        {sinCodigoPorque ? (
+          <div className="rounded-lg border border-[#1E7F4F]/40 bg-[#1E7F4F]/5 p-3 text-[12px] leading-snug">
+            <p className="font-semibold text-foreground">No hace falta el código.</p>
+            <p className="text-muted-foreground">{sinCodigoPorque} La unión queda registrada con su nombre igual.</p>
+          </div>
+        ) : sinPin ? (
           <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-[12px] leading-snug">
             <p className="font-semibold text-foreground">Hoy no hace falta el código.</p>
             <p className="text-muted-foreground">Gerencia lo levantó por el día. La unión queda registrada igual.</p>
