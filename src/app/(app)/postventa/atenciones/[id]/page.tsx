@@ -18,6 +18,8 @@ import { EquiposDeLaAtencion } from "@/components/crm/equipos-de-la-atencion";
 import { OtraMaquinaDelCaso } from "@/components/crm/otra-maquina-del-caso";
 import { HistorialDelEquipo } from "@/components/crm/historial-del-equipo";
 import { HistorialPostventaCliente } from "@/components/crm/historial-postventa-cliente";
+import { HistorialDelCaso } from "@/components/crm/historial-del-caso";
+import { RecepcionEquipoBoton } from "@/components/crm/recepcion-equipo";
 import { requerirPerfil } from "@/lib/auth";
 import { puedeVerPrecios } from "@/lib/postventa";
 import { RutaDerivacion, type Hito } from "@/components/crm/ruta-derivacion";
@@ -52,7 +54,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
   const { data } = await supabase
     .from("atenciones")
     .select(
-      "id, cuenta_id, equipo_id, cliente_texto, equipo_texto, tipo, tipo_detalle, clasificacion, etapa, en_garantia, hizo_preventivo, asignado_a, tecnico, solicitado_at, registrado_at, diagnosticado_at, programada_at, atendido_at, pruebas_at, conformidad_at, cerrado_at, seguimiento_at, seguimiento_nota, tomada_at, tomada_por, conformidad_nombre, informe_servicio_id, resultado, detalle, diagnostico, motivo_cierre, no_facturado_motivo, etapas_omitidas, garantia_omitida_at, garantia_omitida_motivo, trabajo_realizado, repuestos_usados, ciclos, pruebas_detalle, pruebas_conforme, oportunidad_id, servicio_id, servicios_postventa(id, equipo, despachado_at, fecha_despacho, puesta_en_marcha), cuentas(razon_social, num_doc), perfiles:asignado_a(nombre, codigo_comercial), tomadaPor:tomada_por(nombre, codigo_comercial), recibido_por, recibidoPor:recibido_por(nombre, codigo_comercial)",
+      "id, codigo, created_at, cuenta_id, equipo_id, cliente_texto, equipo_texto, tipo, tipo_detalle, clasificacion, etapa, en_garantia, hizo_preventivo, asignado_a, tecnico, solicitado_at, registrado_at, diagnosticado_at, programada_at, atendido_at, pruebas_at, conformidad_at, cerrado_at, seguimiento_at, seguimiento_nota, tomada_at, tomada_por, conformidad_nombre, informe_servicio_id, resultado, detalle, diagnostico, motivo_cierre, no_facturado_motivo, etapas_omitidas, garantia_omitida_at, garantia_omitida_motivo, trabajo_realizado, repuestos_usados, ciclos, pruebas_detalle, pruebas_conforme, oportunidad_id, servicio_id, servicios_postventa(id, equipo, despachado_at, fecha_despacho, puesta_en_marcha), cuentas(razon_social, num_doc), perfiles:asignado_a(nombre, codigo_comercial), tomadaPor:tomada_por(nombre, codigo_comercial), recibido_por, recibidoPor:recibido_por(nombre, codigo_comercial)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -60,6 +62,22 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
   if (!data) {
     return <RegistroNoDisponible volverHref="/postventa/atenciones" volverTexto="Volver a las atenciones" />;
   }
+  // Las órdenes de recepción de este caso (0557).
+  const { data: recepcionesData } = await supabase
+    .from("recepciones_equipo")
+    .select("id, codigo, equipo_texto, recibido_at, revisado_at, listo_at, resultado, anulada_at")
+    .eq("atencion_id", id)
+    .order("created_at", { ascending: false });
+  const recepciones = (recepcionesData ?? []) as {
+    id: string;
+    codigo: string;
+    equipo_texto: string;
+    recibido_at: string | null;
+    revisado_at: string | null;
+    listo_at: string | null;
+    resultado: string | null;
+    anulada_at: string | null;
+  }[];
   const pedidoEnganchado = (data as unknown as { servicios_postventa: { id: string; equipo: string | null; despachado_at: string | null; fecha_despacho: string | null; puesta_en_marcha: string | null } | null }).servicios_postventa;
 
   const a = data as unknown as Atencion & {
@@ -228,6 +246,10 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
         const { data: quienDerivo } = asignacion?.decidida_por
           ? await supabase.from("perfiles").select("nombre").eq("id", asignacion.decidida_por).maybeSingle()
           : { data: null };
+        // Quién lo recibió en Central, con nombre (Brenda 20-10: «no sale el nombre»).
+        const { data: quienRecibio } = lead.recibido_por
+          ? await supabase.from("perfiles").select("nombre").eq("id", lead.recibido_por).maybeSingle()
+          : { data: null };
         const asignadoAt = lead.asignado_at ?? asignacion?.created_at ?? op?.created_at ?? null;
         autoderivado = Boolean(
           lead.recibido_por && lead.recibido_por === lead.asignado_por && lead.recibido_por === lead.asignado_a,
@@ -236,7 +258,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
           {
             titulo: autoderivado ? "Lo registró postventa" : "Llegó a Central",
             fecha: lead.recibido_at,
-            detalle: ETIQUETA_CANAL[lead.canal] ?? lead.canal,
+            detalle: [ETIQUETA_CANAL[lead.canal] ?? lead.canal, quienRecibio?.nombre ? `lo registró ${quienRecibio.nombre}` : null].filter(Boolean).join(" · "),
             pendiente: "Sin registro de ingreso",
           },
           {
@@ -275,6 +297,10 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
               <ArrowLeft className="size-3.5" /> Atenciones del área
             </Link>
             <h1 className="text-lg font-bold leading-snug text-foreground">
+              {/* El código del caso, para buscarlo y continuarlo (gerencia 20-10, Lernake). */}
+              {(a as { codigo?: string | null }).codigo && (
+                <span className="mr-2 rounded-md bg-primary/10 px-2 py-0.5 font-mono text-sm text-primary">{(a as { codigo?: string | null }).codigo}</span>
+              )}
               <NombreAFicha cuentaId={a.cuenta_id}>{a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente sin nombre"}</NombreAFicha>
             </h1>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -408,10 +434,37 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
                   problema={[a.detalle ?? "", a.diagnostico ? `Antecedentes: ${a.diagnostico}` : ""].filter(Boolean).join("\n\n")}
                   compacto
                 />
+                {/* El equipo que llega a planta por garantía (0557, Brenda y gerencia 20-10). */}
+                <RecepcionEquipoBoton atencionId={a.id} equipo={a.equipo_texto ?? null} serie={null} />
                 </span>
               ) : undefined
             }
           >
+            {recepciones.length > 0 && (
+              <div className="mb-3 space-y-1 rounded-md border border-border bg-secondary/40 p-2.5 text-xs">
+                <p className="font-semibold text-foreground">Equipos que llegan a planta (recepción y revisión)</p>
+                {recepciones.map((r) => (
+                  <Link key={r.id} href={`/recepciones/${r.id}`} className="flex flex-wrap items-center gap-x-2 text-primary hover:underline">
+                    <span className="font-mono">{r.codigo}</span>
+                    <span>{r.equipo_texto}</span>
+                    <span className="text-muted-foreground">
+                      ·{" "}
+                      {r.anulada_at
+                        ? "anulada"
+                        : r.listo_at
+                          ? r.resultado === "cotizar"
+                            ? "revisado: hay que cotizar"
+                            : "revisado: listo para devolver"
+                          : r.revisado_at
+                            ? "revisado"
+                            : r.recibido_at
+                              ? "llegó, falta revisar"
+                              : "esperando que llegue"}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
             {(llamadasDelCaso ?? []).length > 0 && (
               <div className="mb-3 space-y-1 rounded-md border border-border bg-secondary/40 p-2.5 text-xs">
                 <p className="font-semibold text-foreground">Llamadas derivadas de este caso</p>
@@ -488,6 +541,10 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
               sino más bien los informes». Un hotel con seis lavadoras necesita
               las dos vistas, pero la pregunta «¿esta máquina ya falló antes?»
               solo la contesta esta, y es la que decide a quién se manda. */}
+          <SeccionPanel titulo={`Historial de este caso${(a as { codigo?: string | null }).codigo ? ` · ${(a as { codigo?: string | null }).codigo}` : ""}, paso a paso`}>
+            <HistorialDelCaso atencionId={a.id} creadoAt={(a as { created_at?: string | null }).created_at ?? null} />
+          </SeccionPanel>
+
           {a.equipo_id && (
             <SeccionPanel titulo="Lo que ya se le hizo a ESTA máquina">
               <HistorialDelEquipo equipoId={a.equipo_id} atencionActualId={a.id} />

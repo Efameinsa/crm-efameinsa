@@ -9,7 +9,8 @@ import { ExpedienteCierre } from "@/components/crm/expediente-cierre";
 import { AccionesFinanzas } from "@/components/crm/acciones-finanzas";
 import { EstadoDelPedido } from "@/components/crm/estado-del-pedido";
 import { abonos, formatoMonto, unPedido } from "@/lib/pagos-finanzas";
-import { cotizacionesDeCierres, documentosDeFinanzas } from "@/lib/documentos-finanzas";
+import { cotizacionesDeCierres, documentosDeFinanzas, facturasVigentes } from "@/lib/documentos-finanzas";
+import { RegistrarFactura, RegistrarNotaCredito } from "@/components/crm/acciones-facturacion";
 import { DocumentosFinanzasLista } from "@/components/crm/documentos-finanzas-lista";
 import { SubirLiquidacion } from "@/components/crm/subir-liquidacion";
 import { GenerarLiquidacion } from "@/components/crm/generar-liquidacion";
@@ -84,7 +85,7 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
       {p.ordenFacturarAt && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/40 bg-primary/5 px-3 py-2 text-sm">
           <span>
-            <b>{p.ordenFacturarAtendidaAt ? "Orden de facturar atendida" : "Postventa terminó y pide facturar y cobrar"}</b> (
+            <b>{p.ordenFacturarAtendidaAt ? "OK para facturar dado" : "Postventa terminó y pide facturar y cobrar"}</b> (
             {new Date(p.ordenFacturarAt).toLocaleString("es-PE", { timeZone: "America/Lima", dateStyle: "short", timeStyle: "short" })}): por cobrar{" "}
             <b>{formatoMonto(p.moneda, p.saldo)}</b>
             {p.ordenFacturarNota ? ` · ${p.ordenFacturarNota}` : ""}
@@ -217,6 +218,11 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <GenerarLiquidacion servicioId={p.id} />
+              {/* Jhon 20-10: «no me sale anotar, me sale como bloqueado». La
+                  factura solo se registraba desde /facturacion; Finanzas
+                  también puede (la base ya lo dejaba), y la nota de crédito. */}
+              <RegistrarFactura servicioId={p.id} cliente={p.cliente} />
+              <RegistrarNotaCredito servicioId={p.id} cliente={p.cliente} facturas={facturasVigentes(misDocs)} />
               <SubirLiquidacion servicioId={p.id} yaSubida={(misDocs?.liquidaciones.length ?? 0) > 0} secundario />
             </div>
           </div>

@@ -59,27 +59,56 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
 
   const despachados = ver === "despachados";
   const porSeries = ver === "series";
-  let consulta = supabase
-    .from("servicios_postventa")
-    .select("id, cliente_texto, equipo, ubicacion, direccion_entrega, modalidad, fecha_despacho, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, protocolo_prueba_ref, almacen_listo_at, agencia_at, guia, guia_confirmada_at, guia_comprobante_tipo, guia_comprobante_numero, guia_motivo, guia_motivo_detalle, transportista, salida_fotos, completado, cerrado_at, informe_cierre_id, pedido_ejecutado_at, aprobado_at, tipo_pedido, entrega_en, entrega_modo, con_instalacion, despacho_nota, updated_at, series_pedidas_at");
-  // Las series las pide Central ANTES de lanzar el pedido: esa cola no pasa por
-  // el filtro de «ya lanzado» que usan las demás.
-  consulta = porSeries ? consulta.not("series_pedidas_at", "is", null) : consulta.or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null");
-  consulta = despachados
-    ? // Lo último que salió arriba; con o sin pedido cerrado.
-      consulta.not("despachado_at", "is", null).order("despachado_at", { ascending: false }).limit(300)
-    : consulta
-        .eq("completado", false)
-        .is("cerrado_at", null)
-        .order("fecha_despacho", { ascending: true, nullsFirst: false })
-        .order("updated_at", { ascending: false })
-        .limit(500);
-  if (q) consulta = consulta.or(`cliente_texto.ilike.%${q}%,equipo.ilike.%${q}%,guia.ilike.%${q}%`);
-  // En «Despachados» el rango es sobre el día en que salió; en las demás,
-  // sobre la fecha programada.
-  if (desde) consulta = despachados ? consulta.gte("despachado_at", `${desde}T00:00:00-05:00`) : consulta.gte("fecha_despacho", desde);
-  if (hasta) consulta = despachados ? consulta.lte("despachado_at", `${hasta}T23:59:59-05:00`) : consulta.lte("fecha_despacho", hasta);
-  const { data } = await consulta;
+  // BUSCAR UN CLIENTE (Almacén, 20-10: «se coloca el nombre de la empresa
+  // Beneficiencia y no sale la opción para poder seleccionarlo»). Su pedido ya
+  // estaba cerrado y la lista solo traía los en curso; y lo escribió con una
+  // letra de más. Al buscar en «Todos», también salen los ya cerrados; se busca
+  // palabra por palabra (en cualquier orden) y, si nada coincide, por el
+  // comienzo de cada palabra (las 6 primeras letras), para perdonar un error.
+  const palabras = q
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^\p{L}\p{N}-]+/gu, " ")
+    .split(" ")
+    .filter((w) => w.length >= 2);
+  const incluirCerrados = Boolean(q) && ver === "";
+  const armar = (patrones: string[]) => {
+    let consulta = supabase
+      .from("servicios_postventa")
+      .select("id, cliente_texto, equipo, ubicacion, direccion_entrega, modalidad, fecha_despacho, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, protocolo_prueba_ref, almacen_listo_at, agencia_at, guia, guia_confirmada_at, guia_comprobante_tipo, guia_comprobante_numero, guia_motivo, guia_motivo_detalle, transportista, salida_fotos, completado, cerrado_at, informe_cierre_id, pedido_ejecutado_at, aprobado_at, tipo_pedido, entrega_en, entrega_modo, con_instalacion, despacho_nota, updated_at, series_pedidas_at");
+    // Las series las pide Central ANTES de lanzar el pedido: esa cola no pasa por
+    // el filtro de «ya lanzado» que usan las demás.
+    consulta = porSeries ? consulta.not("series_pedidas_at", "is", null) : consulta.or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null");
+    if (despachados)
+      // Lo último que salió arriba; con o sin pedido cerrado.
+      consulta = consulta.not("despachado_at", "is", null).order("despachado_at", { ascending: false }).limit(300);
+    else {
+      if (!incluirCerrados) consulta = consulta.eq("completado", false).is("cerrado_at", null);
+      consulta = consulta.order("fecha_despacho", { ascending: true, nullsFirst: false }).order("updated_at", { ascending: false }).limit(500);
+    }
+    for (const w of patrones) consulta = consulta.or(`cliente_texto.ilike.%${w}%,equipo.ilike.%${w}%,guia.ilike.%${w}%`);
+    // En «Despachados» el rango es sobre el día en que salió; en las demás,
+    // sobre la fecha programada.
+    if (desde) consulta = despachados ? consulta.gte("despachado_at", `${desde}T00:00:00-05:00`) : consulta.gte("fecha_despacho", desde);
+    if (hasta) consulta = despachados ? consulta.lte("despachado_at", `${hasta}T23:59:59-05:00`) : consulta.lte("fecha_despacho", hasta);
+    return consulta;
+  };
+  let { data } = await armar(palabras);
+  let parecidos = false;
+  const cortas = palabras.map((w) => (w.length > 6 ? w.slice(0, 6) : w));
+  if (!data?.length && cortas.some((w, i) => w !== palabras[i])) {
+    ({ data } = await armar(cortas));
+    parecidos = Boolean(data?.length);
+  }
+  // Si con las fechas no sale nada, ¿saldría sin ellas? Para decirlo.
+  let sinFechas = 0;
+  if (!data?.length && q && (desde || hasta)) {
+    const { count } = await supabase
+      .from("servicios_postventa")
+      .select("id", { count: "exact", head: true })
+      .or(cortas.map((w) => `cliente_texto.ilike.%${w}%`).join(","));
+    sinFechas = count ?? 0;
+  }
 
   const todos = (data ?? []) as unknown as (ServicioPostventa & { series_pedidas_at?: string | null })[];
   // Cuántas series le faltan a cada pedido que Central pidió (0290).
@@ -217,8 +246,32 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
         )}
       </form>
       {filas.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nada en esta lista{q ? ` con «${q}»` : ""}.</p>
+        <div className="text-sm text-muted-foreground">
+          <p>Nada en esta lista{q ? ` con «${q}»` : ""}{desde || hasta ? " en esas fechas" : ""}.</p>
+          {sinFechas > 0 && (
+            <p className="mt-1">
+              Fuera de esas fechas sí hay {sinFechas === 1 ? "un pedido" : `${sinFechas} pedidos`}:{" "}
+              <Link href={`/almacen/pedidos?q=${encodeURIComponent(q)}`} className="font-medium text-primary hover:underline">
+                buscar en todas las fechas
+              </Link>
+            </p>
+          )}
+          {q && ver !== "" && !sinFechas && (
+            <p className="mt-1">
+              Si ya se entregó o está en otra etapa,{" "}
+              <Link href={`/almacen/pedidos?q=${encodeURIComponent(q)}`} className="font-medium text-primary hover:underline">
+                búsquelo en «Todos»
+              </Link>{" "}
+              (ahí salen también los cerrados).
+            </p>
+          )}
+        </div>
       ) : (
+        <>
+        {parecidos && (
+          <p className="mb-2 text-xs text-amber-700">Con «{q}» exacto no hay nada; estos se le parecen.</p>
+        )}
+        {incluirCerrados && <p className="mb-2 text-[11px] text-muted-foreground">Al buscar salen también los pedidos ya cerrados.</p>}
         <ul className="divide-y divide-border">
           {filas.map((s) => {
             const e = estado(s);
@@ -245,6 +298,7 @@ export default async function AlmacenPedidosPage({ searchParams }: { searchParam
             );
           })}
         </ul>
+        </>
       )}
       {porSeries && respondidos.length > 0 && (
         <div className="mt-5 border-t border-border pt-3">

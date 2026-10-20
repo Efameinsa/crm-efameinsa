@@ -7,7 +7,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/lib/expediente-ajeno";
 import { notificar, notificarAlmacen, notificarCentral, notificarFacturacion, notificarFinanzas } from "@/lib/notificaciones";
 import { correoAlArea } from "@/lib/correo-al-area";
-import { bloquesPedido, evaluarPagoParaDespacho, faltaVistoBuenoFinanzas, puedeVerPrecios, textoCondicionPago, textoPlanoNoEnviado, type ServicioPostventa } from "@/lib/postventa";
+import { bloquesPedido, cierreExigePuesta, evaluarPagoParaDespacho, faltaVistoBuenoFinanzas, puedeVerPrecios, textoCondicionPago, textoPlanoNoEnviado, type ServicioPostventa } from "@/lib/postventa";
 import { avisarFinanzasSiFaltaVistoBueno } from "@/lib/aviso-visto-bueno";
 import { MESES_PRIMER_PREVENTIVO } from "@/lib/preventivo";
 import { sumarContactoOperativo } from "@/lib/contacto-operativo-servidor";
@@ -807,52 +807,84 @@ export async function registrarDespacho(
  */
 export async function cerrarPedido(
   servicioId: string,
-  datos: { series?: string[]; garantiaMeses?: number; mesesMantenimiento?: number },
+  datos: {
+    series?: string[];
+    garantiaMeses?: number;
+    mesesMantenimiento?: number;
+    /** Desde cuándo corre la garantía (gerencia 20-10: «desde que hemos entregado»). */
+    fechaEntrega?: string | null;
+    /** Sin puesta en marcha: código de gerencia u operaciones y por qué (0551). */
+    pin?: string | null;
+    motivoSinPuesta?: string | null;
+  },
 ) {
   const supabase = await createClient();
 
   const { data: s } = await supabase
     .from("servicios_postventa")
     .select(
-      "id, cuenta_id, cliente_texto, equipo, ubicacion, fecha_confirmacion, fecha_despacho, despachado_at, puesta_en_marcha, guia, informe_cierre_id",
+      "id, cuenta_id, cliente_texto, equipo, ubicacion, fecha_confirmacion, fecha_despacho, despachado_at, puesta_en_marcha, guia, informe_cierre_id, tipo_pedido, con_instalacion, origen",
     )
     .eq("id", servicioId)
     .single();
   if (!s) return falla("No se encontró el pedido");
 
-  const series = (datos.series ?? []).map((x) => x.trim()).filter(Boolean);
+  const series = [...new Set((datos.series ?? []).map((x) => x.trim().toUpperCase()).filter(Boolean))];
   const garantia = datos.garantiaMeses ?? 24;
   // Máquina nueva: primer preventivo a los 4 meses, no a los 6 (gerencia,
   // 23-09: «concluir cierres antes de los 4 meses»; migración 0277).
   const mantenimiento = datos.mesesMantenimiento ?? MESES_PRIMER_PREVENTIVO;
+  const fechaEntrega = datos.fechaEntrega && /^\d{4}-\d{2}-\d{2}$/.test(datos.fechaEntrega) ? datos.fechaEntrega : null;
+
+  // NO SE CIERRA SIN PUESTA EN MARCHA (gerencia 20-10, Beneficencia: «no
+  // debería dejar cerrar si no está el informe ejecutado… con PIN todo se
+  // puede saltar»). Los que no llevan puesta en marcha (repuesto sin
+  // instalación, embalaje, accesorio) y lo del Excel siguen igual. La base
+  // tiene el mismo freno (0551).
+  const llevaPuesta = cierreExigePuesta(s as { tipo_pedido?: string | null; con_instalacion?: boolean | null; origen?: string | null });
+  let autorizo: string | null = null;
+  const motivo = datos.motivoSinPuesta?.trim() || null;
+  if (llevaPuesta && !s.puesta_en_marcha) {
+    if (!motivo || !datos.pin?.trim()) {
+      return falla(
+        "Falta la puesta en marcha (o el informe del servicio). Llénela con «Llenar informe», o, si de verdad no aplica (provincia, el cliente no llamó), cierre con el código de gerencia u operaciones y el motivo.",
+      );
+    }
+    const { data: quien, error: ePin } = await supabase.rpc("validar_codigo_autorizacion", { p_pin: datos.pin.trim(), p_ambito: "operaciones" });
+    if (ePin) return falla(ePin.message.replace(/^[A-Z0-9]{5}:\s*/, ""));
+    autorizo = (quien as string | null) ?? null;
+    if (!autorizo) return falla("El código no dijo quién lo autoriza. Vuelva a pedirlo.");
+  }
 
   // Sin serie no hay equipo en el parque: la serie ES la identidad de la
-  // máquina. Se puede cerrar igual —hay pedidos históricos sin serie a la
-  // vista— pero entonces no se crea la ficha, y eso queda dicho en la pantalla.
-  //
-  // El alta va por `subir_maquina_al_parque` (0274) y NO por un upsert: el
-  // único de la serie es por expresión (upper(btrim(serie))) y el
-  // `onConflict: "serie"` de antes fallaba siempre sin que nadie lo viera —los
-  // 4 pedidos cerrados en septiembre quedaron con 0 máquinas en el parque—.
-  // Si una serie no entra, el pedido NO se cierra: mejor que postventa vea el
-  // error a que la pantalla diga que la máquina ya tiene garantía cuando no.
+  // máquina. El alta va por `subir_maquina_al_parque` (0274, 0551 con la fecha
+  // de entrega). Si una serie no entra, el pedido NO se cierra.
   for (const serie of series) {
     const { error: eParque } = await supabase.rpc("subir_maquina_al_parque", {
       p_servicio: s.id,
       p_serie: serie,
       p_garantia_meses: garantia,
       p_meses_mantenimiento: mantenimiento,
+      p_fecha_entrega: fechaEntrega,
     });
     if (eParque) return falla(`La serie ${serie} no se pudo registrar: ${enCastellano(eParque.message)}`);
   }
 
   const { error } = await supabase
     .from("servicios_postventa")
-    .update({ cerrado_at: new Date().toISOString(), completado: true })
+    .update({
+      cerrado_at: new Date().toISOString(),
+      completado: true,
+      cierre_series: series.length ? series : null,
+      garantia_desde: fechaEntrega,
+      cierre_sin_puesta_motivo: llevaPuesta && !s.puesta_en_marcha ? motivo : null,
+      cierre_sin_puesta_autorizo: autorizo,
+    })
     .eq("id", servicioId);
-  if (error) return falla(error.message);
+  if (error) return falla(enCastellano(error.message));
 
   revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath(`/nuevo/pedido/${servicioId}`);
   revalidatePath("/postventa/equipos");
   return ok();
 }
@@ -1904,4 +1936,41 @@ export async function buscarRepuestosParaGarantia(q: string): Promise<{ sku: str
     .order("nombre")
     .limit(15);
   return (data ?? []).map((p) => ({ sku: (p.sku as string | null) ?? null, descripcion: String(p.nombre ?? "").trim() })).filter((p) => p.descripcion);
+}
+
+/**
+ * «PEDIR AL ALMACÉN» LAS FOTOS DEL DESPACHO (gerencia 20-10, Beneficencia):
+ * «que le dé un clic para apurarlo, porque el cliente está llamando». Queda
+ * quién lo pidió y cuándo; la base no deja repetirlo antes de 4 horas (0553).
+ */
+export async function pedirFotosAlAlmacen(servicioId: string, falta: string) {
+  const perfil = await requerirPerfil();
+  const supabase = await createClient();
+  const { data: n, error } = await supabase.rpc("postventa_pedir_fotos_al_almacen", { p_servicio: servicioId });
+  if (error) return falla(enCastellano(error.message));
+  const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, numero_pedido_erp").eq("id", servicioId).maybeSingle();
+  await notificarAlmacen({
+    titulo: `Postventa pide las fotos del despacho · ${((s?.cliente_texto as string | null) ?? "").replace(/^\d{8,11}\s*-\s*/, "")}`,
+    cuerpo: `${perfil.nombre} pide: ${falta}${s?.numero_pedido_erp ? ` (${s.numero_pedido_erp})` : ""}.${Number(n) > 1 ? ` Es el ${n}.º pedido.` : ""}`,
+    url: `/almacen/pedidos/${servicioId}`,
+    esPrueba: perfil.es_prueba === true,
+  });
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath(`/nuevo/pedido/${servicioId}`);
+  return ok();
+}
+
+/**
+ * LA GUÍA Y LAS FOTOS LLEGARON AL CLIENTE (gerencia 20-10): «nadie sabe que
+ * tú has enviado el WhatsApp… con 30 clientes no hay forma de controlarlo».
+ * Un clic deja quién, cuándo, por dónde y el texto (0553).
+ */
+export async function marcarGuiaEnviadaAlCliente(servicioId: string, via: "whatsapp" | "correo" | "otro", texto: string | null) {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("postventa_guia_enviada_al_cliente", { p_servicio: servicioId, p_via: via, p_texto: texto });
+  if (error) return falla(enCastellano(error.message));
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath(`/nuevo/pedido/${servicioId}`);
+  return ok();
 }

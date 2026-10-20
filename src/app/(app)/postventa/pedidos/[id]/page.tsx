@@ -5,7 +5,8 @@ import { ArrowLeft, FileSpreadsheet, FileText, MessageCircle, Paperclip } from "
 import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 import { createClient } from "@/lib/supabase/server";
 import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
-import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
+import { FotosDelDespacho } from "@/components/crm/fotos-y-envio-del-despacho";
+import { DocumentosContabilidadFinanzas } from "@/components/crm/documentos-contabilidad-finanzas";
 import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
 import { equiposDelPedido as cargarEquiposDelPedido } from "@/lib/acciones/postventa";
 import type { FotoAlmacen } from "@/lib/postventa";
@@ -85,6 +86,13 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
     ? await supabase.storage.from("adjuntos").createSignedUrls(fotosAlmacen.map((f) => f.path), 3600)
     : { data: null };
   const galeriaAlmacen = fotosAlmacen.map((f, i) => ({ ...f, url: firmadasAlmacen?.[i]?.signedUrl ?? null }));
+  // Gerencia 20-10: cada grupo de fotos con su título (protocolo, planta, agencia).
+  const urlDe = new Map(galeriaAlmacen.map((f) => [f.path, f.url]));
+  const deGrupo = (lista: unknown) =>
+    (((lista ?? []) as (FotoAlmacen | null)[]).filter((f): f is FotoAlmacen => Boolean(f && typeof f.path === "string" && f.path))).map((f) => ({
+      ...f,
+      url: urlDe.get(f.path) ?? null,
+    }));
   // La atención de puesta en marcha enganchada a este pedido (0244).
   const { data: atencionPuesta } = await supabase
     .from("atenciones")
@@ -463,16 +471,20 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
           <InformesDelPedido servicio={servicio} equiposTexto={equiposTexto} />
           <EquiposDelPedido candado={candadoProtocolo === true} servicioId={servicio.id} equipos={listaEquipos} modo="postventa" despachado={Boolean(servicio.despachado_at)} cliente={(servicio.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "")} />
           {/* Lo que subió el almacén: protocolo, salida, guía (0246). */}
-          {galeriaAlmacen.length > 0 && (
-            <div id="fotos-almacen" className="scroll-mt-4">
-              <GaleriaAlmacen fotos={galeriaAlmacen} />
-            </div>
-          )}
+          <FotosDelDespacho
+            servicioId={servicio.id}
+            protocolo={deGrupo(data?.protocolo_fotos)}
+            planta={deGrupo(data?.salida_fotos)}
+            agencia={deGrupo(data?.agencia_fotos)}
+            aplicaAgencia={(data as { entrega_modo?: string | null } | null)?.entrega_modo === "agencia"}
+            salio={Boolean(servicio.despachado_at)}
+            pedidasAt={(data as { fotos_pedidas_at?: string | null } | null)?.fotos_pedidas_at ?? null}
+          />
           {/* Los documentos del expediente. Antes venían impresos dentro del
               file que Finanzas bajaba; ahora son estos. */}
           <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
             <h2 className="text-[12px] font-bold uppercase tracking-wide text-foreground">
-              Documentos del expediente
+              Documentos del expediente · Comercial
             </h2>
             {/* La decisión del 23-09 dicha donde se usa: el papel del cliente
                 no se tapa, pero las cifras del CRM siguen ocultas. */}
@@ -542,6 +554,8 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
               </ul>
             )}
           </div>
+
+          {data && <DocumentosContabilidadFinanzas servicio={data as Parameters<typeof DocumentosContabilidadFinanzas>[0]["servicio"]} />}
 
           <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
             <h2 className="text-[12px] font-bold uppercase tracking-wide text-foreground">Datos de la entrega</h2>

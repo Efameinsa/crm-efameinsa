@@ -1,6 +1,6 @@
 import type { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
-import { faltanFotosDeCarga, pruebaSinPedir, type ServicioPostventa } from "@/lib/postventa";
+import { FOTOS_DE_CARGA_DESDE, faltanFotosDeAgencia, faltanFotosDeCarga, pruebaSinPedir, type ServicioPostventa } from "@/lib/postventa";
 import { ETIQUETA_TIPO_APERTURA, estadoApertura, type TipoApertura } from "@/lib/aperturas-llamada";
 import { atencionesEnOtraFicha } from "@/lib/gestion-en-otra-ficha";
 import type { Perfil } from "@/types/database";
@@ -250,7 +250,7 @@ async function colaAlmacen(supabase: Cliente) {
   const [{ data: pedidos }, { data: aperturas }, { data: atenciones }, { data: visitasHoy }] = await Promise.all([
     supabase
       .from("servicios_postventa")
-      .select("id, cliente_texto, equipo, fecha_despacho, despacho_hora, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, almacen_listo_at, guia, agencia_at, salida_fotos, informe_cierre_id, pedido_ejecutado_at, guia_confirmada_at, tipo_pedido")
+      .select("id, cliente_texto, equipo, fecha_despacho, despacho_hora, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, almacen_listo_at, guia, agencia_at, salida_fotos, agencia_fotos, entrega_modo, informe_cierre_id, pedido_ejecutado_at, guia_confirmada_at, tipo_pedido")
       .eq("completado", false)
       .is("cerrado_at", null)
       .or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null")
@@ -310,9 +310,57 @@ async function colaAlmacen(supabase: Cliente) {
     if (faltanFotosDeCarga(s)) {
       tareas.push({ id: `fc-${s.id}`, urgencia: "hoy", tipo: "despacho", cliente, que: `Subir las fotos de la carga · ${equipo}`, porque: "Salió y faltan las fotos de la máquina puesta en el transporte.", accion: { etiqueta: "Subir fotos", href: `/almacen/pedidos/${s.id}` } });
     }
+    // La foto en la agencia (gerencia 20-10): guía + máquina en la agencia.
+    // Si todavía falta la guía, ya sale «Subir la guía» (que es el mismo paso en la agencia).
+    if ((s.guia || s.agencia_at) && faltanFotosDeAgencia(s as Parameters<typeof faltanFotosDeAgencia>[0])) {
+      tareas.push({ id: `fa-${s.id}`, urgencia: "hoy", tipo: "despacho", cliente, que: `Subir la foto en la agencia · ${equipo}`, porque: "Salió por agencia y falta la foto de la máquina en la agencia con la guía (registro por si el cliente reclama un golpe).", accion: { etiqueta: "Subir foto", href: `/almacen/pedidos/${s.id}` } });
+    }
     // Un servicio no lleva guía (sale el técnico): buzón Almacén 20-10.
     if (s.despachado_at && !s.guia && !s.agencia_at && (s.salida_fotos?.length ?? 0) > 0 && s.tipo_pedido !== "revision" && s.tipo_pedido !== "mantenimiento") {
       tareas.push({ id: `gu-${s.id}`, urgencia: "hoy", tipo: "despacho", cliente, que: "Subir la guía", porque: "Salió y falta la foto de la guía en la agencia.", accion: { etiqueta: "Subir guía", href: `/almacen/pedidos/${s.id}` } });
+    }
+  }
+  // Cerrado no quiere decir que tenga sus fotos (gerencia 20-10, Beneficencia).
+  const { data: cerradosSinFotos } = await supabase
+    .from("servicios_postventa")
+    .select("id, cliente_texto, equipo, despachado_at, guia, agencia_at, salida_fotos, agencia_fotos, entrega_modo, informe_cierre_id, tipo_pedido")
+    .or("completado.eq.true,cerrado_at.not.is.null")
+    .gte("despachado_at", `${FOTOS_DE_CARGA_DESDE}T00:00:00-05:00`)
+    .not("informe_cierre_id", "is", null)
+    .limit(300);
+  for (const s of (cerradosSinFotos ?? []) as unknown as ServicioPostventa[]) {
+    const cliente = sinRuc(s.cliente_texto);
+    const equipo = primeraLinea(s.equipo) || "Pedido";
+    if (faltanFotosDeCarga(s)) {
+      tareas.push({ id: `fc-${s.id}`, urgencia: "hoy", tipo: "despacho", cliente, que: `Subir las fotos de la carga · ${equipo}`, porque: "Salió (el pedido ya se cerró) y faltan las fotos de la máquina puesta en el transporte.", accion: { etiqueta: "Subir fotos", href: `/almacen/pedidos/${s.id}` } });
+    }
+    if ((s.guia || s.agencia_at) && faltanFotosDeAgencia(s as Parameters<typeof faltanFotosDeAgencia>[0])) {
+      tareas.push({ id: `fa-${s.id}`, urgencia: "hoy", tipo: "despacho", cliente, que: `Subir la foto en la agencia · ${equipo}`, porque: "Salió por agencia (el pedido ya se cerró) y falta la foto en la agencia con la guía.", accion: { etiqueta: "Subir foto", href: `/almacen/pedidos/${s.id}` } });
+    }
+  }
+
+  // EQUIPOS QUE LLEGAN A PLANTA (0557, gerencia 20-10): recibir con fotos y revisar con el técnico.
+  const { data: recepciones } = await supabase
+    .from("recepciones_equipo")
+    .select("id, codigo, equipo_texto, fecha_estimada, recibido_at, revisado_at, cuentas(razon_social)")
+    .is("listo_at", null)
+    .is("anulada_at", null)
+    .limit(100);
+  for (const r of (recepciones ?? []) as unknown as {
+    id: string;
+    codigo: string;
+    equipo_texto: string;
+    fecha_estimada: string | null;
+    recibido_at: string | null;
+    revisado_at: string | null;
+    cuentas: { razon_social: string } | null;
+  }[]) {
+    const cliente = r.cuentas?.razon_social ?? "Cliente";
+    if (!r.recibido_at) {
+      if (r.fecha_estimada && r.fecha_estimada > hoy) continue;
+      tareas.push({ id: `rec-${r.id}`, urgencia: "hoy", tipo: "despacho", cliente, que: `Recibir el equipo · ${r.equipo_texto}`, porque: `${r.codigo}: postventa avisó que llega a planta. Registre que llegó, con fotos de cómo vino.`, accion: { etiqueta: "Registrar llegada", href: `/recepciones/${r.id}` } });
+    } else if (!r.revisado_at) {
+      tareas.push({ id: `rev-${r.id}`, urgencia: "hoy", tipo: "despacho", cliente, que: `Revisar el equipo · ${r.equipo_texto}`, porque: `${r.codigo}: llegó y falta la revisión con el técnico (diagnóstico y fotos).`, accion: { etiqueta: "Registrar revisión", href: `/recepciones/${r.id}` } });
     }
   }
   for (const v of (visitasHoy ?? []) as { id: string; empresa: string; persona: string; motivo: string; hora: string | null }[]) {

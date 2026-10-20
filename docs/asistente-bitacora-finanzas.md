@@ -1,6 +1,6 @@
 # Bitácora de Finanzas y Contabilidad: lo que se decidió alrededor del dinero
 
-Vigente al 20-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md, en especial 1.7 a 1.12, 2.6, 2.7 y 3.6) y la «Bitácora del CRM» (asistente-bitacora-general.md). Aquí no se repite cómo se usa cada pantalla: se cuenta **qué se decidió, cuándo, quién lo pidió y qué quedó en el aire**, para que pueda retomar el trabajo sin depender de la memoria de una reunión.
+Vigente al 20-10-2026 (tarde). Para Finanzas (Jhon) y Contabilidad/Facturación. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md, en especial 1.7 a 1.12, 2.6, 2.7 y 3.6) y la «Bitácora del CRM» (asistente-bitacora-general.md). Aquí no se repite cómo se usa cada pantalla: se cuenta **qué se decidió, cuándo, quién lo pidió y qué quedó en el aire**, para que pueda retomar el trabajo sin depender de la memoria de una reunión.
 
 ## Cómo leer esto
 
@@ -11,6 +11,16 @@ Vigente al 20-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 ---
 
 ## Cronología de decisiones que tocan su trabajo
+
+### 20-10 · Reunión de gerencia con Jhon y Brenda: un solo circuito para facturar, sin correo
+- **Qué pasó (Beneficencia de Huancayo, PED-0022-2026):** la factura E001-840 salió en dólares, se anuló con nota de crédito y se emitió la E001-842. La 842 se pidió **por correo** el 16-10. Carlos: «el correo ya no existe, existe el CRM». Después postventa dio la orden de facturar y el pedido salía «atrasado» porque ya estaba facturado.
+- **El OK de Finanzas basta para facturar.** El botón de la orden de postventa ahora dice «Dar el OK para facturar». Con ese OK el pedido entra a «Por facturar» de Facturación, **sin subir otra liquidación «pendiente de factura»**. Jhon lo pidió: «darle simplemente un check». La liquidación con factura pendiente sigue sirviendo para los anticipos.
+- **Jhon registra la factura desde su pedido.** En «Liquidaciones y facturas» del pedido de Finanzas están «Registrar factura» y «Nota de crédito». Antes solo se podía desde Facturación y por eso le salía «bloqueado».
+- **Nota de crédito.** Se registra eligiendo la factura que anula, con número, fecha, motivo y el PDF. La factura queda **anulada** (tachada) y el pedido vuelve a «Por facturar» hasta registrar la correcta.
+- **Cruce resuelto solo.** Si postventa da la orden cuando ya hay factura, la orden nace atendida. Si Facturación registra una factura con la orden abierta, la orden se cierra sola. Al registrar la factura, postventa y el comercial reciben el aviso.
+- **«No se factura» con motivo** (garantía, sin costo, anulado) saca un pedido de «Por facturar». Caso: Lino.
+- **Postventa y Central ven los documentos de Finanzas** en el pedido, en «Documentos del expediente · Contabilidad y Finanzas»: guía, facturas, notas de crédito, liquidaciones y constancias de abono. **No hay que imprimir ni llevar nada en mano a Central** (Carlos se lo pidió a Jhon).
+- **Pendiente:** registrar la nota de crédito de la E001-840 de Beneficencia (Jhon tiene el número).
 
 ### 19-10 (tarde) · Buzón de Jhon: confirmar el abono desde la liquidación
 - **Qué pidió Jhon:** el cliente ya había abonado y el ingreso se veía en la cuenta, pero en la pantalla «Generar liquidación» no había cómo registrar ese abono; había que salir al pedido.

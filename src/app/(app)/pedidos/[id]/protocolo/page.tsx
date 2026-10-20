@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { OrdenFotosProtocolo } from "@/components/crm/orden-fotos-protocolo";
+import { rotuloFotoProtocolo } from "@/lib/protocolo-fotos";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { MembreteDocumento } from "@/components/crm/membrete-documento";
@@ -310,11 +312,20 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
               </div>
             )}
 
+            {/* El orden y el tamaño (gerencia 20-10): placa, equipo completo, detalles; todas iguales. */}
+            {e && puedeEditar && !cerrada(e) && fotos.length > 1 && fotos.every((i) => archivos[i].equipo === e.id) && (
+              <OrdenFotosProtocolo itemId={e.id} servicioId={id} fotos={fotos.map((i) => ({ path: archivos[i].path, url: url(i)! }))} />
+            )}
             {fotos.length > 0 ? (
               <div className="mt-4 grid grid-cols-2 gap-3">
-                {fotos.map((i) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={archivos[i].path} src={url(i)!} alt={archivos[i].nombre ?? `Foto ${i + 1}`} className="h-80 w-full object-contain" />
+                {fotos.map((i, k) => (
+                  <figure key={archivos[i].path} className="break-inside-avoid">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url(i)!} alt={archivos[i].nombre ?? `Foto ${k + 1}`} className="aspect-[4/3] w-full border border-neutral-300 bg-white object-cover" />
+                    <figcaption className="mt-0.5 text-center text-[11px] text-neutral-700">
+                      Foto {k + 1} · {rotuloFotoProtocolo(k)}
+                    </figcaption>
+                  </figure>
                 ))}
               </div>
             ) : (

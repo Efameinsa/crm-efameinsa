@@ -102,6 +102,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Seguimiento", href: "/nuevo/seguimiento", icono: "seguimiento", coincide: ["/nuevo/seguimiento", "/central/derivados", "/central/informe"] },
     { etiqueta: "Pedidos", href: "/nuevo/pedidos", icono: "pedidos", coincide: ["/nuevo/pedidos", "/central/cierres", "/central/pedidos"] },
     { etiqueta: "Clientes", href: "/nuevo/clientes", icono: "clientes", coincide: ["/nuevo/clientes", "/central/clientes", "/central/presupuestos", "/central/infocorp"] },
+    // Central une las fichas repetidas (0556, gerencia 20-10).
+    { etiqueta: "Fichas repetidas", href: "/fichas-repetidas", icono: "clientes", coincide: ["/fichas-repetidas"] },
     { etiqueta: "Agenda", href: "/central/visitas", icono: "agenda", coincide: ["/central/visitas"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
@@ -233,6 +235,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     // Registro de acciones y fichas sueltas (0513, Santos 16-10): deshacer sin tocar la base.
     { etiqueta: "Registro de acciones", href: "/admin/acciones", icono: "control", coincide: ["/admin/acciones"] },
     { etiqueta: "Fichas sueltas", href: "/admin/fichas-sueltas", icono: "clientes", coincide: ["/admin/fichas-sueltas"] },
+    // Fichas repetidas del mismo cliente (0556, gerencia 20-10, Family Farm).
+    { etiqueta: "Fichas repetidas", href: "/fichas-repetidas", icono: "clientes", coincide: ["/fichas-repetidas"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
     // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
@@ -258,6 +262,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     // Registro de acciones y fichas sueltas (0513, Santos 16-10): deshacer sin tocar la base.
     { etiqueta: "Registro de acciones", href: "/admin/acciones", icono: "control", coincide: ["/admin/acciones"] },
     { etiqueta: "Fichas sueltas", href: "/admin/fichas-sueltas", icono: "clientes", coincide: ["/admin/fichas-sueltas"] },
+    // Fichas repetidas del mismo cliente (0556, gerencia 20-10, Family Farm).
+    { etiqueta: "Fichas repetidas", href: "/fichas-repetidas", icono: "clientes", coincide: ["/fichas-repetidas"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
     // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
@@ -276,6 +282,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     // Registro de acciones y fichas sueltas (0513, Santos 16-10): deshacer sin tocar la base.
     { etiqueta: "Registro de acciones", href: "/admin/acciones", icono: "control", coincide: ["/admin/acciones"] },
     { etiqueta: "Fichas sueltas", href: "/admin/fichas-sueltas", icono: "clientes", coincide: ["/admin/fichas-sueltas"] },
+    // Fichas repetidas del mismo cliente (0556, gerencia 20-10, Family Farm).
+    { etiqueta: "Fichas repetidas", href: "/fichas-repetidas", icono: "clientes", coincide: ["/fichas-repetidas"] },
     // TASKING (Santos, 09-10): actas de reunión, compromisos por WhatsApp y aviso de sugerencias resueltas.
     { etiqueta: "Tasking", href: "/tasking", icono: "tasking", coincide: ["/tasking"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.

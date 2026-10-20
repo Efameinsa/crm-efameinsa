@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "@/components/enlace";
 import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -44,6 +45,18 @@ export default async function AtencionesPage({
   const filtro = sp.filtro ?? "";
   const perfil = await requerirPerfil();
   const supabase = await createClient();
+
+  // Buscar por el código del caso lo abre directo (gerencia 20-10, Lernake:
+  // «si tú no vienes, yo verifico el problema 51 y continúo con el 51»).
+  const codigo = (sp.q ?? "").trim().toUpperCase().match(/^CASO-?0*(\d{1,5})$/);
+  if (codigo) {
+    const { data: caso } = await supabase
+      .from("atenciones")
+      .select("id")
+      .eq("codigo", `CASO-${codigo[1].padStart(5, "0")}`)
+      .maybeSingle();
+    if (caso) redirect(`/postventa/atenciones/${caso.id}`);
+  }
 
   const { data } = await supabase
     .from("atenciones")

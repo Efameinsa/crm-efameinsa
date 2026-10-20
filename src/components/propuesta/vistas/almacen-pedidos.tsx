@@ -3,7 +3,7 @@ import Link from "@/components/enlace";
 import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
 import { ETIQUETA_TIPO_APERTURA, type AperturaLlamada } from "@/lib/aperturas-llamada";
-import { ETIQUETA_TIPO_PEDIDO, circuitoDe, faltanFotosDeCarga, type ServicioPostventa, type TipoPedido } from "@/lib/postventa";
+import { ETIQUETA_TIPO_PEDIDO, FOTOS_DE_CARGA_DESDE, circuitoDe, faltanFotosDeAgencia, faltanFotosDeCarga, type ServicioPostventa, type TipoPedido } from "@/lib/postventa";
 import type { PropsVista } from "@/lib/propuesta/vistas";
 import { Chips, FilaTrabajo, Grupo, Numero, Vacio, haceCuanto, type DatosFila, type Tono } from "@/components/propuesta/kit";
 
@@ -35,14 +35,14 @@ const GRUPOS: { clave: Clave; titulo: string; ayuda: string; tono: Tono }[] = [
   { clave: "llamadas", titulo: "Llamadas: falta el informe", ayuda: "Derivadas por postventa: tómela y, al terminar, suba el informe.", tono: "atencion" },
   { clave: "probar", titulo: "Probar y embalar", ayuda: "Postventa pidió la prueba: falta el protocolo y el check.", tono: "atencion" },
   // Auditoría 25-09: la lista de siempre lo avisaba y esta vista no.
-  { clave: "fotos", titulo: "Salieron, faltan las fotos de la carga", ayuda: "Suba las fotos de la máquina puesta en el transporte.", tono: "atencion" },
+  { clave: "fotos", titulo: "Salieron, faltan fotos del despacho", ayuda: "Suba las fotos de la máquina puesta en el transporte (planta) y, si fue por agencia, la de la agencia con la guía.", tono: "atencion" },
   { clave: "guia", titulo: "Salieron, falta la guía", ayuda: "Suba la foto de la guía en la agencia.", tono: "atencion" },
   { clave: "sinApertura", titulo: "Con fecha, sin apertura", ayuda: "Postventa puso fecha pero no emitió la apertura: todavía no hay nada que preparar.", tono: "neutro" },
   { clave: "adelantar", titulo: "Para adelantar", ayuda: "Aprobados; postventa todavía no pidió la prueba.", tono: "neutro" },
 ];
 
 const CAMPOS =
-  "id, cliente_texto, equipo, fecha_despacho, despacho_hora, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, almacen_listo_at, agencia_at, guia, informe_cierre_id, pedido_ejecutado_at, aprobado_at, updated_at, salida_fotos, tipo_pedido, modalidad, entrega_en, guia_confirmada_at";
+  "id, cliente_texto, equipo, fecha_despacho, despacho_hora, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, almacen_listo_at, agencia_at, guia, informe_cierre_id, pedido_ejecutado_at, aprobado_at, updated_at, salida_fotos, agencia_fotos, entrega_modo, tipo_pedido, modalidad, entrega_en, guia_confirmada_at";
 
 async function clasificar(supabase: Cliente): Promise<Record<Clave, DatosFila[]>> {
   const hoy = hoyLima();
@@ -53,7 +53,21 @@ async function clasificar(supabase: Cliente): Promise<Record<Clave, DatosFila[]>
     .is("cerrado_at", null)
     .or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null")
     .limit(2000);
-  const vivos = (data ?? []) as unknown as ServicioPostventa[];
+  // CERRADO NO QUIERE DECIR QUE TENGA SUS FOTOS (gerencia 20-10, Beneficencia:
+  // postventa cerró el pedido y las fotos de la carga dejaron de pedirse).
+  // Los cerrados que salieron desde que el almacén tiene cuenta y no tienen
+  // fotos siguen en «faltan fotos».
+  const { data: cerradosSinFotos } = await supabase
+    .from("servicios_postventa")
+    .select(CAMPOS)
+    .or("completado.eq.true,cerrado_at.not.is.null")
+    .gte("despachado_at", `${FOTOS_DE_CARGA_DESDE}T00:00:00-05:00`)
+    .not("informe_cierre_id", "is", null)
+    .limit(300);
+  const vivos = [
+    ...((data ?? []) as unknown as ServicioPostventa[]),
+    ...((cerradosSinFotos ?? []) as unknown as ServicioPostventa[]).filter((s) => faltanFotosDeCarga(s) || (Boolean(s.guia || s.agencia_at) && faltanFotosDeAgencia(s as Parameters<typeof faltanFotosDeAgencia>[0]))),
+  ];
   // El mismo criterio que «Mi día» y la lista de siempre (auditoría 25-09: los conteos no coincidían).
   const probado = (s: ServicioPostventa) => s.prueba_lista_at != null || String(s.prueba_embalaje ?? "").toUpperCase() === "SI";
   // Qué es y a dónde va, como en la lista de siempre (auditoría 25-09): el
@@ -98,8 +112,13 @@ async function clasificar(supabase: Cliente): Promise<Record<Clave, DatosFila[]>
   for (const s of vivos) {
     const pedido = `/almacen/pedidos/${s.id}`;
     if (s.despachado_at) {
-      if (faltanFotosDeCarga(s)) {
-        out.fotos.push({ ...base(s), orden: s.despachado_at, estado: { texto: "Salió · faltan fotos de la carga", tono: "atencion" }, edad: `Salió ${haceCuanto(s.despachado_at)}`, tono: "atencion", accion: { etiqueta: "Subir las fotos", href: pedido } });
+      // Gerencia 20-10: las dos fotos del despacho, planta y agencia, como pendientes.
+      const faltaPlanta = faltanFotosDeCarga(s);
+      // Sin guía todavía, ya está en «Salieron, falta la guía» (mismo paso en la agencia).
+      const faltaAgencia = Boolean(s.guia || s.agencia_at) && faltanFotosDeAgencia(s as Parameters<typeof faltanFotosDeAgencia>[0]);
+      if (faltaPlanta || faltaAgencia) {
+        const que = faltaPlanta && faltaAgencia ? "faltan fotos de planta y de la agencia" : faltaPlanta ? "faltan fotos de la carga en planta" : "falta la foto en la agencia";
+        out.fotos.push({ ...base(s), orden: s.despachado_at, estado: { texto: `Salió · ${que}`, tono: "atencion" }, edad: `Salió ${haceCuanto(s.despachado_at)}`, tono: "atencion", accion: { etiqueta: "Subir las fotos", href: pedido } });
       }
       // Un servicio no lleva guía: sale el técnico y lo cierra postventa con el
       // informe (buzón Almacén 20-10: «Subir la guía» abría el pedido sin dónde subirla).

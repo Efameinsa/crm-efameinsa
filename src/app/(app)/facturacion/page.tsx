@@ -4,18 +4,20 @@ import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ExpedienteCierre } from "@/components/crm/expediente-cierre";
 import { DocumentosFinanzasLista } from "@/components/crm/documentos-finanzas-lista";
-import { ObservarExpediente, RegistrarFactura } from "@/components/crm/acciones-facturacion";
-import { formatoMonto, pedidosConLiquidacion, type PedidoFinanzas } from "@/lib/pagos-finanzas";
+import { NoSeFactura, ObservarExpediente, RegistrarFactura, RegistrarNotaCredito } from "@/components/crm/acciones-facturacion";
+import { formatoMonto, pedidosConLiquidacion, pedidosConOkParaFacturar, type PedidoFinanzas } from "@/lib/pagos-finanzas";
 import {
   congruenciaDeCierres,
   cotizacionesDeCierres,
   documentosDeFinanzas,
   etiquetaEstadoPago,
+  facturasVigentes,
   liquidacionPorFacturar,
   type Congruencia,
   type DocumentosDeFinanzas,
 } from "@/lib/documentos-finanzas";
 import { fechaHoraLima } from "@/lib/fechas";
+import { textoMotivoGuia } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +36,12 @@ export const dynamic = "force-dynamic";
 export default async function PorFacturarPage() {
   await requerirPerfil();
   const supabase = await createClient();
-  const pedidos = await pedidosConLiquidacion(supabase, 400);
+  // Con liquidación (lo de siempre) o con el OK de Finanzas a la orden de
+  // postventa (0552, Jhon 20-10: «darle simplemente un check»). Los «no se
+  // factura» quedan fuera.
+  const [conLiquidacion, conOk] = await Promise.all([pedidosConLiquidacion(supabase, 400), pedidosConOkParaFacturar(supabase)]);
+  const vistos = new Set<string>();
+  const pedidos = [...conLiquidacion, ...conOk].filter((p) => !vistos.has(p.id) && vistos.add(p.id) && !p.noSeFacturaAt);
   const [docs, cotizaciones, congruencia] = await Promise.all([
     documentosDeFinanzas(supabase, pedidos.map((p) => p.id)),
     cotizacionesDeCierres(supabase, pedidos.map((p) => p.informeId ?? "")),
@@ -44,7 +51,8 @@ export default async function PorFacturarPage() {
   // pendiente» subida después de la última factura).
   const sinFactura = pedidos.filter((p) => {
     const d = docs.get(p.id);
-    return (d?.facturas.length ?? 0) === 0 || liquidacionPorFacturar(d) != null;
+    // Una factura anulada con nota de crédito no cuenta (0552, E001-840).
+    return facturasVigentes(d).length === 0 || liquidacionPorFacturar(d) != null;
   });
   const observados = sinFactura.filter((p) => p.facturacionObservadaAt);
   // Lo más viejo primero: es lo que lleva más tiempo esperando la factura.
@@ -98,7 +106,8 @@ function FilaPorFacturar({
   congruencia: Congruencia | undefined;
 }) {
   const vigente = docs?.liquidaciones[0];
-  const facturas = docs?.facturas ?? [];
+  const facturas = facturasVigentes(docs);
+  const anuladas = (docs?.facturas ?? []).filter((f) => f.tipo === "factura" && f.anuladaAt);
   const nuevoAnticipo = facturas.length > 0 ? liquidacionPorFacturar(docs) : null;
   const empresa = p.serie === "OPEN" ? "Open" : "Efameinsa";
   return (
@@ -151,6 +160,24 @@ function FilaPorFacturar({
               </span>
             </p>
           )}
+          {/* La guía, a la vista (gerencia 20-10). */}
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            {p.guia || p.guiaConfirmadaAt
+              ? `Guía ${p.guia ?? "(número sin anotar)"}${textoMotivoGuia(p.guiaMotivo, p.guiaMotivoDetalle) ? ` · ${textoMotivoGuia(p.guiaMotivo, p.guiaMotivoDetalle)}` : ""}${p.guiaConfirmadaAt ? ` · autorizada el ${fechaHoraLima(p.guiaConfirmadaAt)}` : ""}`
+              : "Sin guía todavía"}
+          </p>
+          {/* El OK de Finanzas a la orden de postventa (0552): basta para facturar. */}
+          {!vigente && p.ordenFacturarAtendidaAt && (
+            <p className="mt-1 text-[11px] font-medium text-[#1E7F4F]">
+              Finanzas dio el OK para facturar el {fechaHoraLima(p.ordenFacturarAtendidaAt)} (postventa terminó el servicio). No hace falta esperar otra liquidación.
+            </p>
+          )}
+          {anuladas.length > 0 && facturas.length === 0 && (
+            <p className="mt-1 flex items-start gap-1 rounded-md bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-900">
+              <AlertTriangle className="mt-0.5 size-3.5 flex-none" />
+              Otra vez por facturar: {anuladas.map((f) => f.numero).join(", ")} se anuló con nota de crédito{anuladas[0].motivo ? ` (${anuladas[0].motivo})` : ""}. Registre la factura correcta.
+            </p>
+          )}
           {p.facturacionObservadaAt && (
             <p className="mt-1 flex items-start gap-1 text-[11px] font-medium text-destructive">
               <AlertTriangle className="mt-0.5 size-3.5 flex-none" />
@@ -185,7 +212,9 @@ function FilaPorFacturar({
             </ExpedienteCierre>
           )}
           <RegistrarFactura servicioId={p.id} cliente={p.cliente} />
+          <RegistrarNotaCredito servicioId={p.id} cliente={p.cliente} facturas={facturas} />
           {!p.facturacionObservadaAt && <ObservarExpediente servicioId={p.id} cliente={p.cliente} />}
+          <NoSeFactura servicioId={p.id} cliente={p.cliente} />
         </div>
       </div>
       {congruencia && (congruencia.alertas.length > 0 || congruencia.bien.length > 0) && (

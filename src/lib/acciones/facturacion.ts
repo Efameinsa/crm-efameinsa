@@ -2,7 +2,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
-import { notificarCentral, notificarFacturacion, notificarFinanzas } from "@/lib/notificaciones";
+import { notificar, notificarCentral, notificarFacturacion, notificarFinanzas } from "@/lib/notificaciones";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { EstadoPagoLiquidacion } from "@/lib/documentos-finanzas";
 import { enlaceCierreDelPedido } from "@/lib/enlace-cierre-central";
 
@@ -16,6 +17,8 @@ const limpiar = (m: string) => m.replace(/^[A-Z0-9]{5}:\s*/, "");
 const sinRuc = (s: string | null | undefined) => (s ?? "").replace(/^\d{8,11}\s*-\s*/, "");
 
 function revalidar(servicioId: string) {
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath(`/nuevo/pedido/${servicioId}`);
   revalidatePath("/facturacion");
   revalidatePath("/facturacion/facturados");
   revalidatePath("/finanzas/liquidar");
@@ -120,8 +123,92 @@ export async function registrarFactura(datos: {
       url: await enlaceCierreDelPedido(supabase, datos.servicioId),
       esPrueba,
     }),
+    avisarFacturado(datos.servicioId, numero, esPrueba),
   ]);
   revalidar(datos.servicioId);
+  return { error: null };
+}
+
+/**
+ * QUIEN PIDIÓ FACTURAR SE ENTERA DE QUE YA SE FACTURÓ (gerencia 20-10,
+ * Beneficencia): «como postventa, ¿dónde vemos si ya se facturó? No hay».
+ * Postventa (quien dio la orden) y el comercial del cierre reciben la campana.
+ */
+async function avisarFacturado(servicioId: string, numero: string, esPrueba: boolean, texto = "Facturado") {
+  if (esPrueba) return;
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("servicios_postventa")
+    .select("cliente_texto, orden_facturar_por, informes_cierre(creado_por)")
+    .eq("id", servicioId)
+    .maybeSingle();
+  if (!data) return;
+  const cierre = data.informes_cierre as unknown as { creado_por: string | null } | null;
+  const destinos = [...new Set([data.orden_facturar_por as string | null, cierre?.creado_por ?? null].filter(Boolean) as string[])];
+  await Promise.all(
+    destinos.map((userId) =>
+      notificar({
+        userId,
+        tipo: "finanzas",
+        titulo: `${texto} ${numero} · ${sinRuc(data.cliente_texto as string | null)}`,
+        cuerpo: "Está en el pedido, en «Documentos del expediente · Contabilidad y Finanzas».",
+        url: `/postventa/pedidos/${servicioId}`,
+      }),
+    ),
+  );
+}
+
+/** La nota de crédito que anula una factura del pedido (0552, E001-840 de Beneficencia). */
+export async function registrarNotaCredito(datos: {
+  servicioId: string;
+  facturaId: string;
+  numero: string;
+  fecha: string;
+  motivo: string;
+  path: string | null;
+  nombre: string | null;
+}) {
+  const perfil = await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("facturacion_registrar_nota_credito", {
+    p_servicio: datos.servicioId,
+    p_factura: datos.facturaId,
+    p_numero: datos.numero,
+    p_fecha: datos.fecha,
+    p_motivo: datos.motivo,
+    p_path: datos.path,
+    p_nombre: datos.nombre,
+  });
+  if (error) return { error: limpiar(error.message) };
+  const s = await datosDelPedido(datos.servicioId);
+  const numero = datos.numero.trim().toUpperCase();
+  const esPrueba = perfil.es_prueba === true;
+  await Promise.all([
+    notificarFinanzas({
+      titulo: `Nota de crédito ${numero} · ${sinRuc(s?.cliente_texto)}`,
+      cuerpo: `Anula una factura del pedido (${datos.motivo.trim()}). Vuelve a «Por facturar».`,
+      url: `/finanzas/pedidos/${datos.servicioId}`,
+      esPrueba,
+    }),
+    notificarFacturacion({
+      titulo: `Otra vez por facturar · ${sinRuc(s?.cliente_texto)}`,
+      cuerpo: `Se registró la nota de crédito ${numero}: falta la factura correcta.`,
+      url: "/facturacion",
+      esPrueba,
+    }),
+    avisarFacturado(datos.servicioId, numero, esPrueba, "Nota de crédito"),
+  ]);
+  revalidar(datos.servicioId);
+  return { error: null };
+}
+
+/** «No se factura» con motivo (0552, caso Lino), o deshacerlo. */
+export async function marcarNoSeFactura(servicioId: string, motivo: string, deshacer = false) {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("finanzas_no_se_factura", { p_servicio: servicioId, p_motivo: motivo, p_deshacer: deshacer });
+  if (error) return { error: limpiar(error.message) };
+  revalidar(servicioId);
   return { error: null };
 }
 

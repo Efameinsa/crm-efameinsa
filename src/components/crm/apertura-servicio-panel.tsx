@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "@/components/enlace";
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -36,6 +38,8 @@ export function AperturaServicioPanel({
   faltantes,
   enviadaAlmacenAt = null,
   enviadaClienteAt = null,
+  emitida = true,
+  faltaParaEmitir = [],
   destinatarios = [],
   empresaCorreo = "EFAMEINSA",
   empresaElegible = false,
@@ -66,6 +70,10 @@ export function AperturaServicioPanel({
   asunto: string;
   cuerpo: string;
   faltantes: string[];
+  /** Si la apertura ya se emitió en el pedido (caso ANDEX 20-10: sin emitir, el correo no sale). */
+  emitida?: boolean;
+  /** Los pasos de antes de la apertura que faltan, con su nombre. */
+  faltaParaEmitir?: string[];
   /** «Ya lo mandé»: cuándo se marcó el correo como enviado, al almacén y al cliente (0271). */
   enviadaAlmacenAt?: string | null;
   enviadaClienteAt?: string | null;
@@ -187,6 +195,19 @@ export function AperturaServicioPanel({
 
   return (
     <div className="no-imprimir space-y-4">
+      {/* ── SIN EMITIR NO SE ENVÍA (caso ANDEX, 20-10) ── */}
+      {!emitida && (
+        <div className="rounded-md border border-amber-400 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          <p>
+            <b>Esta apertura todavía no está emitida.</b> Mientras no se emita, el almacén no la ve en su lista ni le llega el aviso, aunque reciba un
+            correo. Los pasos van en orden: complete lo que falta y emítala en el pedido; recién ahí se envía.
+          </p>
+          {faltaParaEmitir.length > 0 && <p className="mt-1">Falta: {faltaParaEmitir.join(" · ")}.</p>}
+          <Link href={`/postventa/pedidos/${servicioId}`} className="mt-1 inline-block font-semibold text-primary hover:underline">
+            Ir al pedido para emitirla
+          </Link>
+        </div>
+      )}
       {/* ── Qué falta para que el correo salga completo ── */}
       {faltantes.length > 0 ? (
         <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
@@ -481,17 +502,20 @@ export function AperturaServicioPanel({
         <button
           type="button"
           onClick={() => copiar("cuerpo")}
-          className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-accent"
+          disabled={!emitida}
+          className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-accent disabled:opacity-50"
         >
           <Copy className="size-3.5" /> {copiado === "cuerpo" ? "Copiado" : "Copiar el correo"}
         </button>
         <button
           type="button"
           onClick={() => setCorreoAbierto(true)}
-          className="ml-2 mt-2 inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+          disabled={!emitida}
+          className="ml-2 mt-2 inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           <Mail className="size-3.5" /> Enviar por correo
         </button>
+        {!emitida && <p className="mt-1 text-[11px] text-amber-800">Se copia y se envía cuando la apertura esté emitida en el pedido: mandada antes, el almacén no la ve en su lista.</p>}
 
         <Dialog open={correoAbierto} onOpenChange={setCorreoAbierto}>
           <DialogContent className="sm:max-w-lg">

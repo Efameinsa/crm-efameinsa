@@ -589,6 +589,9 @@ export interface FotoAlmacen {
  */
 export const FOTOS_DE_CARGA_DESDE = "2026-09-19";
 
+/** Desde cuándo se registra que la guía y las fotos llegaron al cliente (0553, gerencia 20-10). */
+export const GUIA_AL_CLIENTE_DESDE = "2026-10-20";
+
 /** Salió (lo marcó postventa) pero el almacén no dejó las fotos de la carga. */
 export function faltanFotosDeCarga(s: Pick<ServicioPostventa, "despachado_at" | "informe_cierre_id" | "salida_fotos"> & { tipo_pedido?: TipoPedido | null }): boolean {
   return (
@@ -598,6 +601,45 @@ export function faltanFotosDeCarga(s: Pick<ServicioPostventa, "despachado_at" | 
     Boolean(s.despachado_at) &&
     Boolean(s.informe_cierre_id) &&
     (s.salida_fotos?.length ?? 0) === 0 &&
+    new Date(s.despachado_at as string).toLocaleDateString("en-CA", { timeZone: "America/Lima" }) >= FOTOS_DE_CARGA_DESDE
+  );
+}
+
+/**
+ * ¿CERRAR ESTE PEDIDO EXIGE LA PUESTA EN MARCHA? (0551, gerencia 20-10:
+ * «no debería dejar cerrar si no está el informe ejecutado… con PIN todo se
+ * puede saltar»). No la llevan el embalaje, el accesorio, el repuesto sin
+ * instalación ni lo que vino del Excel. La base aplica la misma regla
+ * (frenar_cierre_sin_puesta).
+ */
+export function cierreExigePuesta(s: { tipo_pedido?: string | null; con_instalacion?: boolean | null; origen?: string | null }): boolean {
+  const tipo = s.tipo_pedido ?? "equipo";
+  if (s.origen === "excel") return false;
+  if (tipo === "embalaje" || tipo === "accesorio") return false;
+  if (tipo === "repuesto" && !s.con_instalacion) return false;
+  return true;
+}
+
+/**
+ * FALTA LA FOTO EN LA AGENCIA (gerencia 20-10, Beneficencia de Huancayo):
+ * «faltan esas dos, planta y agencia… en el panorama debería salir». La de la
+ * agencia no tenía regla: si el pedido va por agencia y ya salió, el almacén
+ * la sube (guía + la máquina en la agencia) para el registro del despacho.
+ */
+export function faltanFotosDeAgencia(
+  s: Pick<ServicioPostventa, "despachado_at" | "informe_cierre_id"> & {
+    tipo_pedido?: TipoPedido | null;
+    entrega_modo?: string | null;
+    agencia_fotos?: unknown[] | null;
+  },
+): boolean {
+  return (
+    s.tipo_pedido !== "revision" &&
+    s.tipo_pedido !== "mantenimiento" &&
+    s.entrega_modo === "agencia" &&
+    Boolean(s.despachado_at) &&
+    Boolean(s.informe_cierre_id) &&
+    (s.agencia_fotos?.length ?? 0) === 0 &&
     new Date(s.despachado_at as string).toLocaleDateString("en-CA", { timeZone: "America/Lima" }) >= FOTOS_DE_CARGA_DESDE
   );
 }
@@ -683,6 +725,7 @@ function porDelPaso(s: ServicioPostventa, clave: string): string | null {
     despacho: [x.despachado_por, x.agencia_por, x.despacho_autorizado_por],
     letras: [x.letras_entregadas_por],
     verificado: [x.despacho_verificado_por],
+    guia_cliente: [x.guia_enviada_cliente_por],
     facturar: [x.orden_facturar_por],
     cerrado: [x.cerrado_por],
   };
@@ -1170,6 +1213,23 @@ function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
           },
         ]
       : []),
+    // LA GUÍA Y LAS FOTOS LLEGARON AL CLIENTE (gerencia 20-10): «nadie sabe
+    // que tú has enviado el WhatsApp… con 30 clientes no hay forma de
+    // controlarlo». Solo desde el 20-10: lo despachado antes no se reabre.
+    ...(s.despachado_at && s.despachado_at >= GUIA_AL_CLIENTE_DESDE && !circuito.esServicio
+      ? [
+          {
+            clave: "guia_cliente",
+            etiqueta: "Guía y fotos enviadas al cliente",
+            responsable: "postventa" as ResponsablePaso,
+            hecho: (s as { guia_enviada_cliente_at?: string | null }).guia_enviada_cliente_at != null,
+            cuando: (s as { guia_enviada_cliente_at?: string | null }).guia_enviada_cliente_at ?? null,
+            detalle: (s as { guia_enviada_cliente_at?: string | null }).guia_enviada_cliente_at
+              ? undefined
+              : "Mándele al cliente la guía y las fotos del despacho, y márquelo con «Enviar guía y fotos al cliente»",
+          },
+        ]
+      : []),
   ];
 
   const cierre: PasoPedido[] = [
@@ -1273,6 +1333,23 @@ export function queLoFrena(s: ServicioPostventa): { texto: string; responsable: 
     }
   }
   return null;
+}
+
+/**
+ * QUÉ FALTA PARA EMITIR LA APERTURA (caso ANDEX SOLUTION PED-0036-2026, 20-10):
+ * Brenda mandó la apertura por correo a las 12:49 sin emitirla —faltaban el
+ * plano y la dirección verificada—; a Lesly le llegó el correo pero no la tenía
+ * en su lista ni en la campana. Los pasos se hacen en orden: lo de antes de la
+ * apertura que no está hecho, con su nombre, para decirlo a la vista.
+ */
+export function faltaParaEmitirApertura(s: ServicioPostventa): string[] {
+  if (s.apertura_despacho_at) return [];
+  const pasos = bloquesPedido(s).flatMap((b) => b.pasos);
+  const i = pasos.findIndex((p) => p.clave === "apertura");
+  if (i < 0) return [];
+  const antes = pasos.slice(0, i).filter((p) => !p.hecho).map((p) => p.etiqueta);
+  const trabado = pasos[i].trabado;
+  return trabado ? [...antes, trabado] : antes;
 }
 
 /** Cuántos de los pasos del pedido están marcados (para la barra de avance). */

@@ -1,8 +1,13 @@
 # Bitácora reservada (solo gerencia y administración)
 
-Vigente al 20-10-2026. Temas de personal y control que no van ni a Central ni a operaciones: se trata de compañeros de trabajo. Complementa la bitácora ampliada.
+Vigente al 20-10-2026 (tarde). Temas de personal y control que no van ni a Central ni a operaciones: se trata de compañeros de trabajo. Complementa la bitácora ampliada.
 
 **Regla de uso:** no comparta nada de esto con nadie que no sea gerencia o administración, ni lo insinúe.
+
+- 20-10 · Prueba de usuario de postventa y finanzas (gerencia, Brenda, Jhon, Lesly)
+  - **Gerencia fue blanda en la reunión; Santos pidió ser más críticos.** Los registros de postventa estaban mal: expedientes abiertos sin escribir nada (el de Beneficencia lo abrió Ariana el 14-10) y casos repetidos del mismo problema (Lernake). Carlos: «hace dos semanas lo coordinamos en la mesa y no entiendo qué no comprenden». Desde el 20-10 el CRM obliga a llenar la gestión y no abre casos repetidos.
+  - **Jhon pidió una factura por correo y llevaba en mano las constancias de abono a Central.** Carlos le pidió que todo vaya por el CRM y que no se acerque a Central para eso («figurativamente, Central no existe»). Las constancias ya se ven en el pedido.
+  - **Family Farm:** el problema vino del registro de la comercial (escribió el nombre a mano). Mismo caso que el de Brenda con otro cliente antes. Carlos pidió la regla: cliente con RUC o DNI.
 
 - 19-10 · Llamadas grabadas de los comerciales (Santos, aprobado)
   - **Santos aprobó** que los comerciales llamen desde la app Android del CRM con el plan corporativo, que la llamada se grabe y quede guardada (audio, transcripción y resumen) y que administración la vea **por cliente y por día**. Motivo: seguimiento de la gestión de cada vendedor (unas 2 horas de llamadas al día). Se descartó una central telefónica por costo.

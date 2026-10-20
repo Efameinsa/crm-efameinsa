@@ -1,6 +1,6 @@
 # Bitácora del CRM Efameinsa: historia de las decisiones
 
-Vigente al 20-10-2026. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
+Vigente al 20-10-2026 (tarde). Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
 
 Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién decidió que postventa no vea precios?», «¿esto siempre fue así?» o «¿qué pasó con el caso X?».
 
@@ -17,6 +17,31 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 ---
 
 ## Cronología de reuniones y decisiones
+
+### 20-10 · Prueba de usuario de postventa y finanzas (gerencia con Brenda, Jhon, Lesly y Santos)
+Carlos recorrió el CRM con Brenda (postventa 2) usando tres clientes reales: Beneficencia de Huancayo, Family Farm y Comercial Lernake. Santos pidió ser más críticos que gerencia con la experiencia de postventa. Lo que se decidió y quedó hecho el mismo día:
+- **Nada por correo entre postventa, Finanzas y Facturación.** La orden de facturar, la factura y la nota de crédito van por el CRM. Si un aviso no llega, se arregla el aviso.
+- **La gestión de postventa se llena entera.** Qué se habló (una frase) y la próxima acción con fecha, o se cierra. Cerrar «Anotar gestión» sin guardar ya no deja un expediente vacío en la ficha. Los expedientes vacíos que existían se quitaron, y cada noche se quitan los que se escapen (la dueña recibe el aviso). Caso: en Beneficencia seguía un «expediente vivo» que se había abierto el 14-10 sin escribir nada.
+- **El expediente dice quién lo abrió, con nombre y área.** Antes decía «La abrió el comercial» aunque lo hubiera abierto postventa.
+- **Cerrar el pedido:** las series se marcan de las del pedido (ya no se escriben), la fecha de inicio de la garantía se elige (corre desde la entrega) y sin puesta en marcha no se cierra salvo con el código de gerencia u operaciones y el motivo (por ejemplo, provincia sin visita). El cierre queda en el historial del cliente con fecha, nombre, series y garantía.
+- **En la ficha, para postventa, primero los pedidos y casos abiertos**, con enlace directo al pedido y al protocolo de pruebas. Ya no hay que pasar por el expediente para llegar al pedido.
+- **El pedido muestra «Documentos del expediente · Comercial» y «· Contabilidad y Finanzas»:** guía, facturas, notas de crédito, liquidaciones y constancias de abono. Así postventa sabe si ya se facturó sin preguntar.
+- **Fotos del pedido con su título:** el protocolo como enlace («Ver fotos y videos del protocolo»), y aparte «Fotos del despacho en planta» y «Fotos en la agencia», cada una con su estado y el botón «Pedir al almacén». Las fotos del despacho las sube el almacén; la foto en la agencia también sale ahora como pendiente del almacén.
+- **Guía y fotos al cliente con registro.** Nuevo paso del pedido «Guía y fotos enviadas al cliente» y el botón «Enviar guía y fotos al cliente»: abre el WhatsApp con el mensaje armado y, al marcar «Ya lo envié», queda quién, cuándo y por dónde. Carlos: «con 30 clientes no hay forma de controlarlo a mano».
+- **Cada caso técnico tiene código (CASO-00001…)**, su historial paso a paso con nombre, y si el cliente vuelve a llamar por el mismo problema la llamada se suma al caso abierto en vez de abrir otro. Escribir el código en la búsqueda de atenciones abre el caso. Caso: Lernake tenía dos casos del mismo problema (29-09 y 19-10).
+- **Un cliente se registra con RUC o DNI.** El cierre de venta ya no se emite si la ficha no tiene RUC ni DNI. Nueva pantalla «Fichas repetidas» (Central, operaciones y gerencia) para unir las fichas del mismo cliente. Caso: Family Farm / Valle y Pampa tiene varias fichas, algunas tipeadas a mano (pendiente de decidir cuál queda, ver Pendientes).
+- **Postventa puede quitar un contacto mal puesto** en un cliente con caso o pedido; el dueño de la cartera recibe el aviso y se puede deshacer. Caso: el contacto «Cristian» en Beneficencia.
+- **«Anotar gestión» tiene «Ampliar»** para verlo en pantalla completa (Brenda: «ya no me permite abrir grande»).
+- **Orden de recepción y revisión de equipo (nuevo).** Desde el caso técnico, «El equipo viene a planta»: el almacén registra que llegó (con fotos), la revisión (técnico y diagnóstico) y qué sigue (devolver o cotizar). Cada paso avisa a postventa. Carlos: «es como la apertura, otro nombre».
+- **Viáticos y solicitud de stock de repuesto:** diseñados, sin construir. Gerencia: «primero corrijamos esto, los otros dos después».
+- **Segunda tanda (20-10, misma tarde), lo que salió al releer la reunión y del caso ANDEX:**
+  - **La apertura no se manda por correo sin emitirla.** Caso ANDEX SOLUTION: el correo le llegó a Lesly en Outlook, pero la apertura no estaba emitida (faltaban el plano y la dirección verificada) y no le apareció en su lista ni en la campana. Ahora «Enviar por correo» y «Copiar el correo» esperan a que se emita, y la pantalla dice qué paso falta. Los pasos van en orden.
+  - **La orden a Finanzas para facturar, después del servicio.** Sin la puesta en marcha (o el informe) pide el código de gerencia u operaciones y el motivo, como el cierre del pedido. Carlos: «mándale cuando el servicio esté terminado… acá te debe permitir con PIN».
+  - **Protocolo en orden y del mismo tamaño:** al subir se indica el orden (placa, equipo completo, detalles); en el protocolo cada foto sale del mismo tamaño con su rótulo y se puede reordenar con flechas.
+  - **El comercial ve la factura** en «Pagos y facturas» del cierre (antes el botón decía «Pagos»). Carlos: «la persona que envía las facturas es ventas».
+  - **El pedido cerrado sin fotos sigue pendiente para el almacén** (Beneficencia se cerró y las fotos dejaron de pedirse).
+  - En el expediente de postventa, el estado del pedido va arriba; cada expediente vivo dice qué casos tiene, con su código; el historial dice quién registró cada caso; la lista de pedidos dice que lo del Excel en regularización no es atraso; Facturación ve la guía en «Por facturar».
+- **Pendientes:** decidir qué ficha de Family Farm queda (tiene tres con RUC distinto); que Jhon registre la nota de crédito de la factura E001-840 de Beneficencia; enviar la guía por la API de WhatsApp sin copiar a mano (hoy abre el WhatsApp y se marca).
 
 ### 19-10 (tarde) · Lo que resolvió el buzón: abono en la liquidación y corrección de la guía (Jhon, almacén)
 - **Confirmar abono en la liquidación (Jhon):** desde la pantalla «Generar liquidación» Finanzas confirma un abono ya acreditado y entra de inmediato a esa liquidación. Detalle en la bitácora de Finanzas.
