@@ -12,7 +12,7 @@ import { PuenteNativo } from "@/components/crm/puente-nativo";
 import { VigilanteConducta } from "@/components/crm/vigilante-conducta";
 import { seVigila } from "@/lib/seguridad-conducta";
 import { RastreoNativo } from "@/components/crm/rastreo-nativo";
-import { LlamadasNativo } from "@/components/crm/llamadas-nativo";
+import { SetterNativo } from "@/components/crm/setter-nativo";
 import { seRastrea } from "@/lib/campo-rastreo";
 import { AvisoNuevaVersion } from "@/components/crm/aviso-nueva-version";
 import { VigilanteDeCuenta } from "@/components/crm/vigilante-de-cuenta";
@@ -125,8 +125,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const avisosArriba = !demo ? (
     <div className="flex flex-col gap-2 px-3 pt-3 empty:hidden sm:px-4 lg:px-6 lg:pt-4">
       {ubicacionDeCampo}
-      {/* 19-10: aceptación y permisos de la grabación de llamadas; solo dentro de la app y con el plugin nuevo. */}
-      {enApp && !ranuraAuditoria ? <LlamadasNativo /> : null}
+      {/* 20-10: modo setter (llamar a cada lead nuevo); solo dentro de la app, con el plugin nuevo y para la cuenta marcada.
+          La tarjeta de aceptación de la grabación (LlamadasNativo) queda sin montar: la grabación está en pausa. */}
+      {enApp && !ranuraAuditoria ? <SetterNativo /> : null}
       <CalloutActivarNotificaciones />
       <AplicacionInstalable />
       <AvisoGestionesSinSubir />

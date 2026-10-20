@@ -11,7 +11,7 @@ import { ETIQUETA_TIPO_ATENCION } from "@/lib/atenciones";
 import type { ServicioPostventa } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
 import { torresSinSegundaSerie } from "@/lib/torres";
-import { FileText } from "lucide-react";
+import { ClipboardCheck, FileText, Plus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -145,7 +145,23 @@ export default async function AlmacenPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      {/* Lesly, 20-10: «que se aperture en almacén la vista de protocolos… subir los de stock».
+          La pestaña «Protocolos» ya estaba, pero desde Mi día no se veía: acceso directo. */}
+      <div className="flex flex-wrap justify-end gap-2">
+        <Link
+          href="/almacen/protocolos"
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground hover:bg-accent"
+        >
+          <ClipboardCheck className="size-4" aria-hidden />
+          Protocolos
+        </Link>
+        <Link
+          href="/almacen/protocolos?nuevo=1"
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground hover:bg-accent"
+        >
+          <Plus className="size-4" aria-hidden />
+          Subir protocolo de equipo en stock
+        </Link>
         <PasarContactoCentral contexto="almacen" campaniasWhatsapp={campaniasWhatsapp} />
       </div>
       <SeccionPanel

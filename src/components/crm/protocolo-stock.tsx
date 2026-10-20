@@ -29,9 +29,10 @@ function tipoDe(f: File): string {
   return ext === "mp4" ? "video/mp4" : ext === "mov" ? "video/quicktime" : ext === "webm" ? "video/webm" : ext === "pdf" ? "application/pdf" : "image/jpeg";
 }
 
-export function NuevoProtocoloDeStock() {
+// Lesly, 20-10: «Subir protocolo de stock» en Mi día entra con ?nuevo=1 y el formulario ya abierto.
+export function NuevoProtocoloDeStock({ abiertoAlEntrar = false }: { abiertoAlEntrar?: boolean }) {
   const router = useRouter();
-  const [abierto, setAbierto] = useState(false);
+  const [abierto, setAbierto] = useState(abiertoAlEntrar);
   const [pendiente, startTransition] = useTransition();
   const [d, setD] = useState({ tipo: "LAVADORA", marca: "", modelo: "", capacidad: "", serie: "", protocoloRef: "", tecnico: "", fecha: hoyLima() });
   const poner = (k: keyof typeof d) => (x: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setD((v) => ({ ...v, [k]: x.target.value }));
