@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { notificar } from "@/lib/notificaciones";
 import { requerirPerfil } from "@/lib/auth";
+import { avisarAlDuenoDeLaCartera } from "@/lib/aviso-dueno-cartera";
 
 /**
  * Editar los datos de contacto de un cliente.
@@ -101,6 +102,10 @@ export async function guardarContacto(datos: {
     }
   }
 
+  // Brenda corrige contactos de cualquier cartera (0561): el dueño se entera.
+  await avisarAlDuenoDeLaCartera(datos.cuentaId, datos.contactoId ? "corrigió un contacto de" : "agregó un contacto a");
+
+  revalidatePath(`/nuevo/cliente/${datos.cuentaId}`);
   revalidatePath("/comercial", "layout");
   revalidatePath("/gerencia", "layout");
   return { error: null };

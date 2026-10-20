@@ -63,6 +63,8 @@ export interface Perfil {
   es_prueba?: boolean;
   /** Área de postventa: usa el CRM como comercial, pero no vende (0075). */
   es_postventa?: boolean;
+  /** Corrige nombre, RUC y contactos de CUALQUIER cliente, sea de quien sea la cartera (0561, Brenda). */
+  edita_clientes_global?: boolean;
   /** Comercial que además atiende postventa de sus clientes (migración 0093). */
   hace_postventa?: boolean;
   /**
