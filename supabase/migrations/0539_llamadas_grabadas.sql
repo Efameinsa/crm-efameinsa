@@ -85,3 +85,42 @@ create policy llamadas_propias on llamadas for select to authenticated
 drop policy if exists llamadas_backoffice on llamadas;
 create policy llamadas_backoffice on llamadas for select to authenticated
   using (coalesce(es_backoffice(), false));
+
+-- 3. A qué ficha pertenece el número al que se llamó.
+--
+-- `contactos.telefono` viene escrito de mil formas («987 654 321», «(01) 504-1695»,
+-- «+51 987654321»): se compara por los ÚLTIMOS 8 DÍGITOS, que coinciden aunque
+-- uno traiga el 0 del fijo y otro el +51 (lib/llamadas.ts → digitosParaComparar).
+-- Entre varias fichas con ese número gana la de la cartera de quien llama, luego
+-- el contacto principal. Devuelve además el expediente abierto de esa persona con
+-- ese cliente, donde se anota la gestión «llamada». Solo la API la usa.
+-- (Clase de caracteres [^0-9]: la barra invertida no sirve acá, ver
+-- crm-regexp-backslash-s-no-funciona.)
+create or replace function llamada_resolver_numero(p_numero text, p_user uuid)
+returns table (cuenta_id uuid, contacto_id uuid, oportunidad_id uuid)
+language sql stable security definer set search_path = public as $$
+  with d as (
+    select right(regexp_replace(coalesce(p_numero, ''), '[^0-9]', '', 'g'), 8) as n
+  ),
+  c as (
+    select ct.id as contacto_id, ct.cuenta_id
+    from contactos ct
+    join cuentas cu on cu.id = ct.cuenta_id
+    cross join d
+    where length(d.n) = 8
+      and right(regexp_replace(coalesce(ct.telefono, ''), '[^0-9]', '', 'g'), 8) = d.n
+    order by (cu.comercial_id = p_user) desc nulls last, ct.es_principal desc nulls last, ct.id
+    limit 1
+  )
+  select c.cuenta_id, c.contacto_id,
+    (select o.id
+       from oportunidades o
+      where o.cuenta_id = c.cuenta_id
+        and o.comercial_id = p_user
+        and o.etapa not in ('rechazada', 'venta', 'historico')
+      order by o.updated_at desc nulls last
+      limit 1)
+  from c;
+$$;
+revoke all on function llamada_resolver_numero(text, uuid) from public, anon, authenticated;
+grant execute on function llamada_resolver_numero(text, uuid) to service_role;

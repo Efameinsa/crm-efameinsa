@@ -18,8 +18,8 @@
 
 const ZONA = "America/Lima";
 
-/** Cuántos dígitos del final bastan para decir «es el mismo número». */
-const DIGITOS_PARA_COMPARAR = 9;
+/** Cuántos dígitos del final bastan (8: ver digitosParaComparar) para decir «es el mismo número». */
+const DIGITOS_PARA_COMPARAR = 8;
 
 /**
  * Deja un número como `+51987654321`.
@@ -43,7 +43,7 @@ export function normalizarNumero(crudo: string | null | undefined): string | nul
   return `+51${d}`;
 }
 
-/** Los últimos 9 dígitos: lo que se compara contra `contactos.telefono`, que viene escrito de mil formas. */
+/** Los últimos 8 dígitos: lo que se compara contra `contactos.telefono`, que viene escrito de mil formas. Con 8 coinciden el fijo de Lima (015041695 = +5115041695) y el celular (todos empiezan en 9). */
 export function digitosParaComparar(numero: string | null | undefined): string | null {
   const d = (numero ?? "").replace(/\D/g, "");
   if (d.length < 6) return null;

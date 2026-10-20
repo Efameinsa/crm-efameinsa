@@ -39,10 +39,10 @@ describe("normalizarNumero", () => {
 });
 
 describe("digitosParaComparar", () => {
-  it("los mismos 9 finales aunque venga escrito distinto", () => {
-    expect(digitosParaComparar("+51 987 654 321")).toBe("987654321");
-    expect(digitosParaComparar("987654321")).toBe("987654321");
-    expect(digitosParaComparar("51-987654321")).toBe("987654321");
+  it("los mismos 8 finales aunque venga escrito distinto", () => {
+    expect(digitosParaComparar("+51 987 654 321")).toBe("87654321");
+    expect(digitosParaComparar("987654321")).toBe("87654321");
+    expect(digitosParaComparar("51-987654321")).toBe("87654321");
   });
   it("muy corto no se compara", () => {
     expect(digitosParaComparar("123")).toBeNull();
@@ -185,5 +185,11 @@ describe("marcaDeTiempo", () => {
   it("[03:25]", () => {
     expect(marcaDeTiempo(205.7)).toBe("[03:25]");
     expect(marcaDeTiempo(0)).toBe("[00:00]");
+  });
+});
+
+describe("digitosParaComparar: fijos de Lima", () => {
+  it("el contacto guardado como (01) 504-1695 coincide con la llamada a +5115041695", () => {
+    expect(digitosParaComparar("(01) 504-1695")).toBe(digitosParaComparar("+5115041695"));
   });
 });
