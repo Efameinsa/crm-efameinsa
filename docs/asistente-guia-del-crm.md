@@ -196,6 +196,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 ### 1.11 Almacén: prueba, embalaje y despacho
 
 **Fotos del despacho** (desde el 20-10): el almacén sube las fotos de la carga en planta y, si va por agencia, la foto en la agencia con la guía. Las dos salen como pendientes en «Mi día» hasta subirlas. Postventa las ve en el pedido con su título y puede «Pedir al almacén» (una vez cada 4 horas).
+**Panorama del almacén** (desde el 20-10): arriba está la tarjeta «Faltan fotos» (cuántas de planta y cuántas de agencia) y el grupo «Equipos que llegan a planta». Lesly: «en el panorama de pendientes no le sale».
 **Equipos que llegan a planta** (desde el 20-10): la orden de recepción (REC-00001…) la da postventa desde el caso. El almacén registra que llegó (con fotos), la revisión (técnico y diagnóstico) y qué sigue (devolver o cotizar).
 
 - **Dueño:** almacén (Jeysson, cuenta ALM; Ariana, cuenta ALM2). Lesly supervisa desde operaciones.
