@@ -250,7 +250,7 @@ async function colaAlmacen(supabase: Cliente) {
   const [{ data: pedidos }, { data: aperturas }, { data: atenciones }, { data: visitasHoy }] = await Promise.all([
     supabase
       .from("servicios_postventa")
-      .select("id, cliente_texto, equipo, fecha_despacho, despacho_hora, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, almacen_listo_at, guia, agencia_at, salida_fotos, informe_cierre_id, pedido_ejecutado_at, guia_confirmada_at")
+      .select("id, cliente_texto, equipo, fecha_despacho, despacho_hora, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, almacen_listo_at, guia, agencia_at, salida_fotos, informe_cierre_id, pedido_ejecutado_at, guia_confirmada_at, tipo_pedido")
       .eq("completado", false)
       .is("cerrado_at", null)
       .or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null")
@@ -310,7 +310,8 @@ async function colaAlmacen(supabase: Cliente) {
     if (faltanFotosDeCarga(s)) {
       tareas.push({ id: `fc-${s.id}`, urgencia: "hoy", tipo: "despacho", cliente, que: `Subir las fotos de la carga · ${equipo}`, porque: "Salió y faltan las fotos de la máquina puesta en el transporte.", accion: { etiqueta: "Subir fotos", href: `/almacen/pedidos/${s.id}` } });
     }
-    if (s.despachado_at && !s.guia && !s.agencia_at && (s.salida_fotos?.length ?? 0) > 0) {
+    // Un servicio no lleva guía (sale el técnico): buzón Almacén 20-10.
+    if (s.despachado_at && !s.guia && !s.agencia_at && (s.salida_fotos?.length ?? 0) > 0 && s.tipo_pedido !== "revision" && s.tipo_pedido !== "mantenimiento") {
       tareas.push({ id: `gu-${s.id}`, urgencia: "hoy", tipo: "despacho", cliente, que: "Subir la guía", porque: "Salió y falta la foto de la guía en la agencia.", accion: { etiqueta: "Subir guía", href: `/almacen/pedidos/${s.id}` } });
     }
   }
