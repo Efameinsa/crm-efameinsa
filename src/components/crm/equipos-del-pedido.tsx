@@ -22,6 +22,7 @@ import type { FotoAlmacen } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BotonAgregarFotos, TomarOSubirVarias, VideosDeLaPrueba } from "@/components/crm/tomar-o-subir";
+import { NumeroDeProtocolo } from "@/components/crm/numero-de-protocolo";
 import { Documentos } from "@/components/crm/informe-soporte-apertura";
 import { agregarArchivosDelEquipo, quitarArchivoDelEquipo } from "@/lib/acciones/almacen";
 import { subirConProgreso } from "@/lib/subir-con-progreso";
@@ -348,7 +349,8 @@ function Fila({
   // Aviso de largo (Lesly, 30-09): la serie de una Unimac entró con un dígito menos.
   // Sale una vez por valor; con el mismo valor, el segundo clic registra igual.
   const [avisoSerie, setAvisoSerie] = useState<{ para: string; texto: string } | null>(null);
-  const [protocolo, setProtocolo] = useState("");
+  // El N.º de protocolo lo pone la base al marcarla probada (0541): correlativo.
+  const protocolo = "";
   const [nota, setNota] = useState("");
   // El técnico y la fecha de la prueba quedan en la hoja del informe (Lesly, 09-10).
   const fechaGuardada = e.protocolo_datos?.principal?.fecha_ejecucion ?? e.protocolo_fecha ?? null;
@@ -858,7 +860,7 @@ function Fila({
       {modo === "almacen" && e.en_este_despacho && !e.prueba_lista_at && !kit && (
         <div className="mt-2 space-y-1.5 rounded-md bg-muted/40 p-2">
           <div className="grid gap-1.5 sm:grid-cols-[11rem_1fr]">
-            <Input value={protocolo} onChange={(x) => setProtocolo(x.target.value)} placeholder={`N.º de protocolo (opcional)`} className="h-8 text-sm" />
+            <NumeroDeProtocolo className="h-8" />
             <Input value={nota} onChange={(x) => setNota(x.target.value)} placeholder="Nota: probada con carga, embalada en pallet…" className="h-8 text-sm" />
           </div>
           {/* La fecha en que de verdad se hizo (Ariana, 07-10): el protocolo pudo hacerse antes de registrarlo en el CRM.
@@ -890,12 +892,6 @@ function Fila({
               <p className="text-[11px] font-semibold text-foreground">
                 {p.parte_nombre ?? "Otra máquina"} · serie {p.serie}
               </p>
-              <Input
-                value={deParte(p.id).protocolo}
-                onChange={(x) => cambiarParte(p.id, { protocolo: x.target.value })}
-                placeholder={`N.º de protocolo de la ${(p.parte_nombre ?? "otra máquina").toLowerCase()} (opcional)`}
-                className="h-8 text-sm"
-              />
               <TomarOSubirVarias titulo={`Fotos de la ${(p.parte_nombre ?? "otra máquina").toLowerCase()}`} archivos={deParte(p.id).fotos} onChange={(f) => cambiarParte(p.id, { fotos: f })} maximo={100} />
               <Documentos archivos={deParte(p.id).docs} onChange={(d) => cambiarParte(p.id, { docs: d })} titulo={tituloDocs(p as MaquinaParaProbar, "principal", `la ${(p.parte_nombre ?? "otra máquina").toLowerCase()}`)} />
             </div>
@@ -1094,7 +1090,8 @@ function ProtocoloDelKit({ servicioId, piezas, cliente }: { servicioId: string; 
   const conDatos = piezas.find((e) => e.protocolo_datos?.principal?.tecnico?.trim());
   const tecnicoGuardado = conDatos?.protocolo_datos?.principal?.tecnico ?? "";
   const fechaGuardada = piezas.map((e) => e.protocolo_datos?.principal?.fecha_ejecucion ?? e.protocolo_fecha).find(Boolean) ?? null;
-  const [protocolo, setProtocolo] = useState("");
+  // El N.º de protocolo lo pone la base al marcarla probada (0541): correlativo.
+  const protocolo = "";
   const [nota, setNota] = useState("");
   const [tecnico, setTecnico] = useState(tecnicoGuardado);
   const [fechaProtocolo, setFechaProtocolo] = useState(() => fechaGuardada ?? hoyLima());
@@ -1187,7 +1184,7 @@ function ProtocoloDelKit({ servicioId, piezas, cliente }: { servicioId: string; 
         {guardadas.length > 0 ? ` Ya hay ${guardadas.length === 1 ? "1 archivo subido" : `${guardadas.length} archivos subidos`}: cuentan para el kit.` : ""}
       </p>
       <div className="grid gap-1.5 sm:grid-cols-[11rem_1fr]">
-        <Input value={protocolo} onChange={(x) => setProtocolo(x.target.value)} placeholder="N.º de protocolo (opcional)" className="h-8 text-sm" />
+        <NumeroDeProtocolo className="h-8" />
         <Input value={nota} onChange={(x) => setNota(x.target.value)} placeholder="Nota: kit probado y embalado en caja…" className="h-8 text-sm" />
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground">
