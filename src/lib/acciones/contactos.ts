@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { notificar } from "@/lib/notificaciones";
+import { requerirPerfil } from "@/lib/auth";
 
 /**
  * Editar los datos de contacto de un cliente.
@@ -129,11 +131,29 @@ export async function eliminarContacto(datos: {
     .delete()
     .eq("id", datos.contactoId)
     .eq("cuenta_id", datos.cuentaId)
-    .select("id");
+    .select("id, nombre");
   if (error) return { error: error.message };
   if (!data || data.length === 0) {
-    return { error: "No se pudo borrar: este cliente no está en su cartera" };
+    // Postventa borra en los clientes con caso o pedido (0554, gerencia 20-10).
+    return {
+      error:
+        "No se pudo borrar: este cliente no está en su cartera ni tiene un caso o pedido de postventa abierto. Pídaselo al dueño de la cartera, a Central o a operaciones.",
+    };
   }
+  // El dueño de la cartera se entera si lo borró otra persona (gerencia 20-10:
+  // «todos ven todo, pero cada acción con su nombre»).
+  const perfil = await requerirPerfil();
+  const { data: cuenta } = await supabase.from("cuentas").select("comercial_id, razon_social").eq("id", datos.cuentaId).maybeSingle();
+  if (cuenta?.comercial_id && cuenta.comercial_id !== perfil.id) {
+    await notificar({
+      userId: cuenta.comercial_id as string,
+      tipo: "otro",
+      titulo: `${perfil.nombre} quitó un contacto de ${cuenta.razon_social as string}`,
+      cuerpo: `Quitó a «${(data[0] as { nombre?: string }).nombre ?? "contacto"}». Si fue un error, operaciones lo puede deshacer.`,
+      url: `/nuevo/cliente/${datos.cuentaId}?tab=contactos`,
+    });
+  }
+  revalidatePath(`/nuevo/cliente/${datos.cuentaId}`);
 
   revalidatePath("/comercial", "layout");
   revalidatePath("/gerencia", "layout");

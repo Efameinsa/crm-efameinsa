@@ -3,9 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCheck, FileCheck2, Loader2, Paperclip, Send, X } from "lucide-react";
+import { AlertTriangle, CheckCheck, FileCheck2, FileX2, Loader2, Paperclip, Send, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { levantarObservacion, marcarFacturaEnviada, observarExpediente, registrarFactura } from "@/lib/acciones/facturacion";
+import { levantarObservacion, marcarFacturaEnviada, marcarNoSeFactura, observarExpediente, registrarFactura, registrarNotaCredito } from "@/lib/acciones/facturacion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -252,5 +252,184 @@ export function FacturaEnviada({
       {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
       Marcar enviada al cliente
     </Button>
+  );
+}
+
+/**
+ * LA NOTA DE CRÉDITO (0552, gerencia 20-10, Beneficencia de Huancayo): la
+ * E001-840 salió en dólares, se anuló con nota de crédito y se emitió la 842.
+ * «Falta acá agregar la nota de crédito.» Anula una factura del pedido; el
+ * pedido vuelve a «Por facturar» hasta que se registre la correcta.
+ */
+export function RegistrarNotaCredito({
+  servicioId,
+  cliente,
+  facturas,
+}: {
+  servicioId: string;
+  cliente: string;
+  /** Las facturas vigentes del pedido, para elegir cuál se anula. */
+  facturas: { id: string; numero: string; fechaEmision: string }[];
+}) {
+  const router = useRouter();
+  const [abierto, setAbierto] = useState(false);
+  const [pendiente, startTransition] = useTransition();
+  const [facturaId, setFacturaId] = useState(facturas.length === 1 ? facturas[0].id : "");
+  const [numero, setNumero] = useState("");
+  const [fecha, setFecha] = useState(hoyLima());
+  const [motivo, setMotivo] = useState("");
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [problema, setProblema] = useState<string | null>(null);
+  if (facturas.length === 0) return null;
+
+  function enviar() {
+    setProblema(null);
+    if (!facturaId) return setProblema("Elija la factura que se anula.");
+    if (numero.trim().length < 4) return setProblema("Escriba el número de la nota de crédito (serie y número).");
+    if (motivo.trim().length < 5) return setProblema("Diga por qué se anula la factura (ej.: se emitió en dólares y era en soles).");
+    if (archivo && archivo.size > 10 * 1024 * 1024) return setProblema("El archivo pasa de 10 MB: adjunte uno más liviano.");
+    startTransition(async () => {
+      let path: string | null = null;
+      if (archivo) {
+        path = `facturas/${servicioId}/${crypto.randomUUID()}-${archivo.name.replace(/[^\w.\-]+/g, "_").slice(0, 80)}`;
+        const { error } = await createClient().storage.from("adjuntos").upload(path, archivo, { contentType: archivo.type || "application/pdf" });
+        if (error) return void setProblema(`No se pudo subir la nota de crédito: ${error.message}. Vuelva a intentarlo.`);
+      }
+      const r = await registrarNotaCredito({ servicioId, facturaId, numero, fecha, motivo, path, nombre: archivo?.name ?? null });
+      if (r.error) return void setProblema(r.error);
+      toast.success("Nota de crédito registrada: la factura quedó anulada y el pedido vuelve a «Por facturar»");
+      setAbierto(false);
+      setNumero("");
+      setMotivo("");
+      setArchivo(null);
+      router.refresh();
+    });
+  }
+
+  return (
+    <Dialog open={abierto} onOpenChange={setAbierto}>
+      <DialogTrigger
+        render={
+          <Button size="sm" variant="outline">
+            <FileX2 className="size-3.5" />
+            Nota de crédito
+          </Button>
+        }
+      />
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Registrar una nota de crédito</DialogTitle>
+          <DialogDescription>{cliente}. La factura elegida queda anulada y el pedido vuelve a «Por facturar» hasta registrar la correcta.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4">
+          <div className="grid gap-1.5">
+            <Label>Factura que se anula</Label>
+            <div className="grid gap-1">
+              {facturas.map((f) => (
+                <label key={f.id} className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-sm hover:bg-accent">
+                  <input type="radio" name="nc-factura" checked={facturaId === f.id} onChange={() => setFacturaId(f.id)} />
+                  <span className="font-mono">{f.numero}</span>
+                  <span className="text-xs text-muted-foreground">· {f.fechaEmision.split("-").reverse().join("-")}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-1.5">
+              <Label htmlFor="nc-numero">Número de la nota de crédito</Label>
+              <Input id="nc-numero" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="FC01-00000123" className="font-mono uppercase" />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="nc-fecha">Fecha de emisión</Label>
+              <Input id="nc-fecha" type="date" value={fecha} max={hoyLima()} onChange={(e) => setFecha(e.target.value)} />
+            </div>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="nc-motivo">Por qué se anula</Label>
+            <Textarea id="nc-motivo" rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ej.: se emitió en dólares y la venta era en soles" />
+          </div>
+          <div className="grid gap-1.5">
+            <Label>El PDF de la nota de crédito (opcional)</Label>
+            {archivo ? (
+              <div className="flex items-center justify-between gap-2 rounded-md border border-border px-2.5 py-1.5 text-sm">
+                <span className="truncate">{archivo.name}</span>
+                <button type="button" onClick={() => setArchivo(null)} className="text-muted-foreground hover:text-foreground" aria-label="Quitar el archivo">
+                  <X className="size-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-border px-2.5 py-2 text-sm text-muted-foreground hover:bg-accent">
+                <Paperclip className="size-4" />
+                Adjuntar el PDF
+                <input type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} />
+              </label>
+            )}
+          </div>
+          {problema && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setAbierto(false)} disabled={pendiente}>
+              Cancelar
+            </Button>
+            <Button onClick={enviar} disabled={pendiente}>
+              {pendiente ? <Loader2 className="size-4 animate-spin" /> : <FileX2 className="size-4" />}
+              Registrar
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** «No se factura» con motivo (0552, gerencia 20-10, caso Lino): sale de «Por facturar». */
+export function NoSeFactura({ servicioId, cliente }: { servicioId: string; cliente: string }) {
+  const router = useRouter();
+  const [abierto, setAbierto] = useState(false);
+  const [pendiente, startTransition] = useTransition();
+  const [motivo, setMotivo] = useState("");
+  const [problema, setProblema] = useState<string | null>(null);
+
+  function enviar() {
+    setProblema(null);
+    if (motivo.trim().length < 5) return setProblema("Diga por qué este pedido no se factura (garantía, sin costo, anulado…).");
+    startTransition(async () => {
+      const r = await marcarNoSeFactura(servicioId, motivo);
+      if (r.error) return void setProblema(r.error);
+      toast.success("Listo: el pedido salió de «Por facturar» con su motivo");
+      setAbierto(false);
+      setMotivo("");
+      router.refresh();
+    });
+  }
+
+  return (
+    <Dialog open={abierto} onOpenChange={setAbierto}>
+      <DialogTrigger
+        render={
+          <Button size="sm" variant="ghost">
+            No se factura
+          </Button>
+        }
+      />
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Este pedido no se factura</DialogTitle>
+          <DialogDescription>{cliente}. Sale de «Por facturar» y queda escrito por qué. Vuelve solo si después se registra una factura.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4">
+          <Textarea rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ej.: cambio por garantía, sin costo para el cliente" />
+          {problema && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setAbierto(false)} disabled={pendiente}>
+              Cancelar
+            </Button>
+            <Button onClick={enviar} disabled={pendiente}>
+              {pendiente ? <Loader2 className="size-4 animate-spin" /> : null}
+              Sacar de «Por facturar»
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

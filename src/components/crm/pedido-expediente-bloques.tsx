@@ -54,7 +54,14 @@ export async function cargarExpedientePedido(
   }
   const series = seriesDeTexto(servicio.equipo);
   const { data: fichas } = series.length ? await supabase.from("equipos_instalados").select("id, serie").in("serie", series) : { data: [] };
+  // Gerencia 20-10: cada grupo con su título (protocolo como enlace; planta y agencia con su estado).
+  const firmar = (lista: unknown) =>
+    (((lista ?? []) as (FotoAlmacen | null)[]).filter((f): f is FotoAlmacen => Boolean(f && typeof f.path === "string" && f.path))).map((f) => ({
+      ...f,
+      url: url.get(f.path) ?? null,
+    }));
   return {
+    porOrigen: { protocolo: firmar(servicio.protocolo_fotos), planta: firmar(servicio.salida_fotos), agencia: firmar(servicio.agencia_fotos) },
     galeria: fotos.map((f) => ({ ...f, url: url.get(f.path) ?? null })),
     adjuntos: adjuntosCierre.map((a) => ({ ...a, url: url.get(a.path) ?? null })) as AdjuntoFirmado[],
     // La captura del abono es de Finanzas y gerencia (0306): para los demás no se firma.
@@ -169,7 +176,8 @@ export function DocumentosExpedientePedido({
 }) {
   return (
     <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-      <h2 className="text-[12px] font-bold uppercase tracking-wide text-foreground">Documentos del expediente</h2>
+      {/* Gerencia 20-10: «documento del expediente guión comercial», y abajo el de Contabilidad y Finanzas. */}
+      <h2 className="text-[12px] font-bold uppercase tracking-wide text-foreground">Documentos del expediente · Comercial</h2>
       {!verPrecios && <p className="mt-1 text-[11px] leading-snug text-muted-foreground">La OC y el voucher pueden traer montos; en el CRM las cifras siguen ocultas.</p>}
       {cotizacion && (
         <VerPdfEnLaApp

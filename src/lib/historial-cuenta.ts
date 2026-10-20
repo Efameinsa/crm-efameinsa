@@ -211,13 +211,13 @@ export async function cargarHistorialCuenta(
   const [{ data: servicios }, { data: atenciones }, { data: informesTecnicos }, { data: llamadasDerivadas }] = await Promise.all([
     supabase
       .from("servicios_postventa")
-      .select("id, fecha_confirmacion, tipo_servicio, equipo, monto, moneda, completado, created_at, oportunidad_id, perfiles!servicios_postventa_responsable_id_fkey(nombre)")
+      .select("id, fecha_confirmacion, tipo_servicio, equipo, monto, moneda, completado, created_at, oportunidad_id, numero_pedido_erp, cerrado_at, cierre_series, garantia_desde, cierre_sin_puesta_motivo, perfiles!servicios_postventa_responsable_id_fkey(nombre), cerro:perfiles!servicios_postventa_cerrado_por_fkey(nombre)")
       .eq("cuenta_id", cuentaId)
       .order("fecha_confirmacion", { ascending: false, nullsFirst: false })
       .limit(60),
     supabase
       .from("atenciones")
-      .select("id, tipo, etapa, equipo_texto, detalle, registrado_at, created_at, cerrado_at, oportunidad_id, perfiles!atenciones_tomada_por_fkey(nombre)")
+      .select("id, codigo, tipo, etapa, equipo_texto, detalle, registrado_at, created_at, cerrado_at, oportunidad_id, perfiles!atenciones_tomada_por_fkey(nombre)")
       .eq("cuenta_id", cuentaId)
       .order("created_at", { ascending: false })
       .limit(60),
@@ -323,6 +323,34 @@ export async function cargarHistorialCuenta(
       monto: sv.monto != null ? Number(sv.monto) : null,
       moneda: (sv.moneda as string | null) ?? null,
     })),
+    // EL CIERRE DEL PEDIDO ES UN HECHO CON FECHA Y AUTOR (gerencia 20-10,
+    // Beneficencia de Huancayo): Brenda cerró PED-0022 y el historial seguía
+    // mostrando el pedido con la fecha de confirmación y a nombre de Rubí. Se
+    // cuenta aparte, en el día y con quien lo cerró.
+    ...(servicios ?? [])
+      .filter((sv) => sv.cerrado_at)
+      .map((sv): EventoTimeline => {
+        const series = (sv.cierre_series as string[] | null) ?? [];
+        const desde = sv.garantia_desde as string | null;
+        return {
+          tipo: "servicio",
+          id: `servicio-cerrado-${sv.id}`,
+          fecha: sv.cerrado_at as string,
+          titulo: `Pedido ${(sv.numero_pedido_erp as string | null) ?? ""} cerrado`.replace("  ", " "),
+          detalle:
+            [
+              series.length ? `Series: ${series.join(", ")}` : null,
+              desde ? `garantía desde ${desde.split("-").reverse().join("-")}` : null,
+              sv.cierre_sin_puesta_motivo ? `sin puesta en marcha: ${sv.cierre_sin_puesta_motivo as string}` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ") || null,
+          quien: (sv.cerro as unknown as { nombre: string } | null)?.nombre ?? null,
+          href: `/postventa/pedidos/${sv.id}`,
+          oportunidadId: null,
+          ...delExpediente(sv.oportunidad_id as string | null),
+        };
+      }),
     ...(informesTecnicos ?? []).map((inf): EventoTimeline => ({
       tipo: "servicio",
       id: `informe-${inf.id}`,
@@ -355,7 +383,8 @@ export async function cargarHistorialCuenta(
       tipo: "servicio",
       id: `atencion-${at.id}`,
       fecha: (at.registrado_at as string | null) ?? (at.created_at as string),
-      titulo: `Atención de postventa: ${TIPO_ATENCION[at.tipo as string] ?? at.tipo}${at.cerrado_at ? " (cerrada)" : ` · ${at.etapa}`}`,
+      // Con su código (gerencia 20-10, Lernake: «no sé qué problema técnico están atendiendo»).
+      titulo: `${(at.codigo as string | null) ? `${at.codigo} · ` : ""}${TIPO_ATENCION[at.tipo as string] ?? at.tipo}${at.cerrado_at ? " (cerrado)" : ` · ${at.etapa}`}`,
       detalle: [(at.equipo_texto as string | null), (at.detalle as string | null)].filter(Boolean).join(" · ").slice(0, 160) || null,
       quien: (at.perfiles as unknown as { nombre: string } | null)?.nombre ?? null,
       href: `/postventa/atenciones/${at.id}`,

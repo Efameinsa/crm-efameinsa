@@ -589,6 +589,9 @@ export interface FotoAlmacen {
  */
 export const FOTOS_DE_CARGA_DESDE = "2026-09-19";
 
+/** Desde cuándo se registra que la guía y las fotos llegaron al cliente (0553, gerencia 20-10). */
+export const GUIA_AL_CLIENTE_DESDE = "2026-10-20";
+
 /** Salió (lo marcó postventa) pero el almacén no dejó las fotos de la carga. */
 export function faltanFotosDeCarga(s: Pick<ServicioPostventa, "despachado_at" | "informe_cierre_id" | "salida_fotos"> & { tipo_pedido?: TipoPedido | null }): boolean {
   return (
@@ -598,6 +601,30 @@ export function faltanFotosDeCarga(s: Pick<ServicioPostventa, "despachado_at" | 
     Boolean(s.despachado_at) &&
     Boolean(s.informe_cierre_id) &&
     (s.salida_fotos?.length ?? 0) === 0 &&
+    new Date(s.despachado_at as string).toLocaleDateString("en-CA", { timeZone: "America/Lima" }) >= FOTOS_DE_CARGA_DESDE
+  );
+}
+
+/**
+ * FALTA LA FOTO EN LA AGENCIA (gerencia 20-10, Beneficencia de Huancayo):
+ * «faltan esas dos, planta y agencia… en el panorama debería salir». La de la
+ * agencia no tenía regla: si el pedido va por agencia y ya salió, el almacén
+ * la sube (guía + la máquina en la agencia) para el registro del despacho.
+ */
+export function faltanFotosDeAgencia(
+  s: Pick<ServicioPostventa, "despachado_at" | "informe_cierre_id"> & {
+    tipo_pedido?: TipoPedido | null;
+    entrega_modo?: string | null;
+    agencia_fotos?: unknown[] | null;
+  },
+): boolean {
+  return (
+    s.tipo_pedido !== "revision" &&
+    s.tipo_pedido !== "mantenimiento" &&
+    s.entrega_modo === "agencia" &&
+    Boolean(s.despachado_at) &&
+    Boolean(s.informe_cierre_id) &&
+    (s.agencia_fotos?.length ?? 0) === 0 &&
     new Date(s.despachado_at as string).toLocaleDateString("en-CA", { timeZone: "America/Lima" }) >= FOTOS_DE_CARGA_DESDE
   );
 }
@@ -683,6 +710,7 @@ function porDelPaso(s: ServicioPostventa, clave: string): string | null {
     despacho: [x.despachado_por, x.agencia_por, x.despacho_autorizado_por],
     letras: [x.letras_entregadas_por],
     verificado: [x.despacho_verificado_por],
+    guia_cliente: [x.guia_enviada_cliente_por],
     facturar: [x.orden_facturar_por],
     cerrado: [x.cerrado_por],
   };
@@ -1167,6 +1195,23 @@ function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
             hecho: s.despacho_verificado_at != null,
             cuando: s.despacho_verificado_at ?? null,
             detalle: s.despacho_verificado_at ? undefined : "Mire las fotos y la guía que subió almacén y confirme que el envío está bien",
+          },
+        ]
+      : []),
+    // LA GUÍA Y LAS FOTOS LLEGARON AL CLIENTE (gerencia 20-10): «nadie sabe
+    // que tú has enviado el WhatsApp… con 30 clientes no hay forma de
+    // controlarlo». Solo desde el 20-10: lo despachado antes no se reabre.
+    ...(s.despachado_at && s.despachado_at >= GUIA_AL_CLIENTE_DESDE && !circuito.esServicio
+      ? [
+          {
+            clave: "guia_cliente",
+            etiqueta: "Guía y fotos enviadas al cliente",
+            responsable: "postventa" as ResponsablePaso,
+            hecho: (s as { guia_enviada_cliente_at?: string | null }).guia_enviada_cliente_at != null,
+            cuando: (s as { guia_enviada_cliente_at?: string | null }).guia_enviada_cliente_at ?? null,
+            detalle: (s as { guia_enviada_cliente_at?: string | null }).guia_enviada_cliente_at
+              ? undefined
+              : "Mándele al cliente la guía y las fotos del despacho, y márquelo con «Enviar guía y fotos al cliente»",
           },
         ]
       : []),

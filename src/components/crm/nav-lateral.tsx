@@ -134,6 +134,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     // Registro de acciones y fichas sueltas (0513, Santos 16-10): deshacer sin tocar la base.
     { href: "/admin/acciones", etiqueta: "Registro de acciones", icono: History },
     { href: "/admin/fichas-sueltas", etiqueta: "Fichas sueltas", icono: FolderX },
+    { href: "/fichas-repetidas", etiqueta: "Fichas repetidas", icono: FolderX },
   ],
   // OPERACIONES (0115). Su día no es vender: es autorizar lo que los demás
   // no pueden corregir solos, repartir los permisos que se dan y se quitan,
@@ -153,6 +154,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     // Registro de acciones y fichas sueltas (0513, Santos 16-10): deshacer sin tocar la base.
     { href: "/admin/acciones", etiqueta: "Registro de acciones", icono: History },
     { href: "/admin/fichas-sueltas", etiqueta: "Fichas sueltas", icono: FolderX },
+    { href: "/fichas-repetidas", etiqueta: "Fichas repetidas", icono: FolderX },
   ],
   // FINANZAS (0279, gerencia 23-09: «Sí» a que John confirme él mismo los
   // pagos). Tres destinos por la pregunta que responde cada uno: qué tengo
@@ -187,6 +189,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     // Registro de acciones y fichas sueltas (0513, Santos 16-10): deshacer sin tocar la base.
     { href: "/admin/acciones", etiqueta: "Registro de acciones", icono: History },
     { href: "/admin/fichas-sueltas", etiqueta: "Fichas sueltas", icono: FolderX },
+    { href: "/fichas-repetidas", etiqueta: "Fichas repetidas", icono: FolderX },
     { href: "/tasking", etiqueta: "Tasking", icono: ListChecks },
   ],
 };

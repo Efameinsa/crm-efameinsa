@@ -38,6 +38,20 @@ export async function abrirSeguimiento(cuentaId: string): Promise<{ error: strin
   return { error: null, oportunidadId: data as string };
 }
 
+/**
+ * «Anotar gestión» se cerró sin guardar (gerencia 20-10, Beneficencia): el
+ * expediente que se abrió para recibir la gestión no puede quedar vivo y
+ * vacío. La base solo lo borra si sigue vacío, es de las últimas 24 h y es de
+ * quien lo pide (0550); si no, no hace nada.
+ */
+export async function descartarExpedienteVacio(oportunidadId: string): Promise<{ descartado: boolean }> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("descartar_expediente_vacio", { p_op: oportunidadId });
+  if (error) return { descartado: false };
+  return { descartado: data === true };
+}
+
 export interface FichaSerie {
   equipoId: string | null;
   serie: string;

@@ -88,8 +88,17 @@ export function DocumentosFinanzasLista({ docs, titulo = true }: { docs: Documen
         ) : (
           <ul className="space-y-1.5">
             {fac.map((f) => (
-              <li key={f.id} className="rounded-md border border-border p-2">
-                <p className="font-mono text-sm font-semibold text-foreground">{f.numero}</p>
+              <li key={f.id} className={cn("rounded-md border p-2", f.anuladaAt ? "border-dashed border-border opacity-75" : f.tipo === "nota_credito" ? "border-amber-400/60" : "border-border")}>
+                {/* La nota de crédito y la factura que anula (0552, E001-840 de Beneficencia). */}
+                <p className="flex flex-wrap items-center gap-1.5 font-mono text-sm font-semibold text-foreground">
+                  {f.tipo === "nota_credito" && <span className="rounded bg-amber-100 px-1.5 py-0.5 font-sans text-[10px] font-bold text-amber-900">NOTA DE CRÉDITO</span>}
+                  <span className={cn(f.anuladaAt && "line-through")}>{f.numero}</span>
+                  {f.anuladaAt && <span className="rounded bg-secondary px-1.5 py-0.5 font-sans text-[10px] font-bold text-muted-foreground">ANULADA</span>}
+                </p>
+                {f.tipo === "nota_credito" && f.anulaA && (
+                  <p className="text-amber-900">Anula la factura {fac.find((x) => x.id === f.anulaA)?.numero ?? ""}{f.motivo ? `: ${f.motivo}` : ""}</p>
+                )}
+                {f.anuladaAt && f.motivo && <p className="text-muted-foreground">Anulada con nota de crédito: {f.motivo}</p>}
                 <p className="text-muted-foreground">
                   Emitida el {diaDe(f.fechaEmision)}
                   {f.registradaPor ? ` · registró ${f.registradaPor}` : ""}

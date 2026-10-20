@@ -68,7 +68,11 @@ export function OrdenFacturar({ servicioId }: { servicioId: string }) {
   );
 }
 
-/** Finanzas la marca atendida (facturó o ya está gestionando el cobro). */
+/**
+ * EL OK DE FINANZAS PARA FACTURAR (gerencia 20-10, Jhon: «o darle simplemente
+ * un check para que le des la orden a que facture»). Desde la 0552, este OK
+ * pone el pedido en «Por facturar» de Facturación sin subir otra liquidación.
+ */
 export function AtenderOrdenFacturar({ servicioId }: { servicioId: string }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
@@ -80,14 +84,14 @@ export function AtenderOrdenFacturar({ servicioId }: { servicioId: string }) {
         startTransition(async () => {
           const r = await atenderOrdenFacturar(servicioId);
           if (r.error) return void toast.error(r.error, { duration: 9000 });
-          toast.success("Orden atendida: postventa ya lo ve.");
+          toast.success("OK dado: el pedido ya está en «Por facturar» de Facturación, y postventa lo ve.");
           router.refresh();
         })
       }
       className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground disabled:opacity-60"
     >
       {pendiente ? <Loader2 className="size-3.5 animate-spin" /> : <Receipt className="size-3.5" />}
-      Marcar atendida
+      Dar el OK para facturar
     </button>
   );
 }

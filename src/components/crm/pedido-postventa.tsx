@@ -31,7 +31,6 @@ import {
   marcarSinPlano,
   marcarPlanoNoEnviado,
   registrarDespacho,
-  cerrarPedido,
   guardarInformeServicio,
 } from "@/lib/acciones/postventa";
 import { verificarDespacho } from "@/lib/acciones/almacen";
@@ -54,6 +53,7 @@ import {
 import { cn } from "@/lib/utils";
 import { TipoPedidoSelector } from "@/components/crm/tipo-pedido-selector";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
+import { CerrarPedidoDialogo } from "@/components/crm/cerrar-pedido-dialogo";
 import { TomarOSubirVarias } from "@/components/crm/tomar-o-subir";
 import { tipoDocRecibe } from "@/lib/documento";
 
@@ -1099,28 +1099,11 @@ export function PedidoPostventa({
         ]}
       />
 
-      <Cuadro
+      <CerrarPedidoDialogo
         abierto={form?.tipo === "cerrar"}
         cerrar={() => setForm(null)}
-        titulo="Cerrar el pedido"
-        descripcion="Al cerrar, cada serie que anote acá entra al registro de máquinas con su garantía calculada y su primer mantenimiento agendado. Si van varias, sepárelas con coma."
-        boton="Cerrar el pedido"
-        pendiente={pendiente}
-        fallo={fallo}
-        onEnviar={(datos) =>
-          correr(
-            () =>
-              cerrarPedido(servicio.id, {
-                series: (datos.series ?? "").split(/[,;\n]/),
-                garantiaMeses: datos.garantia ? Number(datos.garantia) : 24,
-              }),
-            "Pedido cerrado. El equipo ya está en el registro de máquinas.",
-          )
-        }
-        campos={[
-          { nombre: "series", etiqueta: "Series de los equipos entregados", area: true, requerido: false },
-          { nombre: "garantia", etiqueta: "Meses de garantía", tipo: "number", inicial: "24", requerido: false },
-        ]}
+        servicio={servicio}
+        equiposLista={equiposLista}
       />
     </div>
   );

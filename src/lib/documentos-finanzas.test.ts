@@ -6,6 +6,7 @@ const liq = (subidaAt: string, facturaNumero: string | null): LiquidacionFirmada
 });
 const fac = (numero: string, registradaAt: string): FacturaFirmada => ({
   id: numero, numero, fechaEmision: registradaAt.slice(0, 10), url: null, nombre: null, nota: null, registradaAt, registradaPor: null,
+  tipo: "factura", anulaA: null, anuladaAt: null, motivo: null,
 });
 // Más nueva primero, como las devuelve documentosDeFinanzas.
 const docs = (liquidaciones: LiquidacionFirmada[], facturas: FacturaFirmada[]): DocumentosDeFinanzas => ({ liquidaciones, facturas });
