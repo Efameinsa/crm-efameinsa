@@ -695,6 +695,16 @@ export default async function OportunidadDetallePage({
         {/* Otra razón social del mismo dueño (23-09): se ve antes de cotizar. */}
         {/* 0530: un cliente, una carpeta de postventa; los casos y quién lleva cada uno. */}
         {oportunidad.tipo_postventa && <CarpetaPostventa oportunidadId={oportunidad.id} />}
+        {/* Gerencia 20-10 (Beneficencia): en postventa el pedido va arriba —«esa
+            parte podría estar más arriba»—, con «Abrir el pedido» a la vista. */}
+        {oportunidad.tipo_postventa && cuenta?.id && (
+          <div className="mt-3">
+            <EstadoDelPedido
+              cuentaId={cuenta.id}
+              conEnlace={Boolean(perfilQueMira.es_postventa || perfilQueMira.hace_postventa) || ["gerencia", "admin", "operaciones"].includes(perfilQueMira.rol)}
+            />
+          </div>
+        )}
         <AvisoMismoCliente cuentaId={cuenta?.id} className="mt-3" />
         {/* Katerine 07-10: «que el asesor pueda generarlo directamente», desde el expediente. */}
         {cuenta && esMio && (
@@ -952,10 +962,12 @@ export default async function OportunidadDetallePage({
                   22-09: «el comercial tiene que ver una tablita del estatus
                   del pedido, un resumen muy puntual»). Solo lectura, sin
                   montos; el enlace al pedido solo para quien entra a postventa. */}
-              <EstadoDelPedido
-                cuentaId={cuenta.id}
-                conEnlace={Boolean(perfilQueMira.es_postventa || perfilQueMira.hace_postventa) || ["gerencia", "admin", "operaciones"].includes(perfilQueMira.rol)}
-              />
+              {!oportunidad.tipo_postventa && (
+                <EstadoDelPedido
+                  cuentaId={cuenta.id}
+                  conEnlace={Boolean(perfilQueMira.es_postventa || perfilQueMira.hace_postventa) || ["gerencia", "admin", "operaciones"].includes(perfilQueMira.rol)}
+                />
+              )}
 
               <SeccionPlegable
                 titulo="Informes de cierre"

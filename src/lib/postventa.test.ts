@@ -18,6 +18,9 @@ import {
   pideVistoBuenoFinanzas,
   faltaVistoBuenoFinanzas,
   faltanLetrasEnAlmacen,
+  cierreExigePuesta,
+  faltanFotosDeAgencia,
+  faltaParaEmitirApertura,
   type ServicioPostventa,
 } from "./postventa";
 
@@ -679,5 +682,84 @@ describe("condicionContadoConSaldo: el aviso del cierre cuando dice contado pero
     expect(condicionContadoConSaldo("30% ADELANTO + 70% ANTES DEL DESPACHO", 100)).toBe(false);
     expect(condicionContadoConSaldo("CONTADO", 100)).toBe(false);
     expect(condicionContadoConSaldo("CONTADO", null)).toBe(false);
+  });
+});
+
+// REUNIÓN DE GERENCIA 20-10 (0551, 0553): reglas nuevas del cierre y del despacho.
+describe("cierreExigePuesta (0551)", () => {
+  it("un equipo vendido no se cierra sin puesta en marcha", () => {
+    expect(cierreExigePuesta({ tipo_pedido: "equipo", origen: "crm" })).toBe(true);
+    expect(cierreExigePuesta({ tipo_pedido: null, origen: "crm" })).toBe(true);
+  });
+  it("el mantenimiento y la revisión tampoco (su informe es la puesta)", () => {
+    expect(cierreExigePuesta({ tipo_pedido: "mantenimiento" })).toBe(true);
+    expect(cierreExigePuesta({ tipo_pedido: "revision" })).toBe(true);
+  });
+  it("lo que no se instala sí se cierra sin puesta en marcha", () => {
+    expect(cierreExigePuesta({ tipo_pedido: "repuesto", con_instalacion: false })).toBe(false);
+    expect(cierreExigePuesta({ tipo_pedido: "embalaje" })).toBe(false);
+    expect(cierreExigePuesta({ tipo_pedido: "accesorio" })).toBe(false);
+  });
+  it("el repuesto con instalación sí la exige", () => {
+    expect(cierreExigePuesta({ tipo_pedido: "repuesto", con_instalacion: true })).toBe(true);
+  });
+  it("lo que vino del Excel se cierra con el atajo de siempre", () => {
+    expect(cierreExigePuesta({ tipo_pedido: "equipo", origen: "excel" })).toBe(false);
+  });
+});
+
+describe("faltanFotosDeAgencia (0553)", () => {
+  const base = { despachado_at: "2026-10-14T15:00:00Z", informe_cierre_id: "inf", entrega_modo: "agencia", tipo_pedido: "equipo" as const, agencia_fotos: [] };
+  it("salió por agencia y no hay foto: falta", () => {
+    expect(faltanFotosDeAgencia(base)).toBe(true);
+  });
+  it("con la foto ya subida, no falta", () => {
+    expect(faltanFotosDeAgencia({ ...base, agencia_fotos: [{ path: "x" }] })).toBe(false);
+  });
+  it("si se recogió en planta o va a domicilio, no aplica", () => {
+    expect(faltanFotosDeAgencia({ ...base, entrega_modo: "planta" })).toBe(false);
+    expect(faltanFotosDeAgencia({ ...base, entrega_modo: "domicilio" })).toBe(false);
+  });
+  it("todavía no salió: no se pide", () => {
+    expect(faltanFotosDeAgencia({ ...base, despachado_at: null })).toBe(false);
+  });
+  it("un servicio no lleva máquina a la agencia", () => {
+    expect(faltanFotosDeAgencia({ ...base, tipo_pedido: "mantenimiento" })).toBe(false);
+  });
+  it("lo que salió antes de que el almacén tuviera cuenta no se reclama", () => {
+    expect(faltanFotosDeAgencia({ ...base, despachado_at: "2026-09-10T15:00:00Z" })).toBe(false);
+  });
+});
+
+describe("paso «Guía y fotos enviadas al cliente» (0553)", () => {
+  const paso = (s: ServicioPostventa) => bloquesPedido(s).flatMap((b) => b.pasos).find((p) => p.clave === "guia_cliente");
+  it("sale cuando el equipo salió desde el 20-10 y espera el clic de postventa", () => {
+    const p = paso(pedido({ despachado_at: "2026-10-21T15:00:00Z" }));
+    expect(p).toBeTruthy();
+    expect(p!.hecho).toBe(false);
+    expect(p!.responsable).toBe("postventa");
+  });
+  it("queda hecho con el registro del envío", () => {
+    const s = pedido({ despachado_at: "2026-10-21T15:00:00Z" }) as ServicioPostventa & { guia_enviada_cliente_at: string };
+    s.guia_enviada_cliente_at = "2026-10-21T18:00:00Z";
+    expect(paso(s)!.hecho).toBe(true);
+  });
+  it("no se reabre lo que salió antes del 20-10", () => {
+    expect(paso(pedido({ despachado_at: "2026-10-14T15:00:00Z" }))).toBeUndefined();
+  });
+  it("un servicio no tiene guía que mandar", () => {
+    expect(paso(pedido({ despachado_at: "2026-10-21T15:00:00Z", tipo_pedido: "mantenimiento" }))).toBeUndefined();
+  });
+});
+
+// CASO ANDEX (20-10): la apertura no se manda por correo sin emitirla; se dice qué falta.
+describe("faltaParaEmitirApertura", () => {
+  it("con pasos sin hacer antes de la apertura, los nombra", () => {
+    const falta = faltaParaEmitirApertura(pedido({}));
+    expect(falta.length).toBeGreaterThan(0);
+    expect(falta.every((t) => typeof t === "string" && t.length > 0)).toBe(true);
+  });
+  it("ya emitida, no falta nada", () => {
+    expect(faltaParaEmitirApertura(pedido({ apertura_despacho_at: "2026-10-20T15:00:00Z" } as Partial<ServicioPostventa>))).toEqual([]);
   });
 });

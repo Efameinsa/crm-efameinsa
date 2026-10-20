@@ -7,7 +7,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/lib/expediente-ajeno";
 import { notificar, notificarAlmacen, notificarCentral, notificarFacturacion, notificarFinanzas } from "@/lib/notificaciones";
 import { correoAlArea } from "@/lib/correo-al-area";
-import { bloquesPedido, evaluarPagoParaDespacho, faltaVistoBuenoFinanzas, puedeVerPrecios, textoCondicionPago, textoPlanoNoEnviado, type ServicioPostventa } from "@/lib/postventa";
+import { bloquesPedido, cierreExigePuesta, evaluarPagoParaDespacho, faltaVistoBuenoFinanzas, puedeVerPrecios, textoCondicionPago, textoPlanoNoEnviado, type ServicioPostventa } from "@/lib/postventa";
 import { avisarFinanzasSiFaltaVistoBueno } from "@/lib/aviso-visto-bueno";
 import { MESES_PRIMER_PREVENTIVO } from "@/lib/preventivo";
 import { sumarContactoOperativo } from "@/lib/contacto-operativo-servidor";
@@ -841,9 +841,7 @@ export async function cerrarPedido(
   // puede saltar»). Los que no llevan puesta en marcha (repuesto sin
   // instalación, embalaje, accesorio) y lo del Excel siguen igual. La base
   // tiene el mismo freno (0551).
-  const tipo = (s.tipo_pedido as string | null) ?? "equipo";
-  const llevaPuesta =
-    s.origen !== "excel" && !["embalaje", "accesorio"].includes(tipo) && !(tipo === "repuesto" && !s.con_instalacion);
+  const llevaPuesta = cierreExigePuesta(s as { tipo_pedido?: string | null; con_instalacion?: boolean | null; origen?: string | null });
   let autorizo: string | null = null;
   const motivo = datos.motivoSinPuesta?.trim() || null;
   if (llevaPuesta && !s.puesta_en_marcha) {

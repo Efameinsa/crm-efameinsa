@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
 import { fechaLima } from "@/lib/fechas";
+import { cierreExigePuesta } from "@/lib/postventa";
 
 /**
  * CERRAR EL PEDIDO (reunión de gerencia 20-10, Brenda PV2 con Beneficencia de
@@ -69,9 +70,7 @@ export function CerrarPedidoDialogo({
   const [pin, setPin] = useState("");
   const [motivo, setMotivo] = useState("");
 
-  const tipo = servicio.tipo_pedido ?? "equipo";
-  const llevaPuesta =
-    servicio.origen !== "excel" && !["embalaje", "accesorio"].includes(tipo) && !(tipo === "repuesto" && !servicio.con_instalacion);
+  const llevaPuesta = cierreExigePuesta(servicio);
   const faltaPuesta = llevaPuesta && !servicio.puesta_en_marcha;
   const falta = faltaPuesta
     ? motivo.trim().length < 5

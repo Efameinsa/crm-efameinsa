@@ -447,7 +447,7 @@ export function VistaCierre({
               href={`/comercial/cierres/${informe.id}/pagos`}
               className="inline-flex h-11 items-center gap-2 rounded-md border border-border bg-background px-5 text-sm font-semibold text-foreground shadow-sm hover:bg-accent"
             >
-              <Wallet className="size-4" /> Pagos
+              <Wallet className="size-4" /> Pagos y facturas
             </Link>
           )}
           <VerPdfEnLaApp

@@ -77,10 +77,15 @@ export interface PedidoFinanzas {
   /** «No se factura» con su motivo (0552, gerencia 20-10, caso Lino). */
   noSeFacturaAt: string | null;
   noSeFacturaMotivo: string | null;
+  /** La guía del despacho, para que Facturación la vea al facturar (gerencia 20-10). */
+  guia: string | null;
+  guiaMotivo: string | null;
+  guiaMotivoDetalle: string | null;
+  guiaConfirmadaAt: string | null;
 }
 
 const COLUMNAS =
-  "id, cuenta_id, cliente_texto, equipo, moneda, monto, monto_pagado, retenido_tipo, retenido_monto, retenido_cobrado_at, pct_antes_despacho, credito_dias, fecha_despacho, despachado_at, pago_observado_at, pago_observado_motivo, pago_observado_adjunto, pago_solicitado_at, urgencia_finanzas_at, urgencia_finanzas_motivo, urgencia_finanzas_n, pago_confirmado_at, pago_confirmado_detalle, pedido_ejecutado_at, liquidacion_at, liquidacion_subida_at, facturacion_observada_at, facturacion_observada_motivo, orden_facturar_at, orden_facturar_nota, orden_facturar_atendida_at, no_se_factura_at, no_se_factura_motivo, informe_cierre_id, apertura_empresa, numero_pedido_erp, cerrado_at, completado, created_at";
+  "id, cuenta_id, cliente_texto, equipo, moneda, monto, monto_pagado, retenido_tipo, retenido_monto, retenido_cobrado_at, pct_antes_despacho, credito_dias, fecha_despacho, despachado_at, pago_observado_at, pago_observado_motivo, pago_observado_adjunto, pago_solicitado_at, urgencia_finanzas_at, urgencia_finanzas_motivo, urgencia_finanzas_n, pago_confirmado_at, pago_confirmado_detalle, pedido_ejecutado_at, liquidacion_at, liquidacion_subida_at, facturacion_observada_at, facturacion_observada_motivo, orden_facturar_at, orden_facturar_nota, orden_facturar_atendida_at, no_se_factura_at, no_se_factura_motivo, guia, guia_motivo, guia_motivo_detalle, guia_confirmada_at, informe_cierre_id, apertura_empresa, numero_pedido_erp, cerrado_at, completado, created_at";
 
 const limpiarCliente = (t: string | null) => (t ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "");
 const dia = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
@@ -187,6 +192,10 @@ async function armar(supabase: SupabaseClient, filas: Fila[]): Promise<PedidoFin
         ordenFacturarAtendidaAt: (f.orden_facturar_atendida_at as string | null) ?? null,
         noSeFacturaAt: (f.no_se_factura_at as string | null) ?? null,
         noSeFacturaMotivo: (f.no_se_factura_motivo as string | null) ?? null,
+        guia: (f.guia as string | null) ?? null,
+        guiaMotivo: (f.guia_motivo as string | null) ?? null,
+        guiaMotivoDetalle: (f.guia_motivo_detalle as string | null) ?? null,
+        guiaConfirmadaAt: (f.guia_confirmada_at as string | null) ?? null,
       };
     });
 }

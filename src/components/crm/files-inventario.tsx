@@ -13,6 +13,7 @@ import {
 } from "@/lib/acciones/files";
 import { DatosDelFile } from "@/components/crm/files-acciones";
 import { Button } from "@/components/ui/button";
+import { anioLima } from "@/lib/periodo";
 import { Input } from "@/components/ui/input";
 
 /**
@@ -29,7 +30,7 @@ const ESTANTES = ["PRIMERO", "SEGUNDO", "TERCERO", "CUARTO", "QUINTO", "SEXTO", 
 const CAJONES = ["PRIMER CAJÓN", "SEGUNDO CAJÓN", "TERCER CAJÓN", "CUARTO CAJÓN", "QUINTO CAJÓN"];
 
 type Borrador = { empresa: "" | DatosFileInventario["empresa"]; tipo: DatosFileInventario["tipo"]; nombre: string; anio: string; estante: string; cajon: string; documento: string };
-const VACIO: Borrador = { empresa: "", tipo: "file", nombre: "", anio: String(new Date().getFullYear()), estante: "", cajon: "", documento: "" };
+const VACIO: Borrador = { empresa: "", tipo: "file", nombre: "", anio: String(anioLima()), estante: "", cajon: "", documento: "" };
 const desde = (f: FileDelInventario): Borrador => ({
   empresa: f.empresa,
   tipo: f.tipo,

@@ -276,6 +276,16 @@ export function TablaPorPaso({
           </Link>
         )}
       </div>
+      {/* Gerencia 20-10: «aparece como que postventa no hace nada». Lo que se está
+          regularizando del Excel no es atraso: se dice con palabras, no solo en un chip. */}
+      {historia > 0 && ver !== "todos" && falta !== "historia" && (
+        <p className="text-[11px] text-muted-foreground">
+          No se cuentan aquí {historia} pedido{historia === 1 ? "" : "s"} del Excel de antes del CRM que se están regularizando (ya salieron o nadie los movió): no son atraso del área.{" "}
+          <Link href={enlace("historia")} className="font-medium text-primary hover:underline">
+            Verlos
+          </Link>
+        </p>
+      )}
 
       {visibles.length === 0 ? (
         <p className="text-sm text-muted-foreground">{buscado ? `Ningún pedido de «${q.trim()}»${falta === "pago_parcial" ? " con pago parcial" : falta ? " con ese paso pendiente" : ""}.` : falta === "pago_parcial" ? "Ningún pedido tiene un pago parcial registrado." : "Ningún pedido tiene ese paso pendiente."}</p>

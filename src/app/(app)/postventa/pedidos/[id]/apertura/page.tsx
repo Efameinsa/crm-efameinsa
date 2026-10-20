@@ -10,6 +10,7 @@ import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { AperturaServicioPanel } from "@/components/crm/apertura-servicio-panel";
 import { destinatariosDelArea, type FilaDirectorio } from "@/lib/directorio";
 import { empresaDeApertura } from "@/lib/correo/apertura";
+import { faltaParaEmitirApertura } from "@/lib/postventa";
 
 export const dynamic = "force-dynamic";
 
@@ -267,6 +268,8 @@ export default async function AperturaServicioPage({ params }: { params: Promise
         destinatarios={destinatarios}
         empresaCorreo={empresaDeApertura(d)}
         empresaElegible={!s.informe_cierre_id}
+        emitida={Boolean(s.apertura_despacho_at)}
+        faltaParaEmitir={faltaParaEmitirApertura(s)}
         enviadaAlmacenAt={s.apertura_enviada_almacen_at ?? null}
         enviadaClienteAt={s.apertura_enviada_cliente_at ?? null}
       />

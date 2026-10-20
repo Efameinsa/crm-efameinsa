@@ -2,6 +2,7 @@ import Link from "@/components/enlace";
 import { notFound } from "next/navigation";
 import { AlertTriangle, ArrowLeft, BadgeCheck, Paperclip } from "lucide-react";
 import { requerirPerfil } from "@/lib/auth";
+import { DocumentosContabilidadFinanzas } from "@/components/crm/documentos-contabilidad-finanzas";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { puedeVerPrecios } from "@/lib/postventa";
 import { formatoMonto } from "@/lib/pagos-finanzas";
@@ -31,7 +32,7 @@ export default async function PagosDelPedidoPage({ params }: { params: Promise<{
 
   const { data: s } = await admin
     .from("servicios_postventa")
-    .select("id, cliente_texto, numero_pedido_erp, moneda, es_prueba, informe_cierre_id, pago_observado_at, pago_observado_motivo, pago_observado_adjunto, informes_cierre!servicios_postventa_informe_cierre_id_fkey(codigo, creado_por)")
+    .select("id, cliente_texto, numero_pedido_erp, moneda, es_prueba, informe_cierre_id, pago_observado_at, pago_observado_motivo, pago_observado_adjunto, guia, guia_motivo, guia_motivo_detalle, guia_confirmada_at, guia_comprobante_tipo, guia_comprobante_numero, orden_facturar_at, orden_facturar_atendida_at, no_se_factura_motivo, informes_cierre!servicios_postventa_informe_cierre_id_fkey(codigo, creado_por)")
     .eq("id", id)
     .maybeSingle();
   if (!s) notFound();
@@ -140,6 +141,10 @@ export default async function PagosDelPedidoPage({ params }: { params: Promise<{
           </ul>
         )}
       </section>
+
+      {/* La factura también la ve el comercial (gerencia 20-10: «los clientes a
+          veces la piden después… la persona que envía las facturas es ventas»). */}
+      <DocumentosContabilidadFinanzas servicio={s as Parameters<typeof DocumentosContabilidadFinanzas>[0]["servicio"]} />
     </div>
   );
 }

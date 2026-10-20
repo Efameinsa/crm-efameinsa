@@ -139,7 +139,7 @@ export function ListaInformesCierre({
                 href={`/comercial/cierres/${inf.id}/pagos`}
                 className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-foreground hover:bg-accent"
               >
-                <Wallet className="size-3" /> Pagos
+                <Wallet className="size-3" /> Pagos y facturas
               </Link>
             )}
             {(
