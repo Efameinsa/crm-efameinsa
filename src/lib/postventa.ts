@@ -528,10 +528,8 @@ export function sinPrecios(s: ServicioPostventa): ServicioPostventa {
  * postventa, nada. Un comercial que además hace postventa (0093) SÍ las ve:
  * es vendedor y cotiza — la política es sobre el área, no sobre el sombrero.
  */
-export function puedeVerPrecios(perfil: { rol: string; es_postventa?: boolean | null; edita_clientes_global?: boolean | null }): boolean {
+export function puedeVerPrecios(perfil: { rol: string; es_postventa?: boolean | null}): boolean {
   if (perfil.rol === "gerencia" || perfil.rol === "admin") return true;
-  // Brenda (0563, Santos 20-10): «ella debe poder ver todo», también desde PV2, para hacer sus cierres.
-  if (perfil.edita_clientes_global) return true;
   return !perfil.es_postventa;
 }
 
