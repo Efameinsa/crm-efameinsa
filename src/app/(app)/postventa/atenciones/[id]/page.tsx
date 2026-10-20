@@ -495,6 +495,13 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
               pedidoSinSeries={(pedidosSinSeries ?? [])[0] ?? null}
               cliente={a.cuentas?.razon_social ?? a.cliente_texto ?? "Cliente"}
             />
+            {/* Todo lo que se hizo en el caso, dentro del circuito (20-10, LINO ESPIRITU). */}
+            <div className="mt-4 border-t border-border pt-3">
+              <p className="mb-2 text-[12px] font-bold uppercase tracking-wide text-foreground">
+                Historial de las gestiones{(a as { codigo?: string | null }).codigo ? ` · ${(a as { codigo?: string | null }).codigo}` : ""}
+              </p>
+              <HistorialDelCaso atencionId={a.id} creadoAt={(a as { created_at?: string | null }).created_at ?? null} />
+            </div>
           </SeccionPanel>
 
           {/* DOS BLOQUES, NO UNO. Hasta la 0185 el diagnóstico del técnico se
@@ -547,10 +554,6 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
               sino más bien los informes». Un hotel con seis lavadoras necesita
               las dos vistas, pero la pregunta «¿esta máquina ya falló antes?»
               solo la contesta esta, y es la que decide a quién se manda. */}
-          <SeccionPanel titulo={`Historial de este caso${(a as { codigo?: string | null }).codigo ? ` · ${(a as { codigo?: string | null }).codigo}` : ""}, paso a paso`}>
-            <HistorialDelCaso atencionId={a.id} creadoAt={(a as { created_at?: string | null }).created_at ?? null} />
-          </SeccionPanel>
-
           {a.equipo_id && (
             <SeccionPanel titulo="Antecedentes del equipo">
               <AntecedentesEquipoPanel
