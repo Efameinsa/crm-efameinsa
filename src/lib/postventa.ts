@@ -528,7 +528,7 @@ export function sinPrecios(s: ServicioPostventa): ServicioPostventa {
  * postventa, nada. Un comercial que además hace postventa (0093) SÍ las ve:
  * es vendedor y cotiza — la política es sobre el área, no sobre el sombrero.
  */
-export function puedeVerPrecios(perfil: { rol: string; es_postventa?: boolean | null }): boolean {
+export function puedeVerPrecios(perfil: { rol: string; es_postventa?: boolean | null}): boolean {
   if (perfil.rol === "gerencia" || perfil.rol === "admin") return true;
   return !perfil.es_postventa;
 }
