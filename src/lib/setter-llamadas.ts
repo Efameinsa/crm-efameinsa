@@ -79,7 +79,7 @@ export async function liberarLeadsSinTipificar(): Promise<number> {
     const admin = createAdminClient();
     const { data: filas } = await admin
       .from("llamadas_por_hacer")
-      .select("id, lead_id, estado, avisada_at, cerrada_at, disponible_desde, tipificada_at, creada_at")
+      .select("id, user_id, lead_id, estado, avisada_at, cerrada_at, disponible_desde, tipificada_at, creada_at")
       .eq("retiene", true)
       .is("tipificada_at", null)
       .not("lead_id", "is", null)
@@ -112,7 +112,7 @@ export async function liberarLeadsSinTipificar(): Promise<number> {
       const { entregarLeadDelSetter, reclamar } = await import("@/lib/setter-tipificacion");
       // Solo quien logra «reclamar» el lead lo reparte: dos sondeos a la vez no lo hacen dos veces.
       if (!(await reclamar(leadId))) continue;
-      await entregarLeadDelSetter(leadId, { resultado: null, nota: "El setter no llegó a tipificarlo: se repartió solo.", reclamar: false });
+      await entregarLeadDelSetter(leadId, { resultado: null, nota: "El setter no llegó a tipificarlo: se repartió solo.", userId: f.user_id as string, reclamar: false });
       repartidos++;
     }
     return repartidos;
