@@ -404,6 +404,7 @@ export async function FichaCuenta({
               tipoDoc={cuenta.tipo_doc}
               numDoc={cuenta.num_doc}
               razonSocial={cuenta.razon_social}
+              direccion={(cuenta.direccion as string | null) ?? null}
               rubroId={cuenta.rubro_id ?? null}
               rubros={(rubros ?? []) as { id: number; nombre: string }[]}
               soloLectura={comoCentral}

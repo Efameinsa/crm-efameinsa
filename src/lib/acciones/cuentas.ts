@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { errorDocumento, type TipoDocumento } from "@/lib/documento";
 import { notificar } from "@/lib/notificaciones";
+import { avisarAlDuenoDeLaCartera } from "@/lib/aviso-dueno-cartera";
 import { tokensRaros, type CandidataRelacionada } from "@/lib/fichas-relacionadas";
 import { traerPorLotes } from "@/lib/lotes";
 import { consultaLiberables, TOPE_REASIGNACION_EN_BLOQUE, type FiltroLiberables } from "@/lib/cartera-liberable";
@@ -69,6 +70,8 @@ export async function actualizarIdentidadCuenta(datos: {
   numDoc: string;
   razonSocial: string;
   rubroId?: number | null;
+  /** Dirección de la EMPRESA (cuentas.direccion, la de la cabecera). Si no viene, no se toca (0562). */
+  direccion?: string | null;
 }): Promise<{
   error: string | null;
   avisoDuplicado?: string;
@@ -125,6 +128,8 @@ export async function actualizarIdentidadCuenta(datos: {
     }
     cambios.rubro_id = datos.rubroId;
   }
+  const direccion = datos.direccion === undefined ? undefined : (datos.direccion ?? "").trim().replace(/s+/g, " ") || null;
+  if (direccion !== undefined) cambios.direccion = direccion;
   let { data, error } = await supabase
     .from("cuentas")
     .update(cambios)
@@ -134,6 +139,26 @@ export async function actualizarIdentidadCuenta(datos: {
   // dueño y la política de arriba no la deja tocar nada. Si el cliente no es
   // de ningún comercial, corrige su identidad por la 0482 (Rubí, 14-10,
   // HOSPITAL CHANKA sin RUC en la apertura).
+  // PODER GLOBAL (0561, Santos 20-10): Brenda corrige la identidad de
+  // cualquier cliente, sea de la cartera que sea, desde C1 o desde PV2.
+  let porPoderGlobal = false;
+  if (!error && (!data || data.length === 0)) {
+    const r = await supabase.rpc("corregir_identidad_cuenta_global", {
+      p_cuenta: datos.cuentaId,
+      p_tipo_doc: datos.tipoDoc,
+      p_num_doc: numDoc ?? "",
+      p_razon_social: razonSocial,
+      p_rubro_id: datos.rubroId ?? null,
+      p_tocar_rubro: datos.rubroId !== undefined,
+      p_direccion: direccion ?? null,
+      p_tocar_direccion: direccion !== undefined,
+    });
+    error = r.error;
+    if (r.data === true) {
+      data = [{ id: datos.cuentaId }];
+      porPoderGlobal = true;
+    }
+  }
   if (!error && (!data || data.length === 0)) {
     const r = await supabase.rpc("postventa_corregir_identidad_cuenta", {
       p_cuenta: datos.cuentaId,
@@ -142,6 +167,8 @@ export async function actualizarIdentidadCuenta(datos: {
       p_razon_social: razonSocial,
       p_rubro_id: datos.rubroId ?? null,
       p_tocar_rubro: datos.rubroId !== undefined,
+      p_direccion: direccion ?? null,
+      p_tocar_direccion: direccion !== undefined,
     });
     error = r.error;
     if (r.data === true) data = [{ id: datos.cuentaId }];
@@ -176,6 +203,9 @@ export async function actualizarIdentidadCuenta(datos: {
     return { error: "Solo el dueño actual de la cartera puede corregir los datos del cliente" };
   }
 
+  if (porPoderGlobal) await avisarAlDuenoDeLaCartera(datos.cuentaId, "corrigió el nombre, el RUC o la dirección de");
+
+  revalidatePath(`/nuevo/cliente/${datos.cuentaId}`);
   revalidatePath("/comercial", "layout");
   revalidatePath("/gerencia", "layout");
   return { error: null, avisoDuplicado };

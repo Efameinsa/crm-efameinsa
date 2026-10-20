@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Pencil, Tag, TriangleAlert } from "lucide-react";
+import { MapPin, FileText, Pencil, Tag, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { actualizarIdentidadCuenta } from "@/lib/acciones/cuentas";
 import { PedirCarteraBoton } from "@/components/crm/pedir-cartera-boton";
@@ -36,10 +36,11 @@ const TIPOS: [TipoDocumento, string][] = [
  * más; el RUC aparece después, hablando, y hasta el 24-08 no había dónde
  * anotarlo.
  *
- * La dirección NO se edita acá (probado el 26-08 y descartado): un cliente
- * puede tener varias sedes/contactos en lugares distintos, así que vive en
- * cada contacto (`ContactosEditables`) y la cotización imprime la del
- * contacto marcado como principal.
+ * La dirección de cada sede vive en su contacto (`ContactosEditables`, 26-08)
+ * y la cotización imprime la del principal. Desde el 20-10 (0562, Brenda con
+ * FAMILY FARMS) acá se corrige también la dirección de la EMPRESA
+ * (`cuentas.direccion`): la de la cabecera de la ficha, la que sugiere la
+ * apertura y la que sale si el contacto principal no tiene dirección.
  *
  * El RUC se valida con el módulo 11 de SUNAT antes de guardarlo: un dígito
  * cambiado no lo nota nadie hasta que rebota el expediente.
@@ -55,6 +56,7 @@ export function IdentidadCuenta({
   razonSocial,
   rubroId = null,
   rubros = [],
+  direccion,
   soloLectura = false,
   abrirAlEntrar = false,
 }: {
@@ -62,6 +64,8 @@ export function IdentidadCuenta({
   tipoDoc: TipoDocumento;
   numDoc: string | null;
   razonSocial: string;
+  /** Dirección de la empresa. Sin esta prop no se muestra ni se toca. */
+  direccion?: string | null;
   /** Central mira la ficha, no la corrige: sin el botón (0219). La base lo vuelve a impedir igual. */
   soloLectura?: boolean;
   /**
@@ -83,6 +87,7 @@ export function IdentidadCuenta({
     numDoc: numDoc ?? "",
     razonSocial,
     rubro: rubroId === null ? SIN_RUBRO : String(rubroId),
+    direccion: direccion ?? "",
   });
   const [guardando, startTransition] = useTransition();
   // El RUC que se quiso poner ya es de otro comercial. En vez del callejón
@@ -93,17 +98,18 @@ export function IdentidadCuenta({
   const nombreRubro = rubros.find((r) => r.id === rubroId)?.nombre ?? null;
 
   function abrir() {
-    setCampos({ tipoDoc, numDoc: numDoc ?? "", razonSocial, rubro: rubroId === null ? SIN_RUBRO : String(rubroId) });
+    setCampos({ tipoDoc, numDoc: numDoc ?? "", razonSocial, rubro: rubroId === null ? SIN_RUBRO : String(rubroId), direccion: direccion ?? "" });
     setCarteraAjena(null);
     setEditando(true);
   }
 
   function guardar() {
     startTransition(async () => {
-      const { rubro, ...identidad } = campos;
+      const { rubro, direccion: dir, ...identidad } = campos;
       const r = await actualizarIdentidadCuenta({
         cuentaId,
         ...identidad,
+        ...(direccion !== undefined ? { direccion: dir } : {}),
         // Solo viaja si hay catálogo: sin él no hay desplegable y no se toca.
         ...(rubros.length > 0 ? { rubroId: rubro === SIN_RUBRO ? null : Number(rubro) } : {}),
       });
@@ -137,6 +143,12 @@ export function IdentidadCuenta({
               `${tipoDoc}: ${numDoc}`
             )}
           </p>
+          {direccion !== undefined && (
+            <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+              <MapPin className="size-3.5 shrink-0" />
+              {direccion || <span className="font-medium text-amber-700">Sin dirección de la empresa</span>}
+            </p>
+          )}
           {rubros.length > 0 && (
             <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
               <Tag className="size-3.5" />
@@ -227,8 +239,26 @@ export function IdentidadCuenta({
       </div>
       <p className="text-[11px] text-muted-foreground">
         El tipo y número de documento también se imprimen en la cotización, sin RUC/DNI si queda
-        «Todavía sin documento». La dirección se corrige en los contactos, más abajo.
+        «Todavía sin documento».
       </p>
+
+      {direccion !== undefined && (
+        <div className="space-y-1.5">
+          <Label htmlFor="ic-direccion" className="text-xs">
+            Dirección de la empresa
+          </Label>
+          <Input
+            id="ic-direccion"
+            value={campos.direccion}
+            onChange={(e) => setCampos({ ...campos, direccion: e.target.value })}
+            placeholder="Av. … nro. … distrito – provincia – departamento"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Es la que se lee en la cabecera de la ficha y la que sugiere la apertura. La de cada sede o persona se
+            corrige en su contacto.
+          </p>
+        </div>
+      )}
 
       {rubros.length > 0 && (
         <div className="space-y-1.5">

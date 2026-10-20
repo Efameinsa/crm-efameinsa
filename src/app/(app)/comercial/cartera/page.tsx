@@ -170,7 +170,8 @@ export default async function CarteraPage({
                 ultimaGestionAt: ultimaGestion.get(c.id)?.at ?? null,
                 ultimaGestionTipo: ultimaGestion.get(c.id)?.tipo ?? null,
               }))}
-              mostrarDueno={atiendeSinPoseer}
+              // Con poder global (0561), la búsqueda trae clientes de otras carteras: se dice de quién es cada uno.
+              mostrarDueno={atiendeSinPoseer || (Boolean(perfil.edita_clientes_global) && Boolean(q))}
               // El comercial anota la llamada desde la fila, en SU expediente
               // comercial (0281). Postventa conserva su botón de siempre.
               seguimientoComercial={!atiendeSinPoseer}
