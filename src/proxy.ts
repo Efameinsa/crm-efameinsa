@@ -223,12 +223,15 @@ export const config = {
     // api/campo/osmand: la manda Traccar Client desde el celular del piloto de
     // trabajo de campo (0367, 01-10-2026), sin cookies; su llave es el token
     // del celular. Detrás del proxy recibiría la redirección al login.
+    // api/llamadas: el celular registra la llamada y sube su audio con el token
+    // del dispositivo (Authorization: Bearer), sin cookies (19-10-2026). Cada ruta
+    // comprueba quién llama: el token, o la sesión para escuchar y descargar.
     // vendor: el «worker» de pdf.js que usa la app de Android para mostrar PDF
     // (public/vendor, 01-10-2026). Un worker pedido detrás de una redirección
     // al login no arranca; es código público y no lleva ningún dato.
     // api/portal: Mi cuenta de efameinsa.com pregunta servidor a servidor
     // (contrato «Experiencia del cliente», 17-10). No trae cookies: su llave
     // es la firma HMAC con PORTAL_SECRETO, que cada ruta comprueba.
-    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|offline|api/version|api/leads|api/webhooks|api/gasto-campania|api/cron|api/alertas|api/marketing/catalogo-whatsapp|api/campo/osmand|api/tasking|api/portal/|t/|vendor|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|offline|api/version|api/leads|api/webhooks|api/gasto-campania|api/cron|api/alertas|api/marketing/catalogo-whatsapp|api/campo/osmand|api/llamadas|api/tasking|api/portal/|t/|vendor|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
