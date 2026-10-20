@@ -38,7 +38,7 @@ export async function PendientesDelCliente({ cuentaId, conEnlace }: { cuentaId: 
       .limit(10),
     supabase
       .from("atenciones")
-      .select("id, tipo, etapa, equipo_texto, solicitado_at, programada_at")
+      .select("id, codigo, tipo, etapa, equipo_texto, solicitado_at, programada_at")
       .eq("cuenta_id", cuentaId)
       .is("cerrado_at", null)
       .order("solicitado_at", { ascending: false })
@@ -63,6 +63,7 @@ export async function PendientesDelCliente({ cuentaId, conEnlace }: { cuentaId: 
   const pedidos = ((pedidosData ?? []) as unknown as ServicioPostventa[]).map(sinPrecios);
   const atenciones = (atencionesData ?? []) as {
     id: string;
+    codigo: string | null;
     tipo: TipoAtencion;
     etapa: EtapaAtencion;
     equipo_texto: string | null;
@@ -124,12 +125,30 @@ export async function PendientesDelCliente({ cuentaId, conEnlace }: { cuentaId: 
               </div>
             </>
           );
+          // GERENCIA 20-10 (Beneficencia): «¿dónde está el protocolo? debería
+          // verse… en la lista general». El pedido y sus papeles, a un clic
+          // desde la ficha, sin pasar por el expediente.
+          const tieneProtocolo = Boolean(s.prueba_lista_at) || (Array.isArray(s.protocolo_fotos) && s.protocolo_fotos.length > 0);
           return (
             <li key={`p-${s.id}`}>
               {conEnlace ? (
-                <Link href={`/postventa/pedidos/${s.id}`} className="block px-4 py-2.5 transition-colors hover:bg-accent">
-                  {contenido}
-                </Link>
+                <>
+                  <Link href={`/postventa/pedidos/${s.id}`} className="block px-4 pt-2.5 pb-1.5 transition-colors hover:bg-accent">
+                    {contenido}
+                  </Link>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 px-4 pb-2.5 pl-10 text-[11px]">
+                    <Link href={`/postventa/pedidos/${s.id}`} className="font-medium text-primary hover:underline">
+                      Abrir el pedido
+                    </Link>
+                    {tieneProtocolo ? (
+                      <Link href={`/pedidos/${s.id}/protocolo`} className="font-medium text-primary hover:underline">
+                        Protocolo de pruebas
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground">Protocolo: el almacén todavía no lo sube</span>
+                    )}
+                  </div>
+                </>
               ) : (
                 <div className="px-4 py-2.5">{contenido}</div>
               )}
@@ -141,7 +160,10 @@ export async function PendientesDelCliente({ cuentaId, conEnlace }: { cuentaId: 
             <div className="flex items-start gap-2">
               <Wrench className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground">{ETIQUETA_TIPO_ATENCION[a.tipo] ?? a.tipo}</p>
+                <p className="text-sm font-semibold text-foreground">
+                  {a.codigo && <span className="mr-1.5 font-mono text-xs text-primary">{a.codigo}</span>}
+                  {ETIQUETA_TIPO_ATENCION[a.tipo] ?? a.tipo}
+                </p>
                 <p className="text-[11px] text-muted-foreground">
                   {a.equipo_texto ? `${a.equipo_texto.split("\n")[0]} · ` : ""}desde el {fechaLima(a.solicitado_at)}
                 </p>

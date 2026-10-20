@@ -438,7 +438,8 @@ export async function cargarBaseLiquidacion(supabase: SupabaseClient, servicioId
           .maybeSingle()
       : Promise.resolve({ data: null }),
     supabase.from("pagos_pedido").select("id, monto, fecha_abono, operacion, medio, descuento_monto, created_at").eq("servicio_id", servicioId),
-    supabase.from("facturas_pedido").select("numero, fecha_emision, created_at").eq("servicio_id", servicioId),
+    // Solo las facturas vigentes: ni notas de crédito ni anuladas (0552, E001-840 de Beneficencia).
+    supabase.from("facturas_pedido").select("numero, fecha_emision, created_at").eq("servicio_id", servicioId).eq("tipo", "factura").is("anulada_at", null),
     supabase.from("liquidaciones_pedido").select("id, datos, generada, subida_at").eq("servicio_id", servicioId).order("subida_at", { ascending: false }),
     supabase.from("pedido_equipos").select("descripcion, serie, orden").eq("servicio_id", servicioId).order("orden"),
     f.cuenta_id ? supabase.from("cuentas").select("razon_social, num_doc").eq("id", f.cuenta_id as string).maybeSingle() : Promise.resolve({ data: null }),

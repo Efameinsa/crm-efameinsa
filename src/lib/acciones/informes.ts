@@ -484,6 +484,18 @@ export async function guardarBorradorInforme(
 // sale rotulado como tal.
 export async function emitirInforme(informeId: string): Promise<{ error: string | null; codigo?: string }> {
   const supabase = await createClient();
+  // UN CLIENTE SE REGISTRA CON RUC O DNI (gerencia 20-10, Family Farm / Valle
+  // Pampa): el nombre tipeado abrió una segunda ficha del mismo cliente, con la
+  // cotización en una y el historial en la otra. «Preferible que demore un
+  // momento… con RUC; si no tiene RUC, con DNI.» Al cerrar la venta la ficha
+  // ya tiene que estar identificada: es lo que une todo lo que sigue.
+  const { data: previo } = await supabase.from("informes_cierre").select("cuenta_id, cuentas(tipo_doc, num_doc, razon_social)").eq("id", informeId).maybeSingle();
+  const ficha = previo?.cuentas as unknown as { tipo_doc: string | null; num_doc: string | null; razon_social: string } | null;
+  if (ficha && (!ficha.num_doc || ficha.tipo_doc === "SIN_DOC" || !/^(\d{8}|\d{11})$/.test(ficha.num_doc.replace(/\D/g, "")))) {
+    return {
+      error: `La ficha de ${ficha.razon_social} no tiene RUC ni DNI. Antes de emitir el cierre, póngaselo en la ficha del cliente («Corregir nombre o vincular RUC»). Si el RUC ya es de otra ficha, es el mismo cliente: únalas primero.`,
+    };
+  }
   const { data, error } = await supabase.rpc("emitir_informe", { p_id: informeId });
   if (error) return { error: error.message.replace(/^.*?:\s*/, "") };
 

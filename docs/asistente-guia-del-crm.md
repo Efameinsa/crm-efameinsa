@@ -138,6 +138,8 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 ### 1.8 Finanzas: pago, liquidación y visto bueno
 
+**Facturar sin correo** (desde el 20-10): la orden de postventa se atiende con «Dar el OK para facturar» y con eso el pedido entra a «Por facturar» de Facturación, sin otra liquidación. Finanzas también registra la factura y la nota de crédito desde su pedido. Una nota de crédito anula la factura y el pedido vuelve a «Por facturar». «No se factura» con motivo lo saca de la lista. Postventa, el comercial y Central ven la guía, las facturas, las notas de crédito, las liquidaciones y las constancias en el pedido («Documentos del expediente · Contabilidad y Finanzas»).
+
 - **Dueño:** Finanzas (Jhon).
 - **Qué entra:** pedidos liberados, aperturas emitidas y pedidos de confirmación de pago.
 - **Qué hace:**
@@ -193,6 +195,9 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 ### 1.11 Almacén: prueba, embalaje y despacho
 
+**Fotos del despacho** (desde el 20-10): el almacén sube las fotos de la carga en planta y, si va por agencia, la foto en la agencia con la guía. Las dos salen como pendientes en «Mi día» hasta subirlas. Postventa las ve en el pedido con su título y puede «Pedir al almacén» (una vez cada 4 horas).
+**Equipos que llegan a planta** (desde el 20-10): la orden de recepción (REC-00001…) la da postventa desde el caso. El almacén registra que llegó (con fotos), la revisión (técnico y diagnóstico) y qué sigue (devolver o cotizar).
+
 - **Dueño:** almacén (Jeysson, cuenta ALM; Ariana, cuenta ALM2). Lesly supervisa desde operaciones.
 - **Qué entra:** las solicitudes de serie y código, las pruebas pedidas y las aperturas emitidas.
 - **Pasos:**
@@ -214,6 +219,8 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 ### 1.12 Entrega, puesta en marcha y cierre del pedido
 
+**Cerrar el pedido** (desde el 20-10): las series se marcan de las del pedido; solo se escribe la que falte. La fecha de inicio de la garantía se elige (se propone la de la puesta en marcha o la de la salida). Sin puesta en marcha no se cierra, salvo con el código de gerencia u operaciones y el motivo (por ejemplo, provincia sin visita). El cierre queda en el historial del cliente con fecha y nombre. Antes del cierre, el paso «Guía y fotos enviadas al cliente» se marca con «Enviar guía y fotos al cliente».
+
 - **Dueño:** postventa, con el técnico.
 - **Pasos:**
   1. **«Despacho verificado por postventa».** Es el doble check. No se da si las letras siguen pendientes de entrega, y **el código de gerencia no lo salta**.
@@ -227,6 +234,8 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Ojo: «pedido cerrado» no es «entregado».** Un pedido también se cierra solo cuando su informe de cierre se anula. Antes de decir que algo se entregó, revise si el cierre fue anulado y si hubo despacho.
 
 ### 1.13 Después de la venta: postventa continua
+
+**Gestión completa y casos con código** (desde el 20-10): en postventa toda gestión lleva qué se habló y la próxima acción con fecha (o se cierra). Cerrar «Anotar gestión» sin guardar no deja expediente. Cada caso técnico tiene código (CASO-00001…) y su historial paso a paso; si el cliente vuelve a llamar por el mismo problema, se suma al caso abierto. El código en la búsqueda de atenciones abre el caso.
 
 - **Dueño:** postventa.
 - **Qué incluye:**
@@ -473,6 +482,8 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 ## 3. Reglas por tema
 
 ### 3.1 Cartera, fichas y expedientes
+
+**Cliente con RUC o DNI** (desde el 20-10): el cierre de venta no se emite si la ficha no tiene RUC ni DNI; se completa en la ficha («Corregir nombre o vincular RUC»). Las fichas repetidas del mismo cliente se unen desde «Fichas repetidas» (Central, operaciones y gerencia). Postventa puede quitar un contacto mal puesto en un cliente con caso o pedido; el dueño de la cartera recibe el aviso.
 
 **Unir fichas y fichas sueltas** (desde el 16-10)
 - **Unir dos fichas del mismo cliente:** desde «¿Es el mismo cliente?» en la ficha o el caso, o desde el aviso de una serie que ya está en otra ficha («Revisar y unir las dos fichas»). Se ven las dos fichas, cuál se une y cuál se queda (se queda la que tiene RUC), se escribe el motivo y se pide el **código de operaciones**. Si las dos tienen RUC propio, solo gerencia o administración pueden unirlas (lo deciden ellos: pueden ser empresas distintas o sedes).
@@ -1191,6 +1202,18 @@ Mi cuenta muestra solo lo que está marcado en el CRM con fecha. Revise que el p
 
 **46 b. En la ficha del cliente no veo todo; ¿tengo que apretar algo para que aparezca?**
 No. Desde el 17-10 todo está en la misma ficha: lo vivo en «Resumen» (cada expediente con su cotización, próxima acción y última gestión) y el resto en las pestañas de arriba —Historial, Equipos, Pedidos y casos…—, que quedan fijas al bajar. Para anotar una llamada use «Anotar gestión»: se abre al costado, sin cambiar de pantalla. «Abrir expediente» es solo si quiere el detalle de un negocio. (3.1)
+
+**48. Como postventa, ¿cómo sé si ya se facturó?**
+En el pedido, en «Documentos del expediente · Contabilidad y Finanzas»: ahí están la guía, las facturas (las anuladas salen tachadas), las notas de crédito y las liquidaciones. Además, cuando Facturación registra la factura, quien dio la orden recibe el aviso. (1.8)
+
+**49. ¿Por qué no me deja cerrar el pedido?**
+Porque falta la puesta en marcha (o el informe del servicio). Llénela con «Llenar informe». Si de verdad no aplica (provincia, el cliente no pidió la visita), cierre con el código de gerencia u operaciones y el motivo. (1.12)
+
+**50. ¿Cómo mando la guía y las fotos al cliente?**
+En el pedido, «Enviar guía y fotos al cliente»: abre el WhatsApp con el mensaje armado; adjunte la guía y las fotos y marque «Ya lo envié». Queda registrado quién lo envió y cuándo. (1.12)
+
+**51. El cliente volvió a llamar por el mismo problema. ¿Abro otro caso?**
+No hace falta: si el caso sigue abierto, la llamada se suma a ese caso con su fecha. Busque el caso por su código (CASO-…). (1.13)
 
 **47. ¿Cómo llamo a un cliente desde el CRM?**
 Toque el número en la ficha del cliente (o «Llamar» en el cotizador). En la app de Android la llamada sale con el plan de la empresa y queda anotada con su duración en la pestaña «Llamadas» de la ficha. Desde el navegador o el iPhone, el CRM abre el marcador y al volver le pregunta cómo le fue. Por ahora las llamadas no se graban. (3, llamadas)

@@ -13,6 +13,7 @@ import {
   queLoFrena,
   sinPrecios,
   textoCondicionPago,
+  veTodoPostventa,
   type ServicioPostventa,
 } from "@/lib/postventa";
 import { ETIQUETA_ESTADO_APERTURA, aperturaAbierta, estadoApertura } from "@/lib/aperturas-llamada";
@@ -30,7 +31,8 @@ import { ArrowLeft } from "lucide-react";
 import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
 import { TecnicoEnCaminoPanel } from "@/components/crm/tecnico-en-camino-panel";
 import { MensajesMiCuenta } from "@/components/crm/mensajes-mi-cuenta";
-import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
+import { EnviarGuiaAlCliente, FotosDelDespacho } from "@/components/crm/fotos-y-envio-del-despacho";
+import { DocumentosContabilidadFinanzas } from "@/components/crm/documentos-contabilidad-finanzas";
 import { EquipoConSeries } from "@/components/crm/equipo-con-series";
 import { DocumentosExpedientePedido, HerramientasPedido, PagoDelPedido, cargarExpedientePedido } from "@/components/crm/pedido-expediente-bloques";
 import { cierresDePostventa } from "@/lib/precios-postventa";
@@ -265,12 +267,40 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
             {servicio.fecha_confirmacion && <p className="mt-1 text-xs text-muted-foreground">Venta del {fechaCalendario(servicio.fecha_confirmacion)}</p>}
           </div>
           <EquiposDelPedido candado={candadoProtocolo === true} servicioId={servicio.id} equipos={listaEquipos} modo="postventa" despachado={Boolean(servicio.despachado_at)} cliente={cliente} />
-          {exp.galeria.length > 0 && <GaleriaAlmacen fotos={exp.galeria} />}
+          <FotosDelDespacho
+            servicioId={servicio.id}
+            protocolo={exp.porOrigen.protocolo}
+            planta={exp.porOrigen.planta}
+            agencia={exp.porOrigen.agencia}
+            aplicaAgencia={(data as { entrega_modo?: string | null }).entrega_modo === "agencia"}
+            salio={Boolean(servicio.despachado_at)}
+            pedidasAt={(data as { fotos_pedidas_at?: string | null }).fotos_pedidas_at ?? null}
+          />
+          {veTodoPostventa(perfil) && servicio.despachado_at && !circuito.esServicio && (
+            <EnviarGuiaAlCliente
+              servicioId={servicio.id}
+              cliente={cliente}
+              telefono={(data as { recibe_telefono?: string | null }).recibe_telefono ?? telefonoContacto ?? null}
+              guia={servicio.guia ?? null}
+              agencia={(data as { agencia_destino?: string | null }).agencia_destino ?? null}
+              salidaAt={servicio.despachado_at}
+              enviada={
+                (data as { guia_enviada_cliente_at?: string | null }).guia_enviada_cliente_at
+                  ? {
+                      at: (data as { guia_enviada_cliente_at: string }).guia_enviada_cliente_at,
+                      por: nombres[(data as { guia_enviada_cliente_por?: string }).guia_enviada_cliente_por ?? ""] ?? null,
+                      via: (data as { guia_enviada_cliente_via?: string | null }).guia_enviada_cliente_via ?? null,
+                    }
+                  : null
+              }
+            />
+          )}
           <DocumentosExpedientePedido
             adjuntos={exp.adjuntos}
             verPrecios={verPrecios}
             cotizacion={(informe as { cotizaciones?: { id: string; codigo: string } | null } | null)?.cotizaciones ?? null}
           />
+          <DocumentosContabilidadFinanzas servicio={data as Parameters<typeof DocumentosContabilidadFinanzas>[0]["servicio"]} />
         </aside>
       </div>
     </div>

@@ -41,6 +41,17 @@ export interface FacturaFirmada {
   nota: string | null;
   registradaAt: string;
   registradaPor: string | null;
+  /** factura o nota_credito (0552). */
+  tipo: "factura" | "nota_credito";
+  /** La nota de crédito dice qué factura anula; la factura anulada, cuándo y por qué. */
+  anulaA: string | null;
+  anuladaAt: string | null;
+  motivo: string | null;
+}
+
+/** Las facturas que siguen valiendo: ni notas de crédito ni anuladas (0552). */
+export function facturasVigentes(d: DocumentosDeFinanzas | undefined): FacturaFirmada[] {
+  return (d?.facturas ?? []).filter((f) => f.tipo === "factura" && !f.anuladaAt);
 }
 
 export interface DocumentosDeFinanzas {
@@ -123,9 +134,10 @@ export async function agregarConstanciasDePago(
 export function liquidacionPorFacturar(d: DocumentosDeFinanzas | undefined): LiquidacionFirmada | null {
   const vigente = d?.liquidaciones[0];
   if (!vigente) return null;
-  if (d.facturas.length === 0) return vigente;
+  const vigentes = facturasVigentes(d);
+  if (vigentes.length === 0) return vigente;
   if (vigente.facturaNumero) return null;
-  const ultima = Math.max(...d.facturas.map((f) => Date.parse(f.registradaAt)));
+  const ultima = Math.max(...vigentes.map((f) => Date.parse(f.registradaAt)));
   return Date.parse(vigente.subidaAt) > ultima ? vigente : null;
 }
 
@@ -154,7 +166,7 @@ export async function documentosDeFinanzas(supabase: SupabaseClient, servicioIds
         .order("subida_at", { ascending: false }),
       supabase
         .from("facturas_pedido")
-        .select("id, servicio_id, numero, fecha_emision, path, nombre, nota, created_at, perfiles!facturas_pedido_registrada_por_fkey(nombre)")
+        .select("id, servicio_id, numero, fecha_emision, path, nombre, nota, created_at, tipo, anula_a, anulada_at, motivo, perfiles!facturas_pedido_registrada_por_fkey(nombre)")
         .in("servicio_id", lote)
         .order("fecha_emision", { ascending: false }),
     ]);
@@ -196,6 +208,10 @@ export async function documentosDeFinanzas(supabase: SupabaseClient, servicioIds
       nota: (x.nota as string | null) ?? null,
       registradaAt: x.created_at as string,
       registradaPor: nombreDe(x),
+      tipo: ((x.tipo as string | null) ?? "factura") as "factura" | "nota_credito",
+      anulaA: (x.anula_a as string | null) ?? null,
+      anuladaAt: (x.anulada_at as string | null) ?? null,
+      motivo: (x.motivo as string | null) ?? null,
     });
   }
   return mapa;

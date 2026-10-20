@@ -7,6 +7,7 @@ import { versionesAnteriores } from "@/lib/versiones-cotizacion";
 import { totalesConIgvExactos } from "@/lib/total-con-igv-exacto";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requerirPerfil } from "@/lib/auth";
 import { puedeVerPrecios } from "@/lib/postventa";
 import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
@@ -459,6 +460,42 @@ export default async function OportunidadDetallePage({
   // como trabajo. Sale de la historia que esta página ya carga.
   const asiSeQuedo = resumirAsiSeQuedo(eventos, archivados, oportunidad.id);
 
+  // QUIÉN LO ABRIÓ, CON NOMBRE (gerencia 20-10, Beneficencia de Huancayo): el
+  // expediente vacío que abrió Ariana de postventa decía «La abrió el
+  // comercial», y se buscó a la vendedora. Sale del registro de acciones (0513,
+  // desde el 16-10); antes de eso, del dueño del expediente.
+  let quienAbrio: { nombre: string; area: string } | null = null;
+  if (!lead && oportunidad.origen === "crm") {
+    const admin = createAdminClient();
+    const { data: alta } = await admin
+      .from("registro_acciones")
+      .select("quien")
+      .eq("tabla", "oportunidades")
+      .eq("fila_id", oportunidad.id)
+      .eq("operacion", "crear")
+      .order("cuando", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    const idAutor = (alta?.quien as string | null) ?? oportunidad.comercial_id;
+    if (idAutor) {
+      const { data: autor } = await admin
+        .from("perfiles")
+        .select("nombre, codigo_comercial, rol, es_postventa")
+        .eq("id", idAutor)
+        .maybeSingle();
+      if (autor) {
+        const area = autor.es_postventa
+          ? `postventa${autor.codigo_comercial ? ` · ${autor.codigo_comercial}` : ""}`
+          : autor.rol === "central"
+            ? "Central"
+            : autor.rol === "comercial"
+              ? `comercial${autor.codigo_comercial ? ` · ${autor.codigo_comercial}` : ""}`
+              : (autor.rol as string);
+        quienAbrio = { nombre: autor.nombre as string, area };
+      }
+    }
+  }
+
   const rutaDelContacto: Hito[] = [
     lead
       ? {
@@ -471,7 +508,12 @@ export default async function OportunidadDetallePage({
           // Sin lead no hubo captura de Central: la oportunidad vino del
           // histórico (Excel de la comercial o cierres de postventa) o la abrió
           // el propio comercial. Decirlo vale más que un «sin registro».
-          titulo: oportunidad.origen === "crm" ? "La abrió el comercial" : "Entró con el histórico",
+          titulo:
+            oportunidad.origen === "crm"
+              ? quienAbrio
+                ? `La abrió ${quienAbrio.nombre} (${quienAbrio.area})`
+                : "La abrió el comercial"
+              : "Entró con el histórico",
           fecha: oportunidad.created_at ?? null,
           detalle: oportunidad.origen === "crm" ? "Sin pasar por Central" : "Importada del archivo anterior al CRM",
           pendiente: "Sin registro de ingreso",

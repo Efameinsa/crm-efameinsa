@@ -192,6 +192,16 @@ export function RegistroRapido({
   const motivoElegido = motivos.find((m) => String(m.id) === motivoId) ?? null;
   const cierraResuelto = esRechazo && !!motivoElegido?.solo_postventa;
   const faltaNotaDelMotivo = esRechazo && !!motivoElegido?.requiere_nota && !nota.trim();
+  // GERENCIA 20-10 (Beneficencia, Family Farm): en postventa la gestión se
+  // llena entera o no se registra. «Que sea mandatorio… si no, no hay que
+  // registrar». Qué se habló, y qué sigue con fecha (salvo que se cierre).
+  const faltaEnPostventa: string | null = !esPostventa
+    ? null
+    : nota.trim().length < 15
+      ? "Cuente en «¿Qué pasó?» lo que se habló o se hizo (al menos una frase)."
+      : !cierra && (!proximaAccion.trim() || !proximaAccionAt)
+        ? "Agende la próxima acción con su fecha, o elija en qué quedó si se cierra."
+        : null;
 
   function elegirQueHacer(texto: string) {
     setProximaAccion(texto);
@@ -269,6 +279,10 @@ export function RegistroRapido({
     // 23-08 y esa gestión fantasma borró la próxima acción de la anterior.
     if (!nota.trim() && resultadoId === null && !proximaAccion.trim() && archivos.length === 0) {
       toast.error("Cuente qué pasó, elija en qué quedó o agende la próxima acción");
+      return;
+    }
+    if (faltaEnPostventa) {
+      toast.error(faltaEnPostventa);
       return;
     }
     if (faltante) {
@@ -666,7 +680,8 @@ export function RegistroRapido({
               lleva al campo. */}
           <Button
             onClick={registrar}
-            disabled={enviando || (esRechazo && !motivoId) || faltaNotaDelMotivo}
+            disabled={enviando || (esRechazo && !motivoId) || faltaNotaDelMotivo || (!!faltaEnPostventa && !faltante)}
+            porQue={!faltante && faltaEnPostventa ? faltaEnPostventa : undefined}
             variant={faltante ? "outline" : "default"}
             className={cn(faltante && "border-amber-500 bg-amber-500/10 text-amber-800 hover:bg-amber-500/20")}
           >

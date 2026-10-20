@@ -4,9 +4,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { toast } from "sonner";
-import { ArrowRight, Loader2, NotebookPen, X } from "lucide-react";
+import { ArrowRight, Loader2, Maximize2, Minimize2, NotebookPen, X } from "lucide-react";
 import Link from "@/components/enlace";
-import { abrirSeguimiento } from "@/lib/acciones/casos";
+import { abrirSeguimiento, descartarExpedienteVacio } from "@/lib/acciones/casos";
 import { abrirSeguimientoComercial } from "@/lib/acciones/oportunidades";
 import { RegistroRapido, type MotivoRechazo, type ResultadoGestion } from "@/components/crm/registro-rapido";
 import { cn } from "@/lib/utils";
@@ -45,6 +45,11 @@ export function AnotarGestionPanel({
   const [abierto, setAbierto] = useState(false);
   const [oportunidadId, setOportunidadId] = useState<string | null>(null);
   const [buscando, empezar] = useTransition();
+  // Se guardó al menos una gestión en esta apertura del panel.
+  const [guardo, setGuardo] = useState(false);
+  // Brenda 20-10: «ya no me permite abrir grande». Chico para la gestión
+  // rápida (lo de siempre) y «Ampliar» para cuando hace falta contexto.
+  const [grande, setGrande] = useState(false);
 
   function abrir() {
     empezar(async () => {
@@ -54,6 +59,7 @@ export function AnotarGestionPanel({
         return;
       }
       setOportunidadId(r.oportunidadId);
+      setGuardo(false);
       setAbierto(true);
     });
   }
@@ -73,12 +79,26 @@ export function AnotarGestionPanel({
         Anotar gestión
       </button>
 
-      <DialogPrimitive.Root open={abierto} onOpenChange={setAbierto}>
+      <DialogPrimitive.Root
+        open={abierto}
+        onOpenChange={(v) => {
+          setAbierto(v);
+          // Gerencia 20-10: cerrar sin anotar nada no deja un expediente vivo
+          // y vacío en la ficha. La base decide si de verdad está vacío.
+          if (!v && !guardo && oportunidadId) {
+            const op = oportunidadId;
+            void descartarExpedienteVacio(op).then((r) => {
+              if (r.descartado) router.refresh();
+            });
+          }
+        }}
+      >
         <DialogPrimitive.Portal>
           <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/20 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
           <DialogPrimitive.Popup
             className={cn(
-              "fixed inset-y-0 right-0 z-50 flex w-full max-w-xl flex-col bg-background text-sm shadow-2xl outline-none ring-1 ring-foreground/10",
+              "fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-background text-sm shadow-2xl outline-none ring-1 ring-foreground/10 transition-[max-width]",
+              grande ? "max-w-none" : "max-w-xl",
               "data-open:animate-in data-open:slide-in-from-right data-closed:animate-out data-closed:slide-out-to-right",
             )}
           >
@@ -97,9 +117,19 @@ export function AnotarGestionPanel({
                   )}
                 </DialogPrimitive.Description>
               </div>
-              <DialogPrimitive.Close className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground" aria-label="Cerrar">
-                <X className="size-4" />
-              </DialogPrimitive.Close>
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setGrande((g) => !g)}
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+                >
+                  {grande ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
+                  {grande ? "Reducir" : "Ampliar"}
+                </button>
+                <DialogPrimitive.Close className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground" aria-label="Cerrar">
+                  <X className="size-4" />
+                </DialogPrimitive.Close>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
               {oportunidadId && (
@@ -110,6 +140,7 @@ export function AnotarGestionPanel({
                   motivos={motivos}
                   esPostventa={esPostventa}
                   alRegistrar={() => {
+                    setGuardo(true);
                     setAbierto(false);
                     router.refresh();
                   }}

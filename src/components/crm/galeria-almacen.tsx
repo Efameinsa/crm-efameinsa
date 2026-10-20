@@ -30,8 +30,8 @@ export function GaleriaAlmacen({ fotos, titulo = "Fotos del almacén" }: { fotos
     else grupos.push({ maquina, serie: f.serie ?? null, fotos: [f] });
   }
   return (
-    <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-      <h2 className="text-[12px] font-bold uppercase tracking-wide text-foreground">{titulo}</h2>
+    <div className={titulo ? "rounded-xl border border-border bg-card p-4 shadow-sm" : ""}>
+      {titulo && <h2 className="text-[12px] font-bold uppercase tracking-wide text-foreground">{titulo}</h2>}
       {grupos.map((g, j) => (
         <div key={j}>
           {g.maquina && (

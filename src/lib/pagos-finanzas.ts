@@ -74,10 +74,13 @@ export interface PedidoFinanzas {
   ordenFacturarAt: string | null;
   ordenFacturarNota: string | null;
   ordenFacturarAtendidaAt: string | null;
+  /** «No se factura» con su motivo (0552, gerencia 20-10, caso Lino). */
+  noSeFacturaAt: string | null;
+  noSeFacturaMotivo: string | null;
 }
 
 const COLUMNAS =
-  "id, cuenta_id, cliente_texto, equipo, moneda, monto, monto_pagado, retenido_tipo, retenido_monto, retenido_cobrado_at, pct_antes_despacho, credito_dias, fecha_despacho, despachado_at, pago_observado_at, pago_observado_motivo, pago_observado_adjunto, pago_solicitado_at, urgencia_finanzas_at, urgencia_finanzas_motivo, urgencia_finanzas_n, pago_confirmado_at, pago_confirmado_detalle, pedido_ejecutado_at, liquidacion_at, liquidacion_subida_at, facturacion_observada_at, facturacion_observada_motivo, orden_facturar_at, orden_facturar_nota, orden_facturar_atendida_at, informe_cierre_id, apertura_empresa, numero_pedido_erp, cerrado_at, completado, created_at";
+  "id, cuenta_id, cliente_texto, equipo, moneda, monto, monto_pagado, retenido_tipo, retenido_monto, retenido_cobrado_at, pct_antes_despacho, credito_dias, fecha_despacho, despachado_at, pago_observado_at, pago_observado_motivo, pago_observado_adjunto, pago_solicitado_at, urgencia_finanzas_at, urgencia_finanzas_motivo, urgencia_finanzas_n, pago_confirmado_at, pago_confirmado_detalle, pedido_ejecutado_at, liquidacion_at, liquidacion_subida_at, facturacion_observada_at, facturacion_observada_motivo, orden_facturar_at, orden_facturar_nota, orden_facturar_atendida_at, no_se_factura_at, no_se_factura_motivo, informe_cierre_id, apertura_empresa, numero_pedido_erp, cerrado_at, completado, created_at";
 
 const limpiarCliente = (t: string | null) => (t ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "");
 const dia = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
@@ -182,6 +185,8 @@ async function armar(supabase: SupabaseClient, filas: Fila[]): Promise<PedidoFin
         ordenFacturarAt: (f.orden_facturar_at as string | null) ?? null,
         ordenFacturarNota: (f.orden_facturar_nota as string | null) ?? null,
         ordenFacturarAtendidaAt: (f.orden_facturar_atendida_at as string | null) ?? null,
+        noSeFacturaAt: (f.no_se_factura_at as string | null) ?? null,
+        noSeFacturaMotivo: (f.no_se_factura_motivo as string | null) ?? null,
       };
     });
 }
@@ -269,6 +274,24 @@ export async function pedidosConLiquidacion(supabase: SupabaseClient, limite = 3
     .not("informe_cierre_id", "is", null)
     .not("liquidacion_subida_at", "is", null)
     .order("liquidacion_subida_at", { ascending: false })
+    .limit(limite);
+  return armar(supabase, (data ?? []) as Fila[]);
+}
+
+/**
+ * LOS QUE FINANZAS YA DIO POR BUENOS PARA FACTURAR (0552, gerencia 20-10).
+ * Jhon: para habilitar a Facturación tenía que subir una liquidación
+ * «pendiente de factura»; «o darle simplemente un check». El OK a la orden de
+ * postventa ya basta: estos pedidos entran a «Por facturar» aunque no tengan
+ * liquidación nueva.
+ */
+export async function pedidosConOkParaFacturar(supabase: SupabaseClient, limite = 200): Promise<PedidoFinanzas[]> {
+  const { data } = await supabase
+    .from("servicios_postventa")
+    .select(COLUMNAS)
+    .not("orden_facturar_atendida_at", "is", null)
+    .is("no_se_factura_at", null)
+    .order("orden_facturar_atendida_at", { ascending: false })
     .limit(limite);
   return armar(supabase, (data ?? []) as Fila[]);
 }

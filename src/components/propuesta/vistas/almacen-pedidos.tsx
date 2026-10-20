@@ -3,7 +3,7 @@ import Link from "@/components/enlace";
 import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
 import { ETIQUETA_TIPO_APERTURA, type AperturaLlamada } from "@/lib/aperturas-llamada";
-import { ETIQUETA_TIPO_PEDIDO, circuitoDe, faltanFotosDeCarga, type ServicioPostventa, type TipoPedido } from "@/lib/postventa";
+import { ETIQUETA_TIPO_PEDIDO, circuitoDe, faltanFotosDeAgencia, faltanFotosDeCarga, type ServicioPostventa, type TipoPedido } from "@/lib/postventa";
 import type { PropsVista } from "@/lib/propuesta/vistas";
 import { Chips, FilaTrabajo, Grupo, Numero, Vacio, haceCuanto, type DatosFila, type Tono } from "@/components/propuesta/kit";
 
@@ -35,14 +35,14 @@ const GRUPOS: { clave: Clave; titulo: string; ayuda: string; tono: Tono }[] = [
   { clave: "llamadas", titulo: "Llamadas: falta el informe", ayuda: "Derivadas por postventa: tómela y, al terminar, suba el informe.", tono: "atencion" },
   { clave: "probar", titulo: "Probar y embalar", ayuda: "Postventa pidió la prueba: falta el protocolo y el check.", tono: "atencion" },
   // Auditoría 25-09: la lista de siempre lo avisaba y esta vista no.
-  { clave: "fotos", titulo: "Salieron, faltan las fotos de la carga", ayuda: "Suba las fotos de la máquina puesta en el transporte.", tono: "atencion" },
+  { clave: "fotos", titulo: "Salieron, faltan fotos del despacho", ayuda: "Suba las fotos de la máquina puesta en el transporte (planta) y, si fue por agencia, la de la agencia con la guía.", tono: "atencion" },
   { clave: "guia", titulo: "Salieron, falta la guía", ayuda: "Suba la foto de la guía en la agencia.", tono: "atencion" },
   { clave: "sinApertura", titulo: "Con fecha, sin apertura", ayuda: "Postventa puso fecha pero no emitió la apertura: todavía no hay nada que preparar.", tono: "neutro" },
   { clave: "adelantar", titulo: "Para adelantar", ayuda: "Aprobados; postventa todavía no pidió la prueba.", tono: "neutro" },
 ];
 
 const CAMPOS =
-  "id, cliente_texto, equipo, fecha_despacho, despacho_hora, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, almacen_listo_at, agencia_at, guia, informe_cierre_id, pedido_ejecutado_at, aprobado_at, updated_at, salida_fotos, tipo_pedido, modalidad, entrega_en, guia_confirmada_at";
+  "id, cliente_texto, equipo, fecha_despacho, despacho_hora, despachado_at, apertura_despacho_at, prueba_solicitada_at, prueba_lista_at, prueba_embalaje, almacen_listo_at, agencia_at, guia, informe_cierre_id, pedido_ejecutado_at, aprobado_at, updated_at, salida_fotos, agencia_fotos, entrega_modo, tipo_pedido, modalidad, entrega_en, guia_confirmada_at";
 
 async function clasificar(supabase: Cliente): Promise<Record<Clave, DatosFila[]>> {
   const hoy = hoyLima();
@@ -98,8 +98,13 @@ async function clasificar(supabase: Cliente): Promise<Record<Clave, DatosFila[]>
   for (const s of vivos) {
     const pedido = `/almacen/pedidos/${s.id}`;
     if (s.despachado_at) {
-      if (faltanFotosDeCarga(s)) {
-        out.fotos.push({ ...base(s), orden: s.despachado_at, estado: { texto: "Salió · faltan fotos de la carga", tono: "atencion" }, edad: `Salió ${haceCuanto(s.despachado_at)}`, tono: "atencion", accion: { etiqueta: "Subir las fotos", href: pedido } });
+      // Gerencia 20-10: las dos fotos del despacho, planta y agencia, como pendientes.
+      const faltaPlanta = faltanFotosDeCarga(s);
+      // Sin guía todavía, ya está en «Salieron, falta la guía» (mismo paso en la agencia).
+      const faltaAgencia = Boolean(s.guia || s.agencia_at) && faltanFotosDeAgencia(s as Parameters<typeof faltanFotosDeAgencia>[0]);
+      if (faltaPlanta || faltaAgencia) {
+        const que = faltaPlanta && faltaAgencia ? "faltan fotos de planta y de la agencia" : faltaPlanta ? "faltan fotos de la carga en planta" : "falta la foto en la agencia";
+        out.fotos.push({ ...base(s), orden: s.despachado_at, estado: { texto: `Salió · ${que}`, tono: "atencion" }, edad: `Salió ${haceCuanto(s.despachado_at)}`, tono: "atencion", accion: { etiqueta: "Subir las fotos", href: pedido } });
       }
       // Un servicio no lleva guía: sale el técnico y lo cierra postventa con el
       // informe (buzón Almacén 20-10: «Subir la guía» abría el pedido sin dónde subirla).

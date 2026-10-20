@@ -350,6 +350,10 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
         {pestana === "resumen" && (
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
             <div className="space-y-4">
+              {/* GERENCIA 20-10 (Beneficencia, con Brenda PV2): para postventa
+                  lo primero son los pedidos y casos abiertos, a un clic —antes
+                  había que pasar por el expediente para llegar al pedido—. */}
+              {esArea && <PendientesDelCliente cuentaId={cuenta.id} conEnlace={esArea} />}
               <ExpedientesVivos cuentaId={cuenta.id} vivas={vivas} verPrecios={verPrecios} conAnotar={anotaGestion} derivacionPorExpediente={derivacionPorExpediente} />
               {siguiente && (
                 <EnlaceOFila href={enlaceExpediente(siguiente.id)} className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 transition-colors hover:bg-primary/10">
@@ -367,7 +371,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
               <UltimoHistorial cuentaId={cuenta.id} verPrecios={verPrecios} />
             </div>
             <div className="space-y-4">
-              <PendientesDelCliente cuentaId={cuenta.id} conEnlace={esArea} />
+              {!esArea && <PendientesDelCliente cuentaId={cuenta.id} conEnlace={esArea} />}
               {/* El chat de Mi cuenta en efameinsa.com (0528, Santos 17-10). */}
               <MensajesMiCuenta cuentaId={cuenta.id} siempre />
               <InformesTecnicosDelCliente cuentaId={cuenta.id} conEnlace={abreInformes} />
