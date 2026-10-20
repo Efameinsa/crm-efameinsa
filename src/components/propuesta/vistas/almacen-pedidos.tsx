@@ -3,7 +3,7 @@ import Link from "@/components/enlace";
 import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
 import { ETIQUETA_TIPO_APERTURA, type AperturaLlamada } from "@/lib/aperturas-llamada";
-import { ETIQUETA_TIPO_PEDIDO, faltanFotosDeCarga, type ServicioPostventa, type TipoPedido } from "@/lib/postventa";
+import { ETIQUETA_TIPO_PEDIDO, circuitoDe, faltanFotosDeCarga, type ServicioPostventa, type TipoPedido } from "@/lib/postventa";
 import type { PropsVista } from "@/lib/propuesta/vistas";
 import { Chips, FilaTrabajo, Grupo, Numero, Vacio, haceCuanto, type DatosFila, type Tono } from "@/components/propuesta/kit";
 
@@ -101,7 +101,9 @@ async function clasificar(supabase: Cliente): Promise<Record<Clave, DatosFila[]>
       if (faltanFotosDeCarga(s)) {
         out.fotos.push({ ...base(s), orden: s.despachado_at, estado: { texto: "Salió · faltan fotos de la carga", tono: "atencion" }, edad: `Salió ${haceCuanto(s.despachado_at)}`, tono: "atencion", accion: { etiqueta: "Subir las fotos", href: pedido } });
       }
-      if (!s.guia && !s.agencia_at) {
+      // Un servicio no lleva guía: sale el técnico y lo cierra postventa con el
+      // informe (buzón Almacén 20-10: «Subir la guía» abría el pedido sin dónde subirla).
+      if (!s.guia && !s.agencia_at && !circuitoDe(s).esServicio) {
         out.guia.push({ ...base(s), orden: s.despachado_at, estado: { texto: "Salió · falta la guía", tono: "atencion" }, edad: `Salió ${haceCuanto(s.despachado_at)}`, tono: "atencion", accion: { etiqueta: "Subir la guía", href: pedido } });
       }
       continue;
