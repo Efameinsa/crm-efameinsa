@@ -56,6 +56,22 @@ export interface LlamadasPlugin {
   pedirShizuku(): Promise<EstadoLlamadas>;
   /** Guarda en el celular si la persona aceptó el aviso de grabación (el CRM lo registra aparte). */
   aceptarGrabacion(opciones: { acepto: boolean }): Promise<EstadoLlamadas>;
+  /** Modo setter: llamar a cada lead nuevo apenas llega (0540). Existe desde la app 1.2.0. */
+  setterEstado(): Promise<EstadoSetter>;
+  setterActivar(opciones: { activo: boolean }): Promise<EstadoSetter>;
+  setterPermiso(opciones: { cual: "telefono" | "notificaciones" | "sobreOtrasApps" | "bateria" }): Promise<EstadoSetter>;
+}
+
+export interface EstadoSetter {
+  activo: boolean;
+  /** ¿El celular ya tiene la dirección del CRM y su token? */
+  configurada: boolean;
+  telefono: boolean;
+  notificaciones: boolean;
+  /** «Mostrar sobre otras apps»: lo que deja marcar sola, sin tocar el celular. */
+  sobreOtrasApps: boolean;
+  bateriaLibre: boolean;
+  ultimoError: string | null;
 }
 
 /**
@@ -76,6 +92,9 @@ export async function plugin(): Promise<LlamadasPlugin | null> {
     pedirPermiso: () => nativo.pedirPermiso(),
     pedirShizuku: () => nativo.pedirShizuku(),
     aceptarGrabacion: (opciones) => nativo.aceptarGrabacion(opciones),
+    setterEstado: () => nativo.setterEstado(),
+    setterActivar: (opciones) => nativo.setterActivar(opciones),
+    setterPermiso: (opciones) => nativo.setterPermiso(opciones),
   };
 }
 

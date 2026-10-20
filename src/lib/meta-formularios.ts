@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notificar, notificarLeadEntrante } from "@/lib/notificaciones";
 import { avisarLeadNuevoN8n } from "@/lib/avisos-n8n";
+import { encolarLlamadaSetter } from "@/lib/setter-llamadas";
 
 // Un formulario instantáneo de Meta (campaña «Clientes potenciales») se
 // convierte en contacto del CRM. Lo usan dos entradas:
@@ -166,6 +167,9 @@ export async function registrarFormularioMeta(f: FormularioMeta): Promise<Result
   } else {
     await notificarLeadEntrante({ titulo: "Nuevo contacto de Meta Ads (formulario)", cuerpo: quien });
   }
+
+  // Modo setter (0540): el celular de quien valida los leads llama de inmediato.
+  await encolarLlamadaSetter({ leadId: creado.id, nombre: nombre || "Sin nombre", telefono, detalle: [razonSocial, f.campaignName].filter(Boolean).join(" · ") || null });
 
   await avisarLeadNuevoN8n({
     titulo: "Nuevo lead de Meta Ads (formulario)",
