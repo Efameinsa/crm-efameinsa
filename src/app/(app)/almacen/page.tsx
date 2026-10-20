@@ -8,7 +8,7 @@ import { MandadoACentral } from "@/components/crm/mandado-a-central";
 import { listarMandadoACentral } from "@/lib/mandado-a-central";
 import { campaniasWhatsappActivas } from "@/lib/acciones/whatsapp-campanas";
 import { ETIQUETA_TIPO_ATENCION } from "@/lib/atenciones";
-import type { ServicioPostventa } from "@/lib/postventa";
+import { circuitoDe, type ServicioPostventa } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
 import { torresSinSegundaSerie } from "@/lib/torres";
 import { ClipboardCheck, FileText, Plus } from "lucide-react";
@@ -104,7 +104,10 @@ export default async function AlmacenPage() {
   // apertura todavía — «si no ha cumplido, no puedo hacer nada» — para que
   // el almacén no confunda «tiene fecha» con «ya se puede preparar».
   const sinApertura = programados.filter((s) => !s.apertura_despacho_at);
-  const salidosSinGuia = vivos.filter((s) => s.despachado_at && !s.guia && !s.agencia_at && (s.salida_fotos?.length ?? 0) > 0);
+  // La misma regla que la lista «Salieron, sin guía» (/almacen/pedidos?ver=guia):
+  // los servicios (revisión, mantenimiento) no llevan guía, y lo que salió sin
+  // fotos de la carga también cuenta (buzón Almacén 20-10: «dice 5 y salen 3»).
+  const salidosSinGuia = vivos.filter((s) => s.despachado_at && !s.guia && !s.agencia_at && !circuitoDe(s).esServicio);
 
   const at = (atenciones ?? []) as unknown as { id: string; tipo: string; programada_at: string; tecnico: string | null; cliente_texto: string | null; equipo_texto: string | null; cuentas: { razon_social: string } | null }[];
   const atHoy = at.filter((a) => a.programada_at.startsWith(hoy) || new Date(a.programada_at).toLocaleDateString("en-CA", { timeZone: "America/Lima" }) === hoy);
