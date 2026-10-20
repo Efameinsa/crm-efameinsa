@@ -147,7 +147,7 @@ export function SetterNativo() {
       </p>
       <p className="mt-1 text-muted-foreground">
         {estado.activo
-          ? "Cada lead nuevo con teléfono le llega como aviso y esta app lo llama. Si el lead no le sirve, toque «Cancelar» en el aviso antes de que marque."
+          ? "Cada lead nuevo con teléfono le llega como aviso y esta app lo llama. Al colgar se abre sola una pantalla para tipificarlo con un toque; el lead pasa al vendedor solo cuando usted lo tipifica."
           : "Encienda el modo setter para que esta app llame a cada lead nuevo apenas llega, para validarlo."}
       </p>
       {estado.activo && pendiente && (
@@ -162,6 +162,16 @@ export function SetterNativo() {
             {pendiente.boton}
           </button>
         </div>
+      )}
+      {estado.activo && (estado.porTipificar ?? 0) > 0 && (
+        <button
+          type="button"
+          disabled={ocupado}
+          onClick={() => void llamadas.current?.setterTipificar?.()}
+          className="mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+        >
+          {estado.porTipificar === 1 ? "Tipificar el lead que falta" : `Tipificar los ${estado.porTipificar} leads que faltan`}
+        </button>
       )}
       {(aviso || estado.ultimoError) && <p className="mt-2 text-xs font-medium text-amber-800">{aviso ?? estado.ultimoError}</p>}
       <button

@@ -60,6 +60,8 @@ export interface LlamadasPlugin {
   setterEstado(): Promise<EstadoSetter>;
   setterActivar(opciones: { activo: boolean }): Promise<EstadoSetter>;
   setterPermiso(opciones: { cual: "telefono" | "notificaciones" | "sobreOtrasApps" | "bateria" }): Promise<EstadoSetter>;
+  /** Abre la pantalla de tipificar los leads que quedaron sin resultado. Existe desde la app 1.3.0. */
+  setterTipificar?(): Promise<EstadoSetter>;
 }
 
 export interface EstadoSetter {
@@ -71,6 +73,8 @@ export interface EstadoSetter {
   /** «Mostrar sobre otras apps»: lo que deja marcar sola, sin tocar el celular. */
   sobreOtrasApps: boolean;
   bateriaLibre: boolean;
+  /** Leads ya llamados que esperan que se elija su resultado (app 1.3.0 en adelante). */
+  porTipificar?: number;
   ultimoError: string | null;
 }
 
@@ -95,6 +99,7 @@ export async function plugin(): Promise<LlamadasPlugin | null> {
     setterEstado: () => nativo.setterEstado(),
     setterActivar: (opciones) => nativo.setterActivar(opciones),
     setterPermiso: (opciones) => nativo.setterPermiso(opciones),
+    setterTipificar: () => nativo.setterTipificar!(),
   };
 }
 

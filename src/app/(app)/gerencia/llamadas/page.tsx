@@ -4,6 +4,7 @@ import { hoyLima } from "@/lib/periodo";
 import { duracionLegible, fechaLima, numeroParaMostrar } from "@/lib/llamadas";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { FilaLlamada, type LlamadaVista } from "@/components/crm/fila-llamada";
+import { RESULTADOS, type Resultado } from "@/lib/setter-tipificacion";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,20 @@ type Fila = {
   cuentas: { razon_social: string | null; nombre_comercial: string | null } | null;
   contactos: { nombre: string } | null;
 };
+
+type FilaSetter = {
+  id: string;
+  nombre: string;
+  telefono: string;
+  resultado: Resultado;
+  nota: string | null;
+  duracion_s: number | null;
+  tipificada_at: string;
+  intento: number;
+  leads: { codigo: string | null; codigo_campania_wa: string | null } | null;
+};
+
+const COLOR_SETTER = { pasa: "bg-emerald-100 text-emerald-900", cierra: "bg-rose-100 text-rose-900", reintento: "bg-amber-100 text-amber-900" } as const;
 
 /**
  * LLAMADAS GRABADAS (Santos, 19-10-2026): todas las llamadas que los comerciales
@@ -56,6 +71,28 @@ export default async function LlamadasGerenciaPage({ searchParams }: { searchPar
   if (comercialFiltro) consulta = consulta.eq("user_id", comercialFiltro);
   const { data } = await consulta;
   const filas = (data ?? []) as unknown as Fila[];
+
+  // El setter (20-10): cada lead de Meta que llamó y cómo lo tipificó. Sale de aquí el informe por campaña.
+  const { data: dataSetter } = await supabase
+    .from("llamadas_por_hacer")
+    .select("id, nombre, telefono, resultado, nota, duracion_s, tipificada_at, intento, leads(codigo, codigo_campania_wa)")
+    .not("resultado", "is", null)
+    .gte("tipificada_at", desde.toISOString())
+    .lt("tipificada_at", hasta.toISOString())
+    .order("tipificada_at", { ascending: false })
+    .limit(TOPE);
+  const delSetter = ((dataSetter ?? []) as unknown as FilaSetter[]).filter((f) => f.resultado in RESULTADOS);
+  const conteoSetter = new Map<Resultado, number>();
+  for (const f of delSetter) conteoSetter.set(f.resultado, (conteoSetter.get(f.resultado) ?? 0) + 1);
+  const pasaron = delSetter.filter((f) => RESULTADOS[f.resultado].tipo === "pasa").length;
+  const porCampania = new Map<string, { total: number; pasan: number }>();
+  for (const f of delSetter) {
+    const c = f.leads?.codigo_campania_wa ?? "Sin campaña";
+    const t = porCampania.get(c) ?? { total: 0, pasan: 0 };
+    t.total++;
+    if (RESULTADOS[f.resultado].tipo === "pasa") t.pasan++;
+    porCampania.set(c, t);
+  }
 
   const { data: gente } = await supabase
     .from("perfiles")
@@ -160,6 +197,44 @@ export default async function LlamadasGerenciaPage({ searchParams }: { searchPar
           </a>
         </div>
       </form>
+
+      {delSetter.length > 0 && (
+        <SeccionPanel titulo={`Setter · leads de Meta filtrados · ${delSetter.length}`}>
+          <p className="mb-2 text-xs text-muted-foreground">
+            Cada lead que el setter llamó y cómo lo tipificó. «Pasa» = se repartió al vendedor; «cierra» = se cerró con su motivo; «reintento» = volverá a llamarse.
+            {` Pasaron al vendedor ${pasaron} de ${delSetter.length} (${Math.round((100 * pasaron) / delSetter.length)} %).`}
+          </p>
+          <ul className="mb-3 flex flex-wrap gap-2 text-xs">
+            {(Object.keys(RESULTADOS) as Resultado[])
+              .filter((k) => conteoSetter.has(k))
+              .map((k) => (
+                <li key={k} className={`rounded-full px-3 py-1 font-semibold tabular-nums ${COLOR_SETTER[RESULTADOS[k].tipo]}`}>
+                  {RESULTADOS[k].etiqueta}: {conteoSetter.get(k)}
+                </li>
+              ))}
+          </ul>
+          <ul className="mb-3 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2 lg:grid-cols-3">
+            {[...porCampania.entries()].map(([c, t]) => (
+              <li key={c} className="tabular-nums">
+                <b className="text-foreground">{c}</b>: {t.total} lead{t.total === 1 ? "" : "s"}, {t.pasan} pasaron
+              </li>
+            ))}
+          </ul>
+          <ul className="divide-y divide-border text-sm">
+            {delSetter.map((f) => (
+              <li key={f.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-1.5">
+                <span className="w-12 tabular-nums text-xs text-muted-foreground">{fechaLima(f.tipificada_at).horaPantalla}</span>
+                <b className="font-semibold text-foreground">{f.nombre}</b>
+                <span className="tabular-nums text-xs text-muted-foreground">{numeroParaMostrar(f.telefono)}</span>
+                <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${COLOR_SETTER[RESULTADOS[f.resultado].tipo]}`}>{RESULTADOS[f.resultado].etiqueta}</span>
+                {f.leads?.codigo_campania_wa && <span className="text-xs text-muted-foreground">{f.leads.codigo_campania_wa}</span>}
+                {f.intento > 1 && <span className="text-xs text-muted-foreground">intento {f.intento}</span>}
+                {f.nota && <span className="basis-full text-xs text-muted-foreground">{f.nota}</span>}
+              </li>
+            ))}
+          </ul>
+        </SeccionPanel>
+      )}
 
       <SeccionPanel titulo={`Por comercial · ${dia.split("-").reverse().join("-")}`}>
         {tarjetasOrdenadas.length === 0 ? (

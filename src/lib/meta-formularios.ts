@@ -1,7 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notificar, notificarLeadEntrante } from "@/lib/notificaciones";
 import { avisarLeadNuevoN8n } from "@/lib/avisos-n8n";
-import { encolarLlamadaSetter } from "@/lib/setter-llamadas";
+import { encolarLlamadaSetter, liberarLeadsSinTipificar, setterEnLinea } from "@/lib/setter-llamadas";
 
 // Un formulario instantáneo de Meta (campaña «Clientes potenciales») se
 // convierte en contacto del CRM. Lo usan dos entradas:
@@ -69,7 +69,7 @@ export function mapearCampos(campos: { name: string; values: string[] }[]) {
   return { nombre: nombreFinal, email, telefono, razonSocial, extras };
 }
 
-interface ResultadoAsignacion {
+export interface ResultadoAsignacion {
   resultado: "asignado" | "central" | "retenido_cartera_ajena" | "retenido_sin_turno" | "retenido_error";
   comercial_id?: string;
   comercial_nombre?: string;
@@ -80,6 +80,46 @@ interface ResultadoAsignacion {
   dueno_codigo?: string | null;
   oportunidad_id?: string;
   detalle?: string;
+}
+
+/**
+ * Reparte un formulario de Meta ya registrado: lo asigna al dueño de la campaña (o lo deja en
+ * Central) y avisa. Lo usan el registro (cuando no hay setter en línea) y el setter al tipificar.
+ */
+export async function repartirFormularioMeta(leadId: string, ctx: { codigo: string; quien: string }): Promise<ResultadoAsignacion | null> {
+  const admin = createAdminClient();
+  const { codigo, quien } = ctx;
+  const creado = { id: leadId, codigo };
+  const { data: asignacionData, error: errorAsignacion } = await admin.rpc("asignar_lead_desde_formulario", { p_lead_id: creado.id });
+  if (errorAsignacion) console.error("formulario de Meta: asignar_lead_desde_formulario", errorAsignacion.message);
+  const asignacion = (asignacionData ?? null) as ResultadoAsignacion | null;
+
+  if (asignacion?.resultado === "asignado" && asignacion.comercial_id) {
+    await notificar({
+      userId: asignacion.comercial_id,
+      tipo: "lead_asignado",
+      titulo: asignacion.por_cartera
+        ? `Su cliente ${asignacion.razon_social ?? ""} llenó un formulario de Meta`.replace(/\s+/g, " ")
+        : "Nuevo formulario de campaña para usted",
+      cuerpo: `${quien} · ${creado.codigo}`,
+      url: asignacion.oportunidad_id ? `/comercial/oportunidades/${asignacion.oportunidad_id}` : "/comercial/oportunidades",
+    });
+    await notificar({
+      rol: "gerencia",
+      tipo: "lead_registrado",
+      titulo: `Formulario de Meta → ${asignacion.comercial_codigo ?? asignacion.comercial_nombre}`,
+      cuerpo: quien,
+    });
+  } else if (asignacion?.resultado === "retenido_cartera_ajena") {
+    await notificarLeadEntrante({
+      titulo: `Formulario de Meta retenido: ya es cliente de ${asignacion.dueno_codigo ?? asignacion.dueno_nombre ?? "otro comercial"}`,
+      cuerpo: `${quien} · ${asignacion.razon_social ?? ""}`.trim(),
+    });
+  } else {
+    await notificarLeadEntrante({ titulo: "Nuevo contacto de Meta Ads (formulario)", cuerpo: quien });
+  }
+
+  return asignacion;
 }
 
 export async function registrarFormularioMeta(f: FormularioMeta): Promise<ResultadoFormulario> {
@@ -138,38 +178,16 @@ export async function registrarFormularioMeta(f: FormularioMeta): Promise<Result
     return { estado: "error", detalle: error.message };
   }
 
-  const { data: asignacionData, error: errorAsignacion } = await admin.rpc("asignar_lead_desde_formulario", { p_lead_id: creado.id });
-  if (errorAsignacion) console.error("formulario de Meta: asignar_lead_desde_formulario", errorAsignacion.message);
-  const asignacion = (asignacionData ?? null) as ResultadoAsignacion | null;
-
-  const quien = [nombre || "Sin nombre", razonSocial, f.campaignName ?? "Formulario de Meta"].filter(Boolean).join(" · ");
-  if (asignacion?.resultado === "asignado" && asignacion.comercial_id) {
-    await notificar({
-      userId: asignacion.comercial_id,
-      tipo: "lead_asignado",
-      titulo: asignacion.por_cartera
-        ? `Su cliente ${asignacion.razon_social ?? ""} llenó un formulario de Meta`.replace(/\s+/g, " ")
-        : "Nuevo formulario de campaña para usted",
-      cuerpo: `${quien} · ${creado.codigo}`,
-      url: asignacion.oportunidad_id ? `/comercial/oportunidades/${asignacion.oportunidad_id}` : "/comercial/oportunidades",
-    });
-    await notificar({
-      rol: "gerencia",
-      tipo: "lead_registrado",
-      titulo: `Formulario de Meta → ${asignacion.comercial_codigo ?? asignacion.comercial_nombre}`,
-      cuerpo: quien,
-    });
-  } else if (asignacion?.resultado === "retenido_cartera_ajena") {
-    await notificarLeadEntrante({
-      titulo: `Formulario de Meta retenido: ya es cliente de ${asignacion.dueno_codigo ?? asignacion.dueno_nombre ?? "otro comercial"}`,
-      cuerpo: `${quien} · ${asignacion.razon_social ?? ""}`.trim(),
-    });
-  } else {
-    await notificarLeadEntrante({ titulo: "Nuevo contacto de Meta Ads (formulario)", cuerpo: quien });
-  }
+  // Modo setter: si el celular del setter está en línea, el lead espera a que él lo llame y lo
+  // tipifique; recién entonces se reparte (ver `entregarLeadDelSetter`). Si no, se reparte ya.
+  const retener = await setterEnLinea();
+  let asignacion: ResultadoAsignacion | null = null;
+  if (!retener) asignacion = await repartirFormularioMeta(creado.id, { codigo: creado.codigo, quien: [nombre || "Sin nombre", razonSocial, f.campaignName ?? "Formulario de Meta"].filter(Boolean).join(" · ") });
+  else await notificarLeadEntrante({ titulo: "Contacto de Meta en manos del setter", cuerpo: [nombre || "Sin nombre", f.campaignName].filter(Boolean).join(" · ") + ` · ${creado.codigo}` });
 
   // Modo setter (0540): el celular de quien valida los leads llama de inmediato.
-  await encolarLlamadaSetter({ leadId: creado.id, nombre: nombre || "Sin nombre", telefono, detalle: [razonSocial, f.campaignName].filter(Boolean).join(" · ") || null });
+  await encolarLlamadaSetter({ leadId: creado.id, nombre: nombre || "Sin nombre", telefono, detalle: [razonSocial, f.campaignName].filter(Boolean).join(" · ") || null, retiene: retener });
+  await liberarLeadsSinTipificar();
 
   await avisarLeadNuevoN8n({
     titulo: "Nuevo lead de Meta Ads (formulario)",
