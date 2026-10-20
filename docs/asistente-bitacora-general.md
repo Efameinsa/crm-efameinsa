@@ -1,6 +1,6 @@
 # Bitácora del CRM Efameinsa: historia de las decisiones
 
-Vigente al 19-10-2026. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
+Vigente al 20-10-2026. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
 
 Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién decidió que postventa no vea precios?», «¿esto siempre fue así?» o «¿qué pasó con el caso X?».
 
@@ -17,6 +17,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 ---
 
 ## Cronología de reuniones y decisiones
+
+### 19-10 (tarde) · Lo que resolvió el buzón: abono en la liquidación y corrección de la guía (Jhon, almacén)
+- **Confirmar abono en la liquidación (Jhon):** desde la pantalla «Generar liquidación» Finanzas confirma un abono ya acreditado y entra de inmediato a esa liquidación. Detalle en la bitácora de Finanzas.
+- **Corregir la guía de una entrega ya registrada (almacén):** almacén no podía corregir el adjunto ni los datos de la guía después de «Salieron, sin guía». Desde el 19-10, en el recuadro verde «Despachado con guía…» del pedido está «Corregir la guía o las fotos»: se cambia agencia, N.º de guía o quién recibió y se reemplazan las fotos que estén mal. No cambia la fecha de la entrega y postventa recibe un aviso con la corrección. Caso: los dos pedidos de ABACHI con la guía EG07-928.
 
 ### 19-10 · Validación de los avisos al cliente: gerencia opina y prueba del recorrido (Santos)
 - **Revisión por gerencia en mkt.efameinsa.com:** los gerentes (C.R. y K.Y. Cabrejos) entran con su correo del CRM y una clave propia de esa herramienta (no cambia su clave del CRM). Ven todo, pero no editan: en cada correo, cada WhatsApp y cada secuencia dejan su opinión con **Aprobado**, **Observación** (con nota) o **No va**. La opinión queda con su nombre y se ve en Revisión, en Plantillas y al costado de cada secuencia. Etapa de validación: nada se envía a clientes.

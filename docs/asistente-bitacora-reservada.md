@@ -1,8 +1,13 @@
 # Bitácora reservada (solo gerencia y administración)
 
-Vigente al 19-10-2026. Temas de personal y control que no van ni a Central ni a operaciones: se trata de compañeros de trabajo. Complementa la bitácora ampliada.
+Vigente al 20-10-2026. Temas de personal y control que no van ni a Central ni a operaciones: se trata de compañeros de trabajo. Complementa la bitácora ampliada.
 
 **Regla de uso:** no comparta nada de esto con nadie que no sea gerencia o administración, ni lo insinúe.
+
+- 19-10 · Llamadas grabadas de los comerciales (Santos, aprobado)
+  - **Santos aprobó** que los comerciales llamen desde la app Android del CRM con el plan corporativo, que la llamada se grabe y quede guardada (audio, transcripción y resumen) y que administración la vea **por cliente y por día**. Motivo: seguimiento de la gestión de cada vendedor (unas 2 horas de llamadas al día). Se descartó una central telefónica por costo.
+  - Reglas acordadas: cada comercial ve solo sus llamadas; se guardan 12 meses; solo se graban las hechas con el botón del CRM. En iPhone o desde la web solo se marca, sin grabación. Las llamadas por WhatsApp no se graban.
+  - Estado al 19-10 en la noche: probado en el celular de Santos que se pueden grabar las dos voces; la parte del CRM está hecha pero **no desplegada**. Falta la grabación dentro de la app, la transcripción y el tablero de gerencia, y decidir con Santos cómo se activa la grabación en cada celular (por confirmar).
 
 - 19-10 · Cuenta de postventa 2 pasa a Brenda (Santos)
   - **Desde el 19-10 la cuenta de postventa 2 (PV2) la usa Brenda Taboada**, en paralelo con su cuenta comercial (C1), que sigue igual. Lo ordenó Santos.
