@@ -34,6 +34,7 @@ import {
   MessageCircle,
   DoorOpen,
   type LucideIcon,
+  Phone,
   PhoneForwarded,
   FileCheck2,
   Truck,
@@ -108,6 +109,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/gerencia/supervision", etiqueta: "Supervisión diaria", icono: ClipboardCheck },
     // Aparte de la supervisión (Santos, 23-09): sus KPIs están por definirse.
     { href: "/gerencia/gestion-whatsapp", etiqueta: "Gestión de WhatsApp", icono: ClipboardCheck },
+    // Las llamadas que los comerciales hicieron con el botón «Llamar», con audio y resumen (19-10).
+    { href: "/gerencia/llamadas", etiqueta: "Llamadas grabadas", icono: Phone },
     // Las metas de cada indicador, editables y con registro (0353, 30-09).
     { href: "/gerencia/metas", etiqueta: "Metas", icono: Target },
     { href: "/gerencia/potenciales", etiqueta: "Potenciales", icono: Target },
