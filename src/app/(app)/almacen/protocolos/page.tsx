@@ -37,7 +37,7 @@ const sinRuc = (t: string | null) => (t ?? "Cliente sin nombre").replace(/^\d{8,
  * 0471) y los de los equipos en stock (0474), con su N.º, serie, técnico y si
  * ya están terminados. Cada uno abre su informe con la hoja de chequeo.
  */
-export default async function ProtocolosAlmacenPage({ searchParams }: { searchParams: Promise<{ ver?: string; q?: string }> }) {
+export default async function ProtocolosAlmacenPage({ searchParams }: { searchParams: Promise<{ ver?: string; q?: string; nuevo?: string }> }) {
   await requerirPerfil();
   const sp = await searchParams;
   const ver = sp.ver && sp.ver in VISTAS ? sp.ver : "";
@@ -136,7 +136,7 @@ export default async function ProtocolosAlmacenPage({ searchParams }: { searchPa
   };
 
   return (
-    <SeccionPanel titulo="Protocolos de prueba" accion={<NuevoProtocoloDeStock />}>
+    <SeccionPanel titulo="Protocolos de prueba" accion={<NuevoProtocoloDeStock abiertoAlEntrar={sp.nuevo === "1"} />}>
       <p className="mb-3 text-xs text-muted-foreground">
         Los protocolos de cada máquina de los pedidos y los de los equipos en stock. El de stock se hace por serie y, al terminarlo, pasa solo al
         pedido donde salga esa serie.
