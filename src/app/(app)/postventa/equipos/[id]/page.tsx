@@ -12,6 +12,8 @@ import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
 import { estadoGarantia, etiquetaTipoServicio } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
 import { CorregirSerieParque } from "@/components/crm/corregir-serie-parque";
+import { AntecedentesEquipoPanel } from "@/components/crm/antecedentes-equipo";
+import { cargarAntecedentesEquipo } from "@/lib/antecedentes-equipo";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +60,7 @@ export default async function EquipoPage({ params }: { params: Promise<{ id: str
     .eq("equipo_id", id)
     .order("ejecutado_at", { ascending: false })
     .limit(50);
+  const antecedentes = await cargarAntecedentesEquipo(supabase, id);
 
   const cuenta = data.cuentas as unknown as {
     id: string;
@@ -188,6 +191,13 @@ export default async function EquipoPage({ params }: { params: Promise<{ id: str
           )}
         </dl>
       </div>
+
+      {/* Antecedentes (0560, buzón Brenda PV2 20-10): compra, garantía y lo
+          que se le hizo antes de que llegue el caso, sobre todo en equipos que
+          no vendimos. Lo pregunta el técnico antes de ir a planta. */}
+      <SeccionPanel titulo="Antecedentes del equipo">
+        <AntecedentesEquipoPanel equipoId={id} antecedentes={antecedentes} puedeEditar={puedeCorregirSerie} />
+      </SeccionPanel>
 
       {data.observaciones && (
         <SeccionPanel titulo="Observaciones del equipo">

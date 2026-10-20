@@ -101,3 +101,29 @@ export async function corregirSerieParque(equipoId: string, serie: string, motiv
   revalidatePath(`/postventa/equipos/${equipoId}`);
   return { error: null as string | null, serie: data as string };
 }
+
+/**
+ * Antecedentes del equipo (0560, buzón Brenda PV2 20-10): compra, garantía,
+ * mantenimiento, repuestos y fallas anteriores, y los papeles. Los archivos ya
+ * vienen subidos a adjuntos/equipos/<id>/ desde el navegador; la base solo
+ * acepta los de esa carpeta.
+ */
+export async function guardarAntecedentesEquipo(datos: {
+  equipoId: string;
+  campos: Record<string, string | null>;
+  documentosNuevos: { path: string; nombre: string; tipo: string; clase: string }[];
+  quitar: string[];
+  atencionId?: string | null;
+}) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("guardar_antecedentes_equipo", {
+    p_equipo: datos.equipoId,
+    p_datos: datos.campos,
+    p_documentos_nuevos: datos.documentosNuevos,
+    p_quitar: datos.quitar,
+  });
+  if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
+  revalidatePath(`/postventa/equipos/${datos.equipoId}`);
+  if (datos.atencionId) revalidatePath(`/postventa/atenciones/${datos.atencionId}`);
+  return { error: null as string | null };
+}
