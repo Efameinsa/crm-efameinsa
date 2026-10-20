@@ -29,6 +29,7 @@ import { firmarAdjuntosDeCierres } from "@/lib/adjuntos-cierre";
 import { ContactosEditables, type ContactoEditable } from "@/components/crm/contactos-editables";
 import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
 import { FichasRelacionadas } from "@/components/crm/fichas-relacionadas";
+import { UnirConOtraFicha } from "@/components/crm/unir-con-otra-ficha";
 import { MoverGestionesBoton } from "@/components/crm/mover-gestiones-boton";
 import { candidatosMismoCliente } from "@/lib/acciones/cuentas";
 import { CambiarRubro } from "@/components/crm/cambiar-rubro";
@@ -162,7 +163,9 @@ export default async function OportunidadDetallePage({
   // ver que Ruiz Pangalima no traía ningún relacionado a la vista, aunque
   // hubiera otras dos fichas de la misma empresa escritas distinto.
   const candidatasRelacionadas = cuenta?.id ? await candidatosMismoCliente(cuenta.id) : [];
-  const supervisoresFusion = candidatasRelacionadas.length > 0 ? await cargarSupervisores(supabase) : [];
+  // 0558: «Unir con otra ficha» está siempre, así que los supervisores del
+  // código también (una consulta chica).
+  const supervisoresFusion = cuenta?.id ? await cargarSupervisores(supabase) : [];
 
   // Desde cuándo cuenta una gestión hecha en OTRA ficha de este mismo cliente:
   // desde que entró la consulta, con el margen de un día hacia atrás. Antes de
@@ -772,6 +775,21 @@ export default async function OportunidadDetallePage({
         {cuenta?.id && candidatasRelacionadas.length > 0 && (
           <div className="mt-3">
             <FichasRelacionadas cuentaId={cuenta.id} cuentaNombre={cuenta.razon_social ?? "Esta ficha"} candidatas={candidatasRelacionadas} supervisores={supervisoresFusion} />
+          </div>
+        )}
+        {/* 0558 (Katerine 20-10): cuando el CRM no adivina la pareja, el
+            comercial la busca y une él mismo. */}
+        {cuenta?.id && (
+          <div className="mt-2">
+            <UnirConOtraFicha
+              variante="enlace"
+              cuenta={{
+                id: cuenta.id,
+                razonSocial: cuenta.razon_social ?? "Esta ficha",
+                documento: cuenta.tipo_doc !== "SIN_DOC" ? cuenta.num_doc : null,
+              }}
+              supervisores={supervisoresFusion}
+            />
           </div>
         )}
       </div>

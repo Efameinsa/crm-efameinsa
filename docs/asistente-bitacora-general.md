@@ -1,6 +1,6 @@
 # Bitácora del CRM Efameinsa: historia de las decisiones
 
-Vigente al 20-10-2026 (tarde). Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
+Vigente al 20-10-2026 (tarde, segunda actualización). Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
 
 Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién decidió que postventa no vea precios?», «¿esto siempre fue así?» o «¿qué pasó con el caso X?».
 
@@ -17,6 +17,13 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 ---
 
 ## Cronología de reuniones y decisiones
+
+### 20-10 (tarde) · «Unir con otra ficha» para los comerciales (Katerine, por Santos)
+Dennis Gallardo Correa escribió por WhatsApp pidiendo una lavadora de 25 kg. Ya era contacto, con ese mismo celular, de la ficha SALVADOR CARRION ANA EUGENIA - LAVANDERIAS GLUP (cartera de Katerine, con un expediente vivo desde el 17-10). Central lo derivó y el CRM abrió una ficha nueva a su nombre. Katerine lo vio al toque y pidió unirlas, pero el comercial no tenía cómo: «¿Es el mismo cliente?» solo aparece cuando el CRM adivina la pareja y «Fichas repetidas» solo junta fichas que se llaman igual. Santos: «supongo que aparecería un buscador y podría unir las fichas y preguntar quién es el principal». Lo que quedó hecho el mismo día:
+- **Por qué pasó:** al cruzar el teléfono, el CRM descartaba la ficha porque el nombre del que escribía («Dennis Gallardo») no se parecía a la razón social («Salvador Carrión…»), aunque Dennis fuera contacto de esa ficha. Central sí veía «coincide el teléfono» en su pantalla, pero la base abría otra ficha. Desde hoy, si el celular y el nombre de la persona coinciden con un contacto de la ficha, se une a esa ficha.
+- **«Unir con otra ficha»**, en la ficha del cliente y en el expediente: el comercial busca la otra ficha (nombre, RUC, celular o contacto), elige cuál queda como principal (el CRM propone la que tiene RUC) y escribe el motivo. Sin código si las dos fichas son de su cartera (no mueve el cliente de nadie); con código de operaciones si alguna es de otra cartera. Al unir, el expediente comercial abierto y sin papeles de la ficha que se une pasa solo al expediente vivo del mismo comercial, y un contacto con el mismo celular no se duplica. Quien tenía la ficha que queda recibe el aviso. Se puede deshacer desde el registro de acciones.
+- **El caso de Katerine quedó unido** por administración: el WhatsApp de Dennis está en el expediente vivo de Lavanderías GLUP del 17-10 y ella recibió el aviso.
+- Pendiente: Central tiene además la pantalla «Fichas repetidas» (misma mañana) para las que se llaman igual; las que se llaman distinto se unen desde la ficha con este botón.
 
 ### 20-10 · Prueba de usuario de postventa y finanzas (gerencia con Brenda, Jhon, Lesly y Santos)
 Carlos recorrió el CRM con Brenda (postventa 2) usando tres clientes reales: Beneficencia de Huancayo, Family Farm y Comercial Lernake. Santos pidió ser más críticos que gerencia con la experiencia de postventa. Lo que se decidió y quedó hecho el mismo día:

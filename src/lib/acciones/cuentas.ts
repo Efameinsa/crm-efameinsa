@@ -606,6 +606,54 @@ export async function fusionarCuentas(
   return { error: null, resumen: typeof data === "string" ? data : undefined };
 }
 
+export interface FichaParaUnir {
+  id: string;
+  razonSocial: string;
+  documento: string | null;
+  comercial: string | null;
+  comercialId: string | null;
+  expedientes: number;
+  contactos: number;
+  ultimoMovimiento: string | null;
+  motivo: string;
+  sinCodigo: boolean;
+}
+
+/**
+ * EL BUSCADOR DE «UNIR CON OTRA FICHA» (0558, Katerine 20-10). El comercial
+ * escribe el nombre, el RUC, el celular o el nombre de un contacto y ve las
+ * fichas que casan, de cualquier cartera, con lo justo para decidir cuál se
+ * queda. La base dice además si unir va a pedir código (solo cuando alguna
+ * de las dos no es suya).
+ */
+export async function buscarFichasParaUnir(cuentaId: string, texto: string): Promise<{ error: string | null; fichas: FichaParaUnir[] }> {
+  if (!UUID.test(cuentaId)) return { error: "Cliente inválido", fichas: [] };
+  const t = texto.trim();
+  if (t.length < 3) return { error: null, fichas: [] };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("buscar_fichas_para_unir", { p_cuenta: cuentaId, p_texto: t });
+  if (error) return { error: error.message, fichas: [] };
+  type Fila = {
+    id: string; razon_social: string; documento: string | null; comercial: string | null; comercial_id: string | null;
+    expedientes: number; contactos: number; ultimo_movimiento: string | null; motivo: string; sin_codigo: boolean | null;
+  };
+  return {
+    error: null,
+    fichas: ((data ?? []) as Fila[]).map((f) => ({
+      id: f.id,
+      razonSocial: f.razon_social,
+      documento: f.documento,
+      comercial: f.comercial,
+      comercialId: f.comercial_id,
+      expedientes: f.expedientes ?? 0,
+      contactos: f.contactos ?? 0,
+      ultimoMovimiento: f.ultimo_movimiento,
+      motivo: f.motivo,
+      sinCodigo: Boolean(f.sin_codigo),
+    })),
+  };
+}
+
 /**
  * EMPRESAS DEL GRUPO (0310, Katerine 25-09). El cliente pide cotizar a nombre
  * de otra razón social suya: en vez de abrir otra ficha (y partir la historia

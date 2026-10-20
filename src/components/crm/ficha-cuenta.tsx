@@ -40,6 +40,8 @@ import { InformesTecnicosDelCliente } from "@/components/crm/informes-tecnicos-d
 import { cierresDePostventa } from "@/lib/precios-postventa";
 import { VincularRazonSocial } from "@/components/crm/vincular-razon-social";
 import { MensajesMiCuenta } from "@/components/crm/mensajes-mi-cuenta";
+import { UnirConOtraFicha } from "@/components/crm/unir-con-otra-ficha";
+import { cargarSupervisores } from "@/lib/supervisores";
 
 export async function FichaCuenta({
   cuentaId,
@@ -106,7 +108,12 @@ export async function FichaCuenta({
   const contactos =
 (cuenta.contactos as unknown as ContactoEditable[]) ?? [];
 
-  const { eventos, ventasConDetalle } = await cargarHistorialCuenta(supabase, cuentaId, { sinMontos: !verPrecios });
+  const [{ eventos, ventasConDetalle }, supervisoresUnion, { count: expedientesDeLaFicha }] = await Promise.all([
+    cargarHistorialCuenta(supabase, cuentaId, { sinMontos: !verPrecios }),
+    // Para «Unir con otra ficha» (0558): a quién pedirle el código si hace falta.
+    cargarSupervisores(supabase),
+    supabase.from("oportunidades").select("id", { count: "exact", head: true }).eq("cuenta_id", cuentaId),
+  ]);
 
   // DESDE ACÁ SE TIENE QUE PODER LLEGAR A GESTIONAR. Brenda, 31-08: encontró a
   // COINREFRI en Mi cartera y no tenía qué tocar para trabajarlo. Y era cierto
@@ -401,6 +408,20 @@ export async function FichaCuenta({
               rubros={(rubros ?? []) as { id: number; nombre: string }[]}
               soloLectura={comoCentral}
             />
+            {/* 0558 (Katerine 20-10): el mismo cliente con dos fichas se une
+                desde acá, buscando la otra; se elige cuál queda. */}
+            <div className="mt-2">
+              <UnirConOtraFicha
+                cuenta={{
+                  id: cuenta.id,
+                  razonSocial: cuenta.razon_social,
+                  documento: cuenta.tipo_doc !== "SIN_DOC" ? cuenta.num_doc : null,
+                  comercial: dueno ? `${dueno.codigo_comercial ? dueno.codigo_comercial + " " : ""}${dueno.nombre}` : null,
+                  expedientes: expedientesDeLaFicha ?? undefined,
+                }}
+                supervisores={supervisoresUnion}
+              />
+            </div>
             {!comoCentral && (rubros ?? []).length > 0 && (
               <div className="mt-2">
                 <CambiarRubro
