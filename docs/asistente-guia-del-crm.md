@@ -492,6 +492,15 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **En el expediente**, arriba a la izquierda está «← Ficha del cliente» para volver. En los expedientes de postventa ya no salen «Calificación» ni «Pide servicio, no equipos», que son de la venta de equipos.
 - **El formulario de gestión viene abierto** con sus tres pasos a la vista (antes «¿En qué quedó?», la próxima acción y el botón aparecían recién al escribir).
 
+**Llamadas desde el CRM y grabadas** (desde el 20-10, pedido de Santos)
+- **El botón «Llamar»** está junto a cada teléfono de la ficha del cliente (cabecera y «Datos y contactos»), en Mi cartera y en el cotizador. Cada llamada hecha con él queda anotada en la ficha, en la pestaña **«Llamadas»**, y en el expediente abierto del cliente como gestión de tipo llamada.
+- **En la app de Android** (versión con el botón) la llamada sale con el plan corporativo del celular y se **graba con las dos voces**. Después de colgar, el audio sube solo al servidor de la oficina, se transcribe y la inteligencia artificial deja un **resumen y una próxima acción sugerida** (no crea tareas sola). Los archivos se guardan por día y por cliente, con el nombre «fecha_hora_comercial_cliente_número_duración».
+- **Desde el navegador, la PWA o el iPhone** el botón abre el marcador y, al volver al CRM, pregunta «¿Cómo le fue?» (contestó, cuántos minutos, o no contestó). Esa llamada queda anotada **sin audio**: el navegador no puede grabar.
+- **Solo se graban las llamadas hechas con el botón.** Las que se marcan a mano, y las de WhatsApp, no.
+- **Aviso:** la primera vez, la app muestra el aviso de grabación y pide aceptarlo (Ley 29733). Al empezar cada llamada hay que decirle al cliente: «Esta llamada puede ser grabada para fines de calidad y seguimiento».
+- **Para grabar las dos voces la app necesita Shizuku** instalada, encendida y autorizada una vez; se apaga cuando el celular se reinicia y hay que volver a encenderla. Si falta algo, la app lo dice en un aviso amarillo con el botón del paso que toca. Mientras tanto la llamada se hace igual y queda anotada sin audio.
+- **Quién ve qué:** cada comercial ve sus llamadas; gerencia y administración ven todas, en Reportes → «Llamadas grabadas» (por día, comercial o cliente, con buscador por lo que se dijo, tarjetas por comercial con el porcentaje de llamadas con audio, y «Exportar a Excel»). Se guardan 12 meses.
+
 **Cartera liberable**
 - Un cliente **sin venta en 3 meses** es liberable, y la cartera se redistribuye cada 3 meses (gerencia, 23-09). Antes eran 6 meses.
 - La pantalla «Cartera liberable» de gerencia solo señala qué se puede mover. **Moverlo lo decide gerencia, nunca es automático.**
@@ -1184,6 +1193,9 @@ Mi cuenta muestra solo lo que está marcado en el CRM con fecha. Revise que el p
 
 **46 b. En la ficha del cliente no veo todo; ¿tengo que apretar algo para que aparezca?**
 No. Desde el 17-10 todo está en la misma ficha: lo vivo en «Resumen» (cada expediente con su cotización, próxima acción y última gestión) y el resto en las pestañas de arriba —Historial, Equipos, Pedidos y casos…—, que quedan fijas al bajar. Para anotar una llamada use «Anotar gestión»: se abre al costado, sin cambiar de pantalla. «Abrir expediente» es solo si quiere el detalle de un negocio. (3.1)
+
+**47. ¿Cómo llamo a un cliente desde el CRM y se graba?**
+Toque el número en la ficha del cliente (o «Llamar» en el cotizador). En la app de Android con la grabación activa, la llamada sale con el plan de la empresa y se graba entera; al colgar, el audio, la transcripción y el resumen aparecen solos en la pestaña «Llamadas» de la ficha. Si la app avisa que falta un paso (aceptar el aviso, permisos, encender Shizuku), haga lo que dice el botón; mientras tanto puede llamar igual y queda anotada sin audio. Desde el navegador o el iPhone no se graba: el CRM le pregunta cómo le fue. Recuerde avisar al cliente al empezar que la llamada puede ser grabada. (3, llamadas)
 
 **46. ¿Dónde contesto lo que el cliente escribió en su Mi cuenta?**
 En la ficha del cliente o en el pedido o caso, sección «Mensajes de Mi cuenta». Responda ahí: el cliente lo ve en su chat y le llega un aviso. No le conteste por otro canal sin dejarlo anotado. (1.15)

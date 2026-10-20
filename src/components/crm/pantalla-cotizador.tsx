@@ -1,5 +1,6 @@
 "use client";
 
+import { BotonLlamar } from "@/components/crm/boton-llamar";
 import { ObservacionDeGerencia } from "@/components/crm/observacion-de-gerencia";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -13,7 +14,6 @@ import {
   ImageOff,
   Loader2,
   Pencil,
-  Phone,
   RotateCcw,
   TriangleAlert,
   Trash2,
@@ -1186,13 +1186,7 @@ export function PantallaCotizador({
           </div>
           <div className="flex items-center gap-3">
             {contacto?.telefono && (
-              <a
-                href={`tel:${contacto.telefono.replace(/\s/g, "")}`}
-                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-              >
-                <Phone className="size-3.5" />
-                Llamar
-              </a>
+              <BotonLlamar numero={contacto.telefono} cuentaId={cuenta?.id} etiqueta="Llamar" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline" />
             )}
             <SelloGuardado estado={guardado} onReintentar={() => void encolarGuardado()} />
           </div>

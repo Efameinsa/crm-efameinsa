@@ -249,7 +249,7 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Marketing", href: "/nuevo/marketing", icono: "marketing", coincide: ["/nuevo/marketing", "/gerencia/marketing", "/gerencia/finanzas", "/whatsapp"] },
     { etiqueta: "Operación", href: "/nuevo/operacion", icono: "operacion", coincide: ["/nuevo/operacion", "/postventa", "/finanzas"] },
     { etiqueta: "Clientes", href: "/nuevo/clientes", icono: "clientes", coincide: ["/nuevo/clientes", "/gerencia/clientes", "/gerencia/cartera-liberable"] },
-    { etiqueta: "Reportes", href: "/nuevo/reportes", icono: "numeros", coincide: ["/nuevo/reportes", "/gerencia/supervision", "/gerencia/gestion-whatsapp", "/gerencia/reportes"] },
+    { etiqueta: "Reportes", href: "/nuevo/reportes", icono: "numeros", coincide: ["/nuevo/reportes", "/gerencia/supervision", "/gerencia/gestion-whatsapp", "/gerencia/llamadas", "/gerencia/reportes"] },
     { etiqueta: "Control", href: "/nuevo/control", icono: "control", coincide: ["/nuevo/control", "/gerencia/accesos", "/gerencia/auditoria"] },
     // Lo que el personal reporta desde el 💡 (Santos, 06-10): admin lo atiende, gerencia lo ve.
     { etiqueta: "Observaciones", href: "/observaciones", icono: "observaciones", coincide: ["/observaciones", "/sugerencias"] },
@@ -601,10 +601,12 @@ export const SECCIONES: Record<string, Seccion> = {
   // de la gente en un solo lugar, con la gestión de WhatsApp en su pestaña.
   "gerencia/reportes": {
     titulo: "Reportes",
-    ayuda: "El día de cada comercial, su gestión de WhatsApp (KPIs por definir) y quién cerró su día.",
+    ayuda: "El día de cada comercial, su gestión de WhatsApp (KPIs por definir), sus llamadas grabadas y quién cerró su día.",
     pestanas: [
       { clave: "", etiqueta: "Supervisión diaria", pagina: "gerencia/supervision" },
       { clave: "whatsapp", etiqueta: "Gestión de WhatsApp", pagina: "gerencia/gestion-whatsapp" },
+      // Las llamadas hechas con el botón «Llamar», con audio, transcripción y resumen (0539, Santos 19-10).
+      { clave: "llamadas", etiqueta: "Llamadas grabadas", pagina: "gerencia/llamadas" },
       { clave: "cierre", etiqueta: "Cierre del día", pagina: "gerencia/reportes" },
       // Las metas de los indicadores (0353, 30-09).
       { clave: "metas", etiqueta: "Metas", pagina: "gerencia/metas" },

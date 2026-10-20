@@ -1,5 +1,6 @@
 "use client";
 
+import { BotonLlamar } from "@/components/crm/boton-llamar";
 import { useRouter } from "next/navigation";
 import { Building2, ChevronRight } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -136,15 +137,13 @@ export function TablaCartera({
               <TableCell className="text-muted-foreground">{c.distrito ?? "—"}</TableCell>
               <TableCell className="whitespace-nowrap font-mono text-xs">
                 {c.telefono ? (
-                  // El enlace detiene el clic de la fila: tocar el número es
-                  // para llamar, no para abrir la ficha.
-                  <a
-                    href={`tel:${c.telefono.replace(/[^\d+]/g, "")}`}
-                    onClick={(e) => e.stopPropagation()}
+                  // Tocar el número es para llamar, no para abrir la ficha (el botón detiene el clic de la fila).
+                  <BotonLlamar
+                    numero={c.telefono}
+                    cuentaId={c.id}
+                    conIcono={false}
                     className="text-foreground hover:text-primary hover:underline"
-                  >
-                    {c.telefono}
-                  </a>
+                  />
                 ) : (
                   <span className="text-muted-foreground" title="Este cliente no tiene ningún teléfono cargado">sin teléfono</span>
                 )}
