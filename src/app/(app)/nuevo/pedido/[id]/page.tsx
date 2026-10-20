@@ -36,6 +36,7 @@ import { DocumentosContabilidadFinanzas } from "@/components/crm/documentos-cont
 import { EquipoConSeries } from "@/components/crm/equipo-con-series";
 import { DocumentosExpedientePedido, HerramientasPedido, PagoDelPedido, cargarExpedientePedido } from "@/components/crm/pedido-expediente-bloques";
 import { cierresDePostventa } from "@/lib/precios-postventa";
+import { AntecedentesInterna } from "@/components/crm/antecedentes-interna";
 
 export const dynamic = "force-dynamic";
 
@@ -238,6 +239,10 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
           {!(circuito.esRepuesto && !circuito.conInstalacion) && !circuito.esEmbalaje && !circuito.esAccesorio && (
             <TecnicoEnCaminoPanel donde="pedido" id={servicio.id} />
           )}
+          <AntecedentesInterna
+            modalidad={(data as { apertura_modalidad?: string | null }).apertura_modalidad}
+            antecedentes={(data as { apertura_antecedentes?: unknown }).apertura_antecedentes}
+          />
           <MensajesMiCuenta cuentaId={(servicio as { cuenta_id?: string | null }).cuenta_id} servicioId={servicio.id} />
           {/* Todos los informes del pedido, cada uno abre su detalle (reunión 28-09). */}
           <InformesDelPedido servicio={servicio} equiposTexto={equiposTexto} />

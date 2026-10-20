@@ -7,6 +7,7 @@ import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { PedidoAlmacen, type MaquinaDeLaSalida } from "@/components/crm/pedido-almacen";
 import { AvisoPagoParcial } from "@/components/crm/aviso-pago-parcial";
 import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
+import { AntecedentesInterna } from "@/components/crm/antecedentes-interna";
 import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
 import { InformesDelPedido } from "@/components/crm/informes-del-pedido";
 import { equiposDelPedido as cargarEquiposDelPedido } from "@/lib/acciones/postventa";
@@ -220,6 +221,11 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
               </div>
             ))}
           </div>
+          {/* Servicio interno (0566): lo que el técnico tiene que saber antes de abrir el equipo. */}
+          <AntecedentesInterna
+            modalidad={(servicio as { apertura_modalidad?: string | null }).apertura_modalidad}
+            antecedentes={(servicio as { apertura_antecedentes?: unknown }).apertura_antecedentes}
+          />
           {galeria.length > 0 && <GaleriaAlmacen fotos={galeria} />}
         </div>
       </div>
