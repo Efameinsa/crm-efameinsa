@@ -1,6 +1,6 @@
 # Bitácora de Finanzas y Contabilidad: lo que se decidió alrededor del dinero
 
-Vigente al 19-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md, en especial 1.7 a 1.12, 2.6, 2.7 y 3.6) y la «Bitácora del CRM» (asistente-bitacora-general.md). Aquí no se repite cómo se usa cada pantalla: se cuenta **qué se decidió, cuándo, quién lo pidió y qué quedó en el aire**, para que pueda retomar el trabajo sin depender de la memoria de una reunión.
+Vigente al 20-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md, en especial 1.7 a 1.12, 2.6, 2.7 y 3.6) y la «Bitácora del CRM» (asistente-bitacora-general.md). Aquí no se repite cómo se usa cada pantalla: se cuenta **qué se decidió, cuándo, quién lo pidió y qué quedó en el aire**, para que pueda retomar el trabajo sin depender de la memoria de una reunión.
 
 ## Cómo leer esto
 
@@ -11,6 +11,11 @@ Vigente al 19-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 ---
 
 ## Cronología de decisiones que tocan su trabajo
+
+### 19-10 (tarde) · Buzón de Jhon: confirmar el abono desde la liquidación
+- **Qué pidió Jhon:** el cliente ya había abonado y el ingreso se veía en la cuenta, pero en la pantalla «Generar liquidación» no había cómo registrar ese abono; había que salir al pedido.
+- **Qué se hizo (19-10):** en «Abonos y facturas» está ahora el botón «Confirmar abono» (monto, fecha, N.º de operación, banco y la captura si se quiere). Al confirmarlo, el abono entra de inmediato a esa liquidación como el siguiente (Abono 1, 2…), sin perder lo ya ajustado, y deja de salir «pendiente de pago». **Confirme solo lo que ya ve acreditado en la cuenta.**
+- **Caso ANDEX SOLUTION (PED-0036-2026):** Jhon ya había confirmado el abono de US$ 2,300.00 desde el pedido y la Liquidación N.º 2 lo incluye; la N.º 1 («pendiente de pago») queda como anterior. Ese pedido está bien.
 
 ### 19-10 · Buzón de Jhon: expediente en la liquidación, entrega gratuita y constancia de pago para Central
 - **El expediente dentro de la liquidación:** Jhon preguntó si, al generar la liquidación automática, ya no hacía falta revisar el expediente («¿se sobreentiende que está todo bien?»). No: el CRM no da nada por bueno solo. Desde el 19-10, en la pantalla «Generar liquidación», junto a «Ver el PDF», está el botón «Expediente» (voucher, orden de compra, cotización y demás papeles del cierre, en solo lectura). Finanzas revisa lo que necesite y recién entonces pulsa «Validar y enviar a Central».
@@ -111,23 +116,11 @@ Vigente al 19-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 - **«REG por entregar»: la venta antigua con equipo en almacén pasa por Finanzas.** Caso: Seventh Heaven (Cusco), calandria vendida en noviembre de 2025 con cierre en Word, adelanto y pagos por partes en 2026; se entrega cuando termine de pagar. El REG normal da el pedido por entregado y se habría saltado el visto bueno de Finanzas; el REG «por entregar» sigue el circuito normal. Se cargó como cierre EFAMEINSA 009-2026 con el comprobante del adelanto. **Pendiente de Finanzas:** confirmar cuánto se ha pagado, una vez que Central genere el pedido.
 - **Pendientes que quedaron:** visto bueno tardío de COFACO; pagos de Seventh Heaven; Excel de 58 pedidos por regularizar; decisión de Carlos sobre el alcance del visto bueno (ver «Pendientes»).
 
-### 13-10 · Reunión de postventa (Carlos, Santos, Rubí, Ariana, Lesly)
-- **«Orden a Finanzas para facturar y cobrar»** como último paso antes de «Pedido cerrado», en todo pedido ejecutado sin cobrar el 100 % antes del despacho (crédito o saldo). La da postventa; a Finanzas y a Facturación les llega campana y correo del área con el cierre, lo pagado, el saldo y la condición. Finanzas la marca «atendida» y se avisa a quien la dio.
-  - Carlos lo explicó así: «el 99 % me paga primero; el 1 % voy, viajo, invierto y luego te cobro».
-  - Caso: Beneficencia de Huancayo («con esa conformidad se emite factura»).
-  - Ese mismo día se ajustó: si el pedido ya está pagado completo, la orden no aparece (AGROCASAGRANDE, crédito ya cancelado). No es retroactiva con lo ya cerrado.
-  - «Lo que falta» de postventa también lista los pedidos a los que falta esa orden.
-- **Lo que empieza en OPEN termina en OPEN** (Santos). La hoja y la orden de la apertura toman la empresa anotada en el pedido. Caso: Choquehuanca.
-- **Pago parcial a la vista** (buzón de Ariana): filtro «Pago parcial» en Pedidos por paso, y un «Informe para Gerencia (PDF)» con cliente, RUC, equipo, forma de pago, qué hizo Finanzas, despacho y qué lo frena. Los montos solo los ve quien tiene permiso. Incluye los pedidos «con saldo por cobrar» aunque aún no tengan abono registrado.
+### 13-10 · Reunión de postventa (resumido)
+- Resumen: «Orden a Finanzas para facturar y cobrar» como último paso de todo pedido ejecutado sin el 100 % cobrado antes del despacho; la da postventa y Finanzas la marca «atendida» (Carlos: «el 99 % me paga primero»; caso Beneficencia de Huancayo; no aparece si ya está pagado completo). Lo que empieza en OPEN termina en OPEN (Choquehuanca). Filtro «Pago parcial» e «Informe para Gerencia (PDF)» (buzón de Ariana).
 
-### 12-10 · Contabilidad autoriza la guía; Infocorp por el CRM
-- **La guía la autoriza Contabilidad** (la cuenta de Facturación) y, si no está, Finanzas. Lo pidió Jhon por el buzón. Facturación tiene su «Aperturas por confirmar» y recibe aviso al emitirse o corregirse una apertura. El aviso de «guía autorizada» dice quién la autorizó.
-- **Pedido sin cobro** (entrega de repuestos por garantía o servicio desde un caso): ya no espera confirmación de Finanzas. El paso de pago dice «Sin cobro: entrega por garantía» (buzón, Rubí).
-- **Infocorp se pide por el CRM** (buzón, Brenda): el comercial lo pide desde el expediente, Central lo obtiene y lo sube, y el reporte solo lo ven quien lo pidió, Central y gerencia. Finanzas no figura entre quienes lo ven **(por confirmar si debería)**.
-
-### 10-10 · De qué empresa es la operación (buzón de Jhon)
-- El detalle del pedido para Finanzas muestra si la operación es **OPEN o EFAMEINSA**, para buscar el abono en la carpeta y el banco correctos.
-- Orden de búsqueda: la empresa del cierre; si no hay cierre, la anotada en la apertura; si no hay nada, Finanzas la marca.
+### 12-10 y 10-10 (resumido)
+- Resumen: la guía la autoriza Contabilidad y, si no está, Finanzas (buzón de Jhon); el pedido sin cobro por garantía ya no espera a Finanzas (Rubí); Infocorp se pide por el CRM y lo ven quien lo pidió, Central y gerencia (Finanzas, por confirmar); el detalle del pedido muestra si la operación es OPEN o EFAMEINSA (empresa del cierre, si no la de la apertura, si no la marca Finanzas).
 
 ### Del 14-09 al 06-10 (resumido)
 - **06-10 · Apertura → Finanzas → almacén:** si postventa corrige una apertura emitida, la autorización de la guía se anula y Finanzas y el almacén vuelven a aprobar; el almacén tiene «Guías autorizadas por Finanzas» (caso Ninamango); los correos automáticos salen de la empresa del pedido (OPEN o EFAMEINSA) al correo del área del Directorio.
