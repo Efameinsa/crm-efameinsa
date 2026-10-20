@@ -222,7 +222,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
                 className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-medium text-primary hover:underline"
                 title="Corregir la razón social, el tipo y número de documento o el rubro"
               >
-                <Pencil className="size-3" /> Corregir nombre o RUC
+                <Pencil className="size-3" /> Corregir nombre, RUC o dirección
               </Link>
               )}
             </div>
@@ -469,6 +469,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
                 tipoDoc={cuenta.tipo_doc}
                 numDoc={cuenta.num_doc}
                 razonSocial={cuenta.razon_social}
+                direccion={(cuenta.direccion as string | null) ?? null}
                 rubroId={(cuenta.rubro_id as number | null) ?? null}
                 rubros={(rubros ?? []) as { id: number; nombre: string }[]}
                 abrirAlEntrar={corregir === "1"}
