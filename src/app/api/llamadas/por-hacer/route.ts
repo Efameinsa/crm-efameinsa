@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { acceso } from "@/lib/llamadas-servidor";
+import { liberarLeadsSinTipificar } from "@/lib/setter-llamadas";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,10 +28,16 @@ export async function GET(request: Request) {
     .update({ estado: "descartada", cerrada_at: new Date().toISOString() })
     .eq("user_id", a.quien.userId)
     .eq("estado", "pendiente")
-    .lt("creada_at", new Date(ahora - VIGENCIA_MS).toISOString());
+    .lt("disponible_desde", new Date(ahora - VIGENCIA_MS).toISOString());
 
-  const { data: perfil } = await admin.from("perfiles").select("setter_llamadas").eq("id", a.quien.userId).maybeSingle();
+  const { data: perfil } = await admin.from("perfiles").select("setter_llamadas, setter_visto_at").eq("id", a.quien.userId).maybeSingle();
   if (!perfil?.setter_llamadas) return NextResponse.json({ setter: false, llamadas: [] }, { headers: sinCache });
+
+  // «En línea»: el CRM retiene los leads nuevos para este celular solo mientras responde.
+  const visto = perfil.setter_visto_at ? new Date(perfil.setter_visto_at as string).getTime() : 0;
+  if (ahora - visto > 30_000) await admin.from("perfiles").update({ setter_visto_at: new Date(ahora).toISOString() }).eq("id", a.quien.userId);
+  // Un lead que el setter dejó sin tipificar (canceló, se apagó el celular) no puede quedar trabado.
+  await liberarLeadsSinTipificar();
 
   // Se toman y se marcan en un solo paso para que dos consultas seguidas no entreguen la misma.
   const { data: tomadas } = await admin
@@ -38,6 +45,7 @@ export async function GET(request: Request) {
     .update({ estado: "avisada", avisada_at: new Date().toISOString() })
     .eq("user_id", a.quien.userId)
     .eq("estado", "pendiente")
-    .select("id, nombre, telefono, detalle, lead_id, creada_at");
+    .lte("disponible_desde", new Date(ahora).toISOString())
+    .select("id, nombre, telefono, detalle, lead_id, creada_at, intento");
   return NextResponse.json({ setter: true, llamadas: tomadas ?? [] }, { headers: sinCache });
 }

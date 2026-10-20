@@ -20,6 +20,8 @@ import { HistorialDelEquipo } from "@/components/crm/historial-del-equipo";
 import { HistorialPostventaCliente } from "@/components/crm/historial-postventa-cliente";
 import { HistorialDelCaso } from "@/components/crm/historial-del-caso";
 import { RecepcionEquipoBoton } from "@/components/crm/recepcion-equipo";
+import { AntecedentesEquipoPanel } from "@/components/crm/antecedentes-equipo";
+import { cargarAntecedentesEquipo } from "@/lib/antecedentes-equipo";
 import { requerirPerfil } from "@/lib/auth";
 import { puedeVerPrecios } from "@/lib/postventa";
 import { RutaDerivacion, type Hito } from "@/components/crm/ruta-derivacion";
@@ -194,6 +196,10 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
     // 0530: la carpeta es del cliente; cualquiera del área cotiza en ella
     // (puede_cotizar_en lo permite desde la 0323; la pantalla se había quedado atrás).
     Boolean(a.oportunidad_id && (perfil.es_postventa || perfil.hace_postventa));
+  // Antecedentes del equipo del caso (0560, buzón Brenda PV2 20-10).
+  const antecedentesEquipo = a.equipo_id ? await cargarAntecedentesEquipo(supabase, a.equipo_id) : null;
+  const puedeEditarAntecedentes =
+    Boolean(perfil.es_postventa || perfil.hace_postventa || perfil.es_operaciones) || ["gerencia", "admin", "operaciones"].includes(perfil.rol);
 
   // «En la parte derecha debe estar el historial de cómo llegó» (ing. Carlos,
   // reunión 01-09): la misma ruta que ven el comercial y Central — llegó a
@@ -544,6 +550,17 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
           <SeccionPanel titulo={`Historial de este caso${(a as { codigo?: string | null }).codigo ? ` · ${(a as { codigo?: string | null }).codigo}` : ""}, paso a paso`}>
             <HistorialDelCaso atencionId={a.id} creadoAt={(a as { created_at?: string | null }).created_at ?? null} />
           </SeccionPanel>
+
+          {a.equipo_id && (
+            <SeccionPanel titulo="Antecedentes del equipo">
+              <AntecedentesEquipoPanel
+                equipoId={a.equipo_id}
+                antecedentes={antecedentesEquipo}
+                puedeEditar={puedeEditarAntecedentes}
+                atencionId={a.id}
+              />
+            </SeccionPanel>
+          )}
 
           {a.equipo_id && (
             <SeccionPanel titulo="Lo que ya se le hizo a ESTA máquina">

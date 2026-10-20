@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Phone, MessageCircle, Globe, Megaphone, Camera, Mail, User, Users, IdCard, UserRoundPen, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
+import { liberarLeadsSinTipificar } from "@/lib/setter-llamadas";
 import { AsignarLeadDialog } from "@/components/crm/asignar-lead-dialog";
 import { DescartarLeadBoton } from "@/components/crm/descartar-lead-boton";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -107,6 +108,8 @@ export default async function CentralPage() {
   // Derivar a postventa pide el código del supervisor (ing. Carlos, 09-10,
   // 0420): Central no deriva sola. Quien tiene el código no se lo pide.
   const perfil = await requerirPerfil();
+  // Un lead que el setter dejó sin tipificar no puede quedar trabado en la bandeja (modo setter, 0559).
+  await liberarLeadsSinTipificar();
   const pideCodigoPostventa =
     !modoEnsayo &&
     !["gerencia", "admin", "operaciones"].includes(perfil.rol) &&

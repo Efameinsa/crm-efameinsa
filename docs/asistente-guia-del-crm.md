@@ -852,6 +852,14 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - Si la garantía del cierre es distinta de 24 meses, vea la sección de dudas.
 - **Máquina que no vendimos:** «¿La vendimos nosotros?» → no: se registra como equipo del cliente, sin garantía.
 
+**Antecedentes del equipo** (desde el 20-10, lo pidió Brenda)
+- Sirve antes de una revisión o un mantenimiento (preventivo o correctivo) en planta, sobre todo en equipos que no vendimos.
+- Está en la ficha del equipo y en el caso, en el recuadro «Antecedentes del equipo». Se llena con «Registrar antecedentes» y se corrige con «Editar antecedentes». Lo hace postventa (también operaciones y gerencia).
+- **A. Compra:** fecha de compra, proveedor o empresa vendedora, N.º de guía de remisión, N.º de factura u orden de compra y la garantía (vigente, vencida o por verificar).
+- **B-D. Historial:** si recibió mantenimiento, si se le compraron repuestos y si presentó fallas antes. Las respuestas son sí, no o «por verificar / sin información». Con «sí» se escribe el detalle (cuándo, quién, qué).
+- **E. Documentos y evidencias:** primero se elige qué es (guía, factura u OC; acta de instalación o entrega; informe de mantenimiento anterior; orden de servicio o comprobante de repuestos; foto) y luego se adjunta el archivo (PDF, foto, Word o Excel). Se puede quitar uno ya subido.
+- Queda escrito quién lo actualizó y cuándo. La solicitud es el caso y el trabajo hecho va en el informe técnico.
+
 **Si el problema es en realidad un paso pendiente del pedido**
 - Por ejemplo, falta la puesta en marcha. La atención se cierra como **derivado → pedidos** y se sigue en el pedido.
 - Si el pedido está completo, el caso se reclasifica (por ejemplo, como refuerzo de capacitación).
