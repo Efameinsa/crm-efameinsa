@@ -195,7 +195,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 ### 1.11 Almacén: prueba, embalaje y despacho
 
-**Fotos del despacho** (desde el 20-10): el almacén sube las fotos de la carga en planta y, si va por agencia, la foto en la agencia con la guía. Las dos salen como pendientes en «Mi día» hasta subirlas. Postventa las ve en el pedido con su título y puede «Pedir al almacén» (una vez cada 4 horas).
+**Fotos del despacho** (desde el 20-10): el almacén sube las fotos de la carga en planta y, si va por agencia, la foto en la agencia con la guía. Las dos salen como pendientes en «Mi día» hasta subirlas. Postventa las ve en el pedido con su título y puede «Pedir al almacén» (una vez cada 4 horas). Desde el 20-10 (noche) las fotos ya no salen abiertas en el pedido: cada grupo dice «Ver fotos (N)» y se abren en su propia página (planta y agencia), igual que «Ver fotos y videos del protocolo».
 **Panorama del almacén** (desde el 20-10): arriba está la tarjeta «Faltan fotos» (cuántas de planta y cuántas de agencia) y el grupo «Equipos que llegan a planta». Lesly: «en el panorama de pendientes no le sale».
 **Equipos que llegan a planta** (desde el 20-10): la orden de recepción (REC-00001…) la da postventa desde el caso. El almacén registra que llegó (con fotos), la revisión (técnico y diagnóstico) y qué sigue (devolver o cotizar).
 
@@ -238,7 +238,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 **Pasos en orden** (desde el 20-10): la apertura no se envía por correo ni se copia hasta que esté emitida en el pedido; la orden a Finanzas para facturar va después de la puesta en marcha (antes, con código y motivo). Las fotos del protocolo van en orden (placa, equipo completo, detalles) y se pueden reordenar en el protocolo. El comercial ve las facturas en «Pagos y facturas» del cierre.
 
-**Gestión completa y casos con código** (desde el 20-10): en postventa toda gestión lleva qué se habló y la próxima acción con fecha (o se cierra). Cerrar «Anotar gestión» sin guardar no deja expediente. Cada caso técnico tiene código (CASO-00001…) y su historial paso a paso; si el cliente vuelve a llamar por el mismo problema, se suma al caso abierto. El código en la búsqueda de atenciones abre el caso.
+**Gestión completa y casos con código** (desde el 20-10): en postventa toda gestión lleva qué se habló y la próxima acción con fecha (o se cierra). Cerrar «Anotar gestión» sin guardar no deja expediente. Cada caso técnico tiene código (CASO-00001…) y su historial paso a paso, que desde el 20-10 (noche) está dentro de «El circuito» como «Historial de las gestiones»: los cambios del caso (etapa, responsable, técnico, apertura de servicio, tipo), las llamadas, WhatsApp y notas del expediente hechas mientras el caso estuvo abierto, lo que se derivó al almacén y la salida y llegada del técnico, cada línea con fecha y quién la hizo; si el cliente vuelve a llamar por el mismo problema, se suma al caso abierto. El código en la búsqueda de atenciones abre el caso.
 
 - **Dueño:** postventa.
 - **Qué incluye:**
@@ -876,7 +876,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 **Apertura** (orden de trabajo)
 - **Tipos:** Entrega, Entrega y puesta en marcha, Mantenimiento, Solo puesta en marcha (el técnico va sin equipo) y aperturas de servicio con su encabezado.
 - **«SERVICIO E INSTALACIÓN DE:»** (desde el 16-10, a pedido de Rubí) es otra opción en «¿Qué se va a hacer?»: el técnico hace el servicio y la instalación que se vendió. Es el encabezado de la fila 1 en la hoja, el PDF y el correo de la apertura.
-- **Apertura desde un caso sin pedido** (garantía o servicio a un cliente antiguo): botón **«Apertura de servicio»**. Crea un pedido de origen «caso». Desde el 13-10 lista los equipos del cliente para marcar todos los que van.
+- **Apertura desde un caso sin pedido** (garantía o servicio a un cliente antiguo): botón **«Apertura de servicio»**. Crea un pedido de origen «caso». Desde el 13-10 lista los equipos del cliente para marcar todos los que van. **Desde el 20-10 (noche) pregunta primero dónde se hace el servicio: «Externo»** (el técnico va al local del cliente, el circuito de siempre) **o «Interno»** (el equipo se atiende en nuestra planta). La interna no pide dirección, transporte, agencia, Lima o provincia ni viáticos, y sí pide los antecedentes del equipo: para qué es (qué se necesita ejecutar, obligatorio), fecha de compra, N.º de guía, si está en garantía, si tuvo problemas antes, si se le vendió repuesto, si se le vendió mantenimiento (preventivo o correctivo), y si se cambió algún repuesto. Lo que ya se sabe de la máquina viene propuesto. Esos antecedentes salen en la hoja de la apertura y en el pedido (postventa y almacén), y quedan guardados en «Antecedentes del equipo» de la máquina.
 - **Contenido:** modelo de 11 filas de operaciones: servicio, cliente, primer destino, destino final, programación, quién recibe con DNI, personal, transporte, viáticos, coordinación con logística, etc.
 - **El cliente de la apertura es el del cierre.** Si no hay cierre, se toma de la ficha.
 - **«A quién llama el almacén»** empieza vacío y es obligatorio, porque puede ser un técnico del cliente que no está en la ficha.

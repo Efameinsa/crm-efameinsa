@@ -6,6 +6,7 @@ import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 import { createClient } from "@/lib/supabase/server";
 import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
 import { FotosDelDespacho } from "@/components/crm/fotos-y-envio-del-despacho";
+import { AntecedentesInterna } from "@/components/crm/antecedentes-interna";
 import { DocumentosContabilidadFinanzas } from "@/components/crm/documentos-contabilidad-finanzas";
 import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
 import { equiposDelPedido as cargarEquiposDelPedido } from "@/lib/acciones/postventa";
@@ -469,6 +470,10 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
           <MensajesMiCuenta cuentaId={(servicio as { cuenta_id?: string | null }).cuenta_id} servicioId={servicio.id} />
           {/* Todos los informes del pedido, cada uno abre su detalle (reunión 28-09). */}
           <InformesDelPedido servicio={servicio} equiposTexto={equiposTexto} />
+          <AntecedentesInterna
+            modalidad={(data as { apertura_modalidad?: string | null } | null)?.apertura_modalidad}
+            antecedentes={(data as { apertura_antecedentes?: unknown } | null)?.apertura_antecedentes}
+          />
           <EquiposDelPedido candado={candadoProtocolo === true} servicioId={servicio.id} equipos={listaEquipos} modo="postventa" despachado={Boolean(servicio.despachado_at)} cliente={(servicio.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "")} />
           {/* Lo que subió el almacén: protocolo, salida, guía (0246). */}
           <FotosDelDespacho

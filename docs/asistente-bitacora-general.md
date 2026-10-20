@@ -18,6 +18,16 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 20-10 (noche) · Apertura de servicio interna o externa (Santos)
+- **Qué se decidió:** al emitir la «Apertura de servicio» desde el caso se indica si es **externa** (el técnico va al local del cliente: el circuito clásico, sin cambios) o **interna** (el equipo se atiende en nuestra planta).
+- **La interna lleva los antecedentes del equipo:** para qué es (qué se ejecuta), fecha de compra, N.º de guía, garantía, problemas anteriores, repuesto o mantenimiento vendido (preventivo o correctivo) y repuesto cambiado. Salen en la hoja de la apertura y en el pedido, y quedan en «Antecedentes del equipo» de la máquina.
+- **Por qué:** el técnico que atiende en planta necesitaba esa historia antes de abrir la máquina (lo mismo que pidió Brenda con «Antecedentes del equipo»).
+
+### 20-10 (noche) · Fotos del pedido y el historial del caso (Santos, revisando el caso de Lino Espíritu)
+- **Fotos del pedido con enlace:** en la vista del pedido las fotos de la carga (frente, laterales, posterior, arriba) salían abiertas y tapaban el resto. Ahora dicen «Ver fotos (N)» y se abren en su propia página.
+- **Todo el historial del caso en «El circuito»:** Santos pidió que en el circuito se vean todas las gestiones del caso. El historial sale ahí: cambios del caso, llamadas y notas del expediente, derivaciones al almacén y la visita del técnico, con fecha y nombre. Hasta hoy esa sección salía vacía por un permiso que faltaba; ya está corregido.
+- **Caso que lo motivó:** Lino Espíritu tiene la misma falla (la secadora no calienta) en dos casos y en dos fichas repetidas (CASO-00129 y CASO-00140). Pendiente: unir las fichas y confirmar si la visita del técnico del 19-10 se hizo.
+
 ### 20-10 (noche) · Lo que resolvió el buzón: protocolos, búsquedas del almacén y Family Farms (Lesly, almacén, Brenda)
 - **N.º de protocolo correlativo (Lesly: «que se genere en automático, que siga un correlativo»).** Ya no se escribe a mano: el CRM lo pone al marcar «Probada y embalada» (o «Protocolo terminado» en un equipo en stock), con el formato 0003-2026, 0004-2026… y vuelve a 0001 cada año. Arrancó en 0003 porque los últimos anotados a mano fueron el 1 y el 2; a mano se escribía cualquier cosa («APROBADO», «LISTO PARA DESPACHO»). La secadora de una torre lleva el número de su lavadora, un kit de repuestos lleva uno solo y el equipo con protocolo de stock conserva el suyo. Los ya marcados no cambian. Antes era: casilla opcional (Santos, 14-10).
 - **Protocolos a la mano (Lesly, «protocolos en general»).** La vista ya existía en Almacén → pestaña «Protocolos» (de pedidos y de stock). Para no buscarla, «Mi día» tiene arriba «Protocolos» y «Subir protocolo de equipo en stock».

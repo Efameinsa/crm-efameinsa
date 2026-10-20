@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CheckCircle2, Clock, ImageIcon, Loader2, MessageCircle, Send } from "lucide-react";
 import Link from "@/components/enlace";
-import { GaleriaAlmacen } from "@/components/crm/galeria-almacen";
 import { marcarGuiaEnviadaAlCliente, pedirFotosAlAlmacen } from "@/lib/acciones/postventa";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -68,9 +67,9 @@ export function FotosDelDespacho({
         </Link>
       </div>
 
-      <Bloque titulo="1. Fotos del despacho en planta" fotos={planta} pendiente={faltaPlanta} noAplica={!salio ? "Se suben cuando sale del almacén." : null} />
+      <Bloque titulo="1. Fotos del despacho en planta" href={`/pedidos/${servicioId}/fotos#planta`} fotos={planta} pendiente={faltaPlanta} noAplica={!salio ? "Se suben cuando sale del almacén." : null} />
       {aplicaAgencia && (
-        <Bloque titulo="2. Fotos en la agencia (con la guía)" fotos={agencia} pendiente={faltaAgencia} noAplica={!salio ? "Se suben cuando el equipo llega a la agencia." : null} />
+        <Bloque titulo="2. Fotos en la agencia (con la guía)" href={`/pedidos/${servicioId}/fotos#agencia`} fotos={agencia} pendiente={faltaAgencia} noAplica={!salio ? "Se suben cuando el equipo llega a la agencia." : null} />
       )}
 
       {falta && <PedirAlAlmacen servicioId={servicioId} falta={falta} pedidasAt={pedidasAt} />}
@@ -78,7 +77,8 @@ export function FotosDelDespacho({
   );
 }
 
-function Bloque({ titulo, fotos, pendiente, noAplica }: { titulo: string; fotos: FotoConUrl[]; pendiente: boolean; noAplica: string | null }) {
+// Las fotos no se abren en el pedido (20-10, LINO ESPIRITU): un enlace las lleva a /pedidos/[id]/fotos.
+function Bloque({ titulo, href, fotos, pendiente, noAplica }: { titulo: string; href: string; fotos: FotoConUrl[]; pendiente: boolean; noAplica: string | null }) {
   return (
     <div className="space-y-1.5">
       <p className="flex items-center gap-2 text-xs font-semibold text-foreground">
@@ -94,7 +94,9 @@ function Bloque({ titulo, fotos, pendiente, noAplica }: { titulo: string; fotos:
         ) : null}
       </p>
       {fotos.length > 0 ? (
-        <GaleriaAlmacen fotos={fotos} titulo="" />
+        <Link href={href} className="text-xs font-semibold text-primary hover:underline">
+          Ver fotos ({fotos.length})
+        </Link>
       ) : (
         <p className="text-[11px] text-muted-foreground">{noAplica ?? "Todavía no las sube el almacén."}</p>
       )}

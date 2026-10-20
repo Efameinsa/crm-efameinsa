@@ -11,6 +11,7 @@ import { AperturaServicioPanel } from "@/components/crm/apertura-servicio-panel"
 import { destinatariosDelArea, type FilaDirectorio } from "@/lib/directorio";
 import { empresaDeApertura } from "@/lib/correo/apertura";
 import { faltaParaEmitirApertura } from "@/lib/postventa";
+import { AntecedentesInterna } from "@/components/crm/antecedentes-interna";
 
 export const dynamic = "force-dynamic";
 
@@ -186,6 +187,13 @@ export default async function AperturaServicioPage({ params }: { params: Promise
             ))}
           </tbody>
         </table>
+
+        {/* Servicio interno (0566): los antecedentes que se anotaron al emitirla desde el caso. */}
+        <AntecedentesInterna
+          papel
+          modalidad={(s as { apertura_modalidad?: string | null }).apertura_modalidad}
+          antecedentes={(s as { apertura_antecedentes?: unknown }).apertura_antecedentes}
+        />
 
         <h2 className="mt-6 border-b border-neutral-300 pb-1 text-[11px] font-bold uppercase tracking-wide">
           Condiciones verificadas · control interno

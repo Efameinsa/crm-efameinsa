@@ -12,6 +12,7 @@ import { avisarFinanzasSiFaltaVistoBueno } from "@/lib/aviso-visto-bueno";
 import { MESES_PRIMER_PREVENTIVO } from "@/lib/preventivo";
 import { sumarContactoOperativo } from "@/lib/contacto-operativo-servidor";
 import { limpiarObsFilas, lineasGuia, type GuiaApertura } from "@/lib/apertura-servicio";
+import { aAntecedentesDelEquipo, antecedentesInternaVacios, normalizarAntecedentesInterna, type AntecedentesInterna, type ModalidadApertura } from "@/lib/apertura-interna";
 import { errorDocRecibe, tipoDocRecibe } from "@/lib/documento";
 import { enlaceCierreDelPedido } from "@/lib/enlace-cierre-central";
 
@@ -1735,7 +1736,26 @@ export async function traerPedidoAntiguo(datos: {
  * un pedido»). Nace un pedido de servicio con la apertura ya emitida y le
  * llega a Finanzas (autoriza la guía) y al almacén, igual que la de un pedido.
  */
-export type EquipoParaApertura = { id: string; serie: string | null; modelo: string };
+export type EquipoParaApertura = {
+  id: string;
+  serie: string | null;
+  modelo: string;
+  /** Para proponer los antecedentes del servicio interno (20-10): lo que ya se sabe del equipo. */
+  fechaVenta?: string | null;
+  guia?: string | null;
+  garantiaHasta?: string | null;
+  antecedentes?: {
+    fecha_compra: string | null;
+    guia_remision: string | null;
+    garantia: string | null;
+    mantenimiento: string | null;
+    mantenimiento_detalle: string | null;
+    repuestos: string | null;
+    repuestos_detalle: string | null;
+    fallas: string | null;
+    fallas_detalle: string | null;
+  } | null;
+};
 
 /**
  * Los equipos de la ficha del caso, para marcar cuáles atiende la apertura de
@@ -1749,13 +1769,25 @@ export async function equiposParaAperturaDeCaso(atencionId: string): Promise<{ e
   if (!a?.cuenta_id) return { equipos: [], delCaso: null };
   const { data } = await supabase
     .from("equipos_instalados")
-    .select("id, serie, modelo_texto")
+    .select("id, serie, modelo_texto, fecha_venta, guia_remision, garantia_hasta")
     .eq("cuenta_id", a.cuenta_id)
     .order("modelo_texto")
     .limit(100);
-  const equipos = ((data ?? []) as { id: string; serie: string | null; modelo_texto: string | null }[]).map((e) => ({
+  const filas = (data ?? []) as { id: string; serie: string | null; modelo_texto: string | null; fecha_venta: string | null; guia_remision: string | null; garantia_hasta: string | null }[];
+  const { data: ants } = filas.length
+    ? await supabase
+        .from("equipo_antecedentes")
+        .select("equipo_id, fecha_compra, guia_remision, garantia, mantenimiento, mantenimiento_detalle, repuestos, repuestos_detalle, fallas, fallas_detalle")
+        .in("equipo_id", filas.map((e) => e.id))
+    : { data: [] };
+  const antDe = new Map(((ants ?? []) as (NonNullable<EquipoParaApertura["antecedentes"]> & { equipo_id: string })[]).map((x) => [x.equipo_id, x]));
+  const equipos = filas.map((e) => ({
     id: e.id,
     serie: e.serie,
+    fechaVenta: e.fecha_venta,
+    guia: e.guia_remision,
+    garantiaHasta: e.garantia_hasta,
+    antecedentes: antDe.get(e.id) ?? null,
     // La serie va aparte: en el texto del modelo sobra.
     modelo: (e.modelo_texto ?? "Equipo").replace(/\s*\/?\s*Serie:\s*[^/]*/gi, "").replace(/\s*\/\s*$/, "").trim() || "Equipo",
   }));
@@ -1794,6 +1826,10 @@ export async function abrirAperturaDesdeCaso(
     agenciaHorario?: string;
     /** Los equipos de la ficha que atiende el técnico (0453, Santos 13-10): una fila por equipo, con su serie. */
     equipos?: string[];
+    /** Externa (en el local del cliente, el circuito de siempre) o interna (en nuestra planta), 0566. */
+    modalidad?: ModalidadApertura;
+    /** Los antecedentes del equipo que lleva la interna (20-10, Santos). */
+    antecedentes?: AntecedentesInterna;
   },
 ): Promise<{ error: string | null; servicioId?: string }> {
   const perfil = await requerirPerfil();
@@ -1806,6 +1842,14 @@ export async function abrirAperturaDesdeCaso(
     : null;
   if (esGarantia && !repuestos?.length) return falla("Agregue los repuestos que se entregan por garantía");
   const limpio = (v: string | null | undefined) => (v?.trim() ? v.trim() : null);
+  // SERVICIO INTERNO (0566): el equipo se atiende en planta y la apertura lleva sus antecedentes.
+  const interna = !esGarantia && datos.modalidad === "interna";
+  let antecedentes: AntecedentesInterna | null = null;
+  if (interna) {
+    const n = normalizarAntecedentesInterna(datos.antecedentes ?? antecedentesInternaVacios());
+    if (typeof n === "string") return falla(n);
+    antecedentes = n;
+  }
   const modo = esGarantia && datos.entregaModo && ["domicilio", "agencia", "planta"].includes(datos.entregaModo) ? datos.entregaModo : null;
   if (modo === "agencia" && (!limpio(datos.agencia) || !limpio(datos.agenciaDireccion) || !limpio(datos.agenciaHorario))) {
     return falla("Escriba la agencia, su dirección y su horario de atención (donde el almacén deja los repuestos)");
@@ -1838,6 +1882,7 @@ export async function abrirAperturaDesdeCaso(
     apertura_coordina_contabilidad: limpio(datos.coordinaContabilidad),
     apertura_coordina_logistica: limpio(datos.coordinaLogistica),
     destino_observacion: limpio(datos.destinoObservacion),
+    ...(esGarantia ? {} : { apertura_modalidad: interna ? "interna" : "externa", apertura_antecedentes: antecedentes }),
     ...(modo
       ? {
           entrega_modo: modo,
@@ -1858,6 +1903,20 @@ export async function abrirAperturaDesdeCaso(
     const { error: e3 } = await supabase.rpc("apertura_equipos_del_caso", { p_servicio: id, p_equipos: equipos });
     if (e3) console.error("apertura desde caso: no se pusieron los equipos", e3.message);
   }
+  // Lo que se anotó en la interna también queda en «Antecedentes del equipo» (0560) de la
+  // máquina del caso (o la primera marcada), para no volver a escribirlo en la ficha.
+  if (antecedentes) {
+    const { data: at } = await supabase.from("atenciones").select("equipo_id").eq("id", atencionId).maybeSingle();
+    const equipoId = (at?.equipo_id as string | null) ?? equipos[0] ?? null;
+    if (equipoId) {
+      const { data: previo } = await supabase.from("equipo_antecedentes").select("proveedor, factura_oc").eq("equipo_id", equipoId).maybeSingle();
+      const { error: e4 } = await supabase.rpc("guardar_antecedentes_equipo", {
+        p_equipo: equipoId,
+        p_datos: aAntecedentesDelEquipo(antecedentes, previo as { proveedor: string | null; factura_oc: string | null } | null),
+      });
+      if (e4) console.error("apertura interna: no se guardaron los antecedentes del equipo", e4.message);
+    }
+  }
   const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, equipo, es_prueba").eq("id", id).maybeSingle();
   const quien = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
   const guia = lineasGuia((datos.guia || null) as GuiaApertura | null, datos.guiaDetalle || null);
@@ -1866,10 +1925,10 @@ export async function abrirAperturaDesdeCaso(
   // Por garantía no se cobra: Contabilidad la confirma «sin comprobante» (0441).
   const paraConfirmar = esGarantia
     ? `Postventa emitió una apertura de ENTREGA DE REPUESTOS POR GARANTÍA (sin cobro, sin cierre de venta) para el ${datos.fecha}: ${repuestos!.map((r) => `${r.cantidad} x ${r.descripcion}`).join(" · ")}. Confírmela «sin comprobante» para que el almacén emita la guía.${pideGuia}`
-    : `Postventa emitió una apertura de servicio desde un caso (sin cierre de venta) para el ${datos.fecha}. Revísela y confirme con qué comprobante sale para que el almacén emita la guía.${pideGuia}`;
+    : `Postventa emitió una apertura de servicio ${interna ? "INTERNA (el equipo se atiende en nuestra planta) " : ""}desde un caso (sin cierre de venta) para el ${datos.fecha}. Revísela y confirme con qué comprobante sale para que el almacén emita la guía.${pideGuia}`;
   const paraAlmacen = esGarantia
     ? `Repuestos por garantía (sin cobro) · el ${datos.fecha}${datos.hora ? ` a las ${datos.hora}` : ""}${datos.tecnico.trim() ? ` con ${datos.tecnico.trim()}` : ""}. Contabilidad (o Finanzas) confirma la guía.`
-    : `${s?.equipo ?? "Servicio"} · el ${datos.fecha}${datos.hora ? ` a las ${datos.hora}` : ""} con ${datos.tecnico}. Contabilidad (o Finanzas) confirma la guía.`;
+    : `${interna ? "SERVICIO INTERNO (en planta) · " : ""}${s?.equipo ?? "Servicio"} · el ${datos.fecha}${datos.hora ? ` a las ${datos.hora}` : ""} con ${datos.tecnico}. Contabilidad (o Finanzas) confirma la guía.`;
   await Promise.all([
     notificarFinanzas({
       titulo: `Apertura por confirmar · ${quien}`,
