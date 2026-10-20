@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { BotonLlamar } from "@/components/crm/boton-llamar";
 import { ArrowUp, HardHat, Mail, MapPin, Phone, Pencil, Plus, Trash2, User, WandSparkles } from "lucide-react";
 import { toast } from "sonner";
 import { eliminarContacto, guardarContacto, pasarContactoAComercial } from "@/lib/acciones/contactos";
@@ -263,8 +264,14 @@ export function ContactosEditables({
                 <div className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
                   {c.telefono && (
                     <p className="flex items-center gap-1">
-                      <Phone className="size-3.5" />
-                      {c.telefono}
+                      {soloLectura ? (
+                        <>
+                          <Phone className="size-3.5" />
+                          {c.telefono}
+                        </>
+                      ) : (
+                        <BotonLlamar numero={c.telefono} cuentaId={cuentaId} contactoId={c.id} />
+                      )}
                     </p>
                   )}
                   {c.email && (

@@ -38,7 +38,7 @@ export function textoDeAudio(estadoAudio: string, origen: string, contestada: bo
 }
 
 /** Una llamada en la lista: quién, a quién, cuánto, y el audio + transcripción + resumen si existen. */
-export function FilaLlamada({ l }: { l: LlamadaVista }) {
+export function FilaLlamada({ l, sinCliente = false }: { l: LlamadaVista; sinCliente?: boolean }) {
   const aviso = textoDeAudio(l.estadoAudio, l.origen, l.contestada);
   const hayAudio = l.estadoAudio === "subido";
   const Icono = l.contestada ? Phone : PhoneMissed;
@@ -48,13 +48,17 @@ export function FilaLlamada({ l }: { l: LlamadaVista }) {
         <Icono className={`size-3.5 flex-none ${l.contestada ? "text-emerald-700" : "text-muted-foreground"}`} />
         <span className="tabular-nums font-semibold text-foreground">{l.hora}</span>
         <span className="text-muted-foreground">{l.comercial}</span>
-        <span className="text-muted-foreground">→</span>
-        {l.cuentaId ? (
-          <Link href={`/gerencia/clientes/${l.cuentaId}`} className="font-semibold text-primary hover:underline">
-            {l.cliente ?? "Ficha sin nombre"}
-          </Link>
-        ) : (
-          <b className="font-semibold text-foreground">Número sin ficha</b>
+        {!sinCliente && (
+          <>
+            <span className="text-muted-foreground">→</span>
+            {l.cuentaId ? (
+              <Link href={`/gerencia/clientes/${l.cuentaId}`} className="font-semibold text-primary hover:underline">
+                {l.cliente ?? "Ficha sin nombre"}
+              </Link>
+            ) : (
+              <b className="font-semibold text-foreground">Número sin ficha</b>
+            )}
+          </>
         )}
         {l.contacto && <span className="text-muted-foreground">({l.contacto})</span>}
         <span className="tabular-nums text-muted-foreground">{l.numero}</span>

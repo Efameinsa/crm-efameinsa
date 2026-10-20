@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { puedeVerPrecios } from "@/lib/postventa";
 import { cargarHistorialCuenta } from "@/lib/historial-cuenta";
+import { LlamadasDelCliente } from "@/components/crm/llamadas-del-cliente";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { ResumenCuenta } from "@/components/crm/resumen-cuenta";
 import { HistorialCuenta } from "@/components/crm/historial-cuenta";
@@ -384,6 +385,8 @@ export async function FichaCuenta({
         <EquiposDelCliente cuentaId={cuenta.id} />
         {/* 15-10: los correos de campaña que recibió y qué hizo con ellos (0496). */}
         <CorreosDeCampana cuentaId={cuenta.id} />
+        {/* 19-10: las llamadas hechas con el botón «Llamar», con audio y resumen (0539). */}
+        <LlamadasDelCliente cuentaId={cuenta.id} />
         <SeccionPanel titulo={`Cliente y contactos (${contactos.length})`}>
           {/* Editables: es lo que se imprime en la cotización (24-08). El RUC y la
               razón social salen del bloque del cliente; el contacto principal, del
