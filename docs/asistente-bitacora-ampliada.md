@@ -1,6 +1,6 @@
 # Bitácora ampliada (gerencia, administración, Central y operaciones)
 
-Vigente al 19-10-2026. Complementa la «Bitácora del CRM» general (asistente-bitacora-general.md). Santos, 14-10: Central y operaciones (Lesly) deben tener el mismo contexto que gerencia —estados, montos, dinero— para continuar lo que se habló en las reuniones. Aquí va:
+Vigente al 20-10-2026. Complementa la «Bitácora del CRM» general (asistente-bitacora-general.md). Santos, 14-10: Central y operaciones (Lesly) deben tener el mismo contexto que gerencia —estados, montos, dinero— para continuar lo que se habló en las reuniones. Aquí va:
 - estrategia, presupuestos de publicidad y marketing;
 - web y campañas;
 - desempeño por comercial y metas;
@@ -16,6 +16,12 @@ Vigente al 19-10-2026. Complementa la «Bitácora del CRM» general (asistente-b
 ---
 
 ## Cronología
+
+### 20-10 · Web: los cambios de texto pasan primero por un Word de Santos (plan SEO y GEO)
+- **Qué decidió Santos:** ningún cambio de texto en efameinsa.com (títulos, descripciones, encabezados, preguntas frecuentes, fichas, sectores) se sube sin que él lo marque en un Word («Va / Cambiar / No»), «para no pecar mucho de IA». Cada artículo nuevo lleva al menos dos imágenes, con sus instrucciones para generarlas (fotos reales primero, sin texto ni logos).
+- **Prioridades (ajuste de la tarde):** marcas y productos estrella (semi-industrial: LG Titan Max 17 kg, Giant C Max 13 kg y torres; industrial: UniMac, luego Primus); páginas propias para las búsquedas donde estamos mal («lavadoras industriales más vendidas en el Perú», «mejores marcas», «secadoras más vendidas») y páginas de precios **sin cifras** (qué define el precio, cotización en el día), respetando la regla de gerencia de no publicar precios. Dato usado: en los cierres 2025-26, LG semi-industrial 34 unidades, UniMac industrial 12, Primus 2.
+- **Entregado el 20-10:** plan de contenidos completo (86 piezas en 5 olas, con su reparto en LinkedIn, YouTube, web y Meta, calendario de 54 semanas), «Mejoras en las páginas que ya aparecen en Google» (23 páginas) y la lista de instrucciones de imagen con el estilo gráfico de la marca.
+- **Pendiente (Santos):** revisar y marcar los Word; generar las imágenes; recién entonces se sube.
 
 ### 18-10 y 19-10 · Efamein le dio «0» al gerente en el cuadro de seguimientos (defecto conocido, sin arreglar)
 - **Qué pasó:** el 18-10 a las 23:07 el gerente pidió a Efamein un cuadro comparativo de seguimientos de los cuatro comerciales y la respuesta fue «0 gestiones y 0 cotizaciones en 12 semanas». Los datos sí existían: del 1 al 18-10, C1 637 gestiones efectivas, C2 884, C4 231 y C5 470 (Santos lo verificó el 19-10).
@@ -229,31 +235,7 @@ Vigente al 19-10-2026. Complementa la «Bitácora del CRM» general (asistente-b
 - **Base de datos en la nube excedió la cuota gratuita.** Santos no paga el plan Pro (US$ 25): «no hay dinero». No volver a proponerlo.
 
 ### 28-09 · Tres reuniones
-- **Mañana (09:35):**
-  - Hosting solo para correos. Santos compara opciones.
-  - Postventa da su retroalimentación del CRM hasta el 29-09.
-  - El mes de Claude vence a fin de mes; se renueva si el trabajo se alarga.
-  - Web: promocionar el 3D, maquetar el PDF de dimensionamiento, plantillas de correo de bienvenida y cotización sin precios.
-  - Email marketing a la cartera, con la meta de reactivar el 5 %. Primero una prueba pagada de ~S/ 200.
-  - Artes de remarketing; retomar LinkedIn.
-- **Fondos de mercadeo de Alliance (UniMac):** Carlos derogó la «opción C» (solo grupos UniMac, ~US$ 896 a devolver): «hay que sumarle».
-  - Se reporta todo el gasto de mayo a agosto, porque la línea blanca semi-industrial de Alliance también se promueve en la campaña Comercial.
-  - Total S/ 17.446,74 = US$ 4.806,26; se devuelve el 50 %, US$ 2.403,13.
-  - Ninguna imagen ni nombre muestra LG ni otra marca.
-  - Richard lo sube a la plataforma del proveedor. **Sin confirmar que lo haya subido.** Plazo de reclamo: 31-12-2026.
-- **Tarde (18:34), orden de Carlos:** la inversión en Google «de por sí ya está alta». Reducir semi-industrial y hogar («competimos con LG todavía») sin perder posicionamiento, y sumar a Industrial **sin subir el total**.
-  - Criterio desde entonces: toda propuesta de Ads muestra el total igual o menor.
-  - Se quitó «software para lavanderías».
-  - Carlos mencionó «redireccionarlo en una agencia»; no quedó claro si se refería a contratar una.
-- **Plan de octubre propuesto: S/ 9.000** (Google 7.000, Meta 1.500, correo 200, LinkedIn 300). **No aprobado**; Carlos pidió reparto, no aumento.
-- **Comerciales en septiembre** (% de contactos que llegan a cotización):
-  - Katerine 38 %, Brenda 36,9 %, Moisés 27,6 % (98 de 181 descartados; recibe los de Meta), Ariana 22 %.
-  - Equipo: 24,4 %. Unas 2 h hasta la primera gestión.
-- **Por canal:**
-  - Meta: S/ 237 → 59 oportunidades cotizadas (~S/ 4 cada una).
-  - Google: S/ 4.512 → ~39 cotizadas (~S/ 116 cada una).
-- **Competencia:** Efameinsa tiene ~40 % del tráfico web de los cuatro competidores. El rival real en Google es Serfac; Novotec invierte en Meta. Debilidad: casi todo el tráfico llega buscando la marca.
-- **Caída del CRM**, unos 15 minutos (base gratuita saturada). Santos lo explicó en un informe a gerencia.
+- Resumen: email marketing a la cartera con meta de reactivar el 5 % (prueba de ~S/ 200); fondos de mercadeo de Alliance: Carlos derogó la «opción C» y se reporta todo el gasto de mayo a agosto (S/ 17.446,74 = US$ 4.806,26; se devuelve el 50 %, US$ 2.403,13; lo sube Richard, sin confirmar; plazo 31-12-2026); orden de Carlos: Google ya está alto, bajar semi-industrial y hogar y sumar a Industrial **sin subir el total** (criterio desde entonces); plan de octubre de S/ 9.000 no aprobado; septiembre: Katerine 38 %, Brenda 36,9 %, Moisés 27,6 %, Ariana 22 % de contactos a cotización (equipo 24,4 %); Meta ~S/ 4 por oportunidad cotizada contra ~S/ 116 en Google; Efameinsa tiene ~40 % del tráfico web de los cuatro competidores (rival en Google: Serfac).
 
 ### 25-09 · Alliance, LG, Perumín
 - **Alliance:** los fondos se habilitan si las compras pasan un umbral (~US$ 300 mil). Se reporta cada 4 meses. Enero-abril ya se entregó.

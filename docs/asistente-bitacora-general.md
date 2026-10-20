@@ -1,6 +1,6 @@
 # Bitácora del CRM Efameinsa: historia de las decisiones
 
-Vigente al 20-10-2026 (tarde, segunda actualización). Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
+Vigente al 20-10-2026 (noche). Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
 
 Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién decidió que postventa no vea precios?», «¿esto siempre fue así?» o «¿qué pasó con el caso X?».
 
@@ -17,6 +17,14 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 ---
 
 ## Cronología de reuniones y decisiones
+
+### 20-10 (noche) · Lo que resolvió el buzón: protocolos, búsquedas del almacén y Family Farms (Lesly, almacén, Brenda)
+- **N.º de protocolo correlativo (Lesly: «que se genere en automático, que siga un correlativo»).** Ya no se escribe a mano: el CRM lo pone al marcar «Probada y embalada» (o «Protocolo terminado» en un equipo en stock), con el formato 0003-2026, 0004-2026… y vuelve a 0001 cada año. Arrancó en 0003 porque los últimos anotados a mano fueron el 1 y el 2; a mano se escribía cualquier cosa («APROBADO», «LISTO PARA DESPACHO»). La secadora de una torre lleva el número de su lavadora, un kit de repuestos lleva uno solo y el equipo con protocolo de stock conserva el suyo. Los ya marcados no cambian. Antes era: casilla opcional (Santos, 14-10).
+- **Protocolos a la mano (Lesly, «protocolos en general»).** La vista ya existía en Almacén → pestaña «Protocolos» (de pedidos y de stock). Para no buscarla, «Mi día» tiene arriba «Protocolos» y «Subir protocolo de equipo en stock».
+- **«Salieron, falta la guía» sin revisiones técnicas (almacén).** Al entrar a «Subir guía» no había dónde adjuntarla porque en esa lista salían revisiones técnicas (Mercedarias, Comercial Lecarnaque, Lino Espíritu): ahí sale el técnico, no una máquina, y las cierra postventa con el informe. Se sacaron de esa lista y de «Mi día».
+- **El buscador de Pedidos encuentra también los cerrados (almacén).** Caso: buscaban «Beneficiencia» y no salía porque postventa había cerrado el pedido de Beneficencia de Huancayo esa mañana (y el nombre tenía una «i» de más). Ahora busca palabra por palabra, sugiere los parecidos si algo está mal escrito y avisa si el filtro de fechas lo esconde.
+- **«Aperturas de postventa» con su propio buscador (almacén).** Antes la búsqueda saltaba a Pedidos y solo mostraba las abiertas. Ahora busca ahí mismo, por cliente, equipo o N.º de pedido, incluidas las de pedidos cerrados (caso: Hospital Chanka, cerrado el 16-10).
+- **Family Farms quedó en una sola ficha (Brenda).** FAMILY FARMS PERÚ S.R.L., con RUC (cartera de C5), juntó las tres fichas sin RUC repetidas (la del caso de garantía, la que solo tenía a Rodrigo Vigil y la de «FAMILY FARMS» con sus 2 cotizaciones antiguas). Agroinversiones Valle y Pampa sigue aparte: tiene su propio RUC, es otra empresa del mismo grupo. Las próximas repetidas las puede unir postventa desde la ficha con «Unir con otra ficha».
 
 ### 20-10 (tarde) · «Unir con otra ficha» para los comerciales (Katerine, por Santos)
 Dennis Gallardo Correa escribió por WhatsApp pidiendo una lavadora de 25 kg. Ya era contacto, con ese mismo celular, de la ficha SALVADOR CARRION ANA EUGENIA - LAVANDERIAS GLUP (cartera de Katerine, con un expediente vivo desde el 17-10). Central lo derivó y el CRM abrió una ficha nueva a su nombre. Katerine lo vio al toque y pidió unirlas, pero el comercial no tenía cómo: «¿Es el mismo cliente?» solo aparece cuando el CRM adivina la pareja y «Fichas repetidas» solo junta fichas que se llaman igual. Santos: «supongo que aparecería un buscador y podría unir las fichas y preguntar quién es el principal». Lo que quedó hecho el mismo día:
@@ -36,7 +44,7 @@ Carlos recorrió el CRM con Brenda (postventa 2) usando tres clientes reales: Be
 - **Fotos del pedido con su título:** el protocolo como enlace («Ver fotos y videos del protocolo»), y aparte «Fotos del despacho en planta» y «Fotos en la agencia», cada una con su estado y el botón «Pedir al almacén». Las fotos del despacho las sube el almacén; la foto en la agencia también sale ahora como pendiente del almacén.
 - **Guía y fotos al cliente con registro.** Nuevo paso del pedido «Guía y fotos enviadas al cliente» y el botón «Enviar guía y fotos al cliente»: abre el WhatsApp con el mensaje armado y, al marcar «Ya lo envié», queda quién, cuándo y por dónde. Carlos: «con 30 clientes no hay forma de controlarlo a mano».
 - **Cada caso técnico tiene código (CASO-00001…)**, su historial paso a paso con nombre, y si el cliente vuelve a llamar por el mismo problema la llamada se suma al caso abierto en vez de abrir otro. Escribir el código en la búsqueda de atenciones abre el caso. Caso: Lernake tenía dos casos del mismo problema (29-09 y 19-10).
-- **Un cliente se registra con RUC o DNI.** El cierre de venta ya no se emite si la ficha no tiene RUC ni DNI. Nueva pantalla «Fichas repetidas» (Central, operaciones y gerencia) para unir las fichas del mismo cliente. Caso: Family Farm / Valle y Pampa tiene varias fichas, algunas tipeadas a mano (pendiente de decidir cuál queda, ver Pendientes).
+- **Un cliente se registra con RUC o DNI.** El cierre de venta ya no se emite si la ficha no tiene RUC ni DNI. Nueva pantalla «Fichas repetidas» (Central, operaciones y gerencia) para unir las fichas del mismo cliente. Caso: Family Farm / Valle y Pampa tiene varias fichas, algunas tipeadas a mano (resuelto la misma noche: quedó una sola ficha con RUC).
 - **Postventa puede quitar un contacto mal puesto** en un cliente con caso o pedido; el dueño de la cartera recibe el aviso y se puede deshacer. Caso: el contacto «Cristian» en Beneficencia.
 - **«Anotar gestión» tiene «Ampliar»** para verlo en pantalla completa (Brenda: «ya no me permite abrir grande»).
 - **Orden de recepción y revisión de equipo (nuevo).** Desde el caso técnico, «El equipo viene a planta»: el almacén registra que llegó (con fotos), la revisión (técnico y diagnóstico) y qué sigue (devolver o cotizar). Cada paso avisa a postventa. Carlos: «es como la apertura, otro nombre».
@@ -48,7 +56,7 @@ Carlos recorrió el CRM con Brenda (postventa 2) usando tres clientes reales: Be
   - **El comercial ve la factura** en «Pagos y facturas» del cierre (antes el botón decía «Pagos»). Carlos: «la persona que envía las facturas es ventas».
   - **El pedido cerrado sin fotos sigue pendiente para el almacén** (Beneficencia se cerró y las fotos dejaron de pedirse).
   - En el expediente de postventa, el estado del pedido va arriba; cada expediente vivo dice qué casos tiene, con su código; el historial dice quién registró cada caso; la lista de pedidos dice que lo del Excel en regularización no es atraso; Facturación ve la guía en «Por facturar».
-- **Pendientes:** decidir qué ficha de Family Farm queda (tiene tres con RUC distinto); que Jhon registre la nota de crédito de la factura E001-840 de Beneficencia; enviar la guía por la API de WhatsApp sin copiar a mano (hoy abre el WhatsApp y se marca).
+- **Pendientes:** Family Farm ya quedó en una sola ficha (resuelto la misma noche); que Jhon registre la nota de crédito de la factura E001-840 de Beneficencia; enviar la guía por la API de WhatsApp sin copiar a mano (hoy abre el WhatsApp y se marca).
 
 ### 19-10 (tarde) · Lo que resolvió el buzón: abono en la liquidación y corrección de la guía (Jhon, almacén)
 - **Confirmar abono en la liquidación (Jhon):** desde la pantalla «Generar liquidación» Finanzas confirma un abono ya acreditado y entra de inmediato a esa liquidación. Detalle en la bitácora de Finanzas.
@@ -145,75 +153,8 @@ Carlos recorrió el CRM con Brenda (postventa 2) usando tres clientes reales: Be
 - **Hecho el mismo día:** hojas «Problemas técnicos y su estado» (con los casos «Otro» y los que tomó cada una) y «Solicitudes de repuesto · abiertas y cerradas» en el reporte diario de postventa.
 - **Pendiente:** que la agenda muestre quién gestiona cada cosa; Santos lo evalúa el 17-10 y lo muestra a primera hora para recoger opiniones.
 
-### 16-10 · El reporte diario ya no confunde los leads con gestiones, y suma los problemas técnicos (Ariana, Santos)
-- **Qué pasó:** en el reporte de Ariana aparecía Vidawasi con «Llamada», y ella no había hecho ninguna gestión. Era un lead que Central le derivó (el cliente llamó para reclamar su repuesto); lo atendió y lo cerró Rubí, que ya llevaba ese repuesto. Vidawasi además tiene dos fichas con el mismo nombre.
-- **Qué se hizo:** la sección «Leads recibidos de Central» dice ahora «Entró por» (cómo llegó el cliente) y «En qué quedó» (sin gestión, gestionado por usted, o quién lo atendió y cerró). Y el reporte de postventa trae una hoja nueva, «Problemas técnicos y su estado», con los casos técnicos de cada una, el paso, lo que falta y a quién le toca.
-- **Pendiente:** unir las dos fichas de Vidawasi (por confirmar con Santos).
-
-### 16-10 · El reporte diario de postventa: cada una solo lo suyo (Ariana, Rubí, Gabriela)
-- **Qué dijeron:** en su reporte diario «salen las gestiones de todos»; a Ariana solo le debe aparecer lo de Ariana, a Rubí lo de Rubí y a Gabriela lo de Gabriela.
-- **Qué se encontró:** las gestiones, presupuestos y pendientes ya eran de cada una, pero la hoja «Pedidos abiertos, paso por paso» traía todos los pedidos del área (unas 25 hojas iguales en los tres reportes).
-- **Qué se hizo:** esa hoja ahora trae solo los pedidos en los que la persona firmó algún paso o gestionó al cliente en los últimos 90 días. La lista completa del área queda en la agenda y en Control.
-
-### 16-10 · La consulta del pago a Finanzas ya no va por correo (Katerine)
-- **Qué contó Katerine:** el comercial le pregunta a Contabilidad si el abono tuvo comisión interplaza y, al final, le avisa que el cliente ya canceló, las dos cosas por correo y con el voucher. Gerencia indicó que ahora se hace por el CRM. El comercial no termina la operación hasta que el cliente termina de pagar (antes lo veía postventa).
-- **Qué se hizo:** en «Pagos» del pedido, el comercial adjunta el voucher y elige «Preguntar si hubo comisión» o «Avisar que el cliente canceló». Finanzas contesta en el mismo pedido (si hubo comisión, con el monto y el pantallazo del banco para el cliente) y la respuesta le llega al comercial a la campana.
-
-### 16-10 · Almacén: el pedido de repuestos se protocoliza como kit completo (Ariana)
-- **Qué pidió Ariana (buzón, «es con urgencia»):** que en el pedido de repuestos de LINO ESPIRITU (kit de instalación a gas de una secadora: 14 piezas entre válvulas, manómetro, manguera, niples, bush, codo y tee) el protocolo salga como **kit completo** y no con foto detallada de cada repuesto.
-- **Qué se hizo:** en todo pedido de repuestos con más de una pieza, el almacén sube una sola vez las fotos del kit armado, el técnico y la fecha, y marca **«Kit completo probado y embalado»**. El informe sale en una sola hoja con la lista de piezas, códigos y cantidades, y todas las fotos juntas. Las fotos que ya se habían subido pieza por pieza siguen valiendo. La regla vive en el sistema, así que también vale si se entra por la copia de respaldo.
-
-### 16-10 · Los procesos de postventa, dibujados y a la vista de todos (Santos)
-- **Qué pidió Santos:** que los 12 procesos de postventa dibujados paso a paso se vean libremente desde el CRM, que Efamein los ofrezca entre sus consultas predeterminadas y que cada uno se abra en pestaña nueva con un botón de pantalla completa bien visible, «para motivar a que todos recuerden los procesos».
-- **Qué se hizo:** menú **Procesos** para todo el personal, con una tarjeta por proceso; cada diagrama muestra un carril por área, las preguntas que deciden el camino y en ámbar lo que frena, con botones «Todos los procesos» y «Pantalla completa». La primera sugerencia de Efamein en todas las áreas es «¿Quiere repasar los procesos de la empresa?». Los diagramas se dibujan con el mismo estilo que el mapa de sistemas (Santos pidió no cambiarlo).
-
-### 16-10 · Buzón: otros dos casos resueltos (Central, Moisés)
-- **Devolver un prospecto a la bandeja cuando el comercial ya lo gestionó** (Central, PRO-11084). Se había derivado a C5 y Katerine confirmó por teléfono que era cliente de la cartera de C4. Volvió a la bandeja de Central como recién llegado; sus llamadas y el contacto nuevo pasaron a la ficha del cliente de C4 (nada se pierde), se quitó la ficha que se había creado en C5 y a Katerine le llegó el aviso de que la derivación se retiró. Al derivarlo de nuevo, el CRM muestra la coincidencia con la cartera de C4. Si el expediente ya tiene gestiones, el botón «Devolver a la bandeja» manda primero a «Mover las gestiones».
-- **«No descarga la cotización»** (Moisés). El CRM entregaba bien el PDF; fallaba el guardado del visor de Chrome. Ahora «Descargar el PDF para el cliente» baja el archivo directo, con su nombre listo para adjuntar; para mirarlo antes está «Verlo antes en una pestaña aparte». Si vuelve a fallar: recargar (F5) y probar de nuevo.
-
-### 15-10 (noche) y 16-10 · Postventa: un cliente con siete expedientes abiertos (Choquehuanca)
-- **Qué pasó:** postventa no veía la queja del 13-10 por el listado del kit de Choquehuanca. La ficha era una sola, pero el cliente tenía 7 expedientes de postventa: 6 de garantía de septiembre (uno por cada mensaje: embalaje, factura, despacho, agencia, guía), nacidos antes de la regla de un expediente por cliente del 22-09, y el del 13-10, que quedó vacío porque la gestión y la cotización se registraron en uno de septiembre.
-- **Qué se hizo (Santos, 15-10):** se juntó todo en el expediente del 16-09, los otros 6 quedaron archivados con una nota, y los casos de septiembre se cerraron como «derivado». Sigue abierto el caso del kit.
-- **16-10, Ariana «no aparece»:** la nota de la unión hizo que el caso del kit figurara tomado por el administrador y salió de la bandeja «por tomar». Se devolvió a Ariana, que fue quien lo atendió.
-- **Pendiente (Carlos):** una lista de 56 clientes con expedientes de postventa repetidos (166 expedientes): unos se pueden unir y archivar; en otros hay que revisar el tipo, porque la regla no junta expedientes de tipo distinto y aquí el tipo estaba mal puesto.
-
-### 16-10 · Lo que más se reporta por el buzón, convertido en botones (Santos)
-- **Análisis:** 149 observaciones del 06 al 16-10. 41 se resolvieron tocando la base a mano; en 60 respuestas se pidió recargar la página. Lo más repetido: fichas duplicadas o de otra cartera (13), equipos y series de pedidos que venían del Excel (10), gestiones o derivaciones en el lugar equivocado (7).
-- **Qué se hizo:** «Devolver a la bandeja» para Central; «Mover las gestiones a otro expediente»; gerencia puede unir fichas que tienen RUC las dos; el CRM se actualiza solo cuando no hay nada que perder; unos 100 botones y avisos de postventa, Central, cierres y almacén ahora dicen qué falta.
-- **Pendiente:** corregir equipos y series de pedidos heredados del Excel (partir un renglón, quitar una serie ajena) desde una pantalla de operaciones; corregir datos del cliente y arrastrarlos a pedidos e informes; pedir rubros o productos del catálogo directo a Lesly.
-
-### 16-10 · Registro de acciones, «Deshacer este clic», unir fichas desde el aviso y fichas sueltas (Santos)
-- **Por qué:** ese mismo día hubo que deshacer a mano en la base un clic de postventa (garantía verificada con la máquina de otra ficha). Santos: «los usuarios cometen errores… el administrador pueda deshacerlo… el CRM tiene que funcionar solo, sin necesitar de la IA».
-- **Qué se hizo:** (1) «Registro de acciones» para administración, gerencia y operaciones: cada clic de cada persona, con lo que cambió, y el botón «Deshacer este clic» (pide motivo, avisa a quien lo hizo y explica cuándo no se puede). (2) En el aviso de la serie que está en otra ficha, el botón «Revisar y unir las dos fichas», con el código de operaciones. (3) «Fichas sueltas»: archivar fichas sin movimiento; vuelven solas si les entra trabajo.
-- **Regla de pantalla que se fija:** todo lo que el CRM no deja hacer debe decir por qué y qué hacer, a la vista y no en un aviso que desaparece.
-
-### 16-10 · Cierre: más de una persona puede recibir el despacho
-- **Qué se pidió:** en «Quién recibe» del cierre solo cabía una persona; se pidió poder agregar más.
-- **Qué se hizo:** botón «+ Agregar otra persona que puede recibir» (nombre, DNI/CE y teléfono). Salen como «También recibe» en el cierre, el PDF y la hoja del pedido, y quedan como contactos del cliente.
-
-### 16-10 · Postventa: la serie que ya está en otra ficha frena y explica (Ariana)
-- **Caso:** un problema técnico de un hotel derivado por Central. La ficha del caso (sin RUC, con el nombre mal escrito) no tenía máquinas; la lavadora estaba en la otra ficha del mismo cliente, con RUC. Al escribir la serie, el CRM usó en silencio la máquina de la otra ficha y el caso quedó «fuera de garantía» sin explicar por qué. Se deshizo ese clic y se unieron las fichas.
-- **Qué se hizo (pedido de Santos: «que le aparezca un aviso… para que sepa y no se frustre»):** ahora el CRM no deja seguir y dice en qué ficha está la serie y qué hacer: avisar por el buzón para unir las fichas y después elegir la máquina con «Es esta».
-
-### 16-10 · Visitas a planta: los acompañantes se editan después de anunciar (Katerine)
-- **Qué se pidió:** Katerine tenía una visita a las 12:00 y el cliente avisó a última hora que venía con dos personas más. Solo se podía cambiar la fecha o la hora, no los acompañantes.
-- **Qué se hizo:** en «Visitas a planta» cada visita tiene «Acompañantes», debajo de «Cambiar fecha u hora». Se suman, corrigen o quitan con nombre y DNI o C.E. Lo hace quien registró la visita, o Central, mientras el cliente no haya llegado. Central recibe el aviso y el correo de visitas sale con los nombres. Si vigilancia ya tenía la hoja, el check «Vigilancia avisada» se apaga para que Central la vuelva a imprimir.
-
-### 16-10 · Crece: el tope de puntos por gestión comercial sube a 2.500 al mes (Santos)
-- **Qué se pidió:** Katerine preguntó por qué desde el 15-10 sus actividades salían con +0. Había llegado al tope de 1.000 puntos del mes. Moisés y Brenda ya habían llegado el 13-10. Santos ordenó subir el tope a 2.500 para todos.
-- **Qué se hizo:** los puntos que el CRM envía a Crece (gestiones, cotizaciones, cierres y leads) tienen un tope de **2.500 al mes por persona**. Antes era 1.000. Cada actividad vale lo mismo que antes: llamada, WhatsApp o correo 1; reunión virtual 3; filtro 2; showroom 5; visita 6; cotización 3, o 6 si es de monto alto; cierre 25, 40 o 60 según el monto; lead respondido 8 en menos de 5 minutos, 5 en 10, 2 en 30 y 1 si pasa de eso. Desde el cambio vuelven a sumar. Las actividades que salieron con +0 antes del cambio no se recalcularon. Las sugerencias siguen sin límite. El tope se reinicia el 1 de cada mes.
-
-### 16-10 · Buzón: accesorios en la generación de código (Lesly)
-- **Qué se pidió:** Lesly pidió que, en la generación de código, Central tenga la regla de indicar si los equipos incluyen algún accesorio, sobre todo los industriales como las lavadoras (caso: pedido de PRODECO DEL SUR con calandria, lavadora y secadora industriales).
-- **Qué se hizo:** al pedir las series al almacén, Central responde «¿Los equipos incluyen accesorios?» (no incluye / sí incluye y cuáles, con qué máquina). Sin responder no se pide el código. El almacén lo ve en el pedido, en la hoja de la solicitud y en el aviso; Central puede corregirlo después.
-
-### 16-10 · Buzón: lo que se hizo a cada máquina de un caso (Rubí)
-- **Qué se pidió:** Rubí pidió que, cuando un caso tiene más de un equipo, «Qué se hizo en el cliente», «Repuestos usados» y «Ciclos» se puedan registrar por cada equipo (antes había un solo juego de campos y las otras máquinas quedaban sin nada escrito ni lectura del contador).
-- **Qué se hizo:** el paso muestra un recuadro por máquina del caso, con su serie y tipo. Los ciclos de cada una van a su propia ficha y el registro de la etapa muestra lo de cada máquina.
-
-### 16-10 · Buzón: orden de compra u orden de servicio en la apertura (Rubí)
-- **Qué se pidió:** Rubí pidió que, después de «Servicio a realizar», la apertura tenga para elegir ORDEN DE COMPRA u ORDEN DE SERVICIO (caso: apertura de la secadora de Hortifrut).
-- **Qué se hizo:** la apertura tiene ahora una fila 2 con la orden del cliente: de compra, de servicio o «el cliente no emitió orden», con su número. Se elige en «Datos que se coordinan». Si no se elige y el cierre trae orden de compra, sale esa. Las demás filas corrieron un número.
+### 16-10 · Buzón y ajustes del día (Ariana, Rubí, Gabriela, Katerine, Lesly, Central, Moisés, Santos)
+- Resumen: el reporte diario de postventa trae solo lo de cada persona y separa los leads de Central («Entró por», «En qué quedó») con la hoja nueva «Problemas técnicos y su estado» (caso Vidawasi); la consulta del pago a Finanzas va por el pedido con el voucher, ya no por correo (Katerine); pedido de repuestos con varias piezas = un kit con un solo protocolo (Ariana, LINO ESPIRITU); menú «Procesos» con los 12 procesos de postventa dibujados (Santos); «Devolver a la bandeja» cuando el prospecto era de otra cartera (Central, PRO-11084) y «Descargar el PDF para el cliente» baja directo (Moisés); Choquehuanca tenía 7 expedientes de postventa y se juntaron en uno (pendiente de Carlos: 56 clientes con expedientes repetidos); lo más reportado del buzón se volvió botones (devolver, mover gestiones, avisos que dicen qué falta); «Registro de acciones» con «Deshacer este clic» y «Fichas sueltas» (regla: todo lo que el CRM no deja hacer dice por qué y qué hacer); el cierre admite más de una persona que recibe; la serie que está en otra ficha frena y explica (Ariana); acompañantes de una visita a planta se editan después de anunciar (Katerine); en Crece el tope de puntos por gestión sube a 2.500 al mes (antes 1.000); Central indica si los equipos llevan accesorios al pedir el código (Lesly, PRODECO DEL SUR); lo hecho en el cliente, repuestos y ciclos se registran por máquina (Rubí); la apertura lleva orden de compra u orden de servicio del cliente (Rubí, Hortifrut).
 
 ### 15-10 (noche) · Buzón: seis pedidos resueltos (Rubí, Moisés y Central)
 - Resumen: visita a la planta con los equipos del cliente, DNI o C.E. y «Recogió equipo» (Rubí); «Capacitación · no se cobra» en la clasificación del caso (Rubí); los equipos regalados también piden serie (VITALIAN; antes solo lo vendido); aviso ámbar «Archivar esta ficha» cuando el cliente ya se atendió en otro expediente (Moisés); derivación por error devuelta a la bandeja (G.M. TRAMAS; un repuesto va a postventa aunque el cliente sea de un comercial); TERRANOVA como empresa del grupo de MANDARA.
