@@ -6,6 +6,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { enviarCorreoN8n } from "@/lib/avisos-n8n";
 import { cargarHojaApertura } from "@/lib/acciones/apertura-servicio-datos";
 import { marcarAperturaEnviada } from "@/lib/acciones/postventa";
+import { faltaParaEmitirApertura, type ServicioPostventa } from "@/lib/postventa";
 import { correoDeApertura } from "@/lib/correo/apertura";
 import { esCorreoDeLaEmpresa } from "@/lib/directorio";
 import { enlaceApp } from "@/lib/url-app";
@@ -46,6 +47,16 @@ export async function enviarAperturaPorCorreo(
   if (!hoja) return { error: "No se encontró el pedido" };
   if (hoja.servicio.es_prueba === true || perfil.es_prueba === true) {
     return { error: "Es un pedido de práctica: el correo no sale. Use «Copiar el correo» para ver cómo queda." };
+  }
+
+  // SIN EMITIR NO SALE (caso ANDEX, 20-10): antes el correo salía y recién
+  // después fallaba marcarla «enviada»; Lesly la recibía en Outlook pero no en
+  // su lista ni en la campana. Ahora se dice qué falta y no se manda nada.
+  if (!hoja.servicio.apertura_despacho_at) {
+    const falta = faltaParaEmitirApertura(hoja.servicio as ServicioPostventa);
+    return {
+      error: `Primero emita la apertura en el pedido («Emitir apertura»): sin emitir, el almacén no la ve en su lista ni le llega el aviso.${falta.length ? ` Falta: ${falta.join(", ").toLowerCase()}.` : ""}`,
+    };
   }
 
   const { data: sesion } = await supabase.auth.getUser();

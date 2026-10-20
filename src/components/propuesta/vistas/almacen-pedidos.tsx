@@ -3,7 +3,7 @@ import Link from "@/components/enlace";
 import { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
 import { ETIQUETA_TIPO_APERTURA, type AperturaLlamada } from "@/lib/aperturas-llamada";
-import { ETIQUETA_TIPO_PEDIDO, circuitoDe, faltanFotosDeAgencia, faltanFotosDeCarga, type ServicioPostventa, type TipoPedido } from "@/lib/postventa";
+import { ETIQUETA_TIPO_PEDIDO, FOTOS_DE_CARGA_DESDE, circuitoDe, faltanFotosDeAgencia, faltanFotosDeCarga, type ServicioPostventa, type TipoPedido } from "@/lib/postventa";
 import type { PropsVista } from "@/lib/propuesta/vistas";
 import { Chips, FilaTrabajo, Grupo, Numero, Vacio, haceCuanto, type DatosFila, type Tono } from "@/components/propuesta/kit";
 
@@ -53,7 +53,21 @@ async function clasificar(supabase: Cliente): Promise<Record<Clave, DatosFila[]>
     .is("cerrado_at", null)
     .or("informe_cierre_id.is.null,pedido_ejecutado_at.not.is.null")
     .limit(2000);
-  const vivos = (data ?? []) as unknown as ServicioPostventa[];
+  // CERRADO NO QUIERE DECIR QUE TENGA SUS FOTOS (gerencia 20-10, Beneficencia:
+  // postventa cerró el pedido y las fotos de la carga dejaron de pedirse).
+  // Los cerrados que salieron desde que el almacén tiene cuenta y no tienen
+  // fotos siguen en «faltan fotos».
+  const { data: cerradosSinFotos } = await supabase
+    .from("servicios_postventa")
+    .select(CAMPOS)
+    .or("completado.eq.true,cerrado_at.not.is.null")
+    .gte("despachado_at", `${FOTOS_DE_CARGA_DESDE}T00:00:00-05:00`)
+    .not("informe_cierre_id", "is", null)
+    .limit(300);
+  const vivos = [
+    ...((data ?? []) as unknown as ServicioPostventa[]),
+    ...((cerradosSinFotos ?? []) as unknown as ServicioPostventa[]).filter((s) => faltanFotosDeCarga(s) || (Boolean(s.guia || s.agencia_at) && faltanFotosDeAgencia(s as Parameters<typeof faltanFotosDeAgencia>[0]))),
+  ];
   // El mismo criterio que «Mi día» y la lista de siempre (auditoría 25-09: los conteos no coincidían).
   const probado = (s: ServicioPostventa) => s.prueba_lista_at != null || String(s.prueba_embalaje ?? "").toUpperCase() === "SI";
   // Qué es y a dónde va, como en la lista de siempre (auditoría 25-09): el

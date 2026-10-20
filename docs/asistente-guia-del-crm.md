@@ -235,6 +235,8 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 ### 1.13 Después de la venta: postventa continua
 
+**Pasos en orden** (desde el 20-10): la apertura no se envía por correo ni se copia hasta que esté emitida en el pedido; la orden a Finanzas para facturar va después de la puesta en marcha (antes, con código y motivo). Las fotos del protocolo van en orden (placa, equipo completo, detalles) y se pueden reordenar en el protocolo. El comercial ve las facturas en «Pagos y facturas» del cierre.
+
 **Gestión completa y casos con código** (desde el 20-10): en postventa toda gestión lleva qué se habló y la próxima acción con fecha (o se cierra). Cerrar «Anotar gestión» sin guardar no deja expediente. Cada caso técnico tiene código (CASO-00001…) y su historial paso a paso; si el cliente vuelve a llamar por el mismo problema, se suma al caso abierto. El código en la búsqueda de atenciones abre el caso.
 
 - **Dueño:** postventa.

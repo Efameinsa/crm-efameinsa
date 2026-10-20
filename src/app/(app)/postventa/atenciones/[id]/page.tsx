@@ -246,6 +246,10 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
         const { data: quienDerivo } = asignacion?.decidida_por
           ? await supabase.from("perfiles").select("nombre").eq("id", asignacion.decidida_por).maybeSingle()
           : { data: null };
+        // Quién lo recibió en Central, con nombre (Brenda 20-10: «no sale el nombre»).
+        const { data: quienRecibio } = lead.recibido_por
+          ? await supabase.from("perfiles").select("nombre").eq("id", lead.recibido_por).maybeSingle()
+          : { data: null };
         const asignadoAt = lead.asignado_at ?? asignacion?.created_at ?? op?.created_at ?? null;
         autoderivado = Boolean(
           lead.recibido_por && lead.recibido_por === lead.asignado_por && lead.recibido_por === lead.asignado_a,
@@ -254,7 +258,7 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
           {
             titulo: autoderivado ? "Lo registró postventa" : "Llegó a Central",
             fecha: lead.recibido_at,
-            detalle: ETIQUETA_CANAL[lead.canal] ?? lead.canal,
+            detalle: [ETIQUETA_CANAL[lead.canal] ?? lead.canal, quienRecibio?.nombre ? `lo registró ${quienRecibio.nombre}` : null].filter(Boolean).join(" · "),
             pendiente: "Sin registro de ingreso",
           },
           {

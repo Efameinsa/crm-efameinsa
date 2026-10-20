@@ -7,7 +7,7 @@ import { notificar, notificarAlmacen, notificarFacturacion, notificarFinanzas } 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { enlaceApp } from "@/lib/url-app";
 import { correoAlArea } from "@/lib/correo-al-area";
-import { evaluarPagoParaDespacho, llevaOrdenFacturar, textoComprobante, textoCondicionPago, textoMotivoGuia, type MotivoGuia, type ServicioPostventa } from "@/lib/postventa";
+import { cierreExigePuesta, evaluarPagoParaDespacho, llevaOrdenFacturar, textoComprobante, textoCondicionPago, textoMotivoGuia, type MotivoGuia, type ServicioPostventa } from "@/lib/postventa";
 
 /**
  * Lo que Finanzas escribe en el CRM (0279). Solo dos cosas, y las dos por
@@ -409,9 +409,22 @@ export async function confirmarGuia(
  * más detalle: ahora le llega con el cliente, el cierre, lo que falta cobrar
  * y el enlace al pedido, en la campana y en el correo del área.
  */
-export async function ordenarFacturar(servicioId: string, nota: string): Promise<Resultado> {
+export async function ordenarFacturar(servicioId: string, nota: string, pin?: string | null): Promise<Resultado> {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
+  // PRIMERO EL SERVICIO TERMINADO (gerencia 20-10, Beneficencia: «mándale
+  // cuando el servicio esté terminado… acá te debe permitir con PIN»). Desde la
+  // factura corren los días de crédito (Contabilidad, 14-10): sin la puesta en
+  // marcha, la orden pide el código de gerencia u operaciones y el motivo.
+  const { data: previo } = await supabase.from("servicios_postventa").select("puesta_en_marcha, tipo_pedido, con_instalacion, origen").eq("id", servicioId).maybeSingle();
+  if (previo && cierreExigePuesta(previo) && !previo.puesta_en_marcha) {
+    if (!pin?.trim() || nota.trim().length < 5) {
+      return { error: "Falta la puesta en marcha (o el informe del servicio). Llénela primero; si de verdad se factura antes, escriba el motivo en la nota y ponga el código de gerencia u operaciones." };
+    }
+    const { error: ePin } = await supabase.rpc("validar_codigo_autorizacion", { p_pin: pin.trim(), p_ambito: "operaciones" });
+    if (ePin) return { error: limpiar(ePin.message) };
+    nota = `Sin puesta en marcha, autorizado con código: ${nota.trim()}`;
+  }
   const { error } = await supabase.rpc("postventa_orden_facturar", { p_servicio: servicioId, p_nota: nota.trim() || null });
   if (error) return { error: limpiar(error.message) };
 

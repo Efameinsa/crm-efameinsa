@@ -105,7 +105,9 @@ function Bloque({ titulo, fotos, pendiente, noAplica }: { titulo: string; fotos:
 function PedirAlAlmacen({ servicioId, falta, pedidasAt }: { servicioId: string; falta: string; pedidasAt: string | null }) {
   const router = useRouter();
   const [pendiente, empezar] = useTransition();
-  const reciente = pedidasAt ? Date.now() - Date.parse(pedidasAt) < 4 * 3600 * 1000 : false;
+  // La hora se toma una vez al montar (una pantalla se dibuja varias veces).
+  const [ahora] = useState(() => Date.now());
+  const reciente = pedidasAt ? ahora - Date.parse(pedidasAt) < 4 * 3600 * 1000 : false;
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md bg-amber-500/10 px-3 py-2 text-xs text-amber-900">
       <span className="flex-1">Falta: {falta}.{pedidasAt ? ` Se le pidió al almacén el ${cuando(pedidasAt)}.` : ""}</span>

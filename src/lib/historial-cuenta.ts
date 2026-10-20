@@ -217,7 +217,7 @@ export async function cargarHistorialCuenta(
       .limit(60),
     supabase
       .from("atenciones")
-      .select("id, codigo, tipo, etapa, equipo_texto, detalle, registrado_at, created_at, cerrado_at, oportunidad_id, perfiles!atenciones_tomada_por_fkey(nombre)")
+      .select("id, codigo, tipo, etapa, equipo_texto, detalle, registrado_at, created_at, cerrado_at, oportunidad_id, perfiles!atenciones_tomada_por_fkey(nombre), registro:perfiles!atenciones_recibido_por_fkey(nombre)")
       .eq("cuenta_id", cuentaId)
       .order("created_at", { ascending: false })
       .limit(60),
@@ -386,7 +386,10 @@ export async function cargarHistorialCuenta(
       // Con su código (gerencia 20-10, Lernake: «no sé qué problema técnico están atendiendo»).
       titulo: `${(at.codigo as string | null) ? `${at.codigo} · ` : ""}${TIPO_ATENCION[at.tipo as string] ?? at.tipo}${at.cerrado_at ? " (cerrado)" : ` · ${at.etapa}`}`,
       detalle: [(at.equipo_texto as string | null), (at.detalle as string | null)].filter(Boolean).join(" · ").slice(0, 160) || null,
-      quien: (at.perfiles as unknown as { nombre: string } | null)?.nombre ?? null,
+      // Si nadie lo tomó todavía, quién lo registró (Brenda 20-10: «no sale el nombre»).
+      quien:
+        (at.perfiles as unknown as { nombre: string } | null)?.nombre ??
+        ((at.registro as unknown as { nombre: string } | null)?.nombre ? `registró ${(at.registro as unknown as { nombre: string }).nombre}` : null),
       href: `/postventa/atenciones/${at.id}`,
       oportunidadId: null,
       ...delExpediente(at.oportunidad_id as string | null),

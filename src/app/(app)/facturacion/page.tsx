@@ -17,6 +17,7 @@ import {
   type DocumentosDeFinanzas,
 } from "@/lib/documentos-finanzas";
 import { fechaHoraLima } from "@/lib/fechas";
+import { textoMotivoGuia } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -159,6 +160,12 @@ function FilaPorFacturar({
               </span>
             </p>
           )}
+          {/* La guía, a la vista (gerencia 20-10). */}
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            {p.guia || p.guiaConfirmadaAt
+              ? `Guía ${p.guia ?? "(número sin anotar)"}${textoMotivoGuia(p.guiaMotivo, p.guiaMotivoDetalle) ? ` · ${textoMotivoGuia(p.guiaMotivo, p.guiaMotivoDetalle)}` : ""}${p.guiaConfirmadaAt ? ` · autorizada el ${fechaHoraLima(p.guiaConfirmadaAt)}` : ""}`
+              : "Sin guía todavía"}
+          </p>
           {/* El OK de Finanzas a la orden de postventa (0552): basta para facturar. */}
           {!vigente && p.ordenFacturarAtendidaAt && (
             <p className="mt-1 text-[11px] font-medium text-[#1E7F4F]">

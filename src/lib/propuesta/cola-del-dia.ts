@@ -1,6 +1,6 @@
 import type { createClient } from "@/lib/supabase/server";
 import { hoyLima } from "@/lib/periodo";
-import { faltanFotosDeAgencia, faltanFotosDeCarga, pruebaSinPedir, type ServicioPostventa } from "@/lib/postventa";
+import { FOTOS_DE_CARGA_DESDE, faltanFotosDeAgencia, faltanFotosDeCarga, pruebaSinPedir, type ServicioPostventa } from "@/lib/postventa";
 import { ETIQUETA_TIPO_APERTURA, estadoApertura, type TipoApertura } from "@/lib/aperturas-llamada";
 import { atencionesEnOtraFicha } from "@/lib/gestion-en-otra-ficha";
 import type { Perfil } from "@/types/database";
@@ -320,6 +320,25 @@ async function colaAlmacen(supabase: Cliente) {
       tareas.push({ id: `gu-${s.id}`, urgencia: "hoy", tipo: "despacho", cliente, que: "Subir la guía", porque: "Salió y falta la foto de la guía en la agencia.", accion: { etiqueta: "Subir guía", href: `/almacen/pedidos/${s.id}` } });
     }
   }
+  // Cerrado no quiere decir que tenga sus fotos (gerencia 20-10, Beneficencia).
+  const { data: cerradosSinFotos } = await supabase
+    .from("servicios_postventa")
+    .select("id, cliente_texto, equipo, despachado_at, guia, agencia_at, salida_fotos, agencia_fotos, entrega_modo, informe_cierre_id, tipo_pedido")
+    .or("completado.eq.true,cerrado_at.not.is.null")
+    .gte("despachado_at", `${FOTOS_DE_CARGA_DESDE}T00:00:00-05:00`)
+    .not("informe_cierre_id", "is", null)
+    .limit(300);
+  for (const s of (cerradosSinFotos ?? []) as unknown as ServicioPostventa[]) {
+    const cliente = sinRuc(s.cliente_texto);
+    const equipo = primeraLinea(s.equipo) || "Pedido";
+    if (faltanFotosDeCarga(s)) {
+      tareas.push({ id: `fc-${s.id}`, urgencia: "hoy", tipo: "despacho", cliente, que: `Subir las fotos de la carga · ${equipo}`, porque: "Salió (el pedido ya se cerró) y faltan las fotos de la máquina puesta en el transporte.", accion: { etiqueta: "Subir fotos", href: `/almacen/pedidos/${s.id}` } });
+    }
+    if ((s.guia || s.agencia_at) && faltanFotosDeAgencia(s as Parameters<typeof faltanFotosDeAgencia>[0])) {
+      tareas.push({ id: `fa-${s.id}`, urgencia: "hoy", tipo: "despacho", cliente, que: `Subir la foto en la agencia · ${equipo}`, porque: "Salió por agencia (el pedido ya se cerró) y falta la foto en la agencia con la guía.", accion: { etiqueta: "Subir foto", href: `/almacen/pedidos/${s.id}` } });
+    }
+  }
+
   // EQUIPOS QUE LLEGAN A PLANTA (0557, gerencia 20-10): recibir con fotos y revisar con el técnico.
   const { data: recepciones } = await supabase
     .from("recepciones_equipo")

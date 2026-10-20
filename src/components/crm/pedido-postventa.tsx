@@ -10,6 +10,7 @@ import { VerPdfEnLaApp } from "@/components/crm/ver-pdf-en-la-app";
 import type { DocPaso, DocumentosPorPaso } from "@/lib/documentos-por-paso";
 import {
   bloquesPedido,
+  cierreExigePuesta,
   circuitoDe,
   saldoPendiente,
   estadoPago,
@@ -432,7 +433,7 @@ export function PedidoPostventa({
         );
       case "facturar":
         // Reunión 13-10: a crédito o con saldo, al terminar se le ordena a Finanzas (0460).
-        return <OrdenFacturar servicioId={servicio.id} />;
+        return <OrdenFacturar servicioId={servicio.id} sinPuesta={cierreExigePuesta(servicio) && !servicio.puesta_en_marcha} />;
       case "cerrado":
         return <BotonPaso onClick={() => setForm({ tipo: "cerrar" })}>Cerrar pedido</BotonPaso>;
       default:

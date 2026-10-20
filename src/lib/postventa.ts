@@ -606,6 +606,21 @@ export function faltanFotosDeCarga(s: Pick<ServicioPostventa, "despachado_at" | 
 }
 
 /**
+ * ¿CERRAR ESTE PEDIDO EXIGE LA PUESTA EN MARCHA? (0551, gerencia 20-10:
+ * «no debería dejar cerrar si no está el informe ejecutado… con PIN todo se
+ * puede saltar»). No la llevan el embalaje, el accesorio, el repuesto sin
+ * instalación ni lo que vino del Excel. La base aplica la misma regla
+ * (frenar_cierre_sin_puesta).
+ */
+export function cierreExigePuesta(s: { tipo_pedido?: string | null; con_instalacion?: boolean | null; origen?: string | null }): boolean {
+  const tipo = s.tipo_pedido ?? "equipo";
+  if (s.origen === "excel") return false;
+  if (tipo === "embalaje" || tipo === "accesorio") return false;
+  if (tipo === "repuesto" && !s.con_instalacion) return false;
+  return true;
+}
+
+/**
  * FALTA LA FOTO EN LA AGENCIA (gerencia 20-10, Beneficencia de Huancayo):
  * «faltan esas dos, planta y agencia… en el panorama debería salir». La de la
  * agencia no tenía regla: si el pedido va por agencia y ya salió, el almacén
@@ -1318,6 +1333,23 @@ export function queLoFrena(s: ServicioPostventa): { texto: string; responsable: 
     }
   }
   return null;
+}
+
+/**
+ * QUÉ FALTA PARA EMITIR LA APERTURA (caso ANDEX SOLUTION PED-0036-2026, 20-10):
+ * Brenda mandó la apertura por correo a las 12:49 sin emitirla —faltaban el
+ * plano y la dirección verificada—; a Lesly le llegó el correo pero no la tenía
+ * en su lista ni en la campana. Los pasos se hacen en orden: lo de antes de la
+ * apertura que no está hecho, con su nombre, para decirlo a la vista.
+ */
+export function faltaParaEmitirApertura(s: ServicioPostventa): string[] {
+  if (s.apertura_despacho_at) return [];
+  const pasos = bloquesPedido(s).flatMap((b) => b.pasos);
+  const i = pasos.findIndex((p) => p.clave === "apertura");
+  if (i < 0) return [];
+  const antes = pasos.slice(0, i).filter((p) => !p.hecho).map((p) => p.etiqueta);
+  const trabado = pasos[i].trabado;
+  return trabado ? [...antes, trabado] : antes;
 }
 
 /** Cuántos de los pasos del pedido están marcados (para la barra de avance). */

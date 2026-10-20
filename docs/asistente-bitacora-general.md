@@ -34,6 +34,13 @@ Carlos recorrió el CRM con Brenda (postventa 2) usando tres clientes reales: Be
 - **«Anotar gestión» tiene «Ampliar»** para verlo en pantalla completa (Brenda: «ya no me permite abrir grande»).
 - **Orden de recepción y revisión de equipo (nuevo).** Desde el caso técnico, «El equipo viene a planta»: el almacén registra que llegó (con fotos), la revisión (técnico y diagnóstico) y qué sigue (devolver o cotizar). Cada paso avisa a postventa. Carlos: «es como la apertura, otro nombre».
 - **Viáticos y solicitud de stock de repuesto:** diseñados, sin construir. Gerencia: «primero corrijamos esto, los otros dos después».
+- **Segunda tanda (20-10, misma tarde), lo que salió al releer la reunión y del caso ANDEX:**
+  - **La apertura no se manda por correo sin emitirla.** Caso ANDEX SOLUTION: el correo le llegó a Lesly en Outlook, pero la apertura no estaba emitida (faltaban el plano y la dirección verificada) y no le apareció en su lista ni en la campana. Ahora «Enviar por correo» y «Copiar el correo» esperan a que se emita, y la pantalla dice qué paso falta. Los pasos van en orden.
+  - **La orden a Finanzas para facturar, después del servicio.** Sin la puesta en marcha (o el informe) pide el código de gerencia u operaciones y el motivo, como el cierre del pedido. Carlos: «mándale cuando el servicio esté terminado… acá te debe permitir con PIN».
+  - **Protocolo en orden y del mismo tamaño:** al subir se indica el orden (placa, equipo completo, detalles); en el protocolo cada foto sale del mismo tamaño con su rótulo y se puede reordenar con flechas.
+  - **El comercial ve la factura** en «Pagos y facturas» del cierre (antes el botón decía «Pagos»). Carlos: «la persona que envía las facturas es ventas».
+  - **El pedido cerrado sin fotos sigue pendiente para el almacén** (Beneficencia se cerró y las fotos dejaron de pedirse).
+  - En el expediente de postventa, el estado del pedido va arriba; cada expediente vivo dice qué casos tiene, con su código; el historial dice quién registró cada caso; la lista de pedidos dice que lo del Excel en regularización no es atraso; Facturación ve la guía en «Por facturar».
 - **Pendientes:** decidir qué ficha de Family Farm queda (tiene tres con RUC distinto); que Jhon registre la nota de crédito de la factura E001-840 de Beneficencia; enviar la guía por la API de WhatsApp sin copiar a mano (hoy abre el WhatsApp y se marca).
 
 ### 19-10 (tarde) · Lo que resolvió el buzón: abono en la liquidación y corrección de la guía (Jhon, almacén)

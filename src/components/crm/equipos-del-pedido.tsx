@@ -876,6 +876,8 @@ function Fila({
             </label>
             <span>(salen en el informe; si deja la fecha de hoy, queda la de hoy)</span>
           </div>
+          {/* Gerencia 20-10: en orden. Si salen desordenadas, se reordenan en el protocolo. */}
+          <p className="text-[11px] font-medium text-amber-800">Súbalas en este orden: 1 la placa, 2 el equipo completo, después los detalles.</p>
           <TomarOSubirVarias titulo={partes.length ? "Fotos de la primera máquina" : "Fotos de esta máquina"} archivos={fotos} onChange={setFotos} maximo={100} />
           <VideosDeLaPrueba titulo="Video de la prueba (opcional)" archivos={videos} onChange={setVideos} />
           <Documentos archivos={docs} onChange={setDocs} titulo={tituloDocs(e as MaquinaParaProbar, "principal", partes.length ? "la primera máquina" : "esta máquina")} />

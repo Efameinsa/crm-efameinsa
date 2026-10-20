@@ -44,7 +44,7 @@ import { AnotarClienteReciente } from "@/components/crm/clientes-recientes";
 import { InformesTecnicosDelCliente } from "@/components/crm/informes-tecnicos-del-cliente";
 import { cierresDePostventa } from "@/lib/precios-postventa";
 import { VincularRazonSocial } from "@/components/crm/vincular-razon-social";
-import { tituloDelTipo, type TipoAtencion } from "@/lib/atenciones";
+import { ETIQUETA_TIPO_ATENCION, tituloDelTipo, type TipoAtencion } from "@/lib/atenciones";
 import { AperturaServicioCaso, type CasoParaApertura } from "@/components/crm/apertura-servicio-caso";
 import { CorreosDeCampana, HistorialCorreosDeCampana } from "@/components/crm/correos-de-campana";
 import { LlamadasDelCliente } from "@/components/crm/llamadas-del-cliente";
@@ -567,7 +567,7 @@ async function ExpedientesVivos({
       ? new Map([...derivacionPorExpediente, ...(await derivacionesDeExpedientes(vivas.slice(propias.length) as { id: string; lead_id?: string | null }[]))])
       : derivacionPorExpediente;
   const ids = vivas.map((o) => o.id);
-  const [{ data: cotizaciones }, { data: gestiones }] = await Promise.all([
+  const [{ data: cotizaciones }, { data: gestiones }, { data: casosDentro }] = await Promise.all([
     supabase
       .from("cotizaciones")
       .select("oportunidad_id, codigo, estado, estado_aprobacion, total, moneda, created_at")
@@ -582,7 +582,14 @@ async function ExpedientesVivos({
       .in("oportunidad_id", ids)
       .order("realizada_at", { ascending: false })
       .limit(60),
+    // Los casos abiertos de cada carpeta, con su código (gerencia 20-10, Lernake:
+    // el mismo caso salía arriba y abajo sin que se supiera que era uno solo).
+    supabase.from("atenciones").select("id, codigo, tipo, oportunidad_id").in("oportunidad_id", ids).is("cerrado_at", null).limit(60),
   ]);
+  const casosDe = new Map<string, { id: string; codigo: string | null; tipo: string }[]>();
+  for (const c of (casosDentro ?? []) as { id: string; codigo: string | null; tipo: string; oportunidad_id: string }[]) {
+    casosDe.set(c.oportunidad_id, [...(casosDe.get(c.oportunidad_id) ?? []), c]);
+  }
   const cotizacionDe = new Map<string, NonNullable<typeof cotizaciones>[number]>();
   for (const c of cotizaciones ?? []) if (!cotizacionDe.has(c.oportunidad_id as string)) cotizacionDe.set(c.oportunidad_id as string, c);
   const gestionDe = new Map<string, NonNullable<typeof gestiones>[number]>();
@@ -638,6 +645,12 @@ async function ExpedientesVivos({
                     )}
                     <span className="text-muted-foreground">· {ESTADO_COTIZACION[cot.estado as string] ?? cot.estado}</span>
                     {aprob && <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-semibold", aprob.clases)}>{aprob.texto}</span>}
+                  </p>
+                )}
+                {(casosDe.get(o.id) ?? []).length > 0 && (
+                  <p className="text-xs text-foreground">
+                    <span className="font-medium">Casos abiertos en esta carpeta:</span>{" "}
+                    {(casosDe.get(o.id) ?? []).map((c) => `${c.codigo ?? "caso"} (${ETIQUETA_TIPO_ATENCION[c.tipo as TipoAtencion] ?? c.tipo})`).join(" · ")}
                   </p>
                 )}
                 {o.proxima_accion ? (
