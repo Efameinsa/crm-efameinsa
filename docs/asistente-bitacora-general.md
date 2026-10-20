@@ -18,6 +18,11 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 20-10 (noche) · Apertura de servicio interna o externa (Santos)
+- **Qué se decidió:** al emitir la «Apertura de servicio» desde el caso se indica si es **externa** (el técnico va al local del cliente: el circuito clásico, sin cambios) o **interna** (el equipo se atiende en nuestra planta).
+- **La interna lleva los antecedentes del equipo:** para qué es (qué se ejecuta), fecha de compra, N.º de guía, garantía, problemas anteriores, repuesto o mantenimiento vendido (preventivo o correctivo) y repuesto cambiado. Salen en la hoja de la apertura y en el pedido, y quedan en «Antecedentes del equipo» de la máquina.
+- **Por qué:** el técnico que atiende en planta necesitaba esa historia antes de abrir la máquina (lo mismo que pidió Brenda con «Antecedentes del equipo»).
+
 ### 20-10 (noche) · Fotos del pedido y el historial del caso (Santos, revisando el caso de Lino Espíritu)
 - **Fotos del pedido con enlace:** en la vista del pedido las fotos de la carga (frente, laterales, posterior, arriba) salían abiertas y tapaban el resto. Ahora dicen «Ver fotos (N)» y se abren en su propia página.
 - **Todo el historial del caso en «El circuito»:** Santos pidió que en el circuito se vean todas las gestiones del caso. El historial sale ahí: cambios del caso, llamadas y notas del expediente, derivaciones al almacén y la visita del técnico, con fecha y nombre. Hasta hoy esa sección salía vacía por un permiso que faltaba; ya está corregido.
