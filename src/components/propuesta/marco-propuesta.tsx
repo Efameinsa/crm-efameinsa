@@ -1,8 +1,9 @@
 import { cookies } from "next/headers";
-import { Bell, LogOut, Moon, Plus, Search, Sparkles, Sun } from "lucide-react";
+import { Bell, LogOut, Moon, Plus, Sparkles, Sun } from "lucide-react";
 import "@/app/propuesta.css";
 import { BarraPropuesta } from "@/components/propuesta/barra-propuesta";
 import { MenuMovil } from "@/components/propuesta/menu-movil";
+import { BuscadorCabecera } from "@/components/propuesta/buscador-cabecera";
 import { BarraProgreso } from "@/components/propuesta/barra-progreso";
 import { GuardaDemo } from "@/components/propuesta/guarda-demo";
 import { PasarContactoCentral } from "@/components/crm/pasar-contacto-central";
@@ -121,16 +122,7 @@ export async function MarcoPropuesta({
           {/* La flecha de volver cuando no está la del navegador (app instalada o
               pantalla completa). La vista nueva no la tenía: Ariana, 28-09-2026. */}
           <BotonAtrasApp />
-          <form action={buscar.href} method="get" className="order-last flex min-w-0 basis-full items-center gap-2 sm:order-none sm:min-w-64 sm:max-w-xl sm:flex-1 sm:basis-auto rounded-lg border border-border bg-secondary/60 px-3 py-1.5 transition-all duration-200 focus-within:border-[var(--c-marca)] focus-within:bg-card focus-within:ring-4 focus-within:ring-[var(--c-marca)]/15">
-            <Search className="size-4 text-muted-foreground" />
-            <input
-              id="buscar-global"
-              name="q"
-              placeholder={`Buscar: ${buscar.ayuda}`}
-              className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-              autoComplete="off"
-            />
-          </form>
+          <BuscadorCabecera href={buscar.href} ayuda={buscar.ayuda} />
           {/* «Cotizar», dentro de un expediente, cotiza a ese cliente (Moisés, 14-10). */}
           {NUEVO[tipo] && (tipo === "comercial" || tipo === "preventivo") ? (
             <BotonCotizarCabecera etiqueta={NUEVO[tipo].etiqueta} hrefFuera={NUEVO[tipo].href} />

@@ -3,6 +3,7 @@ import { FileText, Package } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { BusquedaEnVivo } from "@/components/crm/busqueda-en-vivo";
 import { fechaHoraLima } from "@/lib/fechas";
 import { textoComprobante, textoMotivoGuia } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ type Fila = {
   guia_comprobante_numero: string | null;
   guia_motivo: string | null;
   guia_motivo_detalle: string | null;
+  cerrado_at: string | null;
   perfiles: { nombre: string } | null;
 };
 
@@ -47,23 +49,74 @@ type Fila = {
  * Acá están todas: primero las que esperan salir, con la hoja en PDF a un
  * clic; abajo, las que ya salieron en los últimos 30 días.
  */
-export default async function AperturasDePostventaPage() {
+export default async function AperturasDePostventaPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   await requerirPerfil();
+  const q = ((await searchParams).q ?? "").trim();
   const supabase = await createClient();
   const ahora = ahoraMs();
   const hace30 = new Date(ahora - 30 * 86400000).toISOString();
-  const { data } = await supabase
-    .from("servicios_postventa")
-    .select(
-      "id, cliente_texto, equipo, numero_pedido_erp, apertura_despacho_at, apertura_enviada_almacen_at, fecha_despacho, despacho_hora, despachado_at, almacen_listo_at, guia_confirmada_at, guia_confirmada_nota, guia_comprobante_tipo, guia_comprobante_numero, guia_motivo, guia_motivo_detalle, perfiles!servicios_postventa_apertura_despacho_por_fkey(nombre)",
-    )
-    // También la que postventa envió sin emitir (Ariana, 14-10, Beneficencia de Huancayo):
-    // el aviso llegaba y la apertura no estaba en la lista.
-    .or("apertura_despacho_at.not.is.null,apertura_enviada_almacen_at.not.is.null")
-    .is("cerrado_at", null)
-    .order("apertura_despacho_at", { ascending: false, nullsFirst: true })
-    .limit(200);
+  // BUSCAR UNA APERTURA (Almacén, 20-10: escribió «CHANKA» y no salía nada).
+  // La del Hospital Chanka ya tenía el pedido cerrado y la lista solo traía
+  // las abiertas. Al buscar salen todas, cerradas y antiguas incluidas; palabra
+  // por palabra (en cualquier orden, sin tildes) y, si nada coincide, por las
+  // 6 primeras letras de cada palabra, para perdonar un error al escribir.
+  const palabras = q
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^\p{L}\p{N}-]+/gu, " ")
+    .split(" ")
+    .filter((w) => w.length >= 2);
+  const consultar = (patrones: string[]) => {
+    let c = supabase
+      .from("servicios_postventa")
+      .select(
+        "id, cliente_texto, equipo, numero_pedido_erp, apertura_despacho_at, apertura_enviada_almacen_at, fecha_despacho, despacho_hora, despachado_at, almacen_listo_at, guia_confirmada_at, guia_confirmada_nota, guia_comprobante_tipo, guia_comprobante_numero, guia_motivo, guia_motivo_detalle, cerrado_at, perfiles!servicios_postventa_apertura_despacho_por_fkey(nombre)",
+      )
+      // También la que postventa envió sin emitir (Ariana, 14-10, Beneficencia de Huancayo):
+      // el aviso llegaba y la apertura no estaba en la lista.
+      .or("apertura_despacho_at.not.is.null,apertura_enviada_almacen_at.not.is.null");
+    if (!q) c = c.is("cerrado_at", null);
+    for (const w of patrones) c = c.or(`cliente_texto.ilike.%${w}%,equipo.ilike.%${w}%,numero_pedido_erp.ilike.%${w}%`);
+    return c.order("apertura_despacho_at", { ascending: false, nullsFirst: true }).limit(200);
+  };
+  let { data } = await consultar(palabras);
+  let parecidos = false;
+  if (q && !data?.length) {
+    const cortas = palabras.filter((w) => w.length >= 4).map((w) => w.slice(0, 6));
+    if (cortas.length) {
+      ({ data } = await consultar(cortas));
+      parecidos = Boolean(data?.length);
+    }
+  }
   const filas = (data ?? []) as unknown as Fila[];
+  const buscador = (
+    <div className="flex flex-wrap items-center gap-2">
+      <BusquedaEnVivo inicial={q} placeholder="Cliente, equipo o N.º de pedido de la apertura" />
+    </div>
+  );
+  if (q) {
+    return (
+      <div className="space-y-4">
+        {buscador}
+        <SeccionPanel titulo={`Aperturas con «${q}» · ${filas.length}`}>
+          <p className="mb-2 text-xs text-muted-foreground">
+            {parecidos
+              ? `Ninguna dice exactamente «${q}»; estas se le parecen. `
+              : ""}
+            Al buscar salen todas, también las de pedidos ya cerrados.
+          </p>
+          {filas.length === 0 ? (
+            <p className="py-4 text-sm text-muted-foreground">
+              Ninguna apertura de postventa con «{q}». Pruebe con otra palabra
+              del nombre del cliente o del equipo.
+            </p>
+          ) : (
+            <Lista lista={filas} ahora={ahora} />
+          )}
+        </SeccionPanel>
+      </div>
+    );
+  }
   const porSalir = filas.filter((f) => !f.despachado_at);
   const salieron = filas.filter(
     (f) => f.despachado_at && f.despachado_at >= hace30,
@@ -71,6 +124,7 @@ export default async function AperturasDePostventaPage() {
 
   return (
     <div className="space-y-4">
+      {buscador}
       <SeccionPanel
         titulo={`Aperturas de postventa por salir · ${porSalir.length}`}
       >
@@ -106,6 +160,7 @@ function Lista({ lista, ahora }: { lista: Fila[]; ahora: number }) {
         const nueva =
           !f.despachado_at &&
           !f.almacen_listo_at &&
+          !f.cerrado_at &&
           ahora - new Date(f.apertura_despacho_at ?? f.apertura_enviada_almacen_at ?? 0).getTime() < 24 * 3600 * 1000;
         return (
           <li
@@ -140,7 +195,7 @@ function Lista({ lista, ahora }: { lista: Fila[]; ahora: number }) {
                 <span
                   className={cn(
                     "font-medium",
-                    f.despachado_at
+                    f.despachado_at || f.cerrado_at
                       ? "text-[#1E7F4F]"
                       : f.almacen_listo_at
                         ? "text-[#1E7F4F]"
@@ -149,7 +204,9 @@ function Lista({ lista, ahora }: { lista: Fila[]; ahora: number }) {
                           : "text-foreground",
                   )}
                 >
-                  {f.despachado_at
+                  {f.cerrado_at
+                    ? `Pedido cerrado el ${fechaHoraLima(f.cerrado_at)}`
+                    : f.despachado_at
                     ? `Salió el ${fechaHoraLima(f.despachado_at)}`
                     : f.fecha_despacho
                       ? `Sale el ${f.fecha_despacho}${f.despacho_hora ? ` ${String(f.despacho_hora).slice(0, 5)}` : ""}${f.almacen_listo_at ? " · listo" : " · falta confirmar que está listo"}`
@@ -157,7 +214,7 @@ function Lista({ lista, ahora }: { lista: Fila[]; ahora: number }) {
                 </span>
               </p>
               {/* La guía la autoriza Finanzas (0308, audio de gerencia 25-09). */}
-              {!f.despachado_at && (
+              {!f.despachado_at && !f.cerrado_at && (
                 <p className={cn("mt-0.5 text-[11px] font-medium", f.guia_confirmada_at ? "text-[#1E7F4F]" : "text-amber-700")}>
                   {f.guia_confirmada_at
                     ? `Finanzas confirmó la guía el ${fechaHoraLima(f.guia_confirmada_at)}${f.guia_comprobante_tipo ? ` · ${textoComprobante(f.guia_comprobante_tipo, f.guia_comprobante_numero)}` : ""}${textoMotivoGuia(f.guia_motivo, f.guia_motivo_detalle) ? ` · ${textoMotivoGuia(f.guia_motivo, f.guia_motivo_detalle)}` : ""}${f.guia_confirmada_nota ? ` · ${f.guia_confirmada_nota}` : ""}`
