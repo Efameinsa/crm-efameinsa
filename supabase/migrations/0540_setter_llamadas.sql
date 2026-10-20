@@ -28,3 +28,6 @@ create policy llamadas_por_hacer_ver on llamadas_por_hacer for select to authent
 
 -- Santos es el setter.
 update perfiles set setter_llamadas = true where id = '7903ef3b-b139-4fa9-aaec-83f172ae7c69';
+
+grant select on public.llamadas_por_hacer to authenticated;
+grant all on public.llamadas_por_hacer to service_role;
