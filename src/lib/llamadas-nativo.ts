@@ -22,6 +22,8 @@ export interface EstadoLlamadas {
   grabacion: EstadoGrabacion;
   /** Qué falta, en palabras para la persona. */
   motivo: string | null;
+  /** Por qué no se pudo grabar la última vez, si pasó. */
+  ultimoMotivo?: string | null;
   /** ¿Aceptó el aviso de grabación vigente? */
   consentimiento: boolean;
   /** Llamadas guardadas en el celular que todavía no recibió el CRM. */
@@ -48,8 +50,12 @@ export interface LlamadasPlugin {
   configurar(config: ConfigLlamadas): Promise<EstadoLlamadas>;
   /** Marca el número y deja la grabación corriendo. Vuelve apenas se marca. */
   llamar(opciones: LlamarOpciones): Promise<{ iniciada: boolean }>;
-  /** Abre los ajustes que hagan falta (permiso de teléfono, grabación). */
+  /** Pide los permisos de teléfono de Android (llamar, registro de llamadas, estado del teléfono). */
   pedirPermiso(): Promise<EstadoLlamadas>;
+  /** Abre la ventana de Shizuku para autorizar a la app, o abre Shizuku si está apagado. */
+  pedirShizuku(): Promise<EstadoLlamadas>;
+  /** Guarda en el celular si la persona aceptó el aviso de grabación (el CRM lo registra aparte). */
+  aceptarGrabacion(opciones: { acepto: boolean }): Promise<EstadoLlamadas>;
 }
 
 /**
@@ -68,6 +74,8 @@ export async function plugin(): Promise<LlamadasPlugin | null> {
     configurar: (config) => nativo.configurar(config),
     llamar: (opciones) => nativo.llamar(opciones),
     pedirPermiso: () => nativo.pedirPermiso(),
+    pedirShizuku: () => nativo.pedirShizuku(),
+    aceptarGrabacion: (opciones) => nativo.aceptarGrabacion(opciones),
   };
 }
 
