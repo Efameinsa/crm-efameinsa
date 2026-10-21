@@ -442,6 +442,7 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
   const f0 = grupo.filas[0];
   const [codigo, setCodigo] = useState(f0.codigoFinal ?? "");
   const [verSeries, setVerSeries] = useState(false);
+  const [confirmarSubir, setConfirmarSubir] = useState(false);
   const [pendiente, iniciar] = useTransition();
   const decisiones = new Set(grupo.filas.map((f) => f.decision));
   const decision = decisiones.size === 1 ? f0.decision : "mixta";
@@ -455,7 +456,10 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
     iniciar(async () => {
       const r = await decidirStock(cargaId, grupo.indices, d, codigo || null);
       if (r.error) toast.error(r.error);
-      else router.refresh();
+      else {
+        setConfirmarSubir(false);
+        router.refresh();
+      }
     });
   }
 
@@ -574,26 +578,85 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
             ))}
           </datalist>
           <SenalCodigo codigo={codigo} existentes={existentes} deLesly={!!f0.codigoExcel && codigo === f0.codigoExcel} />
-          <div className="mt-1 flex gap-2">
-            <Button
-              size="sm"
-              className="flex-1"
-              variant={decision === "subir" && !cambiado ? "secondary" : "default"}
-              disabled={pendiente || !codigo || (decision === "subir" && !cambiado)}
-              onClick={() => decidir("subir")}
-            >
-              <CheckCircle2 className="size-4" /> {codigo ? `Subir con ${codigo}` : "Subir"}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={pendiente || decision === "no_subir"}
-              onClick={() => decidir("no_subir")}
-              title="No se sube como stock libre"
-            >
-              <CircleSlash className="size-4" /> No subir
-            </Button>
-          </div>
+
+          {/* Lesly (21-10): un botón gris deshabilitado no le decía nada ni le dejaba
+              cambiar de idea. Cada estado dice qué pasa y siempre hay cómo revertirlo. */}
+          {decision === "no_subir" && !cambiado ? (
+            <div className="mt-1 space-y-2 rounded-lg border border-border bg-muted/50 p-2.5">
+              <p className="flex items-start gap-1.5 text-xs">
+                <CircleSlash className="mt-0.5 size-3.5 shrink-0" />
+                <span>
+                  <b>No se sube.</b>{" "}
+                  {f0.ocupada
+                    ? `Ya está con ${f0.ocupada.cliente ?? "un cliente"}${f0.ocupada.pedido ? ` (pedido ${f0.ocupada.pedido})` : ""}: pásela a vendido o reserva en el Excel de Importaciones.`
+                    : "Queda fuera del almacén."}
+                </span>
+              </p>
+              {confirmarSubir ? (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] text-red-700 dark:text-red-300">
+                    ¿Seguro que esta máquina sigue en planta y libre? Si ya se vendió, las comerciales la verían como stock.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="destructive" className="flex-1" disabled={pendiente || !codigo} onClick={() => decidir("subir")}>
+                      Sí, sigue en planta: subir
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setConfirmarSubir(false)}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={pendiente || !codigo}
+                    onClick={() => (f0.ocupada ? setConfirmarSubir(true) : decidir("subir"))}
+                  >
+                    <Upload className="size-3.5" /> Subir de todos modos
+                  </Button>
+                  <Button size="sm" variant="ghost" disabled={pendiente} onClick={() => decidir("pendiente")}>
+                    Deshacer
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : decision === "subir" && !cambiado ? (
+            <div className="mt-1 space-y-2 rounded-lg border border-emerald-200 bg-emerald-50/60 p-2.5 dark:border-emerald-900 dark:bg-emerald-950/20">
+              <p className="flex items-center gap-1.5 text-xs">
+                <CheckCircle2 className="size-3.5 text-emerald-600" />
+                <span>
+                  <b>Va a subir</b> con <span className="font-mono">{codigo}</span>.
+                </span>
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" disabled={pendiente} onClick={() => decidir("no_subir")}>
+                  <CircleSlash className="size-3.5" /> No subir
+                </Button>
+                <Button size="sm" variant="ghost" disabled={pendiente} onClick={() => decidir("pendiente")}>
+                  Deshacer
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-1 flex gap-2">
+              <Button
+                size="sm"
+                className="flex-1"
+                variant={f0.ocupada && confirmarSubir ? "destructive" : "default"}
+                disabled={pendiente || !codigo}
+                onClick={() => (f0.ocupada && !confirmarSubir ? setConfirmarSubir(true) : decidir("subir"))}
+                title={f0.ocupada ? "Esta serie ya está con un cliente: se pide confirmar" : undefined}
+              >
+                <CheckCircle2 className="size-4" />{" "}
+                {f0.ocupada && confirmarSubir ? "¿Sigue en planta? Sí, subir" : codigo ? `Subir con ${codigo}` : "Subir"}
+              </Button>
+              <Button size="sm" variant="outline" disabled={pendiente} onClick={() => decidir("no_subir")} title="No se sube como stock libre">
+                <CircleSlash className="size-4" /> No subir
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>
