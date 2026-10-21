@@ -333,8 +333,10 @@ const ENLACE_OPERACIONES = { href: "/operaciones", etiqueta: "Autorizaciones", i
 // técnicos… tengo que ver mis pedidos». Cuatro pantallas y el macro; nada
 // del comercial.
 const ENLACES_ALMACEN = [
-  { href: "/almacen", etiqueta: "Mi día", icono: Gauge },
+  { href: "/almacen", etiqueta: "Agenda del almacén", icono: Gauge },
   { href: "/almacen/pedidos", etiqueta: "Pedidos", icono: Package },
+  // Equipos que llegan a planta (0557): la lista vivía solo en la tarjeta del macro (21-10).
+  { href: "/recepciones", etiqueta: "Equipos que llegan", icono: Inbox },
   { href: "/almacen/aperturas", etiqueta: "Llamadas de postventa", icono: PhoneForwarded },
   // Lesly, 25-09: «almacén no tiene la opción para ver las aperturas que envía postventa».
   { href: "/almacen/aperturas-postventa", etiqueta: "Aperturas de postventa", icono: FileText },

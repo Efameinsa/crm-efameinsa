@@ -17,7 +17,10 @@ export function BotonReporteDiario({
   etiqueta = "Reporte del día",
   compacto = false,
   elegirFecha = false,
+  ruta = "/api/reportes/diario",
 }: {
+  /** El almacén tiene su propio reporte (21-10): otra ruta, mismo botón. */
+  ruta?: string;
   fecha: string;
   /**
    * REPORTES POR DÍA (12-10, gerencia revisando a postventa): un selector de
@@ -37,7 +40,7 @@ export function BotonReporteDiario({
     const params = new URLSearchParams({ fecha: elegirFecha && dia ? dia : fecha });
     if (comercialId) params.set("comercial", comercialId);
     setGenerando(true);
-    const url = `/api/reportes/diario?${params.toString()}`;
+    const url = `${ruta}?${params.toString()}`;
     // SI EL NAVEGADOR BLOQUEA LA PESTAÑA, window.open devuelve null y no pasa
     // NADA visible: ni ventana, ni descarga, ni error. El informe de UX del
     // 08-09 lo reportó como «no produjo nada al primer ni al segundo clic».
