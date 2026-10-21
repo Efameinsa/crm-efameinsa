@@ -427,6 +427,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - atender órdenes de facturar;
   - ver cuentas por cobrar.
 - **No entra** a los informes técnicos de postventa: el correo de la orden de facturar los describe, pero no los enlaza.
+- **«Casos de Central»** (desde el 21-10): lo que Central le pide con un caso (confirmar abono, devolución, cargo bancario, letras…). Lo toma, responde o pide un dato por el mismo caso (ver 3.10).
 
 ### 2.7 Contabilidad / Facturación
 
@@ -440,6 +441,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **«Ver el expediente» en cada apertura** (desde el 15-10, lo pidió Facturación): en «Aperturas por confirmar», también en las de contado y las ya confirmadas, despliega el cliente con su RUC, el cierre, el pedido, el comercial, el equipo, la forma de pago y las cifras, con el botón para abrir el cierre completo y sus adjuntos. En las ventas a crédito sigue dentro de «Ver la validación del crédito».
 - **Varios anticipos** (desde el 14-10): un pedido ya facturado vuelve a «Por facturar», con el aviso «Nuevo anticipo por facturar», cuando Finanzas sube una liquidación nueva con «factura pendiente» después de la última factura. Registrada la factura nueva, Finanzas genera la liquidación siguiente, que ya trae el número (desde el 17-10).
 - **A crédito factura cuando postventa da la orden** (14-10): los días de crédito corren desde la factura, así que se espera a que el cliente confirme que el equipo llegó y está conforme.
+- **«Casos de Central»** (desde el 21-10): emitir o corregir una factura, nota de crédito, reenviarla al cliente o la guía. Responde con el documento adjunto (ver 3.10).
 
 ### 2.8 Importaciones
 
@@ -751,6 +753,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Los equipos regalados también piden serie** (desde el 15-10). Todo equipo que se entrega, aunque venga en un bloque gratuito del cierre (por ejemplo una plancha de regalo), lleva su fila y pide su serie al almacén. Los servicios sin costo siguen sin pedir serie.
 - En un repuesto, la «SERIE:» del renglón es la de la máquina a la que va la pieza. Central debe pulsar «Pedir al almacén».
 - **Hojas impresas «Solicitud de código» y «Respuesta del almacén» con cantidad** (desde el 16-10, a pedido de Lesly). Las unidades iguales (mismo artículo, mismo código sin serie, o todas pendientes, misma procedencia y stock) salen en una sola fila con la columna «Cant.», y el N.º muestra el rango (por ejemplo «7–10» para 4 niples). Los equipos con serie de placa siguen saliendo uno por fila, porque cada serie es una máquina.
+- **Central arma o corrige la lista «Equipos y series» del pedido** (desde el 21-10, a pedido de Central con el pedido de FAMILY FARMS). Un cierre que solo trae servicios (por ejemplo, mantenimientos preventivos) no arma filas solo. En «Cierres de venta», dentro de «Equipos de este pedido», Central puede: **«Traer las líneas del cierre»** (una fila por unidad, con la serie que venga escrita en el texto y enganchada a la máquina del cliente si ya está registrada), **«+ Agregar equipo o trabajo»** (texto y, si la tiene, serie), y en cada fila **«Corregir el texto»** o **«Quitar del pedido»**. Se puede mientras el pedido no haya salido y la fila no esté probada ni tenga archivos del almacén. Una serie ya puesta se sigue cambiando con «Corregir serie» y el código de operaciones. Todo queda en las observaciones del pedido con quién y cuándo. La hoja impresa del pedido muestra además el trabajo del cierre en «Trabajo y otros conceptos del cierre».
 - **«No corresponde: es un servicio, no lleva código ni serie»** (desde el 16-10, a pedido de Lesly). Si un servicio (por ejemplo una instalación) llegó a la lista de equipos del pedido como si fuera una máquina, pidiendo serie, prueba y fotos, el almacén, postventa o Central lo quitan con ese botón en su fila. Los renglones que empiezan con «SERVICIO» salen resaltados en ámbar. Se puede mientras la fila no tenga serie real, no esté probada ni tenga archivos, y no sea lo único del pedido (en ese caso se avisa a Central para que revise el cierre). En las observaciones del pedido queda escrito qué se quitó, quién y cuándo. Ya no hace falta ponerle un código de relleno como «NO LLEVA CÓDIGO».
 - **«No va en este despacho»** marca un despacho parcial.
 - **Otro circuito para el equipo que no salió** (desde 15-10). Si un pedido con varios equipos ya salió y uno se quedó (por ejemplo la secadora que llegó después), postventa abre «Equipos de este pedido» → «¿Algún equipo no salió en este despacho? Abrirle su propio circuito», marca el equipo y escribe el motivo. Nace un pedido nuevo del mismo cierre: el pago confirmado por Finanzas, la aprobación, la condición de pago y el plano ya vienen hechos; empieza de nuevo en prueba y embalaje (se le solicita al almacén), dirección verificada, apertura, despacho, puesta en marcha y cierre. El equipo se muda al pedido nuevo (no queda en los dos) y el pedido nuevo no lleva monto: la venta se cuenta una sola vez, en el pedido original. Cada pedido enlaza al otro en su cabecera. Antes del despacho también sirve para lo marcado «No va en este despacho».
@@ -838,6 +841,14 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - El cierre de un caso aparece en la línea de tiempo con su resultado y su motivo («CASO-00099 cerrado · no procede»).
 - Reclasificar un caso deja una línea en su historial («Reclasificado: era problema técnico, ahora es repuesto»). Un caso de repuesto muestra arriba que se atiende con cotización y pedido.
 - El botón «Cerrar este caso» está a la vista debajo del circuito. Los casos se cierran: así se termina el mes.
+
+**Fichas parecidas: el mismo cliente registrado distinto** (desde el 21-10, pedido de Santos)
+- En «Fichas repetidas» hay dos pestañas: «Iguales» (mismo nombre o mismo documento) y «Parecidas: revisar a mano».
+- «Parecidas» muestra parejas de fichas que podrían ser el mismo cliente, con su porcentaje de coincidencia y el porqué: nombre parecido, un nombre dentro del otro, mismo teléfono o mismo correo.
+- Las dos fichas salen lado a lado: documento, cartera, contactos, dirección, lo que tiene cada una y su última gestión. El CRM propone cuál se queda (la que tiene RUC o más movimiento).
+- Si son el mismo cliente, «Unir» (pide el motivo y, si mueve carteras, el código de operaciones). Si no, «No son el mismo cliente» y la pareja no vuelve a salir.
+- Dos fichas con documentos distintos no se proponen: son clientes distintos. La búsqueda se hace cada noche. La lista abre en 60 % y se puede ver desde 80 % o desde 45 %.
+- La usan Central, operaciones y gerencia.
 
 **Fichas gemelas: el DNI dentro del RUC 10** (desde el 20-10)
 - El RUC de una persona natural es 10 + su DNI + un dígito. El CRM ya sabe que la ficha con DNI 44224120 y la del RUC 10442241207 son la misma persona.
@@ -1023,6 +1034,15 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
     2. cuando ya está en el CRM, el comercial o el área que lo gestiona pide el file en «Files»;
     3. Central entrega el file con el registro del CRM, no por fuera del sistema.
 - **Visitas a planta:** «Viene a la planta» avisa a Central, almacén y logística, y genera la hoja para vigilancia. Desde el 14-10 a Central y al almacén les sale un **mensaje grande** al centro de la pantalla, con campanada, que se queda hasta pulsar «Entendido» (o «Imprimir para vigilancia» / «Ver las visitas»); si el CRM estaba cerrado, aparece al entrar. Desde el 15-10, al elegir el cliente salen **sus equipos con su serie** para solo marcar «Lo recoge» (va en el aviso, el correo y la hoja de vigilancia) o «Prepararlo para la visita» (pasa solo a «Preparación de máquinas» del almacén); el documento de quien viene, y de cada acompañante, se elige con un botón **DNI o C.E.** (carné de extranjería), y así sale en el aviso y en la hoja. Al registrar cómo terminó la visita está **«Recogió equipo»**: si se marcaron equipos con «Lo recoge», sale elegido y la gestión del cliente anota qué equipos se llevó (modelo y serie). Ya anunciada la visita, debajo de la fecha están «Cambiar fecha u hora» y **«Acompañantes»** (desde el 16-10): ahí se suman, corrigen o quitan acompañantes con nombre y DNI o C.E., mientras el cliente no haya llegado; lo hace quien la registró o Central. Central recibe el aviso, sale el correo de visitas y, si vigilancia ya tenía la hoja, se apaga «Vigilancia avisada» para volver a imprimirla. También existe «Registrar visita de proveedor».
+- **Casos a otras áreas (desde el 21-10, Santos).** Central abre un caso para **Finanzas** o **Facturación** con «Derivar a un área», en la ficha del cliente o en cada fila de «Sus pedidos». Elige el área, el motivo, escribe qué necesita, adjunta lo que haga falta (voucher, OC, captura) y elige el plazo:
+  1. **Hoy, sin apuro:** al área le llega a la campana con sonido.
+  2. **Urgente (2 horas):** la misma alerta de «Urgencia a Finanzas», que no se cierra sola, con aviso al celular. Si en 2 horas nadie lo toma, vuelve a sonar en el área y se enteran Central y gerencia.
+  3. **Para una fecha.**
+  - El caso lleva código propio (**CC-0001**) y estados: Nuevo → En manos del área → Respondido → Cerrado. Si al área le falta algo, pasa a «Esperando a Central» hasta que Central conteste.
+  - El área lo atiende en «Casos de Central» (menú de Finanzas y de Facturación): «Tomar el caso», «Responder a Central» (con archivos) o «Pedir un dato a Central». Cada área ve solo los suyos.
+  - Central lo sigue en «Casos a otras áreas»: puede contestar el dato, «Volver a avisar» (del tercer aviso en adelante gerencia se entera), decir «No quedó resuelto» (vuelve al área) o «Dar por cerrado». Un caso respondido que Central no cierra se cierra solo a los 2 días.
+  - **RR. HH.** aparece en el diálogo pero apagada: todavía no tiene cuenta en el CRM, así que no se le puede derivar.
+  - Cada paso queda con nombre y hora en el historial del caso.
 
 ### 3.11 Códigos de autorización (cómo funcionan, sin valores)
 
@@ -1275,6 +1295,9 @@ En el pedido, «Enviar guía y fotos al cliente»: abre el WhatsApp con el mensa
 
 **51. El cliente volvió a llamar por el mismo problema. ¿Abro otro caso?**
 No hace falta: si el caso sigue abierto, la llamada se suma a ese caso con su fecha. Busque el caso por su código (CASO-…). (1.13)
+
+**52. Necesito que Finanzas o Facturación hagan algo por un cliente. ¿Les escribo por WhatsApp?**
+No: Central abre un caso con «Derivar a un área», en la ficha del cliente o en «Sus pedidos». Si es para hoy mismo, márquelo urgente: le suena al área hasta que lo toque, y si en 2 horas nadie lo toma, se avisa también a gerencia. La respuesta vuelve al mismo caso, en «Casos a otras áreas». A RR. HH. todavía no se puede derivar porque no tiene cuenta en el CRM. (3.10)
 
 **47. ¿Cómo llamo a un cliente desde el CRM?**
 Toque el número en la ficha del cliente (o «Llamar» en el cotizador). En la app de Android la llamada sale con el plan de la empresa y queda anotada con su duración en la pestaña «Llamadas» de la ficha. Desde el navegador o el iPhone, el CRM abre el marcador y al volver le pregunta cómo le fue. Por ahora las llamadas no se graban. (3, llamadas)

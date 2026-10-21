@@ -155,6 +155,26 @@ const ESTILO_AVISO: Record<
     duracion: Infinity,
     tono: "error",
   },
+  // Casos de Central (0573, Santos 21-10). El urgente es la misma sirena de
+  // «Urgencia a Finanzas»: se queda hasta que lo toquen.
+  caso_central: {
+    encabezado: "Caso de Central",
+    accion: "Abrir el caso",
+    duracion: 15000,
+    tono: "info",
+  },
+  caso_central_urgente: {
+    encabezado: "🚨 Caso urgente de Central",
+    accion: "Abrir el caso",
+    duracion: Infinity,
+    tono: "error",
+  },
+  caso_central_respuesta: {
+    encabezado: "Novedad en tu caso",
+    accion: "Ver el caso",
+    duracion: 12000,
+    tono: "success",
+  },
   // Central apura al almacén por las series de un pedido (0358, 30-09):
   // «alarma, notificación y todo». Igual que la de Finanzas.
   urgencia_almacen: {
@@ -466,6 +486,9 @@ export function CampanaNotificaciones({
       "urgencia",
       "urgencia_finanzas",
       "urgencia_almacen",
+      // Casos de Central (0573): el área tiene que tomarlo.
+      "caso_central",
+      "caso_central_urgente",
       // Files: pedir y «Terminé» (Central, 30-09) mueven a alguien a caminar.
       "file_pedido",
       "file_recoger",

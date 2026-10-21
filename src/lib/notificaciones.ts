@@ -82,7 +82,12 @@ export type TipoNotificacion =
   // Carpeta de postventa (0530): pases, uniones y «Hoy cubro a…».
   | "otro"
   | "gestiones_movidas"
-  | "cobertura";
+  | "cobertura"
+  // Casos de Central a Finanzas y Facturación (0573, Santos 21-10): el caso
+  // nuevo al área (urgente = la sirena) y lo que el área hace, a Central.
+  | "caso_central"
+  | "caso_central_urgente"
+  | "caso_central_respuesta";
 
 interface Destinatario {
   userId?: string;

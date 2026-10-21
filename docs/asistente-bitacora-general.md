@@ -25,6 +25,19 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 - **Fichas unidas por el buzón (Brenda, 20-10):** LAVIPRONTO (tres fichas con los mismos contactos, ahora una sola con RUC, cada expediente con su comercial); Operador Nacional de Hoteles del Perú (Decameron), unida a la ficha con RUC con aprobación de gerencia y en la cartera de Brenda; y la ficha de Family Farms que tenía por error el RUC de un banco, también unida a FAMILY FARMS PERÚ, con ese RUC equivocado quitado.
 - **«Salieron, sin guía» cuenta igual en el Panorama y en la lista (almacén).** El Panorama decía 5 y la lista 3: el número sumaba revisiones técnicas (que no llevan guía) y se le escapaba un pedido que salió sin fotos de la carga. Ahora los dos usan la misma regla.
 
+### 21-10 · Central deriva casos a Finanzas y Facturación (Santos)
+- **Pedido de Santos:** «Central debería poder derivar casos a Finanzas, Facturación y RR. HH.». Primero se mostraron las pantallas y, aprobadas, se hizo: «Derivar a un área» en la ficha del cliente y en «Sus pedidos», «Casos de Central» para cada área y «Casos a otras áreas» para Central.
+- **Por qué:** antes Central solo tenía la «Urgencia a Finanzas» (sin respuesta, solo sobre un pedido liberado) y los avisos de Central (solo informan). Lo demás iba por WhatsApp o correo, sin saber quién lo tenía.
+- **Urgente = 2 horas.** Si nadie lo toma, vuelve a sonar en el área y se enteran Central y gerencia.
+- **RR. HH. queda para después:** el área ya tiene responsable, pero todavía no tiene cuenta en el CRM.
+
+### 21-10 · Central edita «Equipos y series» del pedido (Santos, por Central)
+- Central avisó que el pedido de FAMILY FARMS (PED-0037-2026) «no jaló el detalle del trabajo, equipos y series». El cierre eran dos mantenimientos preventivos; desde el 06-10 una línea de servicio no arma fila en la lista del pedido (para no pedir series que no existen), así que el pedido salía sin nada. Santos: «aun así dale para que edite».
+- Desde el 21-10, en «Cierres de venta», Central tiene en «Equipos de este pedido»: **«Traer las líneas del cierre»** (con la serie que venga escrita en el texto, enganchada a la máquina del cliente), **«+ Agregar equipo o trabajo»**, y en cada fila **«Corregir el texto»** y **«Quitar del pedido»**. Se puede hasta que el pedido salga; cada cambio queda en las observaciones del pedido. La hoja impresa del pedido ya muestra el trabajo del cierre aunque no esté en la tabla.
+
+### 21-10 · Fichas parecidas para revisar a mano (Santos)
+- Santos: «no creaste algo para poder contrastarlo manualmente… juntar fichas de clientes que sean lo mismo pero los han registrado diferente». Desde el 21-10, «Fichas repetidas» tiene la pestaña «Parecidas»: cada pareja con su porcentaje, lado a lado, para unir o descartar. Es lo que en la reunión del 20-10 se llamó «los de poca coincidencia, que tienen que ver ustedes».
+
 ### 21-10 · «El macro» del almacén y operaciones (Lesly, por Santos)
 - Lesly pedía una «foto macro»: Santos aclaró que es el panorama de almacén y operaciones. Desde el 21-10 está «El macro», como el de postventa, con cada número enlazado a su pantalla.
 

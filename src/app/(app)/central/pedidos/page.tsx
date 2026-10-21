@@ -6,6 +6,7 @@ import { bloquesPedido, estadoPago, etiquetaResponsable, type ServicioPostventa 
 import { fechaHoraLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 import { UrgenciaFinanzasBoton } from "@/components/crm/urgencia-finanzas-boton";
+import { DerivarAAreaBoton } from "@/components/crm/derivar-a-area-boton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -246,6 +247,13 @@ export default async function SusPedidosPage({ searchParams }: { searchParams: P
                       ultimaAt={s.urgencia_finanzas_at ?? null}
                     />
                   )}
+                  {/* Un caso con respuesta a Finanzas o Facturación (0573, Santos 21-10). */}
+                  <DerivarAAreaBoton
+                    servicioId={s.id}
+                    cliente={(s.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "")}
+                    referencia={s.numero_pedido_erp ? `Pedido ${s.numero_pedido_erp}` : null}
+                    compacto
+                  />
                   <a href={`/pedidos/${s.id}/imprimir`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-accent">
                     <Printer className="size-3.5" /> Pedido
                   </a>
