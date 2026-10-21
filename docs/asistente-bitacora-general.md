@@ -25,6 +25,9 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 - **Fichas unidas por el buzón (Brenda, 20-10):** LAVIPRONTO (tres fichas con los mismos contactos, ahora una sola con RUC, cada expediente con su comercial); Operador Nacional de Hoteles del Perú (Decameron), unida a la ficha con RUC con aprobación de gerencia y en la cartera de Brenda; y la ficha de Family Farms que tenía por error el RUC de un banco, también unida a FAMILY FARMS PERÚ, con ese RUC equivocado quitado.
 - **«Salieron, sin guía» cuenta igual en el Panorama y en la lista (almacén).** El Panorama decía 5 y la lista 3: el número sumaba revisiones técnicas (que no llevan guía) y se le escapaba un pedido que salió sin fotos de la carga. Ahora los dos usan la misma regla.
 
+### 21-10 · «El macro» del almacén y operaciones (Lesly, por Santos)
+- Lesly pedía una «foto macro»: Santos aclaró que es el panorama de almacén y operaciones. Desde el 21-10 está «El macro», como el de postventa, con cada número enlazado a su pantalla.
+
 ### 20-10 (tarde, 15:45) · Casos que se terminan, fichas gemelas, torre y stock (gerencia con Lesly, Brenda y Santos)
 - Se recorrieron Pepas de Oro y Lino Espíritu. Diagnóstico de gerencia: «nunca se termina un caso porque están superponiendo los casos uno encima del otro».
 - Decidido y hecho: cada gestión se anota en un caso (se elige al anotar y Central al derivar); un color por caso en el historial; reclasificar y cerrar se ven en la línea de tiempo; «No se solucionó en la visita» reprograma o trae el equipo a planta.
