@@ -998,13 +998,16 @@ export interface EquipoDelPedido {
   /** Segunda máquina de la misma unidad: la secadora de una torre (0359). */
   parte_de?: string | null;
   parte_nombre?: string | null;
+  /** Pedido de servicio (0574): la línea lleva su cantidad y, si se quiere, el precio. */
+  cantidad?: number | null;
+  precio?: number | null;
 }
 
 export async function equiposDelPedido(servicioId: string): Promise<EquipoDelPedido[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("pedido_equipos")
-    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, protocolo_fecha, protocolo_datos, protocolo_chequeo, sin_serie, sin_stock_motivo, procedencia, parte_de, parte_nombre")
+    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, protocolo_fecha, protocolo_datos, protocolo_chequeo, sin_serie, sin_stock_motivo, procedencia, parte_de, parte_nombre, cantidad, precio")
     .eq("servicio_id", servicioId)
     .order("orden");
   if (data && data.length > 0) return data as EquipoDelPedido[];
@@ -1016,7 +1019,7 @@ export async function equiposDelPedido(servicioId: string): Promise<EquipoDelPed
   // de la primera consulta aunque la siembra ya estuviera en la base.
   const { data: sembrados } = await supabase
     .from("pedido_equipos")
-    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, protocolo_fecha, protocolo_datos, protocolo_chequeo, sin_serie, sin_stock_motivo, procedencia, parte_de, parte_nombre")
+    .select("id, orden, descripcion, sku, serie, equipo_id, en_este_despacho, prueba_lista_at, protocolo_ref, protocolo_nota, protocolo_fotos, protocolo_fecha, protocolo_datos, protocolo_chequeo, sin_serie, sin_stock_motivo, procedencia, parte_de, parte_nombre, cantidad, precio")
     .eq("servicio_id", servicioId)
     .gte("orden", 1)
     .order("orden");

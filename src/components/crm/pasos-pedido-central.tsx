@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { BellRing, Check, FileText, Loader2, PackageSearch, Printer, X } from "lucide-react";
 import { liberarPedido } from "@/lib/acciones/postventa";
-import { apurarDesdeCentral, generarPedido, indicarAccesorios, pedirSeriesAlAlmacen, prepararPedido, rechazarLiquidacion, type AccesoriosPedido } from "@/lib/acciones/pedido-central";
+import { apurarDesdeCentral, armarPedidoDeServicio, generarPedido, indicarAccesorios, pedirSeriesAlAlmacen, prepararPedido, rechazarLiquidacion, type AccesoriosPedido } from "@/lib/acciones/pedido-central";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
@@ -47,6 +47,8 @@ export function PasosPedidoCentral({
   fileEntregado = null,
   regularizado = false,
   accesorios = null,
+  esServicio = false,
+  sugiereServicio = false,
 }: {
   informeId: string;
   servicioId: string | null;
@@ -71,6 +73,10 @@ export function PasosPedidoCentral({
   regularizado?: boolean;
   /** Lo que Central ya dijo de los accesorios (0510); null si todavía no hay pedido o no lo dijo. */
   accesorios?: { incluye: boolean | null; detalle: string | null } | null;
+  /** El pedido ya es de servicio (0574): no pide código al almacén, se escribe. */
+  esServicio?: boolean;
+  /** Las líneas del cierre son servicios: la opción «Servicio» viene marcada. */
+  sugiereServicio?: boolean;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
@@ -80,6 +86,9 @@ export function PasosPedidoCentral({
   // Los accesorios (0510, Lesly 16-10): Central los dice al pedir el código.
   const [acc, setAcc] = useState<AccesoriosPedido>({ incluye: accesorios?.incluye ?? null, detalle: accesorios?.detalle ?? "" });
   const [editandoAcc, setEditandoAcc] = useState(false);
+  // PRODUCTO O SERVICIO (0574; Santos 21-10): el producto pide código al
+  // almacén; el servicio se escribe y el almacén no se entera.
+  const [clase, setClase] = useState<"producto" | "servicio">(sugiereServicio ? "servicio" : "producto");
   const accListo = acc.incluye === false || (acc.incluye === true && acc.detalle.trim().length >= 3);
   const faltaAcc = pendiente || accListo ? null : acc.incluye == null ? "Primero diga si los equipos incluyen accesorios." : "Escriba qué accesorios lleva.";
   // Lo que el servidor no dejó hacer queda escrito sobre los pasos, no en un toast.
@@ -96,7 +105,7 @@ export function PasosPedidoCentral({
 
   // 0404: un pedido de puro servicio (mantenimiento, revisión) no tiene equipos que lleven serie.
   const sinEquipos = Boolean(servicioId) && series.total === 0;
-  const seriesListas = sinEquipos || (series.total > 0 && series.con === series.total);
+  const seriesListas = esServicio ? series.total > 0 : sinEquipos || (series.total > 0 && series.con === series.total);
   const faltanSeries = series.total - series.con;
   // La vigente es la del enlace de arriba (liquidacion_adjunto); el resto, anteriores.
   const anteriores = liquidaciones.filter((l) => !liquidacionPdf || Date.parse(l.subidaAt) !== Date.parse(liquidacionPdf.subidaAt));
@@ -111,8 +120,46 @@ export function PasosPedidoCentral({
     )}
     <ol className="mt-3 grid gap-2 lg:grid-cols-4">
       {/* 1 · SERIES */}
-      <Paso n={1} titulo="Series de los equipos" hecho={seriesListas}>
-        {!servicioId && regularizado ? (
+      <Paso n={1} titulo={esServicio || (!servicioId && clase === "servicio") ? "Detalle del servicio" : "Series de los equipos"} hecho={seriesListas}>
+        {!servicioId && !regularizado && (
+          <div className="mb-1.5 flex flex-wrap gap-1" role="radiogroup" aria-label="Qué se vendió">
+            {(
+              [
+                ["producto", "Producto", "Pide el código al almacén"],
+                ["servicio", "Servicio", "Se escribe; el almacén no interviene"],
+              ] as const
+            ).map(([valor, etiqueta, ayuda]) => (
+              <button
+                key={valor}
+                type="button"
+                role="radio"
+                aria-checked={clase === valor}
+                title={ayuda}
+                onClick={() => setClase(valor)}
+                className={cn(
+                  "rounded-md border px-2 py-0.5 text-[11px] font-semibold",
+                  clase === valor ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:bg-secondary",
+                )}
+              >
+                {etiqueta}
+              </button>
+            ))}
+          </div>
+        )}
+        {esServicio ? (
+          <p className="text-[11px] text-muted-foreground">
+            {series.total > 0
+              ? `Servicio: ${series.total === 1 ? "1 línea" : `${series.total} líneas`} en el detalle (abajo). No pasa por el almacén.`
+              : "Servicio: escriba o traiga el detalle abajo, en «Detalle del servicio». No pasa por el almacén."}
+          </p>
+        ) : !servicioId && !regularizado && clase === "servicio" ? (
+          <div className="space-y-1.5">
+            <p className="text-[11px] text-muted-foreground">No se pide código. Se arma el detalle con las líneas del cierre o la cotización, y lo corrige abajo.</p>
+            <Button size="sm" disabled={pendiente} onClick={() => correr(() => armarPedidoDeServicio(informeId), "Detalle del servicio armado: revíselo abajo")}>
+              {pendiente && <Loader2 className="size-3.5 animate-spin" />} Armar el detalle del servicio
+            </Button>
+          </div>
+        ) : !servicioId && regularizado ? (
           <div className="space-y-1.5">
             <p className="text-[11px] text-muted-foreground">
               REG: el almacén ya entregó. Verifique las series en las máquinas del cliente y cópielas usted; no se le piden al almacén.
