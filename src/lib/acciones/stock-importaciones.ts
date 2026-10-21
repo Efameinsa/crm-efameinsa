@@ -179,8 +179,14 @@ export async function analizarExcelStock(formData: FormData): Promise<{ error: s
     return { error: "No se pudo leer el Excel. ¿Está abierto en otra versión o dañado?" };
   }
   if (lectura.filas.length === 0) {
+    // Lesly (21-10 17:00) subió el Excel de REVISIÓN (hojas LÉEME, Máquinas…) y el
+    // aviso no le decía cuál era el archivo correcto.
+    const hojas = lectura.ignoradas.concat(lectura.hojas);
+    const esRevision = hojas.some((h) => /^(m[aá]quinas|l[eé]eme|c[oó]digos nuevos)$/i.test(h));
     return {
-      error: `No encontré máquinas en hojas de stock. Hojas leídas: ${lectura.hojas.join(", ") || "ninguna"}; ignoradas: ${lectura.ignoradas.join(", ") || "ninguna"}.`,
+      error: esRevision
+        ? `«${archivo.name}» es el Excel de revisión, no el de stock. Suba el Excel de stock de Importaciones (el que tiene las hojas «STOCK DE EQUIPOS INDUSTRIALES» y «STOCK DE EQUIPOS LG»).`
+        : `En «${archivo.name}» no encontré máquinas. Este Excel trae las hojas ${hojas.map((h) => `«${h}»`).join(", ") || "sin nombre"}; hace falta el Excel de stock de Importaciones, con las hojas «STOCK DE EQUIPOS INDUSTRIALES» y «STOCK DE EQUIPOS LG» (columnas CODIGO, MODELO, SERIE…).`,
     };
   }
 
