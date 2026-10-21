@@ -159,7 +159,7 @@ export function ComunicadoDeGerencia({ comunicado }: { comunicado: ComunicadoPen
     <Dialog open={abierto} onOpenChange={alCerrar}>
       <DialogContent
         showCloseButton={false}
-        className="w-auto max-w-[calc(100%-1rem)] gap-3 p-0 sm:max-w-[calc(100vw-2rem)] [&>*]:px-0"
+        className="w-auto max-w-[calc(100%-1rem)] gap-3 !p-0 sm:max-w-[calc(100vw-2rem)] [&>*]:px-0"
         onTouchStart={alTocar}
         onTouchEnd={alSoltar}
       >
@@ -193,7 +193,7 @@ export function ComunicadoDeGerencia({ comunicado }: { comunicado: ComunicadoPen
             // pantalla, con 16 px de aire a cada lado. Se fija el ANCHO (no el
             // alto): la ventana se ajusta a él; con el alto, en el celular se
             // encogía a la mitad.
-            style={{ aspectRatio: "4 / 5", width: "min(64dvh, calc(100vw - 3rem))" }}
+            style={{ aspectRatio: "4 / 5", width: "min(64dvh, calc(100vw - 2.5rem))" }}
             aria-label={`${l.titulo}. Toque para ver la siguiente lámina.`}
           >
             {l.imagen ? (
