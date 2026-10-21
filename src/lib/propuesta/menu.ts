@@ -165,6 +165,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     hoy,
     // Mi día en números: lo mandado a Central, las visitas de hoy y los
     // cuadros de despachos y atenciones (auditoría 25-09).
+    // «La foto macro» (Lesly 20-10; Santos 21-10): todo el almacén y operaciones en números.
+    { etiqueta: "El macro", href: "/almacen/macro", icono: "numeros", coincide: ["/almacen/macro"] },
     { etiqueta: "Panorama", href: "/almacen", icono: "numeros", coincide: [] },
     { etiqueta: "Pedidos", href: "/nuevo/pedidos", icono: "pedidos", coincide: ["/nuevo/pedidos", "/almacen/pedidos"] },
     { etiqueta: "Llamadas de postventa", href: "/almacen/aperturas", icono: "aperturas", coincide: ["/almacen/aperturas", "/aperturas"] },
@@ -220,6 +222,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
   // las cuatro áreas; cada área tiene su sección con todas sus pantallas.
   operaciones: [
     hoy,
+    // «La foto macro» (Lesly 20-10; Santos 21-10).
+    { etiqueta: "El macro", href: "/almacen/macro", icono: "numeros", coincide: ["/almacen/macro"] },
     { etiqueta: "Autorizaciones", href: "/operaciones", icono: "aprobaciones", coincide: ["/operaciones"] },
     { etiqueta: "Postventa", href: "/nuevo/postventa", icono: "atenciones", coincide: ["/nuevo/postventa", "/postventa", "/comercial/ruta"] },
     { etiqueta: "Almacén", href: "/nuevo/almacen", icono: "pedidos", coincide: ["/nuevo/almacen", "/almacen"] },

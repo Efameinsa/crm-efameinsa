@@ -386,6 +386,8 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 ### 2.4 Operaciones (Lesly)
 
+- **El macro** (desde el 21-10, la «foto macro» que pidió Lesly el 20-10): primer botón del menú de operaciones y del almacén. Todo el almacén y operaciones en números: por despachar, probar y embalar, generación de código, llamadas sin informe, fotos y guías que faltan, equipos que llegan a planta, pedidos al catálogo, equipos sin precio, ficha o foto, y fichas repetidas. Cada tarjeta lleva a la pantalla donde se trabaja; en rojo lo urgente.
+
 - **Rol propio** («operaciones»): no es comercial, ni almacén, ni gerencia.
 - **Hace:**
   - **dicta el código de operaciones** para anular cierres, corregir derivaciones, corregir documentos numerados, cambiar una apertura emitida, modificar una máquina ya «probada y embalada», corregir informes y unir fichas;
