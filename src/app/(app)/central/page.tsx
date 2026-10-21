@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { liberarLeadsSinTipificar } from "@/lib/setter-llamadas";
 import { AsignarLeadDialog } from "@/components/crm/asignar-lead-dialog";
+import { DerivarAAreaBoton } from "@/components/crm/derivar-a-area-boton";
 import { DescartarLeadBoton } from "@/components/crm/descartar-lead-boton";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { CargaDerivacion } from "@/components/crm/carga-derivacion";
@@ -306,7 +307,7 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
                 <b>{focoFuera.nombre}</b>
                 {focoFuera.codigo ? ` (${focoFuera.codigo})` : ""} ya no está por derivar
                 {focoFuera.asignadoA
-                  ? `: se lo derivaron a ${focoFuera.asignadoA}${focoFuera.asignadoAt ? ` el ${fechaHoraLima(focoFuera.asignadoAt)}` : ""}.`
+                  ? `: se lo derivaron a ${focoFuera.asignadoA}${focoFuera.asignadoAt ? ` el ${fechaHoraLima(focoFuera.asignadoAt)}` : "."}`
                   : focoFuera.estado === "descartado"
                     ? ": se descartó."
                     : "."}
@@ -480,6 +481,19 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
                             }
                           : null
                       }
+                    />
+                    {/* Lo que es de Finanzas o Facturación —un pago, una factura,
+                        las letras— no va a un comercial (Santos, 21-10: COFACO
+                        preguntaba por el número de factura de sus letras y en
+                        «Asignar» no estaba Finanzas). Va como caso (0575). */}
+                    <DerivarAAreaBoton
+                      leadId={lead.id}
+                      cuentaId={lead.cuenta_id ?? null}
+                      cliente={lead.razon_social || lead.nombre_contacto || "el contacto"}
+                      referencia={lead.codigo ? `Contacto ${lead.codigo}` : null}
+                      mensajeInicial={lead.mensaje}
+                      etiqueta="A Finanzas o Facturación"
+                      compacto
                     />
                     <DerivarAvisoBoton
                       leadId={lead.id}

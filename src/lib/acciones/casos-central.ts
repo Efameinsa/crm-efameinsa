@@ -78,6 +78,8 @@ export async function crearCasoCentral(datos: {
   vence: string | null;
   cuentaId: string | null;
   servicioId: string | null;
+  /** El contacto de la bandeja que se deriva como caso (0575): sale de la bandeja. */
+  leadId?: string | null;
   adjuntos: AdjuntoCaso[];
 }): Promise<{ error: string | null; codigo?: string }> {
   const { supabase, userId } = await usuario();
@@ -94,6 +96,7 @@ export async function crearCasoCentral(datos: {
     p_cuenta: datos.cuentaId,
     p_servicio: datos.servicioId,
     p_adjuntos: datos.adjuntos,
+    p_lead: datos.leadId ?? null,
   });
   if (error) return { error: limpiar(error.message) };
   const r = data as Resumen;
@@ -109,6 +112,10 @@ export async function crearCasoCentral(datos: {
 
   revalidar(r);
   if (datos.servicioId) revalidatePath("/central/pedidos");
+  if (datos.leadId) {
+    revalidatePath("/central");
+    revalidatePath("/nuevo");
+  }
   return { error: null, codigo: r.codigo };
 }
 
