@@ -414,6 +414,10 @@ export function llevaOrdenFacturar(s: ServicioPostventa): boolean {
   if (s.orden_facturar_at) return true;
   if (pedidoSinCobro(s)) return false;
   if (s.cerrado_at != null || s.completado) return false;
+  // CON LETRAS SIEMPRE HAY SALDO (COFACO 21-10): el «SI» del Excel era el
+  // adelanto y el % no se cargó, así que se leía «pagado completo» y a Brenda
+  // no le salía el botón aunque Finanzas esperaba su orden.
+  if (Number(s.letras_cantidad ?? 0) > 0 || (s.letras_estado != null && s.letras_estado !== "no_lleva")) return true;
   if (s.pct_antes_despacho == null) return false;
   // Ya pagado completo: no queda nada que cobrar (AGROCASAGRANDE, venta a
   // crédito ya cancelada; su 2.ª visita es otro pedido de servicio).

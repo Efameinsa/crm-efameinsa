@@ -520,6 +520,10 @@ describe("orden a Finanzas para facturar (0460, reunión 13-10)", () => {
   it("no aparece si ya está pagado completo", () => {
     expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: 0, pago_estado: "completo" })).toBe(false);
   });
+  it("con letras aparece aunque el Excel diga pagado y no tenga % (COFACO 21-10)", () => {
+    expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: null, pago_estado: "completo", letras_cantidad: 3, letras_estado: "entregadas" })).toBe(true);
+    expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: null, letras_estado: "no_lleva" })).toBe(false);
+  });
   it("una vez dada, se queda a la vista", () => {
     expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: 100, orden_facturar_at: "2026-10-13T20:00:00Z" })).toBe(true);
   });
