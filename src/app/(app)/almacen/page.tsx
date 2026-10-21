@@ -13,7 +13,7 @@ import { circuitoDe, type ServicioPostventa } from "@/lib/postventa";
 import { cn } from "@/lib/utils";
 import { torresSinSegundaSerie } from "@/lib/torres";
 import { colaDelDia, type Tarea, type Urgencia } from "@/lib/propuesta/cola-del-dia";
-import { agruparTareas, hechosDelAlmacen, indicadoresDelAlmacen, resumenDeHechos, type Hecho, type TipoHecho } from "@/lib/almacen-dia";
+import { agruparTareas, hechosDelAlmacen, indicadoresDelAlmacen, resumenDeHechos, separarHechos, type Hecho, type TipoHecho } from "@/lib/almacen-dia";
 import { BitacoraDia } from "@/components/crm/bitacora-dia";
 import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
 import { ArrowRight, CheckCircle2, ClipboardCheck, FileText, Plus } from "lucide-react";
@@ -253,7 +253,9 @@ export default async function AlmacenPage() {
 
   const grupos = agruparTareas(cola.tareas);
   const indicadores = indicadoresDelAlmacen(cola.tareas);
-  const resumen = resumenDeHechos(hechos);
+  // Solo suma lo que hizo el almacén; lo de Central y Lesly va aparte (Santos 21-10).
+  const { propios: hechosAlmacen, otros: hechosOtros } = separarHechos(hechos);
+  const resumen = resumenDeHechos(hechosAlmacen);
   const visitasHoy = (visitas ?? []).filter((v) => v.fecha === hoy);
   const visitasSemana = (visitas ?? []).filter((v) => v.fecha !== hoy);
   const totalTareas = cola.tareas.length;
@@ -397,14 +399,27 @@ export default async function AlmacenPage() {
       <SeccionPanel titulo="Lo que hizo el almacén hoy" id="hecho-hoy">
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            {hechos.length === 0 ? (
+            {hechosAlmacen.length === 0 ? (
               <p className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
                 Todavía nada hoy. Cada prueba, serie, salida, foto en agencia, llamada o recepción que se registre aparece acá sola, con la hora y quién la hizo.
               </p>
             ) : (
               <ul className="divide-y divide-border/60">
-                {hechos.map((h) => <FilaHecho key={h.id} h={h} />)}
+                {hechosAlmacen.map((h) => <FilaHecho key={h.id} h={h} />)}
               </ul>
+            )}
+            {hechosOtros.length > 0 && (
+              <details className="mt-3 rounded-lg border border-dashed border-border px-3 py-2">
+                <summary className="cursor-pointer text-xs text-muted-foreground">
+                  Otras áreas en pedidos del almacén hoy · {hechosOtros.length} (no suman al almacén)
+                </summary>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Lo registraron Central, operaciones u otra área. Se muestra para que el almacén lo sepa; no es trabajo del almacén.
+                </p>
+                <ul className="mt-1 divide-y divide-border/60 opacity-75">
+                  {hechosOtros.map((h) => <FilaHecho key={h.id} h={h} />)}
+                </ul>
+              </details>
             )}
           </div>
           <div>

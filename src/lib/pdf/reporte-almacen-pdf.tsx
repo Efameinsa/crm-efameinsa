@@ -23,13 +23,15 @@ export interface ReporteAlmacenProps {
   indicadores: IndicadorAlmacen[];
   resumen: { pruebas: number; series: number; salidas: number; agencias: number; listos: number; llamadas: number; recepciones: number; stock: number; anotados: number; total: number };
   hechos: Hecho[];
+  /** Lo que hicieron Central, Lesly u otras áreas en pedidos del almacén: se informa, no suma. */
+  otros?: Hecho[];
   grupos: { clave: string; titulo: string; tareas: Tarea[] }[];
   manana: { fecha: string; despachos: { cliente: string; equipo: string; estado: string }[]; pruebasEnCola: number; llamadas: { cliente: string; tipo: string; hora: string }[] };
 }
 
 const URGENCIA: Record<Tarea["urgencia"], string> = { atrasado: "Atrasado", hoy: "Hoy", semana: "Semana" };
 
-export function ReporteAlmacenPdf({ logoBuffer, fecha, fechaCorta, quien, indicadores, resumen, hechos, grupos, manana }: ReporteAlmacenProps) {
+export function ReporteAlmacenPdf({ logoBuffer, fecha, fechaCorta, quien, indicadores, resumen, hechos, otros = [], grupos, manana }: ReporteAlmacenProps) {
   const alDia = indicadores.every((i) => i.numero === 0);
   const pendientes = grupos.reduce((n, g) => n + g.tareas.length, 0);
   const anotados = hechos.filter((h) => h.tipo === "anotado");
@@ -100,6 +102,24 @@ export function ReporteAlmacenPdf({ logoBuffer, fecha, fechaCorta, quien, indica
             </>
           )}
         </Seccion>
+
+        {/* Lo de otras áreas en pedidos del almacén: se informa aparte y no suma (Santos 21-10). */}
+        {otros.length > 0 && (
+          <Seccion titulo="OTRAS ÁREAS EN PEDIDOS DEL ALMACÉN (NO SUMA AL ALMACÉN)" total={otros.length}>
+            <Text style={[e.vacio, { marginBottom: 4 }]}>
+              Lo registraron Central, operaciones u otra área. Se informa para que el almacén lo sepa; no cuenta como trabajo del almacén.
+            </Text>
+            {otros.map((h, i) => (
+              <View key={h.id} wrap={false} style={fila(i)}>
+                <Text style={{ width: "8%", color: GRIS }}>{h.hora ?? "—"}</Text>
+                <Text style={{ width: "27%", paddingRight: 4, color: GRIS }}>{h.que}</Text>
+                <Text style={{ width: "27%", paddingRight: 4, color: GRIS }}>{corta(h.cliente, 60)}</Text>
+                <Text style={{ width: "24%", paddingRight: 4, color: GRIS }}>{corta(h.detalle, 70)}</Text>
+                <Text style={{ width: "14%", color: GRIS }}>{corta(h.quien, 24)}</Text>
+              </View>
+            ))}
+          </Seccion>
+        )}
 
         {/* 3. Lo anotado a mano (texto libre hasta mapearlo, Santos 21-10). */}
         <Seccion titulo="2. OTRAS GESTIONES DEL DÍA" total={anotados.length}>

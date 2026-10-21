@@ -8,7 +8,7 @@ import { sumarDias } from "@/lib/calendario";
 import { fechaCalendarioLarga } from "@/lib/fechas";
 import { cabeceraArchivo } from "@/lib/nombre-archivo";
 import { colaDelDia } from "@/lib/propuesta/cola-del-dia";
-import { agruparTareas, hechosDelAlmacen, indicadoresDelAlmacen, resumenDeHechos } from "@/lib/almacen-dia";
+import { agruparTareas, hechosDelAlmacen, indicadoresDelAlmacen, resumenDeHechos, separarHechos } from "@/lib/almacen-dia";
 import { ETIQUETA_TIPO_APERTURA, type TipoApertura } from "@/lib/aperturas-llamada";
 import { ReporteAlmacenPdf } from "@/lib/pdf/reporte-almacen-pdf";
 import type { Perfil } from "@/types/database";
@@ -88,7 +88,9 @@ export async function GET(request: Request) {
 
   const grupos = agruparTareas(cola.tareas).map((g) => ({ clave: g.clave, titulo: g.titulo, tareas: g.tareas }));
   const indicadores = indicadoresDelAlmacen(cola.tareas);
-  const resumen = resumenDeHechos(hechos);
+  // Solo lo que hizo el almacén suma (Santos 21-10); lo de Central y Lesly va aparte.
+  const { propios, otros } = separarHechos(hechos);
+  const resumen = resumenDeHechos(propios);
   const fechaLarga = fechaCalendarioLarga(fecha);
 
   const buffer = await renderToBuffer(
@@ -99,7 +101,8 @@ export async function GET(request: Request) {
       quien={{ nombre: dueno.nombre as string, codigo: (dueno.codigo_comercial as string | null) ?? "Almacén" }}
       indicadores={indicadores}
       resumen={resumen}
-      hechos={hechos}
+      hechos={propios}
+      otros={otros}
       grupos={grupos}
       manana={manana}
     />,
@@ -117,7 +120,7 @@ export async function GET(request: Request) {
       await supabase.rpc("guardar_reporte_diario", {
         p_comercial: comercialId,
         p_fecha: fecha,
-        p_contenido: { area: "almacen", fecha_larga: fechaLarga, indicadores, resumen, hechos, pendientes: grupos.map((g) => ({ titulo: g.titulo, tareas: g.tareas.map((t) => ({ cliente: t.cliente, que: t.que, porque: t.porque, urgencia: t.urgencia })) })), manana },
+        p_contenido: { area: "almacen", fecha_larga: fechaLarga, indicadores, resumen, hechos: propios, otras_areas: otros, pendientes: grupos.map((g) => ({ titulo: g.titulo, tareas: g.tareas.map((t) => ({ cliente: t.cliente, que: t.que, porque: t.porque, urgencia: t.urgencia })) })), manana },
       });
     }
   } catch {

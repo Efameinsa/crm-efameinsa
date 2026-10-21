@@ -16,6 +16,12 @@ import type { Tarea } from "@/lib/propuesta/cola-del-dia";
  *
  * Son tareas DEL ÁREA (Santos, 21-10): la lista es de todo el almacén, con
  * el nombre de quien hizo cada cosa; no se filtra por persona.
+ *
+ * PERO NO SE MEZCLA CON OTRAS ÁREAS (Santos, 21-10 tarde: «el reporte de Diana
+ * está mal por sus gestiones de Central»). Central y Lesly también registran
+ * series en los pedidos; eso salía como «lo que hizo el almacén». Cada hecho
+ * dice si lo hizo una cuenta del almacén (`delAlmacen`): el resumen y la lista
+ * del almacén cuentan solo esos, y lo de otras áreas va aparte, sin sumar.
  */
 
 export type TipoHecho = "prueba" | "serie" | "listo" | "salida" | "agencia" | "letras" | "llamada" | "informe" | "recepcion" | "stock" | "anotado";
@@ -32,6 +38,8 @@ export interface Hecho {
   detalle: string | null;
   quien: string | null;
   href: string | null;
+  /** Lo hizo una cuenta del almacén. Lo de Central, Lesly u otras áreas va aparte. */
+  delAlmacen: boolean;
 }
 
 export const ETIQUETA_HECHO: Record<TipoHecho, string> = {
@@ -103,9 +111,10 @@ export async function hechosDelAlmacen(supabase: Cliente, fecha: string): Promis
 
   const hechos: Hecho[] = [];
   const quienes = new Set<string>();
-  const poner = (h: Omit<Hecho, "hora" | "quien"> & { quien: string | null }) => {
+  const poner = (h: Omit<Hecho, "hora" | "quien" | "delAlmacen"> & { quien: string | null }) => {
     if (h.quien) quienes.add(h.quien);
-    hechos.push({ ...h, hora: horaReal(h.cuando) });
+    // Sin autor (salidas viejas sin «despachado_por») se da por del almacén.
+    hechos.push({ ...h, hora: horaReal(h.cuando), delAlmacen: true });
   };
 
   type Maq = { id: string; servicio_id: string; descripcion: string; serie: string | null; parte_nombre?: string | null; prueba_lista_at?: string; prueba_lista_por?: string | null; serie_registrada_at?: string; serie_registrada_por?: string | null; servicios_postventa: { cliente_texto: string | null } | null };
@@ -141,16 +150,27 @@ export async function hechosDelAlmacen(supabase: Cliente, fecha: string): Promis
   }
   for (const b of (anotado ?? []) as unknown as { id: string; perfil_id: string; orden: number; texto: string; perfiles: { nombre: string } }[]) {
     // Lo anotado no tiene hora: va al final del día, en el orden en que se escribió.
-    hechos.push({ id: `bi-${b.id}`, tipo: "anotado", cuando: `${hasta.slice(0, 10)}T04:${String(Math.min(b.orden, 59)).padStart(2, "0")}:00.000Z`, hora: null, que: b.texto, cliente: null, detalle: null, quien: b.perfiles?.nombre ?? null, href: null });
+    hechos.push({ id: `bi-${b.id}`, tipo: "anotado", cuando: `${hasta.slice(0, 10)}T04:${String(Math.min(b.orden, 59)).padStart(2, "0")}:00.000Z`, hora: null, que: b.texto, cliente: null, detalle: null, quien: b.perfiles?.nombre ?? null, href: null, delAlmacen: true });
   }
 
   // Los nombres, de una vez.
   if (quienes.size > 0) {
-    const { data: perfiles } = await supabase.from("perfiles").select("id, nombre").in("id", [...quienes]);
-    const nombre = new Map(((perfiles ?? []) as { id: string; nombre: string }[]).map((p) => [p.id, p.nombre]));
-    for (const h of hechos) if (h.quien && nombre.has(h.quien)) h.quien = nombre.get(h.quien)!;
+    const { data: perfiles } = await supabase.from("perfiles").select("id, nombre, es_almacen").in("id", [...quienes]);
+    const porId = new Map(((perfiles ?? []) as { id: string; nombre: string; es_almacen: boolean | null }[]).map((p) => [p.id, p]));
+    for (const h of hechos) {
+      if (h.tipo === "anotado" || !h.quien) continue;
+      const p = porId.get(h.quien);
+      if (!p) continue;
+      h.delAlmacen = !!p.es_almacen;
+      h.quien = p.nombre;
+    }
   }
   return hechos.sort((a, b) => a.cuando.localeCompare(b.cuando));
+}
+
+/** Lo del almacén y lo que hicieron otras áreas (Central, Lesly) en sus pedidos. */
+export function separarHechos(hechos: Hecho[]): { propios: Hecho[]; otros: Hecho[] } {
+  return { propios: hechos.filter((h) => h.delAlmacen), otros: hechos.filter((h) => !h.delAlmacen) };
 }
 
 /** Cuántos hechos de cada tipo: las tarjetas del resumen. */
