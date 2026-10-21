@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { colorDeCaso, numeroDeCaso } from "@/lib/colores-caso";
+import { EtiquetaCaso } from "@/components/crm/etiqueta-caso";
 import { useRouter } from "next/navigation";
 import { Search, ArrowDownUp, ChevronRight, FileText } from "lucide-react";
 import {
@@ -63,6 +65,16 @@ export function HistorialCuenta({ eventos, oportunidadActualId }: { eventos: Eve
   const [expandido, setExpandido] = useState(false);
   // En el expediente arranca en «este expediente»; en la ficha, en «todos».
   const [filtroExpediente, setFiltroExpediente] = useState<string | null>(oportunidadActualId ?? null);
+  // UN FILTRO POR CASO (gerencia 20-10: «todas las líneas del tiempo están
+  // incompletas… combinado, mezclado»). «sin» = lo que no es de ningún caso.
+  const [filtroCaso, setFiltroCaso] = useState<string | null>(null);
+  const casosDelHistorial = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of eventos) if (e.caso) m.set(e.caso, (m.get(e.caso) ?? 0) + 1);
+    return [...m.entries()]
+      .map(([codigo, n]) => ({ codigo, n }))
+      .sort((a, b) => (numeroDeCaso(b.codigo) ?? 0) - (numeroDeCaso(a.codigo) ?? 0));
+  }, [eventos]);
 
   // Los expedientes que aparecen en esta historia, para el filtro: el de
   // movimiento más reciente primero, con su tipo y cuántas filas tiene.
@@ -91,11 +103,12 @@ export function HistorialCuenta({ eventos, oportunidadActualId }: { eventos: Eve
     let base = filtroExpediente
       ? eventos.filter((e) => e.expediente === filtroExpediente || (filtroExpediente === oportunidadActualId && esDeAntes(e)))
       : eventos;
+    if (filtroCaso) base = base.filter((e) => (filtroCaso === "sin" ? !e.caso : e.caso === filtroCaso));
     base = q ? base.filter((e) => textoBuscable(e).includes(q)) : base;
     // `eventos` llega ordenado descendente (reciente primero) desde el servidor.
     return orden === "reciente" ? base : [...base].reverse();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventos, busqueda, orden, filtroExpediente, oportunidadActualId]);
+  }, [eventos, busqueda, orden, filtroExpediente, filtroCaso, oportunidadActualId]);
 
   // LA HISTORIA DE ANTES, A LA VISTA (Katerine, 29-09: «este prospecto tiene
   // historial pero no está en el CRM»). Sus gestiones de mayo estaban, en los
@@ -226,6 +239,51 @@ export function HistorialCuenta({ eventos, oportunidadActualId }: { eventos: Eve
         )
       )}
 
+      {casosDelHistorial.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="text-muted-foreground">Caso:</span>
+          <button
+            type="button"
+            onClick={() => setFiltroCaso(null)}
+            className={cn(
+              "rounded-full border px-2 py-0.5 font-medium",
+              !filtroCaso ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-accent",
+            )}
+          >
+            Todos
+          </button>
+          {casosDelHistorial.map((c) => {
+            const color = colorDeCaso(c.codigo);
+            return (
+              <button
+                key={c.codigo}
+                type="button"
+                onClick={() => setFiltroCaso(filtroCaso === c.codigo ? null : c.codigo)}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full border border-transparent px-2 py-0.5 font-semibold",
+                  color.fondo,
+                  color.texto,
+                  filtroCaso === c.codigo ? "ring-2 ring-primary ring-offset-1" : "opacity-85 hover:opacity-100",
+                )}
+              >
+                <span className={cn("size-2 rounded-full", color.punto)} />
+                {c.codigo} ({c.n})
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setFiltroCaso(filtroCaso === "sin" ? null : "sin")}
+            className={cn(
+              "rounded-full border px-2 py-0.5 font-medium",
+              filtroCaso === "sin" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-accent",
+            )}
+          >
+            Sin caso
+          </button>
+        </div>
+      )}
+
       {busqueda && (
         <p className="text-xs text-muted-foreground">
           Mostrando {filtrados.length} de {eventos.length}
@@ -302,7 +360,10 @@ function FilaHistorial({ evento, oportunidadActualId, conExpediente }: { evento:
       <TableCell
         className={cn(
           "whitespace-nowrap align-top tabular-nums text-muted-foreground",
-          conExpediente && evento.expediente && cn("border-l-4", bordeTipoExpediente(evento.expedienteTipo)),
+          // El color del caso manda sobre el del expediente: es lo que gerencia quiere distinguir.
+          evento.caso
+            ? cn("border-l-4", colorDeCaso(evento.caso).borde)
+            : conExpediente && evento.expediente && cn("border-l-4", bordeTipoExpediente(evento.expedienteTipo)),
           evento.tipo === "solicitud" && "border-l-4 border-l-[#7E1210]",
         )}
       >
@@ -312,6 +373,11 @@ function FilaHistorial({ evento, oportunidadActualId, conExpediente }: { evento:
         {conExpediente && evento.expediente && (
           <p className="mb-0.5">
             <TipoExpedienteBadge tipo={evento.expedienteTipo} />
+          </p>
+        )}
+        {evento.caso && (
+          <p className="mb-0.5">
+            <EtiquetaCaso codigo={evento.caso} />
           </p>
         )}
         {deAntes && (

@@ -41,9 +41,21 @@ export async function HistorialDelCaso({ atencionId, creadoAt }: { atencionId: s
   const [{ data: gestiones }, { data: pedido }] = await Promise.all([
     caso?.oportunidad_id && desde
       ? (() => {
-          let q = admin.from("actividades").select("id, tipo, nota, realizada_por, realizada_at").eq("oportunidad_id", caso.oportunidad_id).gte("realizada_at", desde);
-          if (caso.cerrado_at) q = q.lte("realizada_at", caso.cerrado_at);
-          return q.order("realizada_at", { ascending: true }).limit(200);
+          // 0567: lo que se anotó PARA ESTE CASO, más lo suelto del expediente
+          // en sus fechas (lo anterior a la 0567 no sabe de qué caso es). Lo
+          // anotado para OTRO caso del mismo cliente ya no se mezcla aquí.
+          const ventana = [
+            "atencion_id.is.null",
+            `oportunidad_id.eq.${caso.oportunidad_id}`,
+            `realizada_at.gte."${desde}"`,
+            ...(caso.cerrado_at ? [`realizada_at.lte."${caso.cerrado_at}"`] : []),
+          ].join(",");
+          return admin
+            .from("actividades")
+            .select("id, tipo, nota, realizada_por, realizada_at")
+            .or(`atencion_id.eq.${atencionId},and(${ventana})`)
+            .order("realizada_at", { ascending: true })
+            .limit(200);
         })()
       : Promise.resolve({ data: [] }),
     caso?.servicio_id

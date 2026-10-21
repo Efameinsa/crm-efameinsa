@@ -2,7 +2,9 @@
 import { ETIQUETA_TIPO_EXPEDIENTE } from "@/lib/tipo-expediente";
 
 import { useEffect, useState, useTransition } from "react";
-import { carpetaDelCliente, type ResumenCarpeta } from "@/lib/acciones/expediente-postventa";
+import { carpetaDelCliente, casosAbiertosParaDerivar, type ResumenCarpeta } from "@/lib/acciones/expediente-postventa";
+import type { CasoParaGestion } from "@/lib/acciones/casos-de-la-gestion";
+import { colorDeCaso, nombreTipoCaso } from "@/lib/colores-caso";
 import { toast } from "sonner";
 import { TriangleAlert } from "lucide-react";
 import {
@@ -189,15 +191,25 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
     (coincidencias ?? []).find((c) => c.motivo === "documento" || c.motivo === "telefono")?.cuentaId ??
     null;
   const [carpeta, setCarpeta] = useState<ResumenCarpeta | null>(null);
+  // 0567 (gerencia 20-10): ¿de qué caso es esta llamada? «La central tendría
+  // que filtrar»: con casos abiertos, Central elige uno o dice que es otro.
+  const [casosAbiertos, setCasosAbiertos] = useState<CasoParaGestion[]>([]);
+  const [casoElegido, setCasoElegido] = useState<string>("");
+  const [casoNuevoMotivo, setCasoNuevoMotivo] = useState("");
   useEffect(() => {
     if (!abierto || !esPostventa || !cuentaParaCarpeta) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- limpiar al cambiar de destino o de cliente
       setCarpeta(null);
+      setCasosAbiertos([]);
+      setCasoElegido("");
       return;
     }
     let vivo = true;
     carpetaDelCliente(cuentaParaCarpeta).then((r) => {
       if (vivo) setCarpeta(r);
+    });
+    casosAbiertosParaDerivar(cuentaParaCarpeta).then((r) => {
+      if (vivo) setCasosAbiertos(r);
     });
     return () => {
       vivo = false;
@@ -285,6 +297,10 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
       setProblema("Falta indicar de qué clase es el caso de postventa.");
       return;
     }
+    if (esPostventa && casosAbiertos.length > 0 && !casoElegido) {
+      setProblema("El cliente tiene casos abiertos: elija de cuál es esta llamada, o marque que es otro problema.");
+      return;
+    }
     // Con coincidencias delante no hay «cliente nuevo» a secas: o se une a una
     // de esas fichas, o se dice por qué no lo es. La base lo vuelve a exigir.
     if (pideMotivoNuevo && motivoNuevo.trim().length < 10) {
@@ -323,6 +339,8 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
           ? `Central lo unió a esta ficha al derivarlo: ${MOTIVO[elegida.motivo].etiqueta.toLowerCase()} que ${elegida.razonSocial}.`
           : null,
         motivoNuevo: pideMotivoNuevo ? motivoNuevo.trim() : null,
+        casoElegido: esPostventa && casoElegido && casoElegido !== "nuevo" ? casoElegido : null,
+        casoNuevoMotivo: esPostventa && casoElegido === "nuevo" ? casoNuevoMotivo.trim() || "es otro problema u otro equipo" : null,
       });
       if (resultado.error) {
         // La base distingue el caso: no es un error, es una autorización que
@@ -623,6 +641,58 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
                   Este pedido entra ahí como un caso nuevo; no se abre otro expediente.
                   {destinoNombre && !/área/i.test(destinoNombre) ? ` La carpeta pasa a ${destinoNombre}, que la recibe.` : ""}
                 </p>
+              </div>
+            )}
+            {casosAbiertos.length > 0 && (
+              <div className="space-y-1.5 rounded-md border border-amber-400 bg-amber-50 p-2 text-[11px] text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
+                <p className="text-xs font-semibold">¿De qué caso es esta llamada?</p>
+                <p>
+                  El cliente ya tiene {casosAbiertos.length === 1 ? "un caso abierto" : `${casosAbiertos.length} casos abiertos`}. Si
+                  habla de lo mismo, súmela a ese caso: no se abre otro.
+                </p>
+                {casosAbiertos.map((c) => {
+                  const color = colorDeCaso(c.codigo);
+                  return (
+                    <label key={c.id} className={cn("flex cursor-pointer items-start gap-2 rounded border border-l-4 bg-background p-1.5", color.borde)}>
+                      <input
+                        type="radio"
+                        name="caso-de-la-llamada"
+                        className="mt-0.5"
+                        checked={casoElegido === c.id}
+                        onChange={() => setCasoElegido(c.id)}
+                      />
+                      <span>
+                        <span className={cn("mr-1 rounded px-1 font-semibold", color.fondo, color.texto)}>{c.codigo ?? "Caso"}</span>
+                        {nombreTipoCaso(c.tipo, c.tipoDetalle)}
+                        {c.equipo ? ` · ${c.equipo}` : ""}
+                        {c.serie ? ` · serie ${c.serie}` : ""}
+                        <span className="block text-muted-foreground">
+                          abierto el {fechaCalendario(c.abiertoAt)}
+                          {c.lleva ? ` · lo lleva ${c.lleva}` : ""}
+                          {c.otraFicha ? ` · en otra ficha: ${c.otraFicha}` : ""}
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+                <label className="flex cursor-pointer items-start gap-2 p-1.5">
+                  <input
+                    type="radio"
+                    name="caso-de-la-llamada"
+                    className="mt-0.5"
+                    checked={casoElegido === "nuevo"}
+                    onChange={() => setCasoElegido("nuevo")}
+                  />
+                  <span>Es otro problema u otro equipo: abrir un caso nuevo</span>
+                </label>
+                {casoElegido === "nuevo" && (
+                  <Input
+                    value={casoNuevoMotivo}
+                    onChange={(e) => setCasoNuevoMotivo(e.target.value)}
+                    placeholder="¿Qué equipo o qué problema? (ej.: ahora es la lavadora, no la secadora)"
+                    className="h-8 text-xs"
+                  />
+                )}
               </div>
             )}
             {/* Ing. Carlos, 09-10: a postventa no se deriva sin autorización (0420). */}

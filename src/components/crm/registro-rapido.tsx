@@ -14,6 +14,8 @@ import { SelectorFecha } from "@/components/crm/selector-fecha";
 import { SelectorHora } from "@/components/crm/selector-hora";
 import { ACEPTA_ADJUNTOS, MAX_TAMANO, MAX_TAMANO_VIDEO, tipoDeArchivo } from "@/components/crm/campo-adjuntos";
 import { cn } from "@/lib/utils";
+import { casosParaGestion, type CasoParaGestion } from "@/lib/acciones/casos-de-la-gestion";
+import { colorDeCaso, nombreTipoCaso } from "@/lib/colores-caso";
 
 // SIGUEN SIENDO CHIPS, NO UN DESPLEGABLE (decisión 27-08, con «Reu online» ya
 // son nueve). Esto es un solo clic dentro de un registro que tiene que caber en
@@ -152,6 +154,35 @@ export function RegistroRapido({
   const [motivoId, setMotivoId] = useState("");
   const [archivos, setArchivos] = useState<File[]>([]);
   const [enviando, startTransition] = useTransition();
+  // ¿DE QUÉ CASO ES? (gerencia 20-10: «tiene que obligarme a mí cuando hago el
+  // registro… check, check»). Se cargan los casos abiertos del cliente (y de
+  // sus fichas gemelas); con uno o más, elegir es obligatorio: uno, varios, o
+  // «no es de ningún caso».
+  const [casos, setCasos] = useState<CasoParaGestion[] | null>(null);
+  const [casosElegidos, setCasosElegidos] = useState<string[]>([]);
+  const [sinCaso, setSinCaso] = useState(false);
+  const [faltaCaso, setFaltaCaso] = useState(false);
+  const refCasos = useRef<HTMLDivElement>(null);
+  function cargarCasos() {
+    casosParaGestion(oportunidadId)
+      .then((lista) => {
+        setCasos(lista);
+        // Un solo caso abierto: viene marcado (lo normal es hablar de ese).
+        setCasosElegidos(lista.length === 1 ? [lista[0].id] : []);
+      })
+      .catch(() => setCasos([]));
+  }
+  useEffect(() => {
+    cargarCasos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oportunidadId]);
+  const hayCasos = (casos?.length ?? 0) > 0;
+  const casoSinElegir = hayCasos && !sinCaso && casosElegidos.length === 0;
+  function alternarCaso(id: string) {
+    setSinCaso(false);
+    setFaltaCaso(false);
+    setCasosElegidos((xs) => (xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]));
+  }
   // 02-09 (Santos): con fecha, «qué hacer» es OBLIGATORIO. Katerine tenía 19
   // de 30 gestiones del día con fecha y sin decir qué hacer, y en Mi día
   // salían como «Falta indicar qué hacer». Pero obligar no es castigar: si
@@ -221,6 +252,10 @@ export function RegistroRapido({
     setAQuien("");
     setArchivos([]);
     setFaltaQueHacer(false);
+    setSinCaso(false);
+    setFaltaCaso(false);
+    // Un cierre pudo cerrar un caso: se vuelve a preguntar la lista.
+    cargarCasos();
   }
 
   // Elegir "qué sigue" rellena la próxima acción — pero nunca pisa lo que el
@@ -285,6 +320,11 @@ export function RegistroRapido({
       toast.error(faltaEnPostventa);
       return;
     }
+    if (casoSinElegir) {
+      setFaltaCaso(true);
+      refCasos.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
     if (faltante) {
       setFaltaQueHacer(true);
       refQueHacer.current?.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -324,6 +364,8 @@ export function RegistroRapido({
         proximaAccionHora: cierra ? null : proximaAccionHora,
         limpiarProximaAccion: cierra,
         adjuntos,
+        // Sin la lista cargada (la red tardó) se manda sin caso, como antes.
+        ...(casos !== null ? { atencionIds: sinCaso ? [] : casosElegidos } : {}),
       };
       let r1: { error: string | null; aviso?: string };
       try {
@@ -403,6 +445,78 @@ export function RegistroRapido({
 
   return (
     <div ref={refRaiz} onPaste={alPegar} className="scroll-mt-24 space-y-4 rounded-md border border-border p-4">
+      {hayCasos && (
+        <div
+          ref={refCasos}
+          className={cn(
+            "scroll-mt-24 space-y-2 rounded-md border p-3",
+            faltaCaso ? "border-amber-500 bg-amber-500/10" : "border-border bg-muted/30",
+          )}
+        >
+          <p className="text-sm font-semibold">
+            ¿De qué caso es esta gestión?{" "}
+            <span className="font-normal text-muted-foreground">
+              {casos!.length === 1 ? "Este cliente tiene un caso abierto." : `Este cliente tiene ${casos!.length} casos abiertos: marque uno o varios.`}
+            </span>
+          </p>
+          <div className="space-y-1.5">
+            {casos!.map((c) => {
+              const color = colorDeCaso(c.codigo);
+              const marcado = casosElegidos.includes(c.id);
+              return (
+                <label
+                  key={c.id}
+                  className={cn(
+                    "flex cursor-pointer items-start gap-2 rounded-md border border-l-4 bg-background px-2.5 py-2 text-xs",
+                    color.borde,
+                    marcado ? "border-foreground/30 ring-1 ring-foreground/20" : "border-border",
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 size-4 shrink-0"
+                    checked={marcado}
+                    onChange={() => alternarCaso(c.id)}
+                  />
+                  <span className="min-w-0 leading-snug">
+                    <span className={cn("mr-1.5 rounded px-1.5 py-0.5 font-semibold", color.fondo, color.texto)}>
+                      {c.codigo ?? "Caso"}
+                    </span>
+                    <span className="font-medium">{nombreTipoCaso(c.tipo, c.tipoDetalle)}</span>
+                    {c.equipo && <span> · {c.equipo}</span>}
+                    {c.serie && <span className="text-muted-foreground"> · serie {c.serie}</span>}
+                    <span className="block text-muted-foreground">
+                      Abierto el {new Date(c.abiertoAt).toLocaleDateString("es-PE", { timeZone: "America/Lima" })}
+                      {c.etapa ? ` · etapa ${c.etapa.replace(/_/g, " ")}` : ""}
+                      {c.lleva ? ` · lo lleva ${c.lleva}` : ""}
+                      {c.otraFicha ? ` · está en otra ficha del mismo cliente: ${c.otraFicha}` : ""}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+            <label className="flex cursor-pointer items-center gap-2 px-1 py-1 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                className="size-4"
+                checked={sinCaso}
+                onChange={() => {
+                  setSinCaso((v) => !v);
+                  setCasosElegidos([]);
+                  setFaltaCaso(false);
+                }}
+              />
+              No es de ningún caso (otra cosa: una venta, un saludo, un dato del cliente)
+            </label>
+          </div>
+          {faltaCaso && (
+            <p role="alert" className="text-xs font-medium text-amber-900 dark:text-amber-300">
+              Marque de qué caso es la gestión, o «No es de ningún caso». Así el historial muestra cada caso con su color y
+              cada caso se puede terminar.
+            </p>
+          )}
+        </div>
+      )}
       <Paso n="1" titulo="¿Qué hiciste?" atenuado={faltaQueHacer}>
         <div className="flex flex-wrap gap-2">
           {TIPOS_CONTACTO.map(([valor, etiqueta]) => (

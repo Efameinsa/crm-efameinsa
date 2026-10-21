@@ -217,7 +217,7 @@ export async function cargarHistorialCuenta(
       .limit(60),
     supabase
       .from("atenciones")
-      .select("id, codigo, tipo, etapa, equipo_texto, detalle, registrado_at, created_at, cerrado_at, oportunidad_id, perfiles!atenciones_tomada_por_fkey(nombre), registro:perfiles!atenciones_recibido_por_fkey(nombre)")
+      .select("id, codigo, tipo, tipo_detalle, etapa, equipo_texto, detalle, registrado_at, created_at, cerrado_at, resultado, motivo_cierre, oportunidad_id, perfiles!atenciones_tomada_por_fkey(nombre), registro:perfiles!atenciones_recibido_por_fkey(nombre)")
       .eq("cuenta_id", cuentaId)
       .order("created_at", { ascending: false })
       .limit(60),
@@ -249,7 +249,7 @@ export async function cargarHistorialCuenta(
           supabase
             .from("actividades")
             .select(
-              "id, tipo, nota, realizada_at, oportunidad_id, adjuntos, proxima_accion, proxima_accion_at, proxima_accion_hora, catalogo_resultados_gestion(codigo, nombre), perfiles:realizada_por(nombre, codigo_comercial)",
+              "id, tipo, nota, realizada_at, oportunidad_id, adjuntos, proxima_accion, proxima_accion_at, proxima_accion_hora, catalogo_resultados_gestion(codigo, nombre), perfiles:realizada_por(nombre, codigo_comercial), caso:atenciones!actividades_atencion_id_fkey(codigo)",
             )
             .in("oportunidad_id", opIds)
             .order("realizada_at", { ascending: false })
@@ -308,7 +308,17 @@ export async function cargarHistorialCuenta(
     if (!previo || (!previo.tienePdf && tienePdf)) documentoPorCodigo.set(c.codigo, { id: c.id, items: c.items ?? [], tienePdf });
   }
 
-  const TIPO_ATENCION: Record<string, string> = { problema_tecnico: "Problema técnico", solicitud_repuesto: "Repuesto" };
+  const TIPO_ATENCION: Record<string, string> = {
+    problema_tecnico: "Problema técnico",
+    solicitud_repuesto: "Repuesto",
+    solicitud_mantenimiento: "Mantenimiento",
+    puesta_en_marcha: "Puesta en marcha",
+    soporte_tecnico: "Soporte técnico",
+    revision_garantia: "Revisión por garantía",
+    capacitacion: "Capacitación",
+    otro: "Otro",
+  };
+  const RESULTADO_CASO: Record<string, string> = { resuelto: "resuelto", no_procede: "no procede", derivado: "derivado" };
   const eventos: EventoTimeline[] = [
     ...(servicios ?? []).map((sv): EventoTimeline => ({
       tipo: "servicio",
@@ -393,7 +403,25 @@ export async function cargarHistorialCuenta(
       href: `/postventa/atenciones/${at.id}`,
       oportunidadId: null,
       ...delExpediente(at.oportunidad_id as string | null),
+      caso: (at.codigo as string | null) ?? null,
     })),
+    // EL CIERRE DEL CASO SE VE EN LA LÍNEA DE TIEMPO (gerencia 20-10, Pepas de
+    // Oro: «este caso resuelto debería salir en la línea de tiempo»), con el
+    // resultado y el porqué.
+    ...(atenciones ?? [])
+      .filter((at) => at.cerrado_at)
+      .map((at): EventoTimeline => ({
+        tipo: "servicio",
+        id: `atencion-cerrada-${at.id}`,
+        fecha: at.cerrado_at as string,
+        titulo: `${(at.codigo as string | null) ?? "Caso"} cerrado · ${RESULTADO_CASO[at.resultado as string] ?? "sin resultado"}`,
+        detalle: (at.motivo_cierre as string | null)?.slice(0, 200) || null,
+        quien: (at.perfiles as unknown as { nombre: string } | null)?.nombre ?? null,
+        href: `/postventa/atenciones/${at.id}`,
+        oportunidadId: null,
+        ...delExpediente(at.oportunidad_id as string | null),
+        caso: (at.codigo as string | null) ?? null,
+      })),
     ...(actividades ?? []).map((a): EventoTimeline => {
       const resultado = a.catalogo_resultados_gestion as unknown as { codigo: string; nombre: string } | null;
       return {
@@ -402,6 +430,7 @@ export async function cargarHistorialCuenta(
         fecha: a.realizada_at,
         oportunidadId: aDonde(a.oportunidad_id),
         ...delExpediente(a.oportunidad_id),
+        caso: (a as { caso?: { codigo: string | null } | null }).caso?.codigo ?? null,
         tipoActividad: a.tipo,
         nota: a.nota,
         resultado,

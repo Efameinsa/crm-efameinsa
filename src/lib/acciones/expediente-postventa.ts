@@ -1,4 +1,5 @@
 "use server";
+import { casosAbiertosDeCuenta, type CasoParaGestion } from "@/lib/acciones/casos-de-la-gestion";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
@@ -130,6 +131,21 @@ export async function carpetaDelCliente(cuentaId: string): Promise<ResumenCarpet
     casos: (casos ?? []).map((c) => ({ titulo: tituloDelTipo(c.tipo, c.tipo_detalle), responsable: nom(c.asignado as unknown as P) })),
     cotizacionesVivas: count ?? 0,
   };
+}
+
+/**
+ * LOS CASOS ABIERTOS QUE CENTRAL VE AL DERIVAR (gerencia 20-10, Lino Espíritu:
+ * «la central tendría que filtrar… ¿de qué caso habla?»). Con su código, su
+ * máquina y si están en otra ficha del mismo cliente. Central elige a cuál se
+ * suma la llamada o dice que es otro problema (0567).
+ */
+export async function casosAbiertosParaDerivar(cuentaId: string): Promise<CasoParaGestion[]> {
+  if (!/^[0-9a-f-]{36}$/i.test(cuentaId)) return [];
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { data: visible } = await supabase.from("cuentas").select("id").eq("id", cuentaId).maybeSingle();
+  if (!visible) return [];
+  return casosAbiertosDeCuenta(cuentaId);
 }
 
 /** «Hoy cubro a…» (0530): la compañera falta; sus avisos me llegan en copia. */

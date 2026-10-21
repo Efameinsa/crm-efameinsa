@@ -1,5 +1,6 @@
 "use client";
 
+import { EtiquetaCaso } from "@/components/crm/etiqueta-caso";
 import Link from "@/components/enlace";
 import { MoreHorizontal, FileText, CircleCheckBig, CalendarClock, Wrench, Inbox } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
@@ -90,6 +91,8 @@ export interface DelExpediente {
   expedienteTipo?: string | null;
   /** Su expediente está en «Histórico»: se enseña como «de antes», no como trabajo (30-09). */
   expedienteArchivado?: boolean;
+  /** 0567: el código del caso al que pertenece (CASO-00129), para pintarlo con su color. */
+  caso?: string | null;
 }
 
 export interface EventoActividad extends DelExpediente {
@@ -423,9 +426,10 @@ export function LineaTiempoCuenta({
           {i < eventos.length - 1 && (
             <span className="absolute left-[15px] top-8 h-[calc(100%-4px)] w-px bg-border" aria-hidden />
           )}
-          {conExpediente && evento.expediente && (
-            <div className="mb-1 pl-11">
-              <TipoExpedienteBadge tipo={evento.expedienteTipo} />
+          {((conExpediente && evento.expediente) || evento.caso) && (
+            <div className="mb-1 flex flex-wrap gap-1 pl-11">
+              {conExpediente && evento.expediente && <TipoExpedienteBadge tipo={evento.expedienteTipo} />}
+              {evento.caso && <EtiquetaCaso codigo={evento.caso} />}
             </div>
           )}
           <EventoFila evento={evento} oportunidadActualId={oportunidadActualId} />

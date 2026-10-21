@@ -8,6 +8,7 @@ import { marcarLeidasDeOportunidad } from "@/lib/acciones/notificaciones";
 import { avisarGestionRegistradaEducanet, avisarLeadRespondidoEducanet } from "@/lib/avisos-educanet";
 import type { EtapaOportunidad } from "@/types/database";
 import { gemelaQueYaResolvio, type GemelaResuelta } from "@/lib/gemela-cerrada";
+import { casosValidosDelExpediente } from "@/lib/acciones/casos-de-la-gestion";
 
 const TIPOS_ACTIVIDAD = [
   "llamada",
@@ -37,6 +38,12 @@ export async function registrarActividad(datos: {
   // Metadatos de archivos YA subidos al bucket 'adjuntos' por el cliente
   // (reunión 19-08: PDF/Word/fotos visibles en la ficha). Máximo 5.
   adjuntos?: { path: string; nombre: string; tipo: string; tamano: number }[];
+  /**
+   * 0567 (gerencia 20-10): de qué caso(s) es la gestión. [] = «no es de ningún
+   * caso». Una gestión de dos casos se guarda como dos filas en el mismo clic.
+   * Ausente = pantalla vieja o cola sin conexión: entra sin caso.
+   */
+  atencionIds?: string[];
 }): Promise<{ error: string | null; aviso?: string }> {
   if (!TIPOS_ACTIVIDAD.includes(datos.tipo)) {
     return { error: "Tipo de actividad inválido" };
@@ -62,7 +69,10 @@ export async function registrarActividad(datos: {
 
   const accionRegistrada = datos.limpiarProximaAccion ? "" : datos.proximaAccion.trim();
 
-  const { error: errorActividad } = await supabase.from("actividades").insert({
+  const casos = datos.atencionIds?.length
+    ? await casosValidosDelExpediente(datos.oportunidadId, datos.atencionIds)
+    : [];
+  const fila = {
     oportunidad_id: datos.oportunidadId,
     tipo: datos.tipo,
     nota: datos.nota || null,
@@ -74,7 +84,11 @@ export async function registrarActividad(datos: {
     proxima_accion: accionRegistrada || null,
     proxima_accion_at: datos.limpiarProximaAccion ? null : datos.proximaAccionAt,
     proxima_accion_hora: datos.limpiarProximaAccion || !datos.proximaAccionAt ? null : datos.proximaAccionHora ?? null,
-  });
+  };
+  // Un solo insert con todas las filas: es un solo clic (mismo lote en el registro de acciones).
+  const { error: errorActividad } = await supabase
+    .from("actividades")
+    .insert((casos.length ? casos : [null]).map((atencion_id: string | null) => ({ ...fila, atencion_id })));
   if (errorActividad) {
     // EL MENSAJE CRUDO NO SE ENTIENDE. Cuando el expediente es de otra
     // persona, Postgres devuelve «new row violates row-level security policy

@@ -311,7 +311,15 @@ export async function asignarLead(
    * · `motivoNuevo`: si hay coincidencias y Central no eligió ninguna, tiene
    *   que decir por qué es un cliente nuevo. Queda escrito en la derivación.
    */
-  extra?: { cuentaElegida?: string | null; motivoUnion?: string | null; motivoNuevo?: string | null } | null,
+  extra?: {
+    cuentaElegida?: string | null;
+    motivoUnion?: string | null;
+    motivoNuevo?: string | null;
+    /** 0567: a postventa, de qué caso abierto es esta llamada (gerencia 20-10). */
+    casoElegido?: string | null;
+    /** 0567: o por qué es otro problema aunque el cliente tenía casos abiertos. */
+    casoNuevoMotivo?: string | null;
+  } | null,
 ): Promise<{ error: string | null; requierePin?: boolean; sumadoAExpediente?: boolean; requiereMotivoNuevo?: boolean }> {
   const supabase = await createClient();
   const {
@@ -410,6 +418,18 @@ export async function asignarLead(
       .update({ sugerido_atencion: fino ? fino.atencion : "puesta_en_marcha" })
       .eq("id", leadId);
     if (eTipo) return { error: eTipo.message };
+  }
+  // ¿DE QUÉ CASO ES? (0567, gerencia 20-10). Lo que Central eligió viaja en el
+  // contacto; `crear_atencion_de_lead` lo respeta en vez de adivinar.
+  if (tipoPostventa && (extra?.casoElegido || extra?.casoNuevoMotivo)) {
+    const { error: eCaso } = await supabase
+      .from("leads")
+      .update({
+        caso_elegido: extra.casoElegido && /^[0-9a-f-]{36}$/i.test(extra.casoElegido) ? extra.casoElegido : null,
+        caso_nuevo_motivo: extra.casoElegido ? null : extra.casoNuevoMotivo?.trim().slice(0, 300) || "es otro problema",
+      })
+      .eq("id", leadId);
+    if (eCaso) return { error: eCaso.message };
   }
   const { data: oportunidadId, error } = await supabase.rpc("asignar_lead_con_pin", {
     p_lead_id: leadId,
