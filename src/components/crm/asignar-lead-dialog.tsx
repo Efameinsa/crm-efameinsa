@@ -126,6 +126,7 @@ function mismoNombre(a: string | null | undefined, b: string | null | undefined)
 
 const MOTIVO: Record<CoincidenciaCartera["motivo"], { etiqueta: string; fuerte: boolean }> = {
   documento: { etiqueta: "Mismo RUC/DNI", fuerte: true },
+  dni_en_ruc: { etiqueta: "Su DNI está dentro del RUC 10 de esta ficha (es la misma persona)", fuerte: true },
   telefono: { etiqueta: "Mismo teléfono", fuerte: true },
   correo: { etiqueta: "Mismo correo", fuerte: true },
   nombre: { etiqueta: "Nombre similar", fuerte: false },
@@ -210,8 +211,12 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
   // no lo va a unir sola (por RUC o por celular sí lo hace; por correo o por
   // nombre, no).
   const loUneSola = (coincidencias ?? []).some((c) => c.motivo === "documento" || c.motivo === "telefono");
+  // A postventa llega quien ya compró (gerencia 20-10): sin RUC/DNI ni ficha
+  // elegida, Central tiene que decir por qué (el servidor lo exige igual).
+  const postventaSinDocumento =
+    esPostventa && !cuentaId && !cuentaElegida && !institucion && !loUneSola && !/^(\d{8}|\d{11})$/.test((numDoc ?? "").replace(/\D/g, ""));
   const pideMotivoNuevo =
-    (coincidencias?.length ?? 0) > 0 && !cuentaId && !cuentaElegida && !institucion && !loUneSola;
+    ((coincidencias?.length ?? 0) > 0 && !cuentaId && !cuentaElegida && !institucion && !loUneSola) || postventaSinDocumento;
   /**
    * DERIVAR COMO NUEVO UN CLIENTE QUE ES DE OTRA CARTERA PIDE CÓDIGO (07-10).
    * Caso HOTEL PULLMAN / ATTKO: el contacto coincidía con una ficha de C4 y
@@ -468,8 +473,9 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
                   ¿No es ninguno de estos?
                 </p>
                 <p className="text-xs leading-snug text-amber-900">
-                  Si es uno de ellos, tóquelo arriba y el contacto se une a su ficha. Si es un cliente distinto,
-                  escriba por qué — queda anotado en la derivación.
+                  {postventaSinDocumento && (coincidencias?.length ?? 0) === 0
+                    ? "A postventa llega un cliente que ya compró, y este contacto no tiene RUC ni DNI. Pídaselo al cliente y corríjalo en el contacto, o búsquelo en Clientes. Si igual hay que derivarlo así, escriba por qué."
+                    : "Si es uno de ellos, tóquelo arriba y el contacto se une a su ficha. Si es un cliente distinto, escriba por qué — queda anotado en la derivación."}
                 </p>
                 <Textarea
                   aria-label="Por qué es un cliente nuevo"

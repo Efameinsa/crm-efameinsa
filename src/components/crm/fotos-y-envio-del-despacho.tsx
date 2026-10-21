@@ -148,7 +148,10 @@ export function EnviarGuiaAlCliente({
   agencia,
   salidaAt,
   enviada,
+  codigoCaso = null,
 }: {
+  /** El código del caso de este pedido (Brenda 20-10: «al cliente le tendremos que decir su código»). */
+  codigoCaso?: string | null;
   servicioId: string;
   cliente: string;
   telefono: string | null;
@@ -165,6 +168,7 @@ export function EnviarGuiaAlCliente({
     `Su pedido salió${salidaAt ? ` el ${new Date(salidaAt).toLocaleDateString("es-PE", { timeZone: "America/Lima" })}` : ""}${agencia ? ` por la agencia ${agencia}` : ""}.`,
     guia ? `Guía de remisión: ${guia}.` : null,
     "Le adjuntamos la guía y las fotos del despacho. Cualquier consulta, estamos atentos.",
+    codigoCaso ? `Su código de atención es ${codigoCaso}: menciónelo si nos vuelve a escribir y lo ubicamos al toque.` : null,
   ]
     .filter(Boolean)
     .join("\n");

@@ -329,6 +329,11 @@ export async function asignarLead(
     .eq("id", leadId)
     .maybeSingle();
   if (leadAntes && !leadAntes.cuenta_id && !sede) {
+    // CLIENTE CON RUC O DNI, NO POR NOMBRE (gerencia 20-10: «ahora sí se tiene
+    // que exigir RUC cuando es cliente… la central tendría que filtrar»). A
+    // postventa llega quien ya compró: sin documento ni ficha elegida, una ficha
+    // nueva por nombre es casi siempre un duplicado. Se deja pasar solo con
+    // la razón escrita, y la ficha nueva aparece en «Fichas repetidas».
     if (extra?.cuentaElegida) {
       const union = await unirLeadACuenta(
         leadId,
@@ -348,6 +353,18 @@ export async function asignarLead(
       // Por RUC o por celular `asignar_lead` lo une solo: ahí no hay ficha
       // nueva que justificar. Por correo o por nombre, sí la habría.
       const loUneSolo = coincidencias.some((c) => c.motivo === "documento" || c.motivo === "telefono");
+      if (
+        tipoPostventa &&
+        !loUneSolo &&
+        !(leadAntes.num_doc ?? "").replace(/\D/g, "").match(/^(\d{8}|\d{11})$/) &&
+        (extra?.motivoNuevo?.trim().length ?? 0) < 10
+      ) {
+        return {
+          error:
+            "A postventa llega un cliente que ya compró: búsquelo por su RUC o DNI y elija su ficha. Si de verdad no tiene ficha, corrija el RUC o DNI en el contacto, o escriba por qué se deriva sin él.",
+          requiereMotivoNuevo: true,
+        };
+      }
       if (coincidencias.length > 0 && !loUneSolo && (extra?.motivoNuevo?.trim().length ?? 0) < 10) {
         const c = coincidencias[0];
         return {
@@ -591,7 +608,7 @@ export interface CoincidenciaCartera {
   comercialNombre: string | null;
   codigoComercial: string | null;
   ultimaVentaAt: string | null;
-  motivo: "documento" | "telefono" | "correo" | "nombre";
+  motivo: "documento" | "dni_en_ruc" | "telefono" | "correo" | "nombre";
 }
 
 // Pre-filtro de la asignación (pedido de Carlos 19-08): antes de derivar,
@@ -689,7 +706,17 @@ export async function buscarCoincidencias(datos: {
   let qContactos = supabase.from("contactos").select(`cuentas(${CAMPOS})`);
   for (const t of tokensPersona) qContactos = qContactos.ilike("nombre", `%${t}%`);
 
-  const [doc, telef, telefSucio, correo, empresaCuenta, personaCuenta, nomContacto] = await Promise.all([
+  // LA PERSONA NATURAL CON DNI Y CON RUC (gerencia 20-10, Lino Espíritu: la
+  // ficha con DNI 44224120 y la del RUC 10442241207 eran la misma persona y se
+  // abrieron dos casos de la misma secadora). El RUC 10 lleva el DNI adentro:
+  // 10 + DNI + dígito. No lo une solo: Central tiene que elegir la ficha.
+  const docPersona =
+    numDoc && /^\d{8}$/.test(numDoc)
+      ? supabase.from("cuentas").select(CAMPOS).like("num_doc", `10${numDoc}_`).is("fusionada_en", null).limit(2)
+      : numDoc && /^10\d{9}$/.test(numDoc)
+        ? supabase.from("cuentas").select(CAMPOS).eq("num_doc", numDoc.slice(2, 10)).is("fusionada_en", null).limit(2)
+        : nada;
+  const [doc, telef, telefSucio, correo, empresaCuenta, personaCuenta, nomContacto, persona] = await Promise.all([
     numDoc && numDoc.length >= 8
       ? supabase.from("cuentas").select(CAMPOS).eq("num_doc", numDoc).limit(3)
       : nada,
@@ -707,11 +734,13 @@ export async function buscarCoincidencias(datos: {
     tokensEmpresa.length > 0 ? cuentasConNombre(tokensEmpresa) : nada,
     tokensPersona.length > 0 && !mismaBusqueda ? cuentasConNombre(tokensPersona) : nada,
     tokensPersona.length > 0 ? qContactos.limit(5) : nada,
+    docPersona,
   ]);
 
   const deContacto = (d: unknown) => ((d ?? []) as { cuentas: unknown }[]).map((x) => x.cuentas as CuentaFila);
 
   agregar(doc.data as unknown as CuentaFila[], "documento");
+  agregar(persona.data as unknown as CuentaFila[], "dni_en_ruc");
   agregar(deContacto(telef.data), "telefono");
   // El RPC devuelve ids: se traen esas fichas y se suman con el mismo motivo.
   const idsSucios = [...new Set(((telefSucio.data ?? []) as { cuenta_id: string }[]).map((x) => x.cuenta_id))].slice(0, 4);
@@ -723,7 +752,7 @@ export async function buscarCoincidencias(datos: {
   agregar(empresaCuenta.data as unknown as CuentaFila[], "nombre");
   agregar(personaCuenta.data as unknown as CuentaFila[], "nombre");
   agregar(deContacto(nomContacto.data), "nombre");
-  const orden: Record<CoincidenciaCartera["motivo"], number> = { documento: 0, telefono: 1, correo: 2, nombre: 3 };
+  const orden: Record<CoincidenciaCartera["motivo"], number> = { documento: 0, dni_en_ruc: 0, telefono: 1, correo: 2, nombre: 3 };
   return [...out.values()].sort((a, b) => orden[a.motivo] - orden[b.motivo]).slice(0, 6);
 }
 

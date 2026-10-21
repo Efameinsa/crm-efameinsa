@@ -19,7 +19,6 @@ import { OtraMaquinaDelCaso } from "@/components/crm/otra-maquina-del-caso";
 import { HistorialDelEquipo } from "@/components/crm/historial-del-equipo";
 import { HistorialPostventaCliente } from "@/components/crm/historial-postventa-cliente";
 import { HistorialDelCaso } from "@/components/crm/historial-del-caso";
-import { RecepcionEquipoBoton } from "@/components/crm/recepcion-equipo";
 import { AntecedentesEquipoPanel } from "@/components/crm/antecedentes-equipo";
 import { cargarAntecedentesEquipo } from "@/lib/antecedentes-equipo";
 import { requerirPerfil } from "@/lib/auth";
@@ -49,8 +48,16 @@ export const dynamic = "force-dynamic";
  * que hacer ahora. Nada más — el historial de la máquina ya vive en su ficha de
  * equipo instalado y repetirlo acá solo alarga el scroll.
  */
-export default async function AtencionPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AtencionPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ apertura?: string }>;
+}) {
   const { id } = await params;
+  // «El equipo viene a planta» (20-10) trae aquí con la apertura interna abierta.
+  const abrirInterna = (await searchParams).apertura === "interna";
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -103,6 +110,8 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
           .from("equipos_instalados")
           .select("id, serie, modelo_texto, garantia_hasta, ultimo_mantenimiento, fecha_venta")
           .eq("cuenta_id", a.cuenta_id)
+          // «Nada de repuestos, solamente equipos» (gerencia 20-10, Lino): 0570.
+          .eq("es_repuesto", false)
           .order("fecha_venta", { ascending: false, nullsFirst: false })
           .limit(20)
       : Promise.resolve({ data: [] as never[] }),
@@ -302,6 +311,16 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
             >
               <ArrowLeft className="size-3.5" /> Atenciones del área
             </Link>
+            {/* VOLVER A LA FICHA, A LA VISTA (gerencia 20-10: «retrocede y se pierde…
+                salgo del cliente por completo»). */}
+            {a.cuenta_id && (
+              <Link
+                href={`/nuevo/cliente/${a.cuenta_id}`}
+                className="mb-1.5 ml-3 inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/5 px-2 py-0.5 text-xs font-semibold text-primary hover:bg-primary/10"
+              >
+                <ArrowLeft className="size-3.5" /> Volver a la ficha de {(a.cuentas?.razon_social ?? a.cliente_texto ?? "el cliente").slice(0, 40)}
+              </Link>
+            )}
             <h1 className="text-lg font-bold leading-snug text-foreground">
               {/* El código del caso, para buscarlo y continuarlo (gerencia 20-10, Lernake). */}
               {(a as { codigo?: string | null }).codigo && (
@@ -422,26 +441,37 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
               a.cuenta_id && !a.cerrado_at ? (
                 <span className="flex flex-wrap items-center gap-1.5">
                 {/* Apertura de servicio sin pedido (0407, reunión 06-10 11:01). */}
-                {a.servicio_id ? (
+                {a.servicio_id && (
                   <Link href={`/postventa/pedidos/${a.servicio_id}`} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-primary hover:bg-accent">
                     Ver su apertura de servicio
                   </Link>
-                ) : (
-                  <AperturaServicioCaso atencionId={a.id} enGarantia={Boolean(a.en_garantia)} tecnicoSugerido={a.tecnico} tipoCaso={a.tipo} tipoDetalle={a.tipo_detalle} />
+                )}
+                {/* Otra apertura si la anterior ya salió (0568, Lino 20-10: el técnico fue,
+                    no lo solucionó y el equipo viene a planta). */}
+                {(!a.servicio_id || pedidoEnganchado?.despachado_at) && (
+                  <AperturaServicioCaso
+                    atencionId={a.id}
+                    enGarantia={Boolean(a.en_garantia)}
+                    tecnicoSugerido={a.tecnico}
+                    tipoCaso={a.tipo}
+                    tipoDetalle={a.tipo_detalle}
+                    abrirInterna={abrirInterna}
+                    etiqueta={a.servicio_id ? "Otra apertura de servicio" : "Apertura de servicio"}
+                  />
                 )}
                 <AperturaLlamadaBoton
                   cuentaId={a.cuenta_id}
                   atencionId={a.id}
                   tipo="soporte_videollamada"
-                  etiqueta="Derivar llamada al almacén"
+                  etiqueta="Derivación de llamada al almacén"
                   equipos={equiposParaLlamada}
                   // Con los antecedentes (reunión 28-09): «en esa derivación
                   // de llamada pones todos los antecedentes».
                   problema={[a.detalle ?? "", a.diagnostico ? `Antecedentes: ${a.diagnostico}` : ""].filter(Boolean).join("\n\n")}
                   compacto
                 />
-                {/* El equipo que llega a planta por garantía (0557, Brenda y gerencia 20-10). */}
-                <RecepcionEquipoBoton atencionId={a.id} equipo={a.equipo_texto ?? null} serie={null} />
+                {/* El equipo que llega a planta ya no tiene botón aparte (0568): es la
+                    apertura de servicio INTERNA, que crea su orden de recepción. */}
                 </span>
               ) : undefined
             }
@@ -480,6 +510,24 @@ export default async function AtencionPage({ params }: { params: Promise<{ id: s
                     <span className="text-muted-foreground">· {fechaHoraLima(l.programada_para)} · {ETIQUETA_ESTADO_APERTURA[estadoApertura(l)]}</span>
                   </Link>
                 ))}
+              </div>
+            )}
+            {/* RECLASIFICAR CAMBIA LA VISTA (gerencia 20-10, Pepas de Oro: «una vez que
+                reclasificas, debería cambiar las vistas… tiene que desaparecer esto»).
+                Un repuesto se atiende con cotización y pedido: el circuito técnico
+                solo sirve si un técnico lo va a instalar, y queda plegado. */}
+            {a.tipo === "solicitud_repuesto" && !a.cerrado_at && (
+              <div className="mb-3 space-y-1.5 rounded-md border border-sky-300 bg-sky-50 p-3 text-xs text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-100">
+                <p className="text-sm font-semibold">Este caso es una solicitud de repuesto</p>
+                <p>
+                  Se atiende con la cotización y el pedido del repuesto. Cuando se entregó (o si no procede), ciérrelo con
+                  «Cerrar este caso», abajo del circuito.
+                </p>
+                {a.oportunidad_id && (
+                  <Link href={`/comercial/oportunidades/${a.oportunidad_id}`} className="font-medium text-primary hover:underline">
+                    Ir a la cotización y el pedido del expediente
+                  </Link>
+                )}
               </div>
             )}
             <LineaAtencion

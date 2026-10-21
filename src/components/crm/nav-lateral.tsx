@@ -98,6 +98,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     { href: "/comercial/cierres", etiqueta: "Ventas emitidas", icono: PackageCheck },
     { href: "/comercial/potenciales", etiqueta: "Mis potenciales", icono: Target },
     { href: "/comercial/mi-gestion", etiqueta: "Mi gestión", icono: Gauge },
+    // La ventana de stock (gerencia 20-10).
+    { href: "/comercial/stock", etiqueta: "Stock de equipos", icono: Package },
     { href: "/comercial/cartera", etiqueta: "Mi cartera", icono: Building2 },
   ],
   gerencia: [

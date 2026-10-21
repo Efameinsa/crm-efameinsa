@@ -284,7 +284,7 @@ async function PorDia({ vistaAlmacen, pestana }: { vistaAlmacen: boolean; pestan
             ? "Son las que se mandan sin pedido, con el código de gerencia, cuando hay que sacar algo del almacén de inmediato."
             : vistaAlmacen
               ? "Cuando postventa derive una videollamada o una atención técnica, llega acá con el día, la hora y los equipos."
-              : "Se derivan desde el pedido (preinstalación o puesta en marcha), desde el caso técnico o desde la ficha del cliente con «Derivar llamada»."}
+              : "Se derivan desde el pedido (preinstalación o puesta en marcha), desde el caso técnico o desde la ficha del cliente con «Derivación de llamada»."}
         </p>
       </div>
     );
