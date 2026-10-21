@@ -193,7 +193,7 @@ export function ComunicadoDeGerencia({ comunicado }: { comunicado: ComunicadoPen
             // pantalla, con 16 px de aire a cada lado. Se fija el ANCHO (no el
             // alto): la ventana se ajusta a él; con el alto, en el celular se
             // encogía a la mitad.
-            style={{ aspectRatio: "4 / 5", width: "min(64dvh, calc(100vw - 2rem))" }}
+            style={{ aspectRatio: "4 / 5", width: "min(64dvh, calc(100vw - 3rem))" }}
             aria-label={`${l.titulo}. Toque para ver la siguiente lámina.`}
           >
             {l.imagen ? (
