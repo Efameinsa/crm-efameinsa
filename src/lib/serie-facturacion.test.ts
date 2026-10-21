@@ -1,20 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { SERIE_POR_DEFECTO, motivoParaGuardar, problemaSerie } from "./serie-facturacion";
+import { esCategoriaDeEquipo, motivoParaGuardar, problemaSerie, seriePorDefecto } from "./serie-facturacion";
 
-// Open primero (gerencia, 23-09-2026): Efameinsa se permite, con motivo.
+// La serie sale sola (gerencia, 21-10-2026): equipos con Efameinsa,
+// repuestos y servicios con Open, sin pedir motivo.
 describe("serie de facturación", () => {
-  it("arranca en OPEN", () => {
-    expect(SERIE_POR_DEFECTO).toBe("OPEN");
+  it("un equipo es lo que no es repuesto ni servicio", () => {
+    expect(esCategoriaDeEquipo("lavadora")).toBe(true);
+    expect(esCategoriaDeEquipo("coche")).toBe(true);
+    expect(esCategoriaDeEquipo("repuesto")).toBe(false);
+    expect(esCategoriaDeEquipo("Servicio")).toBe(false);
+    expect(esCategoriaDeEquipo(null)).toBe(false);
   });
 
-  it("OPEN no pide motivo", () => {
+  it("con un equipo va EFAMEINSA; solo repuestos y servicios, OPEN", () => {
+    expect(seriePorDefecto(["lavadora", "repuesto"], "OPEN")).toBe("EFAMEINSA");
+    expect(seriePorDefecto(["repuesto", "servicio"], "EFAMEINSA")).toBe("OPEN");
+  });
+
+  it("sin nada reconocible decide quién cotiza", () => {
+    expect(seriePorDefecto([], "EFAMEINSA")).toBe("EFAMEINSA");
+    expect(seriePorDefecto([null, undefined], "OPEN")).toBe("OPEN");
+  });
+
+  it("ninguna serie pide motivo", () => {
     expect(problemaSerie("OPEN", null)).toBeNull();
-  });
-
-  it("EFAMEINSA pide una frase de motivo", () => {
-    expect(problemaSerie("EFAMEINSA", null)).toMatch(/motivo/);
-    expect(problemaSerie("EFAMEINSA", "   cliente  ")).toMatch(/motivo/);
-    expect(problemaSerie("EFAMEINSA", "El cliente insistió tras explicarle")).toBeNull();
+    expect(problemaSerie("EFAMEINSA", null)).toBeNull();
   });
 
   it("en OPEN el motivo no se guarda", () => {

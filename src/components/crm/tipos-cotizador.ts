@@ -21,6 +21,8 @@ export interface ProductoCotizable {
   /** «Apilable» / «No apilable». Solo lo declaran los equipos LG. */
   montaje?: string | null;
   segmento: "industrial" | "semi_industrial";
+  /** lavadora, secadora, planchador… o repuesto / servicio: decide la serie por defecto (21-10). */
+  categoria?: string | null;
   precios_producto: PrecioTier[];
   /** Cómo calienta (Gas GLP, ELÉCTRICA, Gas natural…). Vive en la ficha, no en
    *  el nombre, y es como la gente pide el equipo: "secadora eléctrica". */

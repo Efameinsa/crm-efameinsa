@@ -1,42 +1,52 @@
-// OPEN PRIMERO (decisión de gerencia del 23-09-2026).
+// LA SERIE SALE SOLA SEGÚN LO QUE SE VENDE (gerencia, 21-10-2026).
 //
-// «La idea es que Open Investments sea la primera opción.» Los clientes nuevos
-// se facturan con Open; a un antiguo que pide Efameinsa se le explica el
-// cambio, y solo si insiste se factura con Efameinsa. Santos decidió no
-// bloquear Efameinsa sino pedir el motivo por escrito (migración 0275).
+// «Todo producto debe despacharse con Efameinsa (por defecto) y todo repuesto,
+// servicio, etc. con Open Investments (por defecto); quitar el dar
+// explicaciones.» Reemplaza a «Open primero» del 23-09, que pedía por escrito
+// el motivo de cada Efameinsa (migración 0275): ya no se pide. La serie se
+// puede seguir cambiando a mano, sin preguntas.
 //
 // Vive aquí y no en `src/lib/acciones/`: un archivo «use server» solo exporta
 // funciones async, y esto lo usan también las pantallas.
 
 export type SerieFacturacion = "EFAMEINSA" | "OPEN";
 
-/** Con qué serie arranca toda cotización o cierre nuevo. */
+/** Con qué serie arranca una cotización vacía de postventa (repuestos y servicios). */
 export const SERIE_POR_DEFECTO: SerieFacturacion = "OPEN";
 
-/** Lo mínimo que se acepta como motivo: una frase, no «ok» ni «cliente». */
-export const MOTIVO_SERIE_MINIMO = 10;
+/** Lo que NO es un equipo: va con Open. Todo lo demás del catálogo es producto. */
+const CATEGORIAS_OPEN = new Set(["repuesto", "servicio"]);
 
-/** El recordatorio que acompaña al campo del motivo. */
-export const AYUDA_SERIE_EFAMEINSA =
-  "Open es la primera opción; Efameinsa solo si el cliente insiste después de explicarle.";
-
-/** ¿El texto alcanza como motivo? */
-export function motivoSerieSuficiente(motivo: string | null | undefined): boolean {
-  return (motivo ?? "").trim().length >= MOTIVO_SERIE_MINIMO;
+/** ¿Esta categoría del catálogo es un equipo (lavadora, secadora, planchador, coche…)? */
+export function esCategoriaDeEquipo(categoria: string | null | undefined): boolean {
+  if (!categoria) return false;
+  return !CATEGORIAS_OPEN.has(categoria.trim().toLowerCase());
 }
 
 /**
- * El problema con la serie elegida, en castellano, o null si está bien.
- * OPEN no pide nada; EFAMEINSA pide una frase de motivo.
+ * La serie que corresponde por defecto: EFAMEINSA si hay al menos un equipo,
+ * OPEN si todo es repuesto o servicio. Sin nada reconocible (vacío o solo
+ * líneas a mano) decide `sinDatos`: comercial vende equipos, postventa no.
  */
-export function problemaSerie(serie: SerieFacturacion, motivo: string | null | undefined): string | null {
-  if (serie !== "EFAMEINSA") return null;
-  if (motivoSerieSuficiente(motivo)) return null;
-  return `Para facturar con Efameinsa escriba el motivo (una frase, mínimo ${MOTIVO_SERIE_MINIMO} caracteres). ${AYUDA_SERIE_EFAMEINSA}`;
+export function seriePorDefecto(categorias: (string | null | undefined)[], sinDatos: SerieFacturacion): SerieFacturacion {
+  const conocidas = categorias.filter((c): c is string => Boolean(c && c.trim()));
+  if (conocidas.length === 0) return sinDatos;
+  return conocidas.some(esCategoriaDeEquipo) ? "EFAMEINSA" : "OPEN";
 }
 
-/** Lo que se guarda en `motivo_serie`: el texto limpio en EFAMEINSA, nada en OPEN. */
+/** Ya no se pide motivo para ninguna serie (21-10): siempre null. Se conserva la firma para las acciones. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function problemaSerie(_serie: SerieFacturacion, _motivo: string | null | undefined): string | null {
+  return null;
+}
+
+/** El motivo ya no se pide; si alguien lo escribió antes en EFAMEINSA, se conserva. */
 export function motivoParaGuardar(serie: SerieFacturacion, motivo: string | null | undefined): string | null {
   if (serie !== "EFAMEINSA") return null;
   return (motivo ?? "").trim() || null;
+}
+
+/** Para el tablero de gerencia, que contaba los Efameinsa con motivo. */
+export function motivoSerieSuficiente(motivo: string | null | undefined): boolean {
+  return (motivo ?? "").trim().length >= 10;
 }

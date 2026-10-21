@@ -39,7 +39,7 @@ import { BuscadorEquiposModal } from "@/components/crm/buscador-equipos-modal";
 import { LoQueTieneElClientePanel } from "@/components/crm/lo-que-tiene-el-cliente";
 import type { LoQueTieneElCliente } from "@/lib/lo-que-tiene-el-cliente";
 import { CotizacionConfirmada } from "@/components/crm/cotizacion-confirmada";
-import { AYUDA_SERIE_EFAMEINSA, MOTIVO_SERIE_MINIMO, SERIE_POR_DEFECTO, problemaSerie } from "@/lib/serie-facturacion";
+import { SERIE_POR_DEFECTO, problemaSerie, seriePorDefecto } from "@/lib/serie-facturacion";
 import { ENTREGA_POR_DEFECTO, GARANTIA_POR_DEFECTO, GARANTIAS_FRECUENTES, IGV, LUGARES_ENTREGA, esSinGarantia } from "@/lib/pdf/series";
 import { netoDeBruto, redondear2, totalesConIgv } from "@/lib/igv";
 import { renglonEnSoles } from "@/lib/moneda-impresa";
@@ -304,12 +304,17 @@ export function PantallaCotizador({
   const router = useRouter();
   const volverHref = `/comercial/oportunidades/${oportunidadId}`;
 
-  // OPEN PRIMERO (gerencia, 23-09-2026): «La idea es que Open Investments sea
-  // la primera opción». Toda cotización nueva arranca en OPEN; la que se
-  // reabre conserva la suya. Elegir EFAMEINSA se permite (Santos: no se
-  // bloquea, tampoco a un cliente nuevo) pero pide el motivo por escrito.
-  const [serie, setSerie] = useState<"EFAMEINSA" | "OPEN">(edicion?.serie ?? SERIE_POR_DEFECTO);
-  const [motivoSerie, setMotivoSerie] = useState<string>(edicion?.motivoSerie ?? "");
+  // LA SERIE SALE SOLA (gerencia, 21-10-2026): equipos con EFAMEINSA,
+  // repuestos y servicios con OPEN, sin pedir explicaciones. La que se reabre
+  // conserva la suya; elegirla a mano sigue permitido y desde ahí ya no se toca.
+  const serieSinDatos = esPostventa || soloServiciosYRepuestos ? SERIE_POR_DEFECTO : "EFAMEINSA";
+  const categoriaDe = (productoId: string | null) => (productoId ? productos.find((p) => p.id === productoId)?.categoria : null);
+  const [serie, setSerie] = useState<"EFAMEINSA" | "OPEN">(
+    () => edicion?.serie ?? seriePorDefecto([!edicion && skuInicial ? productos.find((p) => p.sku === skuInicial)?.categoria : null], serieSinDatos),
+  );
+  const serieElegidaAMano = useRef(Boolean(edicion));
+  // El motivo ya no se pide (21-10); el que traiga un borrador viejo se conserva.
+  const [motivoSerie] = useState<string>(edicion?.motivoSerie ?? "");
   // COTIZAR EN SOLES (0169). El cotizador sigue trabajando en dólares —ahí
   // están el maestro de precios, el piso y la aprobación de gerencia—; esto
   // solo decide en qué moneda se imprime el papel del cliente. El cambio lo
@@ -372,6 +377,15 @@ export function PantallaCotizador({
         color: i.color,
       })) ?? []
     );
+  });
+  // Mientras nadie la elija a mano, la serie sigue a lo que hay en el carrito:
+  // entra un equipo → EFAMEINSA; solo repuestos y servicios → OPEN.
+  const serieSugerida = seriePorDefecto(carrito.map((i) => categoriaDe(i.producto_id)), serieSinDatos);
+  const sugeridaRef = useRef(serieSugerida);
+  useEffect(() => {
+    if (sugeridaRef.current === serieSugerida) return;
+    sugeridaRef.current = serieSugerida;
+    if (!serieElegidaAMano.current) alCambiarSerie(serieSugerida, false);
   });
   const previas = edicion ? null : condicionesPrevias;
   // LO BORRADO SE QUEDA BORRADO (Gabriela, 05-10: «borro el saldo, salgo, vuelvo
@@ -1041,7 +1055,8 @@ export function PantallaCotizador({
     });
   }
 
-  function alCambiarSerie(nueva: "EFAMEINSA" | "OPEN") {
+  function alCambiarSerie(nueva: "EFAMEINSA" | "OPEN", aMano = true) {
+    if (aMano) serieElegidaAMano.current = true;
     if (nueva === serie) return;
     // Sin borrador todavía, la serie es solo una elección en pantalla.
     if (!idRef.current) {
@@ -2007,29 +2022,9 @@ export function PantallaCotizador({
                   <SelectItem value="OPEN">OPEN</SelectItem>
                 </SelectContent>
               </Select>
-              {serie === "EFAMEINSA" ? (
-                <div className="space-y-1 rounded-md border border-amber-500/40 bg-amber-500/5 p-2">
-                  <Label htmlFor="motivo-serie" className="text-xs">
-                    ¿Por qué Efameinsa y no Open?
-                  </Label>
-                  <Textarea
-                    id="motivo-serie"
-                    value={motivoSerie}
-                    onChange={(e) => setMotivoSerie(e.target.value)}
-                    rows={2}
-                    placeholder="Ej.: cliente antiguo; se le explicó el cambio a Open y pidió seguir facturando con Efameinsa"
-                    className="text-sm"
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    {AYUDA_SERIE_EFAMEINSA}
-                    {motivoSerie.trim().length < MOTIVO_SERIE_MINIMO && (
-                      <span className="text-amber-700"> Falta el motivo (una frase) para poder confirmarla.</span>
-                    )}
-                  </p>
-                </div>
-              ) : (
-                <p className="text-[11px] text-muted-foreground">Open es la primera opción de facturación.</p>
-              )}
+              <p className="text-[11px] text-muted-foreground">
+                Equipos con Efameinsa; repuestos y servicios con Open. Sale sola según lo que cotiza; puede cambiarla.
+              </p>
               {cotizacionId && (
                 <p className="text-[11px] text-muted-foreground">
                   Cambiar la serie rehace el borrador con los mismos equipos: el correlativo cuelga de ella.

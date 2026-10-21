@@ -82,6 +82,7 @@ function mapearProducto(pr: {
   nombre: string;
   capacidad: string | null;
   segmento: string;
+  categoria?: string | null;
   ficha: Record<string, unknown> | null;
   foto_path: string | null;
   precios_producto: { tier: string; precio: number; vigente_hasta: string | null }[];
@@ -105,6 +106,7 @@ function mapearProducto(pr: {
     nombre: pr.nombre,
     capacidad: pr.capacidad,
     segmento: pr.segmento as ProductoCotizable["segmento"],
+    categoria: pr.categoria ?? null,
     // Solo el precio VIGENTE por tier. La consulta trae todo el historial de
     // precios_producto, y el cotizador hace `.find(p => p.tier === tier)`: sin
     // este filtro podía devolver un precio vencido si Postgres regresaba
@@ -297,7 +299,7 @@ export async function cargarContextoCotizador(
       .maybeSingle(),
     supabase
       .from("productos")
-      .select("id, sku, marca, modelo, nombre, capacidad, segmento, ficha, foto_path, precios_producto(tier, precio, vigente_hasta)")
+      .select("id, sku, marca, modelo, nombre, capacidad, segmento, categoria, ficha, foto_path, precios_producto(tier, precio, vigente_hasta)")
       .eq("activo", true)
       .order("marca"),
   ]);
