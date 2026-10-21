@@ -23,6 +23,7 @@ import { AperturaLlamadaBoton } from "@/components/crm/apertura-llamada-boton";
 import { VisitaPlantaBoton } from "@/components/crm/visita-planta-boton";
 import { AnotarGestionPanel } from "@/components/crm/anotar-gestion-panel";
 import { MasAcciones } from "@/components/crm/mas-acciones";
+import { DerivarAAreaBoton } from "@/components/crm/derivar-a-area-boton";
 import { FijaBajoCabecera } from "@/components/crm/fija-bajo-cabecera";
 import type { MotivoRechazo, ResultadoGestion } from "@/components/crm/registro-rapido";
 import { Plus } from "lucide-react";
@@ -298,6 +299,8 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
                   <ClipboardList className="size-3.5" /> Apertura de servicio
                 </Link>
               ))}
+            {/* Central abre un caso para Finanzas o Facturación (0573, Santos 21-10). */}
+            {comoCentral && <DerivarAAreaBoton cuentaId={cuenta.id} cliente={cuenta.razon_social} compacto />}
             <MasAcciones>
               {!comoGerencia && !comoCentral && <VisitaPlantaBoton cuentaId={cuenta.id} empresa={cuenta.razon_social} ruc={cuenta.num_doc as string | null} compacto />}
               {haceCasos && !comoGerencia && <AperturaLlamadaBoton cuentaId={cuenta.id} tipo="atencion_in_situ" etiqueta="Derivación de llamada" compacto />}

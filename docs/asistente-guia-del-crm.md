@@ -427,6 +427,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - atender órdenes de facturar;
   - ver cuentas por cobrar.
 - **No entra** a los informes técnicos de postventa: el correo de la orden de facturar los describe, pero no los enlaza.
+- **«Casos de Central»** (desde el 21-10): lo que Central le pide con un caso (confirmar abono, devolución, cargo bancario, letras…). Lo toma, responde o pide un dato por el mismo caso (ver 3.10).
 
 ### 2.7 Contabilidad / Facturación
 
@@ -440,6 +441,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **«Ver el expediente» en cada apertura** (desde el 15-10, lo pidió Facturación): en «Aperturas por confirmar», también en las de contado y las ya confirmadas, despliega el cliente con su RUC, el cierre, el pedido, el comercial, el equipo, la forma de pago y las cifras, con el botón para abrir el cierre completo y sus adjuntos. En las ventas a crédito sigue dentro de «Ver la validación del crédito».
 - **Varios anticipos** (desde el 14-10): un pedido ya facturado vuelve a «Por facturar», con el aviso «Nuevo anticipo por facturar», cuando Finanzas sube una liquidación nueva con «factura pendiente» después de la última factura. Registrada la factura nueva, Finanzas genera la liquidación siguiente, que ya trae el número (desde el 17-10).
 - **A crédito factura cuando postventa da la orden** (14-10): los días de crédito corren desde la factura, así que se espera a que el cliente confirme que el equipo llegó y está conforme.
+- **«Casos de Central»** (desde el 21-10): emitir o corregir una factura, nota de crédito, reenviarla al cliente o la guía. Responde con el documento adjunto (ver 3.10).
 
 ### 2.8 Importaciones
 
@@ -1032,6 +1034,15 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
     2. cuando ya está en el CRM, el comercial o el área que lo gestiona pide el file en «Files»;
     3. Central entrega el file con el registro del CRM, no por fuera del sistema.
 - **Visitas a planta:** «Viene a la planta» avisa a Central, almacén y logística, y genera la hoja para vigilancia. Desde el 14-10 a Central y al almacén les sale un **mensaje grande** al centro de la pantalla, con campanada, que se queda hasta pulsar «Entendido» (o «Imprimir para vigilancia» / «Ver las visitas»); si el CRM estaba cerrado, aparece al entrar. Desde el 15-10, al elegir el cliente salen **sus equipos con su serie** para solo marcar «Lo recoge» (va en el aviso, el correo y la hoja de vigilancia) o «Prepararlo para la visita» (pasa solo a «Preparación de máquinas» del almacén); el documento de quien viene, y de cada acompañante, se elige con un botón **DNI o C.E.** (carné de extranjería), y así sale en el aviso y en la hoja. Al registrar cómo terminó la visita está **«Recogió equipo»**: si se marcaron equipos con «Lo recoge», sale elegido y la gestión del cliente anota qué equipos se llevó (modelo y serie). Ya anunciada la visita, debajo de la fecha están «Cambiar fecha u hora» y **«Acompañantes»** (desde el 16-10): ahí se suman, corrigen o quitan acompañantes con nombre y DNI o C.E., mientras el cliente no haya llegado; lo hace quien la registró o Central. Central recibe el aviso, sale el correo de visitas y, si vigilancia ya tenía la hoja, se apaga «Vigilancia avisada» para volver a imprimirla. También existe «Registrar visita de proveedor».
+- **Casos a otras áreas (desde el 21-10, Santos).** Central abre un caso para **Finanzas** o **Facturación** con «Derivar a un área», en la ficha del cliente o en cada fila de «Sus pedidos». Elige el área, el motivo, escribe qué necesita, adjunta lo que haga falta (voucher, OC, captura) y elige el plazo:
+  1. **Hoy, sin apuro:** al área le llega a la campana con sonido.
+  2. **Urgente (2 horas):** la misma alerta de «Urgencia a Finanzas», que no se cierra sola, con aviso al celular. Si en 2 horas nadie lo toma, vuelve a sonar en el área y se enteran Central y gerencia.
+  3. **Para una fecha.**
+  - El caso lleva código propio (**CC-0001**) y estados: Nuevo → En manos del área → Respondido → Cerrado. Si al área le falta algo, pasa a «Esperando a Central» hasta que Central conteste.
+  - El área lo atiende en «Casos de Central» (menú de Finanzas y de Facturación): «Tomar el caso», «Responder a Central» (con archivos) o «Pedir un dato a Central». Cada área ve solo los suyos.
+  - Central lo sigue en «Casos a otras áreas»: puede contestar el dato, «Volver a avisar» (del tercer aviso en adelante gerencia se entera), decir «No quedó resuelto» (vuelve al área) o «Dar por cerrado». Un caso respondido que Central no cierra se cierra solo a los 2 días.
+  - **RR. HH.** aparece en el diálogo pero apagada: todavía no tiene cuenta en el CRM, así que no se le puede derivar.
+  - Cada paso queda con nombre y hora en el historial del caso.
 
 ### 3.11 Códigos de autorización (cómo funcionan, sin valores)
 
@@ -1284,6 +1295,9 @@ En el pedido, «Enviar guía y fotos al cliente»: abre el WhatsApp con el mensa
 
 **51. El cliente volvió a llamar por el mismo problema. ¿Abro otro caso?**
 No hace falta: si el caso sigue abierto, la llamada se suma a ese caso con su fecha. Busque el caso por su código (CASO-…). (1.13)
+
+**52. Necesito que Finanzas o Facturación hagan algo por un cliente. ¿Les escribo por WhatsApp?**
+No: Central abre un caso con «Derivar a un área», en la ficha del cliente o en «Sus pedidos». Si es para hoy mismo, márquelo urgente: le suena al área hasta que lo toque, y si en 2 horas nadie lo toma, se avisa también a gerencia. La respuesta vuelve al mismo caso, en «Casos a otras áreas». A RR. HH. todavía no se puede derivar porque no tiene cuenta en el CRM. (3.10)
 
 **47. ¿Cómo llamo a un cliente desde el CRM?**
 Toque el número en la ficha del cliente (o «Llamar» en el cotizador). En la app de Android la llamada sale con el plan de la empresa y queda anotada con su duración en la pestaña «Llamadas» de la ficha. Desde el navegador o el iPhone, el CRM abre el marcador y al volver le pregunta cómo le fue. Por ahora las llamadas no se graban. (3, llamadas)

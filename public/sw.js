@@ -176,7 +176,7 @@ self.addEventListener("push", (event) => {
       // cliente reclamó que lo dejaron esperando). Si el aviso desapareciera
       // solo, quien fue al baño vuelve y no se entera.
       // La urgencia a Finanzas (0298) es la misma sirena, con otro destino.
-      requireInteraction: datos.tipo === "urgencia" || datos.tipo === "urgencia_finanzas" || datos.tipo === "urgencia_almacen" || datos.tipo === "whatsapp_mensaje",
+      requireInteraction: datos.tipo === "urgencia" || datos.tipo === "urgencia_finanzas" || datos.tipo === "urgencia_almacen" || datos.tipo === "caso_central_urgente" || datos.tipo === "whatsapp_mensaje",
       // Agrupar por destino evita apilar diez avisos del mismo sitio, pero
       // `renotify` es OBLIGATORIO acá: sin él, el segundo aviso reemplazaría al
       // primero EN SILENCIO y un prospecto podría pasar desapercibido — que es

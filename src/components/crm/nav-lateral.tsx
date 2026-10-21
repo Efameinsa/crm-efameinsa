@@ -43,6 +43,7 @@ import {
   Sparkles,
   History,
   FolderX,
+  ArrowRightLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePendientesWhatsapp } from "@/lib/pendientes-whatsapp";
@@ -64,6 +65,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
     // El informe de cierre se le manda a Central para facturar, cobrar y
     // despachar: hasta ahora era la única que no tenía dónde verlo.
     { href: "/central/derivados", etiqueta: "Lo que derivé", icono: Send },
+    // Casos a Finanzas y Facturación, con respuesta (0573, Santos 21-10).
+    { href: "/central/casos", etiqueta: "Casos a otras áreas", icono: ArrowRightLeft },
     { href: "/central/cierres", etiqueta: "Cierres de venta", icono: PackageCheck },
     // Santos, 24-09: «Central debería tener una opción que diga: sus pedidos».
     // Lo que ya liberó, en qué paso va y a quién le toca.
@@ -162,6 +165,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
   // pagos). Tres destinos por la pregunta que responde cada uno: qué tengo
   // que confirmar hoy, quién nos debe y qué ya confirmé.
   finanzas: [
+    // Lo que Central le pide, con respuesta (0573, Santos 21-10).
+    { href: "/finanzas/casos", etiqueta: "Casos de Central", icono: ArrowRightLeft },
     { href: "/finanzas", etiqueta: "Por confirmar", icono: HandCoins },
     // El pedido que genera Central, esperando la liquidación en PDF (0290).
     { href: "/finanzas/liquidar", etiqueta: "Pedidos por liquidar", icono: ReceiptText },
@@ -172,6 +177,7 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
   ],
   // Facturación (reunión 25-09): revisa el expediente, factura y lo registra.
   facturacion: [
+    { href: "/facturacion/casos", etiqueta: "Casos de Central", icono: ArrowRightLeft },
     { href: "/facturacion", etiqueta: "Por facturar", icono: FileCheck2 },
     { href: "/facturacion/facturados", etiqueta: "Facturados", icono: ReceiptText },
     // Buzón, Jhon 12-10 (0439): la apertura la autoriza Contabilidad; Finanzas, si no está.
