@@ -1,6 +1,6 @@
 # Base de conocimiento del CRM Efameinsa
 
-Vigente al 20-10-2026 (noche). Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
+Vigente al 20-10-2026 (noche, después de la reunión de las 15:45). Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
 
 ## 0. Cómo usar este documento
 
@@ -827,6 +827,48 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 ### 3.8 Postventa
 
+**Cada gestión pertenece a un caso** (desde el 20-10, reunión de gerencia de la tarde)
+- Al anotar una gestión de un cliente que tiene casos abiertos (CASO-…), arriba aparece «¿De qué caso es esta gestión?» con cada caso, su equipo y su serie. Hay que marcar uno o varios, o «No es de ningún caso». Sin elegir, la gestión no se guarda. Vale para postventa y para el comercial.
+- Si el cliente tiene un solo caso abierto, viene marcado.
+- Central, al derivar a postventa un cliente con casos abiertos, elige de cuál es la llamada o marca «Es otro problema u otro equipo» y escribe cuál. Así no se abre otro caso del mismo problema.
+- En el historial del cliente cada caso tiene **su color** y su etiqueta (CASO-00129). Arriba hay un filtro por caso: «Todos», cada caso, o «Sin caso».
+- El cierre de un caso aparece en la línea de tiempo con su resultado y su motivo («CASO-00099 cerrado · no procede»).
+- Reclasificar un caso deja una línea en su historial («Reclasificado: era problema técnico, ahora es repuesto»). Un caso de repuesto muestra arriba que se atiende con cotización y pedido.
+- El botón «Cerrar este caso» está a la vista debajo del circuito. Los casos se cierran: así se termina el mes.
+
+**Fichas gemelas: el DNI dentro del RUC 10** (desde el 20-10)
+- El RUC de una persona natural es 10 + su DNI + un dígito. El CRM ya sabe que la ficha con DNI 44224120 y la del RUC 10442241207 son la misma persona.
+- El freno a casos duplicados mira también esas fichas y la misma máquina (serie) en cualquier ficha.
+- Central ve esa coincidencia como fuerte: «Su DNI está dentro del RUC 10 de esta ficha». Hay que elegir esa ficha.
+- «Fichas repetidas» muestra también los grupos por documento (el mismo RUC/DNI o el DNI dentro del RUC 10).
+- A postventa no se deriva un cliente sin RUC o DNI y sin ficha elegida: Central tiene que buscarlo por su documento, o escribir por qué se deriva sin él.
+
+**El técnico fue y no lo solucionó** (desde el 20-10)
+- En el paso «Atención» del caso está «No se solucionó en la visita». Se escribe qué se hizo y se elige: «Reprogramar otra visita» (el caso vuelve a Planificación) o «El equipo viene a planta» (abre la apertura de servicio interna del mismo caso).
+- Un caso puede tener otra apertura de servicio si la anterior ya salió («Otra apertura de servicio»).
+
+**La apertura interna es la recepción del equipo** (desde el 20-10)
+- Al emitir una apertura de servicio **interna**, el CRM crea sola la orden de recepción (REC-…) para el almacén, con los antecedentes del equipo y qué se ejecuta. El almacén la recibe, la revisa y deja su informe en esos pasos; no ve nada de cobro.
+- Ya no hay un botón aparte «El equipo viene a planta» en el caso: es la apertura interna.
+
+**Los repuestos no son máquinas del cliente** (desde el 20-10)
+- Las piezas de un kit o de un pedido de repuesto ya no aparecen como «equipos del cliente» en el caso ni en la apertura. Solo las máquinas.
+- En la torre apilable, la principal se llama «Lavadora · …» y la otra «Secadora · …», cada una con su serie. En el pedido, el almacén ve «TORRE apilable: … bajar el panel».
+
+**Regularizar pedidos antiguos** (desde el 20-10)
+- En Pedidos → Control → «Regularizar» están los pedidos de antes del CRM, o entregados hace más de un mes, que siguen sin cerrar. Primero los que siguen en garantía, de la entrega más reciente a la más antigua.
+- Cada fila dice lo primero que falta y a quién le toca. Postventa lo pide al área (Finanzas, almacén) y lo sigue hasta cerrar el pedido. Antes era «historia del Excel» y se ocultaba.
+
+**En la ficha del cliente** (desde el 20-10)
+- Postventa ve a la derecha «Aperturas de servicio»: cada una con su caso, si es externa o interna y en qué va.
+- Desde el caso hay un botón «Volver a la ficha de …».
+- Los contadores dicen «pedidos por entregar o cerrar» y «casos abiertos (CASO-…)».
+- Un pedido de tipo revisión se llama «Revisión del equipo».
+- El mensaje de la guía al cliente lleva su código de atención (CASO-…) para que lo mencione si vuelve a escribir.
+
+**Stock para el comercial** (desde el 20-10)
+- En el menú del comercial está «Stock»: el catálogo en solo lectura con el stock de cada equipo. «En almacén» es lo contado por serie; «(ref.)» es la cifra del último Excel de stock, que hay que confirmar con Lesly.
+
 **Tipo de caso primero** (desde el 13-10)
 - Al registrar, primero se elige el tipo, que pasa a ser el título de la apertura, y después se escribe el detalle.
 - **Tipos:** Puesta en marcha, Problema técnico, Soporte técnico, Repuesto, Mantenimiento, Revisión por garantía, Refuerzo de capacitación y Otro (con texto libre).
@@ -885,7 +927,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - Si cambia el encabezado de una apertura emitida, se avisa a Finanzas y al almacén.
 - **Correos:** los avisos salen según la empresa del pedido, a las áreas del Directorio. El botón «Enviar por correo» solo envía a direcciones internas.
 
-**Derivar llamada al almacén** (apertura de llamada)
+**Derivación de llamada al almacén** (antes el botón decía «Derivar llamada»)
 - Postventa pide una revisión o videollamada. El pie del formulario dice qué falta para poder enviar.
 - El almacén sube el informe (versión 1) con lo que le falta al cliente para cotizar, y postventa arma la versión para el cliente.
 - Una vez enviado, el formato no se edita: se anula y se rehace.
