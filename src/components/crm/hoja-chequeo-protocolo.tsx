@@ -85,6 +85,8 @@ export function HojaChequeoProtocolo({
     });
   const todoBien = (claves: string[]) =>
     cambiar((c) => ({ ...c, marcas: { ...c.marcas, ...Object.fromEntries(claves.filter((k) => !c.marcas[k]).map((k) => [k, "ok" as const])) } }));
+  const columnaNoAplica = (claves: string[]) =>
+    cambiar((c) => ({ ...c, marcas: { ...c.marcas, ...Object.fromEntries(claves.map((k) => [k, "na" as const])) } }));
   const restoNoAplica = (claves: string[]) =>
     cambiar((c) => ({ ...c, marcas: { ...c.marcas, ...Object.fromEntries(claves.filter((k) => !c.marcas[k]).map((k) => [k, "na" as const])) } }));
 
@@ -403,6 +405,18 @@ export function HojaChequeoProtocolo({
                         className="no-imprimir mt-0.5 block w-full rounded bg-emerald-700 px-1 py-0.5 text-[10px] font-semibold text-white"
                       >
                         Todo ✓
+                      </button>
+                    )}
+                    {/* LA ENERGÍA QUE EL EQUIPO NO TIENE (Diana, almacén 21-10, calderín
+                        eléctrico de VITALIAN: GAS y VAPOR iban con ✗ en todo porque no
+                        había N/A). Toda la columna pasa a N/A, aunque ya tuviera ✗. */}
+                    {editable && b.renglones.some((r) => ch.marcas[claveEnergia(b.clave, r, en)] !== "na") && (
+                      <button
+                        type="button"
+                        onClick={() => columnaNoAplica(b.renglones.map((r) => claveEnergia(b.clave, r, en)))}
+                        className="no-imprimir mt-0.5 block w-full rounded border border-neutral-500 bg-white px-1 py-0.5 text-[10px] font-semibold text-neutral-700"
+                      >
+                        Todo N/A
                       </button>
                     )}
                   </td>
