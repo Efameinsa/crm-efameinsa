@@ -63,6 +63,8 @@ export function AperturaServicioCaso({
   casos,
   tipoCaso: tipoFijo,
   tipoDetalle: detalleFijo,
+  abrirInterna = false,
+  etiqueta = "Apertura de servicio",
 }: {
   atencionId?: string;
   enGarantia?: boolean;
@@ -71,6 +73,9 @@ export function AperturaServicioCaso({
   casos?: CasoParaApertura[];
   tipoCaso?: string | null;
   tipoDetalle?: string | null;
+  /** Llega desde «El equipo viene a planta» (20-10): se abre sola y en «Interna». */
+  abrirInterna?: boolean;
+  etiqueta?: string;
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
@@ -96,7 +101,11 @@ export function AperturaServicioCaso({
   const esGarantia = formato === "entrega_garantia";
   // INTERNA O EXTERNA (0566; Santos 20-10): externa = el técnico va al local del cliente, el
   // circuito de siempre; interna = el equipo se atiende en nuestra planta, con sus antecedentes.
-  const [modalidad, setModalidad] = useState<ModalidadApertura>("externa");
+  const [modalidad, setModalidad] = useState<ModalidadApertura>(abrirInterna ? "interna" : "externa");
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- se abre una sola vez al llegar con ?apertura=interna
+    if (abrirInterna) setAbierto(true);
+  }, [abrirInterna]);
   const [ant, setAnt] = useState<AntecedentesInterna>(antecedentesInternaVacios());
   const interna = !esGarantia && modalidad === "interna";
   const [repuestos, setRepuestos] = useState<Repuesto[]>([]);
@@ -265,7 +274,7 @@ export function AperturaServicioCaso({
             title="El técnico va al local del cliente: apertura con su guía, como la de un pedido"
           >
             <ClipboardList className="size-3.5" />
-            Apertura de servicio
+            {etiqueta}
           </button>
         }
       />

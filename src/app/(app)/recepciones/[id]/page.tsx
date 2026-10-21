@@ -1,3 +1,4 @@
+import { AntecedentesInterna } from "@/components/crm/antecedentes-interna";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Circle } from "lucide-react";
 import Link from "@/components/enlace";
@@ -29,6 +30,14 @@ export default async function RecepcionPage({ params }: { params: Promise<{ id: 
     .eq("id", id)
     .maybeSingle();
   if (!r) notFound();
+  // La apertura interna de la que salió (0568): sus antecedentes y qué se ejecuta.
+  const { data: apertura } = r.servicio_id
+    ? await createAdminClient()
+        .from("servicios_postventa")
+        .select("id, numero_pedido_erp, apertura_modalidad, apertura_antecedentes")
+        .eq("id", r.servicio_id as string)
+        .maybeSingle()
+    : { data: null };
 
   const ids = [r.creada_por, r.recibido_por, r.revisado_por, r.listo_por].filter(Boolean) as string[];
   const admin = createAdminClient();
@@ -80,6 +89,18 @@ export default async function RecepcionPage({ params }: { params: Promise<{ id: 
         </p>
         {r.anulada_at && <p className="mt-2 text-sm font-semibold text-destructive">Anulada: {r.anulada_motivo as string}</p>}
       </div>
+
+      {apertura && (
+        <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-foreground">
+            Apertura de servicio interna · antecedentes del equipo
+          </p>
+          <AntecedentesInterna modalidad={apertura.apertura_modalidad as string | null} antecedentes={apertura.apertura_antecedentes} />
+          <Link href={`/almacen/pedidos/${apertura.id}`} className="mt-2 inline-block text-xs font-medium text-primary hover:underline">
+            Ver la hoja de la apertura
+          </Link>
+        </div>
+      )}
 
       <ol className="space-y-2 rounded-xl border border-border bg-card p-4 shadow-sm">
         {pasos.map((p) => (
