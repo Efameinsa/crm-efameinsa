@@ -14,9 +14,9 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2, PackageX, ScanBarcode, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { abrirOtroCircuito, agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarProcedencia, marcarSinStock, quitarLineaQueNoCorresponde, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
+import { abrirOtroCircuito, agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarProcedencia, marcarSinStock, quitarLineaQueNoCorresponde, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
 import { probarEquipoDelPedido, probarKitDelPedido, tecnicoYFechaDeLaPrueba } from "@/lib/acciones/almacen";
-import { agregarLineaAlPedido, corregirSerie, editarLineaDelPedido, quitarLineaDelPedido, traerLineasDelCierre } from "@/lib/acciones/pedido-central";
+import { agregarLineaAlPedido, corregirSerie, editarLineaDelPedido, quitarLineaDelPedido, quitarSerieDeParte, traerLineasDelCierre } from "@/lib/acciones/pedido-central";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
 import type { FotoAlmacen } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
@@ -507,6 +507,9 @@ function Fila({
   const [serieNueva, setSerieNueva] = useState("");
   const [motivoSerie, setMotivoSerie] = useState("");
   const [pinSerie, setPinSerie] = useState("");
+  // Cuál serie se corrige: la de la unidad o la de la secadora de la torre (0579;
+  // Lesly 21-10: la de la secadora se quitaba sin código y sin aviso).
+  const [corregirCual, setCorregirCual] = useState(e.id);
   // Aviso de largo (Lesly, 30-09): la serie de una Unimac entró con un dígito menos.
   // Sale una vez por valor; con el mismo valor, el segundo clic registra igual.
   const [avisoSerie, setAvisoSerie] = useState<{ para: string; texto: string } | null>(null);
@@ -565,6 +568,14 @@ function Fila({
   }
 
   const confirmando = (valor: string) => avisoSerie?.para === valor.trim().toUpperCase();
+
+  function cerrarCorreccion() {
+    setCorrigiendo(false);
+    setCorregirCual(e.id);
+    setSerieNueva("");
+    setMotivoSerie("");
+    setPinSerie("");
+  }
 
   function conRevision(valor: string, hacer: () => void) {
     if (confirmando(valor)) {
@@ -824,14 +835,14 @@ function Fila({
                 <button
                   type="button"
                   disabled={pendiente}
-                  className="text-muted-foreground hover:text-destructive hover:underline"
+                  className="text-muted-foreground hover:underline"
                   onClick={() => {
-                    if (confirm(`¿Quitar la serie ${p.serie} (${p.parte_nombre ?? "otra máquina"}) de esta unidad?`)) {
-                      correr(() => quitarParteDelEquipo(p.id, servicioId), "Serie quitada");
-                    }
+                    setCorregirCual(p.id);
+                    setSerieNueva("");
+                    setCorrigiendo(true);
                   }}
                 >
-                  Quitar
+                  ¿Equivocada? Corregir o quitar con código
                 </button>
               )}
               {puedeSubirFotos && <BotonAgregarFotos archivos={deParte(p.id).fotos} onChange={(f) => cambiarParte(p.id, { fotos: f })} />}
@@ -926,7 +937,30 @@ function Fila({
         <div className="mt-1.5">
           {corrigiendo ? (
             <div className="space-y-1.5 rounded-md border border-amber-500/40 bg-amber-500/5 p-2">
-              <p className="text-[11px] text-amber-900">La serie queda fija. Para cambiarla hace falta el código de operaciones o gerencia, y queda escrito por qué.</p>
+              <p className="text-[11px] text-amber-900">
+                La serie queda fija. Para cambiarla{partes.length > 0 ? " o quitarla" : ""} hace falta el código de operaciones o gerencia; queda escrito
+                por qué y se avisa a Central, postventa y almacén.
+              </p>
+              {partes.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                  <span className="text-muted-foreground">¿Cuál?</span>
+                  {[{ id: e.id, nombre: torre ? "Lavadora" : "Esta máquina", serie: e.serie }, ...partes.map((p) => ({ id: p.id, nombre: p.parte_nombre ?? "Otra máquina", serie: p.serie }))].map((x) => (
+                    <button
+                      key={x.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={corregirCual === x.id}
+                      onClick={() => setCorregirCual(x.id)}
+                      className={cn(
+                        "rounded-full border px-2 py-0.5 font-medium",
+                        corregirCual === x.id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:bg-accent",
+                      )}
+                    >
+                      {x.nombre} · <span className="font-mono">{x.serie}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="grid gap-1.5 sm:grid-cols-2">
                 <Input value={serieNueva} onChange={(x) => setSerieNueva(x.target.value)} placeholder="Serie correcta" className="h-8 font-mono text-sm uppercase" />
                 <Input value={motivoSerie} onChange={(x) => setMotivoSerie(x.target.value)} placeholder="Por qué (ej.: se leyó mal la placa)" className="h-8 text-sm" />
@@ -937,7 +971,7 @@ function Fila({
                 <p className="text-[11px] leading-snug text-muted-foreground">
                   Falta:{" "}
                   {[
-                    !serieNueva.trim() && "la serie correcta",
+                    !serieNueva.trim() && (partes.some((p) => p.id === corregirCual) ? "la serie correcta (o «Quitar esta serie»)" : "la serie correcta"),
                     motivoSerie.trim().length < 5 && "el motivo (al menos una frase corta)",
                     pinSerie.replace(/\D/g, "").length < 4 && "el código de 4 dígitos",
                   ]
@@ -951,17 +985,50 @@ function Fila({
                   size="sm"
                   className="h-8"
                   disabled={pendiente || !serieNueva.trim() || motivoSerie.trim().length < 5 || pinSerie.replace(/\D/g, "").length < 4}
-                  onClick={() => conRevision(serieNueva, () => correr(() => corregirSerie(e.id, servicioId, serieNueva, pinSerie, motivoSerie), "Serie corregida; quedó escrito en el pedido"))}
+                  onClick={() =>
+                    conRevision(serieNueva, () =>
+                      correr(async () => {
+                        const r = await corregirSerie(corregirCual, servicioId, serieNueva, pinSerie, motivoSerie);
+                        if (!r.error) cerrarCorreccion();
+                        return r;
+                      }, "Serie corregida; quedó escrito en el pedido y se avisó"),
+                    )
+                  }
                 >
                   {confirmando(serieNueva) ? "Sí, corregir así" : "Corregir"}
                 </Button>
-                <Button size="sm" variant="ghost" className="h-8" onClick={() => setCorrigiendo(false)}>
+                {corregirCual !== e.id && partes.some((p) => p.id === corregirCual) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 border-destructive/40 text-destructive hover:bg-destructive/5"
+                    disabled={pendiente || motivoSerie.trim().length < 5 || pinSerie.replace(/\D/g, "").length < 4}
+                    title="Quita esta serie de la unidad; después puede registrar la correcta"
+                    onClick={() =>
+                      correr(async () => {
+                        const r = await quitarSerieDeParte(corregirCual, servicioId, pinSerie, motivoSerie);
+                        if (!r.error) cerrarCorreccion();
+                        return r;
+                      }, "Serie quitada; quedó escrito en el pedido y se avisó")
+                    }
+                  >
+                    Quitar esta serie
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" className="h-8" onClick={cerrarCorreccion}>
                   Cancelar
                 </Button>
               </div>
             </div>
           ) : (
-            <button type="button" className="text-[11px] text-muted-foreground hover:underline" onClick={() => setCorrigiendo(true)}>
+            <button
+              type="button"
+              className="text-[11px] text-muted-foreground hover:underline"
+              onClick={() => {
+                setCorregirCual(e.id);
+                setCorrigiendo(true);
+              }}
+            >
               ¿Serie equivocada? Corregir con código
             </button>
           )}
