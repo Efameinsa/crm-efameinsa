@@ -1,6 +1,6 @@
 # Base de conocimiento del CRM Efameinsa
 
-Vigente al 20-10-2026 (noche, después de la reunión de las 15:45). Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
+Vigente al 21-10-2026. Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
 
 ## 0. Cómo usar este documento
 
@@ -371,6 +371,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - la OC, el voucher y los PDF del expediente, **con los montos tapados** (decisión del 23-09; PDF tapados desde el 28-09);
   - el **estado** del pago («Pagado completo», «Pago parcial», «Pago sin registrar»), pero no la cifra.
 - **Corrige nombre, RUC y rubro de clientes sin dueño** (desde el 14-10, caso Hospital Chanka): botón «Corregir nombre o RUC» junto al nombre del cliente. Como postventa no tiene cartera, sus clientes suelen quedar sin dueño. Si el cliente es de un comercial, lo corrige el comercial.
+- **Excepción: Brenda (PV2 y C1) corrige los datos de cualquier cliente** (Santos, 20-10): busca en todos los clientes y corrige nombre, RUC o DNI, rubro, dirección de la empresa y contactos, aunque sea de otra cartera; el dueño recibe aviso. No le da ver cotizaciones, cierres ni precios de otras carteras desde postventa (eso lo ve desde su cuenta comercial) ni mover clientes de cartera.
 - **No ve:** precios de venta ni cifras de ventas de los comerciales. Esto incluye las cotizaciones antiguas: ve las descripciones, no los precios.
 - **Puede:**
   - cotizar servicios y repuestos, y corregir las cotizaciones del área aunque las haya hecho otra compañera;
@@ -512,7 +513,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **En la app de Android** la llamada sale con el plan corporativo del celular y, al terminar, el CRM anota la hora y la duración real. **Desde el navegador, la PWA o el iPhone** el botón abre el marcador y, al volver al CRM, pregunta «¿Cómo le fue?» (contestó, cuántos minutos, o no contestó).
 - **La grabación del audio está en pausa por decisión de Santos (20-10):** hoy ninguna llamada se graba ni se transcribe. La pantalla de gerencia (Reportes → «Llamadas grabadas») y la pestaña «Llamadas» muestran quién llamó a quién, cuándo y cuánto habló. Si se reactiva, se avisará y se pedirá aceptar el aviso de grabación (Ley 29733).
 - **Quién ve qué:** cada comercial ve sus llamadas; gerencia y administración ven todas, por día, comercial o cliente, con «Exportar a Excel».
-- **Modo setter:** la cuenta marcada como setter (hoy, la de administración de Santos) puede encender en la app «Modo setter». Cada lead nuevo que llegue de un formulario de Meta (por el Google Sheets) y traiga teléfono genera un aviso en el celular con el nombre y el número, y la app **lo llama sola a los pocos segundos** (si tiene el permiso «Mostrar sobre otras apps»; si no, basta un toque en el aviso). En el aviso se puede **Cancelar** antes de que marque. Un lead que lleva más de 30 minutos en espera ya no se llama. El lead sigue su camino normal en el CRM (se asigna al comercial o a Central).
+- **Modo setter:** la cuenta marcada como setter (hoy, la de administración de Santos) puede encender en la app «Modo setter». Cada lead nuevo que llegue de un formulario de Meta (por el Google Sheets) y traiga teléfono genera un aviso en el celular con el nombre y el número, y la app **lo llama sola a los pocos segundos** (si tiene el permiso «Mostrar sobre otras apps»; si no, basta un toque en el aviso). En el aviso se puede **Cancelar** antes de que marque. Un lead que lleva más de 30 minutos en espera ya no se llama. **Al colgar, el setter tipifica con un toque** (Muy interesado, Interesado, Poco interesado, Busca financiamiento, sin dinero, número equivocado, busca doméstica, no le interesa, no contestó, llamar después). Mientras el celular del setter está en línea, el lead espera su tipificación y recién entonces se reparte al comercial con la intención marcada; los descartes se cierran con su motivo; «no contestó» se reintenta dentro del horario y al tercer intento pasa al comercial. Si el setter no tipifica en 45 minutos, o tiene el celular apagado, el lead se reparte como siempre. Gerencia ve el informe en Reportes → Llamadas grabadas → «Setter».
 
 **Cartera liberable**
 - Un cliente **sin venta en 3 meses** es liberable, y la cartera se redistribuye cada 3 meses (gerencia, 23-09). Antes eran 6 meses.
