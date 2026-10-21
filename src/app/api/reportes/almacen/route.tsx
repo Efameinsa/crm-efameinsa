@@ -127,7 +127,8 @@ export async function GET(request: Request) {
     // Sin registro, pero con reporte.
   }
 
-  const nombre = `Reporte almacén ${fecha}.pdf`;
+  // Sin «.pdf»: cabeceraArchivo ya pone la extensión (salía «…pdf.pdf»).
+  const nombre = `Reporte almacén ${fecha}`;
   return new NextResponse(buffer as unknown as BodyInit, {
     headers: { "Content-Type": "application/pdf", "Content-Disposition": cabeceraArchivo(nombre), "Cache-Control": "no-store" },
   });
