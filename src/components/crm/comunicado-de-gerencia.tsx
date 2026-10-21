@@ -190,8 +190,10 @@ export function ComunicadoDeGerencia({ comunicado }: { comunicado: ComunicadoPen
             // GRANDE (Santos 21-10: «más grande, casi la mitad o 3/4 de la
             // pantalla»): el alto manda —80 % de la pantalla— y el ancho sale
             // del 4:5 del afiche. En el celular manda el ancho: casi toda la
-            // pantalla, con 16 px de aire a cada lado.
-            style={{ aspectRatio: "4 / 5", height: "min(80dvh, calc((100vw - 2rem) * 1.25))" }}
+            // pantalla, con 16 px de aire a cada lado. Se fija el ANCHO (no el
+            // alto): la ventana se ajusta a él; con el alto, en el celular se
+            // encogía a la mitad.
+            style={{ aspectRatio: "4 / 5", width: "min(64dvh, calc(100vw - 2rem))" }}
             aria-label={`${l.titulo}. Toque para ver la siguiente lámina.`}
           >
             {l.imagen ? (
