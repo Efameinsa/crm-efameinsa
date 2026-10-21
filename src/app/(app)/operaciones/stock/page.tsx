@@ -70,7 +70,10 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
     const codigos: CodigoCatalogo[] = productos
       .filter((p) => !/^(SER|IM|EJ-)/.test(p.sku))
       .map((p) => {
-        const r = rasgos([p.modelo, p.nombre, p.descripcion, p.panel, p.calentamiento].join(" "));
+        // Manda la descripción oficial; la ficha solo rellena (igual que al comparar).
+        const r = rasgos([p.modelo, p.nombre, p.descripcion].join(" "));
+        const deFicha = rasgos([p.panel, p.calentamiento].join(" "));
+        for (const k of Object.keys(deFicha) as (keyof typeof deFicha)[]) r[k] ??= deFicha[k];
         return {
           sku: p.sku,
           nombre: p.nombre,

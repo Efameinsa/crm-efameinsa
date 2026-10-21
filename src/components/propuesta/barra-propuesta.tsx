@@ -53,9 +53,23 @@ export const ICONOS: Record<Icono, LucideIcon> = {
    color vive en la pastilla de la sección activa (propuesta.css, .barra-carbon). */
 
 export function activa(opcion: OpcionMenu, ruta: string): boolean {
-  if (opcion.href === "/nuevo") return ruta === "/nuevo";
+  return largoCoincidencia(opcion, ruta) >= 0;
+}
+
+/** Cuánto del camino calza con la opción (-1 si no calza). */
+function largoCoincidencia(opcion: OpcionMenu, ruta: string): number {
+  if (opcion.href === "/nuevo") return ruta === "/nuevo" ? 6 : -1;
   const base = opcion.href.split("?")[0];
-  return [base, ...opcion.coincide].some((c) => ruta === c || ruta.startsWith(c + "/"));
+  return Math.max(-1, ...[base, ...opcion.coincide].filter((c) => ruta === c || ruta.startsWith(c + "/")).map((c) => c.length));
+}
+
+/**
+ * La opción activa es la que calza MÁS: en /operaciones/stock se marca «Stock
+ * y códigos», no también «Autorizaciones» (/operaciones), que calza solo por prefijo.
+ */
+export function activaEntre(opcion: OpcionMenu, opciones: OpcionMenu[], ruta: string): boolean {
+  const propio = largoCoincidencia(opcion, ruta);
+  return propio >= 0 && opciones.every((o) => o === opcion || largoCoincidencia(o, ruta) <= propio);
 }
 
 /**
@@ -120,7 +134,7 @@ export function BarraPropuesta({
       <nav className="flex flex-col gap-0.5 overflow-y-auto px-3 pt-2" aria-label="Menú">
         {opciones.map((o) => {
           const Icono = ICONOS[o.icono];
-          const es = activa(o, ruta);
+          const es = activaEntre(o, opciones, ruta);
           return (
             <Link
               key={o.href + o.etiqueta}
