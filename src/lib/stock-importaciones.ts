@@ -443,8 +443,8 @@ export function emparejar(
         codigo = f.codigoExcel;
         ocupados.add(codigo);
         motivo = evaluados[0]
-          ? `El código ${f.codigoExcel} es nuevo: se crea con estas máquinas (el más parecido, ${evaluados[0].c.p.sku}, difiere en ${evaluados[0].choques.join("; ") || "el modelo"})`
-          : `El código ${f.codigoExcel} es nuevo: se crea con estas máquinas`;
+          ? `Lesly ya le puso ${f.codigoExcel} en su Excel. Ese código todavía no está en el catálogo: al subir se agrega (el más parecido, ${evaluados[0].c.p.sku}, difiere en ${evaluados[0].choques.join("; ") || "el modelo"})`
+          : `Lesly ya le puso ${f.codigoExcel} en su Excel. Ese código todavía no está en el catálogo: al subir se agrega`;
       } else if (!propio) {
         estado = "revisar";
         codigo = null;

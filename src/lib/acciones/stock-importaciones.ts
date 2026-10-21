@@ -197,7 +197,12 @@ export async function analizarExcelStock(formData: FormData): Promise<{ error: s
     // Lo que el CRM confirma o encontró sin dudas queda marcado para subir; una
     // serie que ya está con un cliente viene como «no subir» (Lesly 21-10: «ese
     // tengo que sacarlo, pasarlo a vendido»); lo demás, que lo decida Lesly.
-    decision: p.ocupada ? "no_subir" : p.estado === "ok" || p.estado === "sugerido" ? "subir" : "pendiente",
+    // Un código nuevo que Lesly ya escribió en su Excel es decisión suya: viene marcado para subir.
+    decision: p.ocupada
+      ? "no_subir"
+      : p.estado === "ok" || p.estado === "sugerido" || (p.estado === "nuevo" && !!p.codigoExcel && p.codigo === p.codigoExcel)
+        ? "subir"
+        : "pendiente",
     codigoFinal: p.codigo,
   }));
 

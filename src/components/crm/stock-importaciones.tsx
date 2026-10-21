@@ -163,7 +163,7 @@ function ChipsRasgos({ tipo, rasgos, destacar }: { tipo?: string; rasgos: Rasgos
 export type CodigosExistentes = Record<string, { activo: boolean }>;
 
 /** La señal tenue: código que ya existe (sobrio) o que se va a crear (punteado ámbar). */
-function SenalCodigo({ codigo, existentes }: { codigo: string; existentes: CodigosExistentes }) {
+function SenalCodigo({ codigo, existentes, deLesly }: { codigo: string; existentes: CodigosExistentes; deLesly?: boolean }) {
   if (!codigo) return <span className="text-[11px] text-muted-foreground">Elija uno de los parecidos o escriba el código</span>;
   const e = existentes[codigo];
   if (e)
@@ -174,7 +174,8 @@ function SenalCodigo({ codigo, existentes }: { codigo: string; existentes: Codig
     );
   return (
     <span className="inline-flex items-center gap-1 text-[11px] text-orange-700 dark:text-orange-300">
-      <Sparkles className="size-3" /> Código nuevo · se crea en preparación al subir
+      <Sparkles className="size-3" />{" "}
+      {deLesly ? "Lo puso Lesly en su Excel · aún no está en el catálogo, se agrega al subir" : "Código nuevo · se agrega al catálogo al subir"}
     </span>
   );
 }
@@ -479,7 +480,11 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <span className={cn("rounded px-1.5 py-0.5 text-[11px] font-medium", estilo.pastilla)}>
-              {grupo.estado === "revisar" ? `Revisar · ${problemaCorto(f0.motivo)}` : estilo.etiqueta}
+              {grupo.estado === "revisar"
+                ? `Revisar · ${problemaCorto(f0.motivo)}`
+                : grupo.estado === "nuevo" && f0.codigoExcel && f0.codigo === f0.codigoExcel
+                  ? "Código nuevo (lo puso Lesly)"
+                  : estilo.etiqueta}
             </span>
             <span className="text-sm font-semibold">
               {cantidad} {cantidad === 1 ? "máquina" : "máquinas"} · {f0.modelo}
@@ -575,7 +580,7 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
               <option key={c.sku} value={c.sku} />
             ))}
           </datalist>
-          <SenalCodigo codigo={codigo} existentes={existentes} />
+          <SenalCodigo codigo={codigo} existentes={existentes} deLesly={!!f0.codigoExcel && codigo === f0.codigoExcel} />
           <div className="mt-1 flex gap-2">
             <Button
               size="sm"
