@@ -1,6 +1,7 @@
 import Link from "@/components/enlace";
 import { Paperclip } from "lucide-react";
-import { ESTADO_CASO, ETIQUETA_AREA, TEXTO_PASO, listarCasosCentral, ordenCaso, type AreaCaso, type CasoCentral } from "@/lib/casos-central";
+import { ESTADO_CASO, ETIQUETA_AREA, TEXTO_PASO, ordenCaso, type AreaCaso, type CasoCentral } from "@/lib/casos-central";
+import { listarCasosCentral } from "@/lib/casos-central-lista";
 import { CasoCentralAcciones } from "@/components/crm/caso-central-acciones";
 import { fechaHoraLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
