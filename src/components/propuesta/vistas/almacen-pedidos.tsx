@@ -215,6 +215,12 @@ async function clasificar(supabase: Cliente): Promise<Record<Clave, DatosFila[]>
   return out;
 }
 
+/** Cuántos hay en cada grupo del «Por hacer» (para «El macro» del almacén y operaciones, Lesly 20-10). */
+export async function conteosPorGrupo(supabase: Cliente): Promise<Record<Clave, number>> {
+  const g = await clasificar(supabase);
+  return Object.fromEntries(Object.entries(g).map(([k, v]) => [k, v.length])) as Record<Clave, number>;
+}
+
 /** El número de la pestaña: lo que el almacén puede mover (despachar con apertura, llamadas sin informe, probar, guía). */
 export async function conteo(supabase: Cliente): Promise<number> {
   const g = await clasificar(supabase);
