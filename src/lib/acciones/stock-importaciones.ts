@@ -60,12 +60,12 @@ export async function productosParaComparar(): Promise<ProductoCatalogo[]> {
   const { data } = await supabase
     .from("productos")
     .select(
-      "id, sku, activo, marca, modelo, nombre, dm:ficha->>descripcion_maestro, od:ficha->>origen_descripcion, panel:ficha->>panel, calentamiento:ficha->>calentamiento, nombreFicha:ficha->>nombre_ficha",
+      "id, sku, activo, marca, modelo, nombre, dm:ficha->>descripcion_maestro, od:ficha->>origen_descripcion, panel:ficha->>panel, calentamiento:ficha->>calentamiento, nombreFicha:ficha->>nombre_ficha, faltaFicha:ficha->>falta_ficha",
     )
     .not("sku", "is", null);
   type Fila = {
     id: string; sku: string; activo: boolean; marca: string | null; modelo: string | null; nombre: string;
-    dm: string | null; od: string | null; panel: string | null; calentamiento: string | null; nombreFicha: string | null;
+    dm: string | null; od: string | null; panel: string | null; calentamiento: string | null; nombreFicha: string | null; faltaFicha: string | null;
   };
   return ((data ?? []) as unknown as Fila[]).map((p) => ({
     id: p.id,
@@ -78,6 +78,7 @@ export async function productosParaComparar(): Promise<ProductoCatalogo[]> {
     panel: p.panel,
     calentamiento: p.calentamiento,
     nombreFicha: p.nombreFicha,
+    enPreparacion: p.faltaFicha === "true" && !p.activo,
   }));
 }
 

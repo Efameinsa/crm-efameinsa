@@ -56,6 +56,8 @@ export interface ProductoCatalogo {
   panel: string | null;
   calentamiento: string | null;
   nombreFicha: string | null;
+  /** Creado desde una subida de stock y todavía sin ficha ni activar (0576). */
+  enPreparacion?: boolean;
 }
 
 export interface SerieOcupada {
@@ -396,7 +398,7 @@ export function emparejar(
       }
     } else if (unico) {
       estado = "sugerido";
-      motivo = "Ya hay un código en el CRM con esta misma configuración";
+      motivo = "Ese código ya existe en el catálogo con la misma configuración: solo faltaba ponerlo";
       codigo = unico;
     } else if (empatados.length > 1) {
       estado = "elegir";

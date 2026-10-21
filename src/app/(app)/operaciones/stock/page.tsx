@@ -4,7 +4,14 @@ import { Boxes } from "lucide-react";
 import { requerirPerfil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
-import { ListaCodigos, ResumenSubida, RevisarStock, SubirExcelStock, type CodigoCatalogo } from "@/components/crm/stock-importaciones";
+import {
+  ListaCodigos,
+  ResumenSubida,
+  RevisarStock,
+  SubirExcelStock,
+  type CodigoCatalogo,
+  type CodigosExistentes,
+} from "@/components/crm/stock-importaciones";
 import { productosParaComparar, type CargaStock } from "@/lib/acciones/stock-importaciones";
 import { rasgos } from "@/lib/stock-importaciones";
 import { cn } from "@/lib/utils";
@@ -49,10 +56,13 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
         }
       : null;
     const revisando = carga?.estado === "revisando";
+    // Para la señal tenue de cada casilla: ¿ese código ya existe o se va a crear?
+    const existentes: CodigosExistentes = {};
+    if (revisando) for (const p of await productosParaComparar()) existentes[p.sku] = { activo: p.activo };
     contenido = (
       <div className="space-y-4">
         <SubirExcelStock hayCarga={revisando} />
-        {revisando && carga && <RevisarStock carga={carga} />}
+        {revisando && carga && <RevisarStock carga={carga} existentes={existentes} />}
         {carga?.estado === "subida" && carga.resultado && (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">
@@ -79,6 +89,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
           nombre: p.nombre,
           modelo: p.modelo ?? "",
           activo: p.activo,
+          enPreparacion: !!p.enPreparacion,
           rasgos: [r.control, r.calentamiento, r.cilindro, r.voltaje, r.sistemaLg, r.apilable && `apilable: ${r.apilable}`].filter(Boolean).join(" · "),
           enAlmacen: enAlmacen.get(p.id) ?? 0,
         };
