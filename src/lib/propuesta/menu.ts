@@ -120,6 +120,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Clientes", href: "/nuevo/clientes", icono: "clientes", coincide: ["/nuevo/clientes", "/comercial/cartera", "/comercial/parque", "/comercial/ruta"] },
     { etiqueta: "Agenda", href: "/nuevo/agenda", icono: "agenda", coincide: ["/nuevo/agenda", "/comercial/agenda", "/comercial/visitas"] },
     { etiqueta: "Mis números", href: "/comercial/mi-gestion", icono: "numeros", coincide: ["/comercial/mi-gestion"] },
+    // La ventana de stock (gerencia 20-10: «el comercial necesita el stock»).
+    { etiqueta: "Stock", href: "/comercial/stock", icono: "catalogo", coincide: ["/comercial/stock"] },
       // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
     { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
     // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
