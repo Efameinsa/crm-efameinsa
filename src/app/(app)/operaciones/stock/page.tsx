@@ -5,6 +5,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import {
+  BotonResumenPdf,
   ListaCodigos,
   ResumenSubida,
   RevisarStock,
@@ -70,6 +71,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
               {new Date(carga.subidaAt ?? carga.createdAt).toLocaleString("es-PE", { timeZone: "America/Lima", dateStyle: "short", timeStyle: "short" })}
             </p>
             <ResumenSubida resultado={carga.resultado} />
+            <BotonResumenPdf cargaId={carga.id} />
           </div>
         )}
       </div>

@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ChevronDown,
   CircleSlash,
+  FileDown,
   FileSpreadsheet,
   ListChecks,
   Search,
@@ -29,6 +30,7 @@ import {
   type SugerenciaCodigo,
 } from "@/lib/acciones/stock-importaciones";
 import type { EstadoFila, Rasgos } from "@/lib/stock-importaciones";
+import { problemaCorto } from "@/lib/stock-textos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -109,21 +111,6 @@ function agrupar(filas: FilaCarga[]): Grupo[] {
   return [...mapa.values()].sort((a, b) => ORDEN.indexOf(a.estado) - ORDEN.indexOf(b.estado) || a.filas[0].fila - b.filas[0].fila);
 }
 
-/** «Revisar» dice CUÁL es el problema (Santos 21-10: «pones revisar pero no dices qué problema es»). */
-function problemaCorto(motivo: string): string {
-  if (/ya está en el CRM con/.test(motivo)) return "Serie ya vendida o reservada";
-  if (/tipo de equipo: Excel lavadora/.test(motivo)) return "Es lavadora con código de secadora";
-  if (/tipo de equipo: Excel secadora/.test(motivo)) return "Es secadora con código de lavadora";
-  if (/MODELO dice/.test(motivo)) return "Modelo y descripción no coinciden";
-  const mal = motivo.match(/SÍ está, con el código (\S+?):/);
-  if (mal) return `Código mal escrito (la máquina está como ${mal[1]})`;
-  if (/no existe en el (CRM|catálogo)/.test(motivo)) return "Ese código no existe";
-  if (/calentamiento:/.test(motivo)) return "El tipo de gas no coincide";
-  if (/voltaje:/.test(motivo)) return "El voltaje no coincide";
-  if (/control:/.test(motivo)) return "El control no coincide";
-  if (/retirado/.test(motivo)) return "Código retirado";
-  return "Revisar";
-}
 
 /**
  * La configuración como chips: tipo, panel, calentamiento, cilindro, voltaje.
@@ -302,7 +289,8 @@ export function RevisarStock({ carga, existentes }: { carga: CargaStock; existen
             <span className="font-medium">{carga.archivo}</span>
             <span className="text-muted-foreground"> · {total} máquinas</span>
           </p>
-          <p className="text-sm text-muted-foreground">
+          <BotonResumenPdf cargaId={carga.id} />
+          <p className="w-full text-sm text-muted-foreground sm:w-auto">
             {cuenta.pendiente === 0 ? "Todo decidido" : `${decididas} de ${total} decididas`}
           </p>
         </div>
@@ -604,6 +592,22 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * «Resumen general de stock» en PDF (Santos 21-10, con la hoja impresa de
+ * Sailstar como modelo): lo que Lesly ve en esta pantalla, para imprimir,
+ * marcar a mano o mandar.
+ */
+export function BotonResumenPdf({ cargaId }: { cargaId: string }) {
+  return (
+    <a
+      href={`/api/operaciones/stock/resumen?carga=${cargaId}`}
+      className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-medium hover:bg-muted"
+    >
+      <FileDown className="size-4" /> Descargar resumen (PDF)
+    </a>
   );
 }
 

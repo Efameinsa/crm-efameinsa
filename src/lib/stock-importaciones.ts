@@ -75,8 +75,8 @@ export function tipoEquipo(texto: unknown): string {
   if (/LAVADORA|\bLAV\b|LAV\.|LAVAD\./.test(t)) return "lavadora";
   if (/SECADORA|\bSEC\b/.test(t)) return "secadora";
   if (/RODILLO|CALANDRIA/.test(t)) return "rodillo";
-  if (/MESA/.test(t)) return "mesa de planchado";
   if (/PRENSA/.test(t)) return "prensa";
+  if (/MESA/.test(t)) return "mesa de planchado";
   if (/CALDERIN/.test(t)) return "calderín";
   if (/COCHE|CARRO/.test(t)) return "coche";
   return "equipo";
