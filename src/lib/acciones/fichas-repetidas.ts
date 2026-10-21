@@ -13,3 +13,4 @@ export async function noSonElMismo(clave: string): Promise<{ error: string | nul
   revalidatePath("/fichas-repetidas");
   return { error: null };
 }
+

@@ -3,6 +3,9 @@ import { requerirRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { cargarSupervisores } from "@/lib/supervisores";
 import { ListaFichasRepetidas, type FichaRepetida } from "@/components/crm/lista-fichas-repetidas";
+import { ListaFichasParecidas, type ParParecido } from "@/components/crm/lista-fichas-parecidas";
+import Link from "@/components/enlace";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -13,9 +16,17 @@ export const dynamic = "force-dynamic";
  * la otra, y el expediente que se abre después no encuentra nada. Aquí se ven
  * los grupos y se unen. Central, operaciones y gerencia.
  */
-export default async function FichasRepetidasPage() {
+export default async function FichasRepetidasPage({ searchParams }: { searchParams: Promise<{ ver?: string; min?: string }> }) {
   await requerirRol(["admin", "gerencia", "operaciones", "central"]);
+  const sp = await searchParams;
+  // «Parecidas»: el mismo cliente registrado distinto, para revisarlo a mano (0571, Santos 21-10).
+  const verParecidas = sp.ver === "parecidas";
+  const min = [80, 60, 45].includes(Number(sp.min)) ? Number(sp.min) : 60;
   const supabase = await createClient();
+  const parecidas = verParecidas
+    ? await supabase.rpc("fichas_parecidas_para_revisar", { p_min: min, p_limite: 600 })
+    : null;
+  const pares = ((parecidas?.data ?? []) as (ParParecido & { calculado_at: string })[]);
   const [{ data, error }, supervisores] = await Promise.all([supabase.rpc("fichas_repetidas", { p_solo_comercial: null }), cargarSupervisores(supabase)]);
   const grupos = ((data ?? []) as { clave: string; cuentas: FichaRepetida[] }[]).filter((g) => Array.isArray(g.cuentas) && g.cuentas.length > 1);
 
@@ -31,7 +42,27 @@ export default async function FichasRepetidasPage() {
           </p>
         </div>
       </div>
-      {error ? (
+      <div className="flex gap-1 text-sm">
+        <Link
+          href="/fichas-repetidas"
+          className={cn("rounded-md border px-3 py-1 font-medium", !verParecidas ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-accent")}
+        >
+          Iguales (mismo nombre o documento)
+        </Link>
+        <Link
+          href="/fichas-repetidas?ver=parecidas"
+          className={cn("rounded-md border px-3 py-1 font-medium", verParecidas ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-accent")}
+        >
+          Parecidas: revisar a mano
+        </Link>
+      </div>
+      {verParecidas ? (
+        parecidas?.error ? (
+          <p className="text-sm text-destructive">No se pudo leer la lista: {parecidas.error.message}</p>
+        ) : (
+          <ListaFichasParecidas pares={pares} supervisores={supervisores} min={min} calculadoAt={pares[0]?.calculado_at ?? null} />
+        )
+      ) : error ? (
         <p className="text-sm text-destructive">No se pudo leer la lista: {error.message}</p>
       ) : grupos.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
