@@ -107,6 +107,8 @@ interface Props {
    * tiene el código (gerencia, operaciones) o con el código levantado.
    */
   pideCodigoPostventa?: boolean;
+  /** Abrir el diálogo al cargar la pantalla (bandeja con ?lead=). */
+  abrirAlCargar?: boolean;
 }
 
 const ETIQUETA_TIPO: Record<string, string> = ETIQUETA_TIPO_EXPEDIENTE;
@@ -137,8 +139,9 @@ const MOTIVO: Record<CoincidenciaCartera["motivo"], { etiqueta: string; fuerte: 
 // histórico (RUC/DNI, teléfono, correo, nombre). Un match fuerte preselecciona
 // al comercial de esa cartera (regla R3); los de nombre solo advierten:
 // puede haber muchas "María Leguía".
-export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDoc, email, mensaje, comerciales, sugerencia, cuentaId = null, pideCodigoPostventa = false }: Props) {
-  const [abierto, setAbierto] = useState(false);
+export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDoc, email, mensaje, comerciales, sugerencia, cuentaId = null, pideCodigoPostventa = false, abrirAlCargar = false }: Props) {
+  // Abre solo cuando Central llega a derivar ESTE contacto (desde «Hoy», 21-10).
+  const [abierto, setAbierto] = useState(abrirAlCargar);
   const [coincidencias, setCoincidencias] = useState<CoincidenciaCartera[] | null>(null);
   /**
    * LA FICHA ELEGIDA ENTRE LAS COINCIDENCIAS (0223). Hasta el 10-09 el clic en
