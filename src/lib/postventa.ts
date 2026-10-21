@@ -649,7 +649,8 @@ export const ETIQUETA_TIPO_PEDIDO: Record<TipoPedido, string> = {
   repuesto: "Venta de repuesto",
   accesorio: "Venta de accesorio",
   mantenimiento: "Mantenimiento",
-  revision: "Servicio de revisión",
+  // «Si es un equipo no debe decir servicio» (gerencia 20-10, Lino): es la revisión de una máquina.
+  revision: "Revisión del equipo",
   embalaje: "Servicio de embalaje",
 };
 
