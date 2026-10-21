@@ -111,6 +111,21 @@ describe("emparejar", () => {
     expect(p.tipo).toBe("lavadora");
   });
 
+  it("Lesly escribe en el Excel un código que no existe y la máquina tampoco: se crea con ese código", () => {
+    const [p] = emparejar([fila("PROFLEX 100-16-00/226", "MESA DE PLANCHADO ASPIRANTE-SOPLANTE CON BRAZO 220V/60HZ", { codigoExcel: "PROF02", marca: "BIMAP" })], catalogo, []);
+    expect(p.estado).toBe("nuevo");
+    expect(p.crear).toBe(true);
+    expect(p.codigo).toBe("PROF02");
+  });
+
+  it("Lesly escribe un código retirado: las máquinas entran y queda por activarlo", () => {
+    const cat = [...catalogo, prod("SECNSEN", "SECADORA SEMI INDUSTRIAL APILABLE ELECTRICO, PRIMUS, MOD: NSENXAGS173NW01, (220V/60HZ/3PH)", { modelo: "NSENXAGS173NW01", activo: false, marca: "PRIMUS" })];
+    const [p] = emparejar([fila("NSENXAGS173NW01", "SECADORA.APIL.ELECT.MOD.NSENXAGS173NW01 120/240/60/3PH", { codigoExcel: "SECNSEN", marca: "PRIMUS" })], cat, []);
+    expect(p.estado).toBe("nuevo");
+    expect(p.crear).toBe(false);
+    expect(p.codigo).toBe("SECNSEN");
+  });
+
   it("serie que ya está con un cliente: revisar, con el cliente y el pedido", () => {
     const [p] = emparejar(
       [fila("UT075", "SECADORA, MOD. UT075, DUAL DIGITAL, CILINDRO GALVANIZADO, GAS NATURAL, X(220V/60HZ/1-3PH)", { codigoExcel: "SECU553" })],

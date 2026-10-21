@@ -146,8 +146,11 @@ const NOMBRE_RASGO: Record<keyof Rasgos, string> = {
   sistemaLg: "código LG",
   apilable: "apilable",
   tipo: "tipo de equipo",
-  dosificador: "dosificador",
+  dosificador: "aire FRL / dosificador",
 };
+
+/** Un código como los escribe Lesly: letras, números y guion. */
+const CODIGO_VALIDO = /^[A-Z0-9][A-Z0-9-]{1,24}$/;
 
 export function rasgos(texto: unknown): Rasgos {
   const t = sinTildes(texto);
@@ -178,7 +181,9 @@ export function rasgos(texto: unknown): Rasgos {
   else if (t.includes("APIL")) r.apilable = "sí";
   if (/LAVADORA|\bLAV\b|LAV\.|LAVAD\./.test(t)) r.tipo = "lavadora";
   else if (t.includes("SECADORA")) r.tipo = "secadora";
-  if (/DOSIFICADOR EXTERNO|AIRE FRL|AIRE COMPRIMIDO FRL|SISTEMA DE AIRE/.test(t)) r.dosificador = "dosificador externo / aire FRL";
+  // Lo que distingue a las Sailstar nuevas es el sistema de aire FRL (así las codificó Lesly el 21-10:
+  // con FRL = variante nueva; solo con dosificador externo = el código de siempre).
+  if (/AIRE FRL|AIRE COMPRIMIDO FRL|SISTEMA DE AIRE/.test(t)) r.dosificador = "sistema de aire FRL";
   return r;
 }
 
@@ -300,7 +305,7 @@ function prepararCatalogo(productos: ProductoCatalogo[]): Candidato[] {
       for (const k of Object.keys(deFicha) as (keyof Rasgos)[]) r[k] ??= deFicha[k];
       if (!r.calentamiento && /VAP/i.test(p.sku)) r.calentamiento = "vapor";
       // Un producto con descripción que no nombra el dosificador externo NO lo trae: las Sailstar nuevas sí.
-      if (!r.dosificador && p.descripcion) r.dosificador = "sin dosificador externo";
+      if (!r.dosificador && p.descripcion) r.dosificador = "sin sistema de aire FRL";
       const familias = new Set([familia(p.modelo)]);
       const m = sinTildes(p.modelo);
       const lg = PALABRAS_LG.find((w) => m.includes(w));
@@ -426,21 +431,34 @@ export function emparejar(
             .filter((k) => r[k] && c.r[k] && choca(k, r[k]!, c.r[k]!))
             .map((k) => `${NOMBRE_RASGO[k]}: Excel ${r[k]} / CRM ${c.r[k]}`)
         : [];
-      if (!propio) {
+      if (!propio && unico) {
+        // Lo que no existe es el CÓDIGO, no la máquina (Santos 21-10: la UCT080 sí está, como LAVT080).
         estado = "revisar";
         codigo = unico;
-        // Lo que no existe es el CÓDIGO, no la máquina (Santos 21-10: la UCT080 sí está, como LAVT080).
-        motivo = unico
-          ? `El código ${f.codigoExcel} no existe en el catálogo, pero esta máquina (${f.modelo}) SÍ está, con el código ${unico}: usar ${unico}`
-          : `El código ${f.codigoExcel} no existe en el catálogo y no encontré la máquina con otro código`;
+        motivo = `El código ${f.codigoExcel} no existe en el catálogo, pero esta máquina (${f.modelo}) SÍ está, con el código ${unico}: usar ${unico}`;
+      } else if (!propio && CODIGO_VALIDO.test(f.codigoExcel)) {
+        // Lesly ya escribió el código nuevo en su Excel (21-10 tarde: PROF02, LAVG501…): se crea con ese.
+        estado = "nuevo";
+        crear = true;
+        codigo = f.codigoExcel;
+        ocupados.add(codigo);
+        motivo = evaluados[0]
+          ? `El código ${f.codigoExcel} es nuevo: se crea con estas máquinas (el más parecido, ${evaluados[0].c.p.sku}, difiere en ${evaluados[0].choques.join("; ") || "el modelo"})`
+          : `El código ${f.codigoExcel} es nuevo: se crea con estas máquinas`;
+      } else if (!propio) {
+        estado = "revisar";
+        codigo = null;
+        motivo = `«${f.codigoExcel}» no parece un código (solo letras, números y guion) y no encontré la máquina en el catálogo`;
       } else if (choques.length) {
         estado = "revisar";
         motivo = `El código ${f.codigoExcel} no calza: ${choques.join("; ")}`;
         codigo = unico;
       } else if (!propio.activo) {
-        estado = "revisar";
-        motivo = `El código ${f.codigoExcel} está retirado del catálogo`;
-        codigo = unico ?? f.codigoExcel;
+        // Existe pero está retirado: las máquinas entran y Lesly lo activa cuando tenga la ficha.
+        estado = "nuevo";
+        crear = false;
+        codigo = f.codigoExcel;
+        motivo = `El código ${f.codigoExcel} existe pero está retirado del catálogo: las máquinas entran con él y queda por ponerle ficha y activarlo`;
       } else {
         estado = "ok";
         motivo = "El código que puso Lesly está bien";
