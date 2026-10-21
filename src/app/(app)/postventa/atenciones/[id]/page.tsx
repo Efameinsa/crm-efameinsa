@@ -110,6 +110,8 @@ export default async function AtencionPage({
           .from("equipos_instalados")
           .select("id, serie, modelo_texto, garantia_hasta, ultimo_mantenimiento, fecha_venta")
           .eq("cuenta_id", a.cuenta_id)
+          // «Nada de repuestos, solamente equipos» (gerencia 20-10, Lino): 0570.
+          .eq("es_repuesto", false)
           .order("fecha_venta", { ascending: false, nullsFirst: false })
           .limit(20)
       : Promise.resolve({ data: [] as never[] }),

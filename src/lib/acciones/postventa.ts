@@ -1771,6 +1771,8 @@ export async function equiposParaAperturaDeCaso(atencionId: string): Promise<{ e
     .from("equipos_instalados")
     .select("id, serie, modelo_texto, fecha_venta, guia_remision, garantia_hasta")
     .eq("cuenta_id", a.cuenta_id)
+    // Solo máquinas: el kit de repuestos no es un equipo que atiende el técnico (0570, gerencia 20-10).
+    .eq("es_repuesto", false)
     .order("modelo_texto")
     .limit(100);
   const filas = (data ?? []) as { id: string; serie: string | null; modelo_texto: string | null; fecha_venta: string | null; guia_remision: string | null; garantia_hasta: string | null }[];

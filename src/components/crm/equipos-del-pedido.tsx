@@ -641,6 +641,13 @@ function Fila({
               </button>
             )}
           </div>
+          {/* «Sí o sí que tenga la opción de poner torre: almacén cuando la ve como
+              torre sabe que tiene que bajar el panel» (Lesly, reunión 20-10). */}
+          {torre && (
+            <p className="mt-1 inline-flex rounded bg-violet-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-violet-800 dark:text-violet-300">
+              TORRE apilable: lavadora abajo y secadora arriba, cada una con su serie · bajar el panel
+            </p>
+          )}
           {/* LA OTRA MÁQUINA DE LA TORRE (Lesly, 30-09; 0359): su serie y su ficha en el parque. */}
           {partes.map((p, i) => (
             <div key={p.id} className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
