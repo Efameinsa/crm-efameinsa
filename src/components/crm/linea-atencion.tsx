@@ -1238,7 +1238,7 @@ function PasoPlanificar({
     <Caja id="paso-planificar" titulo={puestaEnMarcha ? "Paso 3 · Planificación: programar la puesta en marcha" : "Paso 3 · Planificación: cuándo y con quién"}>
       <p className="mb-3 text-sm text-muted-foreground">
         {puestaEnMarcha
-          ? "Con día, hora y técnico queda programada y entra al calendario del área. Si es una llamada o videollamada, derívela al almacén con «Derivar llamada al almacén» (arriba): lleva los antecedentes."
+          ? "Con día, hora y técnico queda programada y entra al calendario del área. Si es una llamada o videollamada, derívela al almacén con «Derivación de llamada al almacén» (arriba): lleva los antecedentes."
           : "Esto entra al calendario del área y arma la orden para el almacén."}
       </p>
       {a.pruebas_conforme === false && (

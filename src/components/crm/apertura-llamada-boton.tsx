@@ -81,7 +81,7 @@ export function AperturaLlamadaBoton({
   equipos = "",
   contacto = "",
   tipo: tipoInicial = "videollamada_preinstalacion",
-  etiqueta = "Derivar llamada",
+  etiqueta = "Derivación de llamada",
   compacto = false,
   urgenteInicial = false,
   problema = "",
@@ -188,7 +188,7 @@ export function AperturaLlamadaBoton({
     }
     if (!v && !pendiente && escribio) {
       toast.warning("No se envió al almacén", {
-        description: "Lo que escribió quedó guardado en esta computadora: al volver a abrir «Derivar llamada» puede recuperarlo.",
+        description: "Lo que escribió quedó guardado en esta computadora: al volver a abrir «Derivación de llamada» puede recuperarlo.",
         duration: 10000,
       });
     }

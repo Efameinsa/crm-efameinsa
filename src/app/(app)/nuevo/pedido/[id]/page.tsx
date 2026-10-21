@@ -62,6 +62,9 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
     (Boolean(data.informe_cierre_id) && (await cierresDePostventa(supabase, [data.informe_cierre_id as string])).has(data.informe_cierre_id as string));
   const servicio = verPrecios ? (data as unknown as ServicioPostventa) : sinPrecios(data as unknown as ServicioPostventa);
 
+  // El caso del que nació este pedido (apertura desde el caso): su código va en el mensaje al cliente.
+  const { data: casoDelPedido } = await supabase.from("atenciones").select("codigo").eq("servicio_id", id).not("codigo", "is", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const codigoCasoDelPedido = (casoDelPedido?.codigo as string | null | undefined) ?? null;
   const [{ data: atencionPuesta }, listaEquipos, { data: aperturasData }, { data: informe }, { data: emisor }] = await Promise.all([
     supabase.from("atenciones").select("id, etapa, programada_at, tecnico, cerrado_at").eq("servicio_id", id).eq("tipo", "puesta_en_marcha").order("created_at", { ascending: false }).limit(1).maybeSingle(),
     cargarEquiposDelPedido(id),
@@ -289,6 +292,7 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
               guia={servicio.guia ?? null}
               agencia={(data as { agencia_destino?: string | null }).agencia_destino ?? null}
               salidaAt={servicio.despachado_at}
+              codigoCaso={codigoCasoDelPedido}
               enviada={
                 (data as { guia_enviada_cliente_at?: string | null }).guia_enviada_cliente_at
                   ? {
