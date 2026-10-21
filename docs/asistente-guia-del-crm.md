@@ -416,6 +416,13 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - cambiar el técnico mientras no haya informe;
   - registrar visitas de proveedor;
   - emitir el «Reporte del almacén».
+- **Agenda del almacén (desde el 21-10, pedido de Santos):** la primera pantalla de la cuenta de almacén (antes «Mi día»). Son tareas DEL ÁREA (hoy las trabaja Diana). Tiene, de arriba abajo:
+  - **Tres indicadores con meta cero:** pruebas esperando 2 días o más, despachos atrasados (con fecha y apertura, sin salir) y salidas sin cerrar (salieron y falta la foto de la carga, la de la agencia o la guía). Verde cuando está en cero, rojo cuando no. La meta del almacén no es una cantidad: es cero colgados. Al lado, «Hecho hoy» cuenta las acciones del día.
+  - **«Hoy, en orden»:** la lista de tareas en el orden de ataque: 1) despachos que salen hoy y atrasados, 2) pruebas pedidas por postventa, 3) llamadas de postventa, 4) salidas por cerrar, 5) equipos que llegan a planta, 6) series que pidió Central. Cada tarea dice por qué está ahí y tiene su botón. Al lado, la agenda de hoy con hora (despachos, atenciones, llamadas, visitas).
+  - **«Lo que hizo el almacén hoy»:** lo que el CRM registró solo, con hora y quién: probó y embaló, registró la serie, confirmó listo, salida de planta, dejó en la agencia, recibió letras, tomó la llamada, subió el informe, recibió o revisó un equipo que llegó, terminó un protocolo de stock. No hay que escribir nada. Al lado, «Otras gestiones de hoy» en texto libre (inventario, orden del almacén, repuestos que llegaron, entregas en ventanilla) hasta que se mapeen como pasos.
+  - **«Todos los números»** plegado: los cuadros de antes (generación de código, por probar, despachos de hoy, atrasados, guías autorizadas, aperturas sin tomar…), para quien los busca.
+  - **«Reporte del día»** (botón arriba, con selector de fecha): el cierre del día del almacén en PDF, como el de postventa: indicadores, lo hecho con hora y quién, otras gestiones, lo pendiente en orden y lo de mañana (despachos programados, pruebas en cola, llamadas). Queda grabado y gerencia lo ve en «Cierre del día» como el de los demás.
+- **Equipos que llegan a planta:** la lista está en el menú («Equipos que llegan») y en la agenda; antes solo existía la ficha de cada recepción.
 
 ### 2.6 Finanzas (Jhon)
 
