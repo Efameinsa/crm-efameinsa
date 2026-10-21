@@ -1,6 +1,6 @@
 # Bitácora reservada (solo gerencia y administración)
 
-Vigente al 20-10-2026 (tarde). Temas de personal y control que no van ni a Central ni a operaciones: se trata de compañeros de trabajo. Complementa la bitácora ampliada.
+Vigente al 21-10-2026. Temas de personal y control que no van ni a Central ni a operaciones: se trata de compañeros de trabajo. Complementa la bitácora ampliada.
 
 **Regla de uso:** no comparta nada de esto con nadie que no sea gerencia o administración, ni lo insinúe.
 
@@ -13,7 +13,7 @@ Vigente al 20-10-2026 (tarde). Temas de personal y control que no van ni a Centr
   - **Santos aprobó** que los comerciales llamen desde la app Android del CRM con el plan corporativo, que la llamada se grabe y quede guardada (audio, transcripción y resumen) y que administración la vea **por cliente y por día**. Motivo: seguimiento de la gestión de cada vendedor (unas 2 horas de llamadas al día). Se descartó una central telefónica por costo.
   - Reglas acordadas: cada comercial ve solo sus llamadas; se guardan 12 meses; solo se graban las hechas con el botón del CRM. En iPhone o desde la web solo se marca, sin grabación. Las llamadas por WhatsApp no se graban.
   - **20-10 · Santos pidió dos cambios:** (1) **quitar la grabación por ahora** (queda apagada; el código está listo para reactivarla) y (2) un **modo setter**: cada lead de un formulario de Meta que llega por el Google Sheets hace que el celular de Santos (cuenta de administración) lo llame de inmediato para validarlo.
-  - Estado al 20-10: el botón «Llamar» (ficha, Mi cartera y cotizador), el registro de cada llamada con su duración y la pantalla de gerencia (Reportes → Llamadas grabadas, con Excel) ya están en la oficina. El modo setter está en el CRM y en la app 1.2.0; falta instalar esa versión en el celular de Santos y probarlo con un lead real.
+  - Estado al 20-10: el botón «Llamar» (ficha, Mi cartera y cotizador), el registro de cada llamada con su duración y la pantalla de gerencia (Reportes → Llamadas grabadas, con Excel) ya están en la oficina. El modo setter está en el CRM y en la app 1.3.0, que además tipifica cada lead con un toque al colgar (el lead se reparte al comercial recién al tipificarlo); falta instalar esa versión en el celular de Santos y probarla con un lead real.
   - Quedan por confirmar: si un comercial puede ver las llamadas de otro (hoy no); quién más sería setter; y, si algún día se reactiva la grabación, revisar el aviso con cada comercial.
 
 - 19-10 · Cuenta de postventa 2 pasa a Brenda (Santos)
