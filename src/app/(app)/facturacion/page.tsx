@@ -149,6 +149,12 @@ function FilaPorFacturar({
               })}
             </p>
           )}
+          {/* La observación de Finanzas para facturar (Jhon, buzón 21-10): anticipo, cierre de anticipo u otra indicación. */}
+          {vigente?.nota?.includes("PARA FACTURAR:") && (
+            <p className="mt-1 rounded-md border border-primary/30 bg-primary/5 px-2 py-1 text-[11px] font-semibold text-foreground">
+              Observación de Finanzas: {vigente.nota.split("PARA FACTURAR:")[1].trim()}
+            </p>
+          )}
           {nuevoAnticipo && (
             <p className="mt-1 flex items-start gap-1 rounded-md bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-900">
               <AlertTriangle className="mt-0.5 size-3.5 flex-none" />

@@ -60,7 +60,7 @@ export async function validarLiquidacion(servicioId: string, c: Complementos): P
     p_nombre: nombre,
     p_estado_pago: l.estado,
     p_factura: l.facturaVigente,
-    p_nota: [l.rotulo, c.nota.trim()].filter(Boolean).join(" · "),
+    p_nota: [l.rotulo, l.observacion && `PARA FACTURAR: ${l.observacion}`, c.nota.trim()].filter(Boolean).join(" · "),
     p_datos: c,
     p_retenido_tipo: c.retenido?.tipo ?? null,
     p_retenido_monto: c.retenido?.monto ?? null,
@@ -89,7 +89,17 @@ export async function validarLiquidacion(servicioId: string, c: Complementos): P
     avisos.push(
       notificarFacturacion({
         titulo: !base.facturas.length ? `Por facturar · ${quien}` : abonoSinFactura ? `Nuevo anticipo por facturar · ${quien}` : `Otra vez por facturar · ${quien}`,
-        cuerpo: `Finanzas validó la liquidación ${numero}${pedido} con ${abonoSinFactura ? "un abono" : "la operación"} pendiente de factura. Facture y regístrela: Finanzas recibe el aviso para actualizar la liquidación.`,
+        cuerpo: `Finanzas validó la liquidación ${numero}${pedido} con ${abonoSinFactura ? "un abono" : l.anticipo ? "el anticipo" : "la operación"} pendiente de factura.${l.observacion ? ` Observación: ${l.observacion}.` : ""} Facture y regístrela: Finanzas recibe el aviso para actualizar la liquidación.`,
+        url: "/facturacion",
+        esPrueba,
+      }),
+    );
+  } else if (c.observacion?.texto?.trim()) {
+    // Con la factura ya puesta, el comentario escrito a mano igual le llega a Contabilidad (Jhon, buzón 21-10).
+    avisos.push(
+      notificarFacturacion({
+        titulo: `Observación de Finanzas · ${quien}`,
+        cuerpo: `Liquidación ${numero}${pedido}: ${l.observacion}.`,
         url: "/facturacion",
         esPrueba,
       }),

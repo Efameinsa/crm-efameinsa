@@ -141,6 +141,14 @@ export function HojaLiquidacion({ l, className }: { l: Liquidacion; className?: 
 
       <p className="mt-3 w-[380px] max-w-full border-[1.5px] border-black py-1 text-center text-[10.5px] font-bold">{l.rotulo}</p>
 
+      {/* La observación para Contabilidad (Jhon, buzón 21-10). */}
+      {l.observacion && (
+        <div className="mt-2 w-[380px] max-w-full border-[1.5px] border-dashed border-black px-2 py-1">
+          <p className="text-[9px] font-bold underline">OBSERVACIÓN PARA FACTURACIÓN</p>
+          <p className="text-[9.5px] font-bold">{l.observacion}</p>
+        </div>
+      )}
+
       <p className="mt-3 font-bold underline">NOTA:</p>
       {l.notas.map((n, i) => (
         <p key={i} className={cn(i === 0 && "font-bold")}>- {n}</p>
