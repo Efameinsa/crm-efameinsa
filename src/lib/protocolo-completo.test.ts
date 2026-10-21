@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { faltaParaProbar, type MaquinaParaProbar } from "./protocolo-completo";
+import { esAccesorioDelPedido, faltaParaProbar, type MaquinaParaProbar } from "./protocolo-completo";
 import { PLANTILLAS, renglonesConMarca } from "./protocolo-checklist";
 
 // El caso de COFACO INDUSTRIES (Santos, 13-10): sin fotos ni documento se podía marcar.
@@ -114,5 +114,30 @@ describe("faltaParaProbar", () => {
     expect(faltaParaProbar(s, [])).toEqual([]);
     expect(faltaParaProbar({ ...s, protocolo_fotos: [] }, []).join()).toContain("fotos");
     expect(faltaParaProbar({ ...s, descripcion: "SERVICIO DE INSTALACION LAVADORA Y SECADORA", protocolo_datos: {} }, []).join()).toBe("La máquina: técnico que hizo la prueba");
+  });
+});
+
+describe("accesorio de la máquina principal", () => {
+  const calderin = { id: "c", descripcion: "CALDERIN GENERADOR DE VAPOR INDUSTRIAL\nMARCA: SIDI MONDIAL" };
+  const plancha: MaquinaParaProbar = {
+    ...cofaco,
+    id: "p",
+    descripcion: "PLANCHA VAPORIZANTE INDUSTRIAL\nMARCA:SIDI MONDIAL (Italia) \nMODELO:STAR SIDI",
+    serie: "I26489",
+    sin_serie: true,
+    protocolo_fotos: [{ path: "x/protocolo-2-a.jpeg", tipo: "image/jpeg" }],
+  };
+
+  it("la plancha del calderín solo pide fotos (Almacén, 21-10, VITALIAN)", () => {
+    expect(esAccesorioDelPedido(plancha, [calderin, plancha])).toBe(true);
+    expect(faltaParaProbar(plancha, [], { accesorio: true, nombre: "Máquina 2" })).toEqual([]);
+    expect(faltaParaProbar({ ...plancha, protocolo_fotos: [] }, [], { accesorio: true, nombre: "Máquina 2" })).toEqual(["Máquina 2: fotos"]);
+  });
+
+  it("sola en el pedido, o una PLANCHADORA, se prueba como máquina", () => {
+    expect(esAccesorioDelPedido(plancha, [plancha])).toBe(false);
+    expect(esAccesorioDelPedido({ id: "s", descripcion: "SERVICIO DE INSTALACION" }, [plancha, { id: "s", descripcion: "SERVICIO DE INSTALACION" }].slice(0, 1))).toBe(false);
+    expect(esAccesorioDelPedido({ id: "r", descripcion: "PLANCHADORA DE RODILLO ELECTRICA" }, [calderin])).toBe(false);
+    expect(esAccesorioDelPedido({ id: "k", descripcion: "KIT DE MANGUERAS" }, [{ id: "l", descripcion: "LAVADORA PRIMUS RX240" }])).toBe(true);
   });
 });

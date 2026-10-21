@@ -7,7 +7,7 @@ import { notificar, notificarFinanzas } from "@/lib/notificaciones";
 import { avisarFinanzasSiFaltaVistoBueno } from "@/lib/aviso-visto-bueno";
 import type { FotoAlmacen } from "@/lib/postventa";
 import type { Chequeo } from "@/lib/protocolo-checklist";
-import { faltaParaProbar, type MaquinaParaProbar } from "@/lib/protocolo-completo";
+import { esAccesorioDelPedido, faltaParaProbar, type MaquinaParaProbar } from "@/lib/protocolo-completo";
 
 /**
  * Lo que el almacén marca del pedido (0246), en el orden en que pasa:
@@ -96,14 +96,17 @@ export async function probarEquipoDelPedido(
   // Sin el protocolo completo no se marca (Santos, 13-10, COFACO): la ficha,
   // las fotos, el PDF y la hoja de chequeo de cada máquina de la unidad.
   const columnas = "id, descripcion, serie, sin_serie, parte_nombre, protocolo_ref, protocolo_fotos, protocolo_datos, protocolo_chequeo";
-  const [{ data: item }, { data: partes }, { data: servicio }] = await Promise.all([
+  const [{ data: item }, { data: partes }, { data: servicio }, { data: filas }] = await Promise.all([
     supabase.from("pedido_equipos").select(columnas).eq("id", itemId).maybeSingle(),
     supabase.from("pedido_equipos").select(columnas).eq("parte_de", itemId).order("orden"),
     supabase.from("servicios_postventa").select("tipo_pedido").eq("id", servicioId).maybeSingle(),
+    supabase.from("pedido_equipos").select("id, descripcion").eq("servicio_id", servicioId).is("parte_de", null),
   ]);
   if (!item) return { error: "Ese equipo no está en el pedido" };
   const falta = faltaParaProbar(item as MaquinaParaProbar, (partes ?? []) as MaquinaParaProbar[], {
     repuesto: servicio?.tipo_pedido === "repuesto",
+    // El accesorio de la máquina principal solo pide fotos (Almacén, 21-10, VITALIAN).
+    accesorio: esAccesorioDelPedido(item as MaquinaParaProbar, (filas ?? []) as MaquinaParaProbar[]),
     clic: {
       protocoloRef: datos.protocoloRef,
       principal: datos.fotos ?? [],

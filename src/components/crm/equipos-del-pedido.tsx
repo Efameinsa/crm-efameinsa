@@ -28,7 +28,7 @@ import { agregarArchivosDelEquipo, quitarArchivoDelEquipo } from "@/lib/acciones
 import { subirConProgreso } from "@/lib/subir-con-progreso";
 import { cn } from "@/lib/utils";
 import { esTorre, seriesDeLaDescripcion } from "@/lib/torres";
-import { esFilaDeServicio, faltaParaProbar, hojaDelSistema, type ArchivoProtocolo, type MaquinaParaProbar } from "@/lib/protocolo-completo";
+import { esAccesorioDelPedido, esFilaDeServicio, faltaParaProbar, hojaDelSistema, type ArchivoProtocolo, type MaquinaParaProbar } from "@/lib/protocolo-completo";
 
 /** Las tres opciones de la generación de código (0385), con el nombre que usa Lesly. */
 const PROCEDENCIA: Record<string, string> = {
@@ -166,6 +166,7 @@ export function EquiposDelPedido({
               partes={partesDe(e.id)}
               candado={candado}
               repuesto={repuesto}
+              accesorio={esAccesorioDelPedido(e, equipos)}
               kit={kit}
               unica={equipos.length === 1}
             />
@@ -472,6 +473,7 @@ function Fila({
   partes,
   candado,
   repuesto,
+  accesorio,
   kit,
   unica,
 }: {
@@ -487,6 +489,8 @@ function Fila({
   partes: EquipoDelPedido[];
   candado: boolean;
   repuesto: boolean;
+  /** Accesorio de la máquina principal del pedido (la plancha del calderín): solo pide fotos. */
+  accesorio: boolean;
   /** Pieza de un kit de repuestos: su protocolo va en el bloque del kit, no en la fila (0517). */
   kit: boolean;
   /** Es lo único en la lista: no se puede quitar como «no corresponde» (0515). */
@@ -633,6 +637,7 @@ function Fila({
   const comoArchivo = (documento: boolean) => (f: File): ArchivoProtocolo => ({ path: f.name, tipo: documento ? f.type || "application/pdf" : f.type || "image/jpeg" });
   const falta = faltaParaProbar(e as MaquinaParaProbar, partes as MaquinaParaProbar[], {
     repuesto,
+    accesorio,
     nombre: `Máquina ${e.orden}`,
     clic: {
       protocoloRef: protocolo,
@@ -645,7 +650,9 @@ function Fila({
   // El informe lo genera el CRM: el Word/PDF es opcional para toda máquina (Lesly, 13-10 con hoja; 21-10 sin hoja, 0580).
   // Una fila de SERVICIO tampoco lo pide: el informe sale con sus fotos (Lesly, 17-10, 0529).
   const tituloDocs = (maquina: MaquinaParaProbar, cual: "principal" | "secadora", de: string) =>
-    esFilaDeServicio(maquina, maquina === e ? partes : [])
+    accesorio && maquina === e && partes.length === 0
+      ? `Otro informe de ${de} (PDF o Word, opcional: es un accesorio de la máquina principal, basta con sus fotos)`
+      : esFilaDeServicio(maquina, maquina === e ? partes : [])
       ? `Otro informe de ${de} (PDF o Word, opcional: es un servicio, el informe de prueba y embalaje lo genera el sistema con las fotos)`
       : hojaDelSistema(maquina, cual, repuesto)
       ? `Otro protocolo o informe de ${de} (PDF o Word, opcional: el informe lo genera el sistema con la hoja de chequeo)`

@@ -29,6 +29,13 @@ import { propuestaDeHoja, type DatosHoja, type Maquina } from "@/lib/protocolo-h
  * que pide solo fotos y técnico, como un repuesto (Lesly, 17-10, ABACHI
  * PED-0033-2026, «me pide subir Word del informe pero no debería»; 0529).
  *
+ * Un ACCESORIO que acompaña a la máquina principal del mismo pedido (la
+ * plancha del calderín, un kit de mangueras, la base…) no lleva protocolo:
+ * basta con sus fotos (Almacén, 21-10, VITALIAN PED con el calderín SIDI
+ * BR-8: «para los accesorios complementarios al producto primario no se
+ * considere la ficha de protocolo, solo considerar para poder subir fotos»).
+ * La hoja de chequeo sigue a mano en el informe, pero no frena.
+ *
  * Función pura: la usa el botón (para decir qué falta antes de pulsar) y el
  * servidor (que es quien de verdad frena).
  */
@@ -65,6 +72,19 @@ const lista = (x: unknown): NonNullable<ArchivoProtocolo>[] => (Array.isArray(x)
 /** La fila es un servicio y no una máquina (mismo criterio que es_linea_de_servicio, 0404). */
 export function esFilaDeServicio(e: Pick<MaquinaParaProbar, "descripcion">, partes: unknown[] = []) {
   return partes.length === 0 && /^\s*SERVICIO\s/i.test(e.descripcion ?? "");
+}
+
+/** Lo que por su nombre es un accesorio y no una máquina (PLANCHADORA sí es máquina). */
+const ACCESORIO = /^\s*(PLANCHA(?!DORA)|KIT\b|MANGUERAS?\b|ACCESORIOS?\b|SOPORTES?\b|BASES?\b|PEDESTAL|CARRO|COCHE|CANASTILLAS?\b|PISTOLA|BRAZO|MESA DE PLANCHADO)/i;
+
+/**
+ * La fila es un accesorio de la máquina principal del pedido: su nombre es de
+ * accesorio y en el mismo pedido va otra fila que es una máquina (no otro
+ * accesorio ni un servicio). Sola en el pedido, se prueba como cualquier máquina.
+ */
+export function esAccesorioDelPedido(e: Pick<MaquinaParaProbar, "id" | "descripcion">, filas: Pick<MaquinaParaProbar, "id" | "descripcion">[]) {
+  if (!ACCESORIO.test(e.descripcion ?? "")) return false;
+  return filas.some((f) => f.id !== e.id && !ACCESORIO.test(f.descripcion ?? "") && !/^\s*SERVICIO\s/i.test(f.descripcion ?? ""));
 }
 
 /** La hoja de chequeo que el sistema llena para esta máquina (null = no hay plantilla: se sube el Word/PDF). */
@@ -108,13 +128,17 @@ function faltaEnLaHoja(
 export function faltaParaProbar(
   e: MaquinaParaProbar,
   partes: MaquinaParaProbar[],
-  opciones: { repuesto?: boolean; clic?: LoQueVaConElClic; nombre?: string } = {},
+  opciones: { repuesto?: boolean; accesorio?: boolean; clic?: LoQueVaConElClic; nombre?: string } = {},
 ): string[] {
   const repuesto = opciones.repuesto === true || esFilaDeServicio(e, partes);
   const clic = opciones.clic ?? {};
   const tecnico = clic.tecnico ?? "";
   const nombre = opciones.nombre ?? "La máquina";
   const falta: string[] = [];
+  if (opciones.accesorio && partes.length === 0) {
+    const fotos = [...lista(e.protocolo_fotos), ...lista(clic.principal)];
+    return fotos.some(esImagen) ? [] : [`${nombre}: fotos`];
+  }
   // El N.º de protocolo no va en el documento (Santos, 14-10, Beneficencia de Huancayo): no se exige (0480).
 
   const propios = [...lista(e.protocolo_fotos), ...lista(clic.principal)];
