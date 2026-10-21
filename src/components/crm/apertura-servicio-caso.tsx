@@ -1,5 +1,6 @@
 "use client";
 
+import { hoyLima } from "@/lib/periodo";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ClipboardList, Loader2, Plus, Search, Trash2 } from "lucide-react";
@@ -163,7 +164,7 @@ export function AperturaServicioCaso({
     const eq = equiposCliente?.find((e) => e.id === equiposElegidos[0]) ?? null;
     const a = eq?.antecedentes ?? null;
     const sn = (v: string | null | undefined): SiNoVerificar => (v === "si" || v === "no" ? v : "por_verificar");
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyLima(); // en Lima: después de las 19:00 el UTC ya es mañana
     const garantia: GarantiaInterna =
       a?.garantia === "vigente" || a?.garantia === "vencida"
         ? a.garantia
