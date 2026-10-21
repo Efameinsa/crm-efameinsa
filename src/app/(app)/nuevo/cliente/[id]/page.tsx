@@ -13,6 +13,7 @@ import { fechaLima, fechaAgendada, fechaCalendario } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 import { guardaFichaCliente } from "@/lib/propuesta/guardas";
 import { PendientesDelCliente } from "@/components/crm/pendientes-del-cliente";
+import { AperturasDelCliente } from "@/components/crm/aperturas-del-cliente";
 import { UltimosCierres } from "@/components/crm/ultimos-cierres";
 import { EquiposDelCliente } from "@/components/crm/equipos-del-cliente";
 import { FicharMaquina } from "@/components/crm/fichar-maquina";
@@ -181,8 +182,10 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
   const plural = (n: number, uno: string, varios: string) => (n === 1 ? uno : varios);
   const chips: { etiqueta: string; valor: string; tab: string; alerta?: boolean; vacio?: boolean }[] = [
     { etiqueta: plural(vivas.length, "expediente vivo", "expedientes vivos"), valor: String(vivas.length), tab: "resumen", vacio: vivas.length === 0 },
-    { etiqueta: plural(pedidosAbiertos ?? 0, "pedido abierto", "pedidos abiertos"), valor: String(pedidosAbiertos ?? 0), tab: "pedidos", alerta: (pedidosAbiertos ?? 0) > 0, vacio: !pedidosAbiertos },
-    { etiqueta: plural(casosAbiertos ?? 0, "caso técnico", "casos técnicos"), valor: String(casosAbiertos ?? 0), tab: "pedidos", alerta: (casosAbiertos ?? 0) > 0, vacio: !casosAbiertos },
+    // Rótulos que dicen qué cuentan (gerencia 20-10: «¿qué es pedido abierto?»):
+    // el pedido es lo que se entrega; el caso, lo que el cliente pidió o reclamó.
+    { etiqueta: plural(pedidosAbiertos ?? 0, "pedido por entregar o cerrar", "pedidos por entregar o cerrar"), valor: String(pedidosAbiertos ?? 0), tab: "pedidos", alerta: (pedidosAbiertos ?? 0) > 0, vacio: !pedidosAbiertos },
+    { etiqueta: plural(casosAbiertos ?? 0, "caso abierto (CASO-…)", "casos abiertos (CASO-…)"), valor: String(casosAbiertos ?? 0), tab: "pedidos", alerta: (casosAbiertos ?? 0) > 0, vacio: !casosAbiertos },
     { etiqueta: plural(equipos ?? 0, "equipo", "equipos"), valor: String(equipos ?? 0), tab: "equipos", vacio: !equipos },
     { etiqueta: "última venta", valor: cuenta.ultima_venta_at ? fechaCalendario(cuenta.ultima_venta_at) : "nunca", tab: "ventas", vacio: !cuenta.ultima_venta_at },
   ];
@@ -384,6 +387,8 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
             </div>
             <div className="space-y-4">
               {!esArea && <PendientesDelCliente cuentaId={cuenta.id} conEnlace={esArea} />}
+              {/* Las aperturas a la derecha (gerencia 20-10: «esta es la ficha total del cliente»). */}
+              {esArea && <AperturasDelCliente cuentaId={cuenta.id} />}
               {/* El chat de Mi cuenta en efameinsa.com (0528, Santos 17-10). */}
               <MensajesMiCuenta cuentaId={cuenta.id} siempre />
               <InformesTecnicosDelCliente cuentaId={cuenta.id} conEnlace={abreInformes} />

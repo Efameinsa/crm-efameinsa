@@ -311,6 +311,16 @@ export default async function AtencionPage({
             >
               <ArrowLeft className="size-3.5" /> Atenciones del área
             </Link>
+            {/* VOLVER A LA FICHA, A LA VISTA (gerencia 20-10: «retrocede y se pierde…
+                salgo del cliente por completo»). */}
+            {a.cuenta_id && (
+              <Link
+                href={`/nuevo/cliente/${a.cuenta_id}`}
+                className="mb-1.5 ml-3 inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/5 px-2 py-0.5 text-xs font-semibold text-primary hover:bg-primary/10"
+              >
+                <ArrowLeft className="size-3.5" /> Volver a la ficha de {(a.cuentas?.razon_social ?? a.cliente_texto ?? "el cliente").slice(0, 40)}
+              </Link>
+            )}
             <h1 className="text-lg font-bold leading-snug text-foreground">
               {/* El código del caso, para buscarlo y continuarlo (gerencia 20-10, Lernake). */}
               {(a as { codigo?: string | null }).codigo && (
