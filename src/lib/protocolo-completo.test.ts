@@ -44,6 +44,20 @@ describe("faltaParaProbar", () => {
     expect(faltaParaProbar(centrifuga, []).join()).toContain("PDF o Word");
   });
 
+  it("la plancha del calderín ya no pide Word/PDF: tiene su hoja (Almacén, 21-10, VITALIAN)", () => {
+    const plancha: MaquinaParaProbar = {
+      ...cofaco,
+      descripcion: "PLANCHA VAPORIZANTE INDUSTRIAL\nMARCA:SIDI MONDIAL (Italia) \nMODELO:STAR SIDI",
+      serie: "I26489",
+      protocolo_fotos: [{ path: "x/protocolo-2-a.jpeg", tipo: "image/jpeg" }],
+      protocolo_datos: { principal: { equipo: "PLANCHA VAPORIZANTE INDUSTRIAL", modelo: "STAR SIDI", serie: "I26489", tecnico: "Solis" } },
+    };
+    const falta = faltaParaProbar(plancha, [], { nombre: "Máquina 2" }).join(" | ");
+    expect(falta).not.toContain("PDF o Word");
+    expect(falta).toContain("PROTOCOLO DE PLANCHA VAPORIZANTE");
+    expect(faltaParaProbar({ ...plancha, protocolo_chequeo: { principal: { plantilla: "plancha", marcas: { "componentes.fugas-de-vapor.vapor": "ok" } } } }, [])).toEqual([]);
+  });
+
   it("el video de la prueba no reemplaza al Word/PDF (Ariana, 14-10)", () => {
     const centrifuga: MaquinaParaProbar = {
       ...cofaco,

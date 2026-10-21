@@ -270,7 +270,42 @@ const CALDERIN: Plantilla = {
   pie: LAVADORA.pie,
 };
 
-export const PLANTILLAS: Plantilla[] = [LAVADORA, SECADORA, DESMANCHADORA, PRENSA, RODILLO, CALDERIN];
+/**
+ * La plancha vaporizante que va con el calderín en su propio renglón (Almacén,
+ * 21-10, VITALIAN: el calderín BR-8 ya tenía su hoja y la plancha STAR SIDI,
+ * su accesorio, no tenía ninguna, así que pedía un PDF/Word y no se podía
+ * marcar probada). Con su hoja, el informe de prueba y embalaje es el protocolo.
+ */
+const PLANCHA: Plantilla = {
+  clave: "plancha",
+  titulo: "PROTOCOLO DE PLANCHA VAPORIZANTE",
+  tipos: ["PLANCHA VAPOR", "PLANCHA DE VAPOR", "PLANCHA A VAPOR", "PLANCHA INDUSTRIAL"],
+  cabecera: CABECERA_COMUN,
+  conObservacion: [ESTRUCTURA],
+  porEnergia: {
+    clave: "componentes",
+    titulo: "COMPONENTES DEL EQUIPO",
+    energias: ["ELECTRICO", "VAPOR"],
+    renglones: [
+      "Suela de la plancha",
+      "Mango",
+      "Pulsador de vapor",
+      "Termostato",
+      "Resistencia",
+      "Cable de alimentación",
+      "Lámpara de señalización",
+      "Manguera de vapor",
+      "Conexión al calderín",
+      "Salida de vapor",
+      "Fugas de vapor",
+      "Temperatura programada",
+    ],
+  },
+  funcionamiento: [],
+  pie: LAVADORA.pie,
+};
+
+export const PLANTILLAS: Plantilla[] = [LAVADORA, SECADORA, DESMANCHADORA, PRENSA, RODILLO, CALDERIN, PLANCHA];
 
 /** La plantilla que le toca a la máquina por lo que dice su hoja («LAVADORA 13 KG»). */
 export function plantillaPara(equipo: string | null | undefined): Plantilla | null {

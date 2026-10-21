@@ -14,6 +14,8 @@ describe("hoja de chequeo del protocolo (Ariana, 13-10)", () => {
     expect(plantillaPara("CALANDRIA DE PLANCHADO INDUDSTRIAL AUTOMATICO")?.clave).toBe("rodillo");
     expect(plantillaPara("PRENSA DE PLANCHADO SEMI INDUSTRIAL")?.clave).toBe("prensa");
     expect(plantillaPara("CALDERIN CON PLANCHA SEMI-INDUSTRIAL")?.clave).toBe("calderin");
+    expect(plantillaPara("PLANCHA VAPORIZANTE INDUSTRIAL")?.clave).toBe("plancha");
+    expect(plantillaPara("PLANCHADORA")).toBeNull();
     expect(plantillaPara("DESMANCHADORA")?.clave).toBe("desmanchadora");
     expect(plantillaPara("CENTRIFUGA 25 KG")).toBeNull();
     expect(plantillaPara(undefined)).toBeNull();
