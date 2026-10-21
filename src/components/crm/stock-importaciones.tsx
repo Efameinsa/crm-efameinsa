@@ -106,6 +106,20 @@ function agrupar(filas: FilaCarga[]): Grupo[] {
   return [...mapa.values()].sort((a, b) => ORDEN.indexOf(a.estado) - ORDEN.indexOf(b.estado) || a.filas[0].fila - b.filas[0].fila);
 }
 
+/** «Revisar» dice CUÁL es el problema (Santos 21-10: «pones revisar pero no dices qué problema es»). */
+function problemaCorto(motivo: string): string {
+  if (/ya está en el CRM con/.test(motivo)) return "Serie ya vendida o reservada";
+  if (/tipo de equipo: Excel lavadora/.test(motivo)) return "Es lavadora con código de secadora";
+  if (/tipo de equipo: Excel secadora/.test(motivo)) return "Es secadora con código de lavadora";
+  if (/MODELO dice/.test(motivo)) return "Modelo y descripción no coinciden";
+  if (/no existe en el CRM/.test(motivo)) return "Ese código no existe";
+  if (/calentamiento:/.test(motivo)) return "El tipo de gas no coincide";
+  if (/voltaje:/.test(motivo)) return "El voltaje no coincide";
+  if (/control:/.test(motivo)) return "El control no coincide";
+  if (/retirado/.test(motivo)) return "Código retirado";
+  return "Revisar";
+}
+
 /** Los códigos del catálogo: si existe y si está activo. */
 export type CodigosExistentes = Record<string, { activo: boolean }>;
 
@@ -425,7 +439,9 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
       <div className="flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={cn("rounded px-1.5 py-0.5 text-[11px] font-medium", estilo.pastilla)}>{estilo.etiqueta}</span>
+            <span className={cn("rounded px-1.5 py-0.5 text-[11px] font-medium", estilo.pastilla)}>
+              {grupo.estado === "revisar" ? `Revisar · ${problemaCorto(f0.motivo)}` : estilo.etiqueta}
+            </span>
             <span className="text-sm font-semibold">
               {cantidad} {cantidad === 1 ? "máquina" : "máquinas"} · {f0.modelo}
             </span>
@@ -469,7 +485,7 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
           </button>
           {verSeries && (
             <p className="rounded-md bg-muted/50 p-2 font-mono text-[11px] leading-relaxed">
-              {grupo.filas.map((f) => `${f.serie ?? `sin serie ×${f.cantidad}`} (fila ${f.fila}${f.item ? `, ${f.item}` : ""})`).join(" · ")}
+              {grupo.filas.map((f) => `${f.serie ?? `sin serie de placa ×${f.cantidad}`} (fila ${f.fila}${f.item ? `, ${f.item}` : ""})`).join(" · ")}
             </p>
           )}
         </div>

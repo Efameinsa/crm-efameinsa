@@ -92,6 +92,8 @@ export function familia(modelo: unknown): string {
   m = m.replace(/^(UT\d{3})[LEN]$/, "$1");
   m = m.replace(/^UW(\d{3})N?$/, "UWT$1");
   m = m.replace(/^WETSS/, "WET");
+  // Importaciones escribe UTS30 lo que el catálogo tiene como UT030N (la UT030 con Unilinc).
+  m = m.replace(/^UTS(\d\d)$/, "UT0$1").replace(/^UT(\d\d)N$/, "UT0$1");
   return m;
 }
 
@@ -244,6 +246,11 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
 
 // ------------------------------------------------------------------ comparar
 
+/** «PROFLEX» es la familia de «PROFLEX1001600226»: solo para familias con nombre (no números cortos). */
+function esPrefijo(corto: string, largo: string): boolean {
+  return corto.length >= 5 && /[A-Z]{4}/.test(corto) && largo.length > corto.length && largo.startsWith(corto);
+}
+
 interface Candidato {
   p: ProductoCatalogo;
   familias: Set<string>;
@@ -340,11 +347,16 @@ export function emparejar(
           const enTexto = r.sistemaLg && sinTildes(`${c.p.nombre} ${c.p.modelo} ${c.p.descripcion}`).includes(r.sistemaLg);
           return enTexto || (c.familias.has(familiaLg) && c.r.tipo === r.tipo);
         }
-        return [...familias].some((x) => c.familias.has(x));
+        return [...familias].some((x) => c.familias.has(x) || [...c.familias].some((cf) => esPrefijo(cf, x)));
       })
       .map((c) => {
         let puntos = c.p.activo ? 0.5 : -2;
         const choques: string[] = [];
+        // Misma familia pero modelo más largo en el Excel (PROFLEX → PROFLEX 100-16-00/226): parecido, no igual.
+        if (!esLg && ![...familias].some((x) => c.familias.has(x))) {
+          choques.push(`modelo: Excel ${f.modelo} / CRM ${c.p.modelo ?? ""}`);
+          puntos -= 3;
+        }
         for (const k of Object.keys(NOMBRE_RASGO) as (keyof Rasgos)[]) {
           const a = r[k];
           const b = c.r[k];
@@ -413,7 +425,10 @@ export function emparejar(
       } else {
         codigo = tentativos.get(firma) ?? null;
         if (!codigo) {
-          const base = evaluados[0]?.c.p.sku ?? codigoDesdeCero(f, r);
+          // La base es el código del MISMO modelo (FX180 → LAVF180 → LAVF1801; UWT065 → LAVW065 → LAVW0651),
+          // que es como Lesly numera las variantes; si no hay, el más parecido.
+          const mismoModelo = evaluados.find((e) => e.c.p.activo && [...familias].includes(familia(e.c.p.modelo)));
+          const base = (mismoModelo ?? evaluados[0])?.c.p.sku ?? codigoDesdeCero(f, r);
           codigo = siguienteCodigoLibre(base, ocupados);
           ocupados.add(codigo);
           tentativos.set(firma, codigo);
@@ -435,6 +450,10 @@ export function emparejar(
     if (avisos.length) {
       estado = "revisar";
       motivo = [...avisos, motivo].join(". ");
+    }
+    // El Excel a veces pone 1, 2, 3… en SERIE (las mesas BIMAP): eso no es una serie de placa.
+    if (!f.serie && f.cantidad > 0 && /\d/.test(f.descripcion) && estado !== "ok") {
+      motivo += ". Sin serie de placa en el Excel: entra como unidades, no por serie";
     }
 
     return { ...f, estado, motivo, codigo, candidatos, rasgos: r, crear };
