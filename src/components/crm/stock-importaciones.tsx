@@ -291,7 +291,10 @@ export function RevisarStock({ carga, existentes }: { carga: CargaStock; existen
           </p>
           <BotonResumenPdf cargaId={carga.id} />
           <p className="w-full text-sm text-muted-foreground sm:w-auto">
-            {cuenta.pendiente === 0 ? "Todo decidido" : `${decididas} de ${total} decididas`}
+            {/* Lesly (21-10): «257 de 273» le sonó a que faltaban máquinas. Se dice lo que falta. */}
+            {cuenta.pendiente === 0
+              ? "Todo decidido · listo para subir"
+              : `Falta decidir ${cuenta.pendiente} de ${total} · las otras ${decididas} ya están listas`}
           </p>
         </div>
         <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-muted">
@@ -470,9 +473,11 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
             <span className={cn("rounded px-1.5 py-0.5 text-[11px] font-medium", estilo.pastilla)}>
               {grupo.estado === "revisar"
                 ? `Revisar · ${problemaCorto(f0.motivo)}`
-                : grupo.estado === "nuevo" && f0.codigoExcel && f0.codigo === f0.codigoExcel
-                  ? "Código nuevo (lo puso Lesly)"
-                  : estilo.etiqueta}
+                : grupo.estado === "nuevo" && f0.crear === false
+                  ? "Código retirado · se reactiva"
+                  : grupo.estado === "nuevo" && f0.codigoExcel && f0.codigo === f0.codigoExcel
+                    ? "Código nuevo (lo puso Lesly)"
+                    : estilo.etiqueta}
             </span>
             <span className="text-sm font-semibold">
               {cantidad} {cantidad === 1 ? "máquina" : "máquinas"} · {f0.modelo}
