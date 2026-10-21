@@ -187,6 +187,14 @@ export function LiquidacionPdf({ l, logoBuffer, vistaPrevia }: { l: Liquidacion;
 
         <Text style={e.operacion}>{l.rotulo}</Text>
 
+        {/* La observación para Contabilidad (Jhon, buzón 21-10). */}
+        {l.observacion ? (
+          <View style={{ marginTop: 6, width: 380, borderWidth: 1.5, borderColor: NEGRO, borderStyle: "dashed", paddingVertical: 3, paddingHorizontal: 5 }} wrap={false}>
+            <Text style={[e.b, { fontSize: 7.5, textDecoration: "underline" }]}>OBSERVACIÓN PARA FACTURACIÓN</Text>
+            <Text style={[e.b, { fontSize: 8 }]}>{l.observacion}</Text>
+          </View>
+        ) : null}
+
         <View wrap={false}>
           <Text style={[e.b, { marginTop: 10, textDecoration: "underline" }]}>NOTA:</Text>
           {l.notas.map((n, i) => (

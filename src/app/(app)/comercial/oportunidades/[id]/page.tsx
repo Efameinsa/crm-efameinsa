@@ -954,7 +954,11 @@ export default async function OportunidadDetallePage({
 
           {cuenta?.id && (
             <SeccionPanel titulo="Historial de este expediente" id="historial-expediente">
-              <HistorialCuenta eventos={eventos} oportunidadActualId={oportunidad.id} />
+              <HistorialCuenta
+                eventos={eventos}
+                oportunidadActualId={oportunidad.id}
+                puedeAgregarFotos={esMio || comoGerenciaAqui}
+              />
             </SeccionPanel>
           )}
 

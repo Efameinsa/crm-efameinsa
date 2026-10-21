@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { ETAPAS_MANUALES } from "@/lib/etapas-oportunidad";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/lib/expediente-ajeno";
 import { marcarLeidasDeOportunidad } from "@/lib/acciones/notificaciones";
 import { avisarGestionRegistradaEducanet, avisarLeadRespondidoEducanet } from "@/lib/avisos-educanet";
@@ -200,6 +201,67 @@ export async function registrarActividad(datos: {
   revalidatePath("/comercial/agenda");
   revalidatePath(`/comercial/oportunidades/${datos.oportunidadId}`);
   return aviso ? { error: null, aviso } : { error: null };
+}
+
+// ENRIQUECER UNA GESTIÓN SIN REGISTRAR OTRA (Santos, 21-10). En el historial
+// del expediente cada gestión tiene un «+» para pegarle la captura o subir la
+// foto que llegó después —la placa que el cliente mandó por WhatsApp, el
+// pantallazo del chat—: inventar una gestión nueva solo para colgar la imagen
+// ensuciaba la historia y contaba un contacto que no hubo. Solo se AGREGAN
+// archivos: la nota, el resultado y la fecha de la gestión no se tocan. Cada
+// archivo agregado lleva quién y cuándo, para que se distinga de lo original.
+// Pueden: quien registró la gestión, el dueño del expediente y gerencia/admin.
+export async function agregarAdjuntosAGestion(datos: {
+  actividadId: string;
+  adjuntos: { path: string; nombre: string; tipo: string; tamano: number }[];
+}): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesión expirada" };
+  if (!datos.adjuntos?.length) return { error: "No hay archivos para agregar" };
+
+  // Leer con la sesión de quien pide: si la RLS no se la muestra, no existe para él.
+  const { data: actividad } = await supabase
+    .from("actividades")
+    .select("id, oportunidad_id, realizada_por, adjuntos, oportunidades(comercial_id)")
+    .eq("id", datos.actividadId)
+    .maybeSingle();
+  if (!actividad) return { error: "No se encontró la gestión (o no la puedes ver)" };
+
+  const { data: perfil } = await supabase.from("perfiles").select("nombre, codigo_comercial, rol").eq("id", user.id).single();
+  const op = actividad.oportunidades as unknown as { comercial_id: string | null } | null;
+  const puede =
+    actividad.realizada_por === user.id || op?.comercial_id === user.id || ["gerencia", "admin"].includes(perfil?.rol ?? "");
+  if (!puede) {
+    return { error: `Solo quien registró la gestión o ${await duenoDelExpediente(supabase, actividad.oportunidad_id)}, dueño del expediente, pueden agregarle fotos.` };
+  }
+
+  const previos = (actividad.adjuntos as { path: string }[] | null) ?? [];
+  if (previos.length >= 10) return { error: "Esta gestión ya tiene 10 archivos: no caben más" };
+  const quien = perfil ? `${perfil.codigo_comercial ? `${perfil.codigo_comercial} · ` : ""}${perfil.nombre}` : null;
+  const ahora = new Date().toISOString();
+  const nuevos = datos.adjuntos.slice(0, 10 - previos.length).map((a) => ({
+    path: String(a.path).slice(0, 300),
+    nombre: String(a.nombre).slice(0, 120),
+    tipo: String(a.tipo).slice(0, 100),
+    tamano: Number(a.tamano) || 0,
+    agregado_por: quien,
+    agregado_at: ahora,
+  }));
+
+  // Con la llave de servicio y solo la columna `adjuntos`: la RLS de update es
+  // del dueño del expediente, y quien registró la gestión (p. ej. postventa en
+  // un expediente ajeno, 0238) también debe poder completarla.
+  const { error } = await createAdminClient()
+    .from("actividades")
+    .update({ adjuntos: [...previos, ...nuevos] })
+    .eq("id", actividad.id);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/comercial/oportunidades/${actividad.oportunidad_id}`);
+  return { error: null };
 }
 
 // Interés de compra (INT_COMPRA del Excel original), monto estimado y

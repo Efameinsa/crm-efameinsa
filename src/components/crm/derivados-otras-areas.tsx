@@ -34,6 +34,7 @@ const ETIQUETA_AREA: Record<string, string> = {
   proveedores: "Proveedores",
   administracion: "Administración",
   finanzas: "Finanzas y Tesorería",
+  facturacion: "Facturación (caso de Central)",
   otros: "Otros",
 };
 

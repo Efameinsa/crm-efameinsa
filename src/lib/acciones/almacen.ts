@@ -536,7 +536,7 @@ export async function entregarLetras(servicioId: string, datos: { recibio: strin
   });
   if (error) return { error: limpiar(error.message) };
   const perfil = await requerirPerfil();
-  const cuerpo = `Las recibió ${datos.recibio.trim()}${datos.fotos.length ? ", con foto del cargo" : ""}. Falta que vuelvan firmadas a Finanzas.`;
+  const cuerpo = `Las recibió ${datos.recibio.trim()}${datos.fotos.length ? ", con foto del cargo" : ""}. Postventa: ya puede verificar el despacho.`;
   await Promise.all([
     notificarFinanzas({ titulo: `Letras entregadas al cliente · ${datos.cliente}`, cuerpo, url: `/finanzas/pedidos/${servicioId}`, esPrueba: perfil.es_prueba === true }),
     avisarPostventa(`Letras entregadas al cliente · ${datos.cliente}`, cuerpo, `/postventa/pedidos/${servicioId}`),

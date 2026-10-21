@@ -43,6 +43,15 @@ export interface AjustesLiquidacion {
   rotulo?: string;
 }
 
+/**
+ * OBSERVACIÓN PARA FACTURACIÓN (Jhon, buzón 21-10): «un cuadro de observación
+ * para indicarle a Contabilidad que la operación será por anticipo o cierre de
+ * anticipo u otro tipo de comentario». Va en la hoja, en la nota del historial
+ * y en el aviso a Contabilidad.
+ */
+export type TipoObservacion = "anticipo" | "cierre_anticipo";
+export const NOMBRE_OBSERVACION: Record<TipoObservacion, string> = { anticipo: "OPERACIÓN POR ANTICIPO", cierre_anticipo: "CIERRE DE ANTICIPO" };
+
 export interface Complementos {
   /** Factura de cada abono (id del abono → número), o «» = pendiente de factura. */
   facturaDeAbono: Record<string, string>;
@@ -52,6 +61,15 @@ export interface Complementos {
    * cuadro donde colocar el número de factura»). «» = pendiente de factura.
    */
   facturaSaldo?: string;
+  /**
+   * Se factura solo el anticipo (Jhon, buzón 21-10): de lo que falta cobrar,
+   * este monto (con IGV) va en su propio bloque «FT ANTICIPO» para que cuadre
+   * con lo que el cliente va a abonar, y el resto queda en «FT CIERRE PDTE».
+   * null o 0 = se factura todo lo que falta.
+   */
+  anticipo?: number | null;
+  /** tipo undefined = el que sugiere el CRM; null = ninguno. */
+  observacion?: { tipo?: TipoObservacion | null; texto?: string };
   retenido: { tipo: TipoRetenido; pct: number; monto: number; cobrado: boolean } | null;
   letras: { cantidad: number; cadaDias: number; giro: string; interes: number } | null;
   guia: string;
@@ -170,6 +188,8 @@ export interface BaseLiquidacion {
   ordenCompra: string | null;
   letrasCantidad: number | null;
   esServicio: boolean;
+  /** El % que se paga antes del despacho (50 % ADELANTO…): sugiere el anticipo a facturar. */
+  pctAdelanto?: number | null;
   /** Lo que se completó en la última liquidación generada: la siguiente parte de ahí. */
   anteriores: Complementos | null;
   /** Cuándo se validó esa última liquidación generada (para saber qué factura llegó después). */
@@ -218,6 +238,16 @@ export interface Liquidacion {
   facturaVigente: string | null;
   /** Queda saldo por cobrar: el editor pide la factura de ese saldo. */
   hayCola: boolean;
+  /** Lo que el cliente todavía no mandó (sin la detracción). */
+  falta: number;
+  /** El anticipo que se factura ahora (0 = se factura todo lo que falta). */
+  anticipo: number;
+  /** Lo próximo que el cliente tiene que abonar: el anticipo o, si no hay, todo lo que falta. */
+  porCobrarAhora: number;
+  /** El recuadro para Contabilidad («OPERACIÓN POR ANTICIPO: …»); «» = no hay. */
+  observacion: string;
+  /** El tipo que sugiere el CRM (anticipo o cierre de anticipo). */
+  observacionSugerida: TipoObservacion | null;
   notas: string[];
   /** La nota libre de Finanzas: en la plantilla va a la izquierda («VALIDAR SI EMITE HES»). */
   notaLibre: string;
@@ -267,7 +297,11 @@ export function complementosIniciales(b: BaseLiquidacion, hoy: string): Compleme
   // Los ajustes de la anterior (cliente corregido, renglones…) se heredan; la fecha no.
   const { fecha: _fecha, ...ajustes } = ant?.ajustes ?? {};
   void _fecha;
-  return { facturaDeAbono, facturaSaldo, retenido, letras, guia: ant?.guia ?? "", nota: "", ajustes };
+  // El anticipo solo se sugiere antes del primer abono (50 % ADELANTO + 50 % CRÉDITO: se factura la mitad).
+  const sinPagos = b.abonos.length === 0 && b.pagadoSinDetalle < 0.01;
+  const pct = b.pctAdelanto ?? 0;
+  const anticipo = sinPagos && pct > 0 && pct < 100 && !letras ? redondear2((b.total * pct) / 100) : null;
+  return { facturaDeAbono, facturaSaldo, anticipo, observacion: {}, retenido, letras, guia: ant?.guia ?? "", nota: "", ajustes };
 }
 
 /** Arma la liquidación entera: bloques, saldo, letras, estado y notas. Pura (se prueba sin base). */
@@ -291,6 +325,9 @@ export function calcularLiquidacion(b0: BaseLiquidacion, c: Complementos, hoy: s
   const retenido = c.retenido && c.retenido.monto > 0 ? redondear2(c.retenido.monto) : 0;
   const falta = redondear2(b.total - pagadoBruto - retenido); // lo que el cliente todavía no mandó
   const hayCola = falta > 0.5;
+  // Solo el anticipo se factura ahora; el resto, en el bloque siguiente.
+  const anticipo = hayCola && c.anticipo && c.anticipo > 0.5 && c.anticipo < falta - 0.5 ? redondear2(c.anticipo) : 0;
+  const resto = redondear2(falta - anticipo);
   const varias = grupos.length + (hayCola ? 1 : 0) > 1;
 
   const bloques: BloqueLiquidacion[] = [];
@@ -328,13 +365,13 @@ export function calcularLiquidacion(b0: BaseLiquidacion, c: Complementos, hoy: s
 
   // Letras: el saldo del cliente en cuotas iguales; el centavo, en la última.
   let letras: LetraLiquidacion[] = [];
-  if (c.letras && c.letras.cantidad > 0 && falta > 0.5) {
+  if (c.letras && c.letras.cantidad > 0 && resto > 0.5) {
     const k = Math.min(36, Math.floor(c.letras.cantidad));
-    const cuota = redondear2(falta / k);
+    const cuota = redondear2(resto / k);
     const interes = redondear2(Math.max(0, c.letras.interes || 0) / k);
     letras = Array.from({ length: k }, (_, i) => {
       const dias = (c.letras!.cadaDias || 30) * (i + 1);
-      return { n: i + 1, giro: c.letras!.giro, vence: sumarDias(c.letras!.giro, dias), dias, monto: i === k - 1 ? redondear2(falta - cuota * (k - 1)) : cuota, interes };
+      return { n: i + 1, giro: c.letras!.giro, vence: sumarDias(c.letras!.giro, dias), dias, monto: i === k - 1 ? redondear2(resto - cuota * (k - 1)) : cuota, interes };
     });
   }
 
@@ -344,9 +381,21 @@ export function calcularLiquidacion(b0: BaseLiquidacion, c: Complementos, hoy: s
       : null;
   const ftSaldo = hayCola ? (c.facturaSaldo ?? "").trim().toUpperCase() : "";
   if (hayCola) {
+    if (anticipo) {
+      // El anticipo, con la factura que se emite ahora: cuadra con lo que el cliente va a abonar.
+      bloques.push({
+        filas: [
+          { izquierda: `FT ANTICIPO ${ftSaldo || "PDTE"}`, concepto: "TOTAL", monto: anticipo },
+          { izquierda: "PDTE", concepto: `ABONO ${n + 1}`, monto: null },
+        ],
+        saldo: anticipo,
+      });
+      n++;
+    }
     // Lo que falta facturar o pagar: «FT CIERRE PDTE / PDTE ABONO n».
-    const total = redondear2(falta + retenido);
-    const filas: FilaBloque[] = [{ izquierda: `${grupos.length ? "FT CIERRE" : "FT"} ${ftSaldo || "PDTE"}`, concepto: "TOTAL", monto: total }];
+    const total = redondear2(resto + retenido);
+    const izquierda = anticipo ? "FT CIERRE PDTE" : `${grupos.length ? "FT CIERRE" : "FT"} ${ftSaldo || "PDTE"}`;
+    const filas: FilaBloque[] = [{ izquierda, concepto: "TOTAL", monto: total }];
     let saldo = total;
     if (letras.length) {
       const suma = redondear2(letras.reduce((s, x) => s + x.monto, 0));
@@ -404,10 +453,55 @@ export function calcularLiquidacion(b0: BaseLiquidacion, c: Complementos, hoy: s
   ];
   if (c.retenido) notas.push(`OPERACIÓN AFECTA A ${NOMBRE_RETENIDO[c.retenido.tipo].toUpperCase()} (${c.retenido.pct} %)`);
 
-  return { base: b, numero: b.yaHay + 1, fecha, bloques, comisiones, saldo, comisionPendiente, letras, estado, rotulo, facturaVigente, hayCola, notas, notaLibre: c.nota.trim().toUpperCase() };
+  // La observación para Contabilidad: por anticipo si se factura solo una parte;
+  // cierre de anticipo si ya hay una factura de anticipo y queda el saldo.
+  const simbolo = b.moneda === "PEN" ? "S/" : "US$";
+  const cifra = (x: number) => `${simbolo} ${x.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const conFactura = grupos.filter((g) => g.ft);
+  const observacionSugerida: TipoObservacion | null = anticipo ? "anticipo" : hayCola && conFactura.length ? "cierre_anticipo" : null;
+  const tipoObs = c.observacion?.tipo === undefined ? observacionSugerida : c.observacion.tipo;
+  const detalleObs =
+    tipoObs === "anticipo" && anticipo
+      ? `${NOMBRE_OBSERVACION.anticipo}: FACTURAR ${cifra(anticipo)} DE ${cifra(b.total)}; EL SALDO DE ${cifra(redondear2(resto + retenido))} SE FACTURA AL CIERRE`
+      : tipoObs === "cierre_anticipo" && hayCola
+        ? `${NOMBRE_OBSERVACION.cierre_anticipo}: FACTURAR EL SALDO DE ${cifra(redondear2(resto + retenido))}${conFactura.length ? ` (EL ANTICIPO VA EN ${conFactura.map((g) => `FT ${g.ft}`).join(", ")})` : ""}`
+        : tipoObs
+          ? NOMBRE_OBSERVACION[tipoObs]
+          : "";
+  const observacion = [detalleObs, (c.observacion?.texto ?? "").trim().toUpperCase()].filter(Boolean).join(" · ");
+
+  return {
+    base: b,
+    numero: b.yaHay + 1,
+    fecha,
+    bloques,
+    comisiones,
+    saldo,
+    comisionPendiente,
+    letras,
+    estado,
+    rotulo,
+    facturaVigente,
+    hayCola,
+    falta: hayCola ? falta : 0,
+    anticipo,
+    porCobrarAhora: hayCola ? anticipo || redondear2(resto + retenido) : 0,
+    observacion,
+    observacionSugerida,
+    notas,
+    notaLibre: c.nota.trim().toUpperCase(),
+  };
 }
 
 type Fila = Record<string, unknown>;
+
+/** El % de adelanto: el del pedido si es parcial; si no, el que dice la forma de pago («50% ADELANTO…»). */
+export function pctAdelanto(pct: number | null, formaPago: string | null): number | null {
+  if (pct != null && pct > 0 && pct < 100) return pct;
+  const m = /(\d{1,2}(?:[.,]\d+)?)\s*%\s*(?:DE\s+)?(?:ADELANTO|ANTICIPO|INICIAL)/i.exec(formaPago ?? "");
+  const n = m ? Number(m[1].replace(",", ".")) : NaN;
+  return n > 0 && n < 100 ? n : null;
+}
 
 interface ItemGuardado extends RenglonConIgv {
   descripcion: string;
@@ -533,6 +627,7 @@ export async function cargarBaseLiquidacion(supabase: SupabaseClient, servicioId
     cotizacion: (((i?.cotizaciones as { codigo?: string } | null)?.codigo ?? (i?.presupuesto_ref as string | null)) || "").replace(/^presu_?/i, "") || null,
     ordenCompra: (i?.orden_compra as string | null) ?? null,
     letrasCantidad: (f.letras_cantidad as number | null) ?? null,
+    pctAdelanto: pctAdelanto(f.pct_antes_despacho as number | null, (f.forma_pago as string | null) || modalidad || null),
     esServicio: /servicio|mantenimiento/i.test(tipoPedido) || /servicio|mantenimiento/i.test(String(f.equipo ?? "")),
     anteriores: (ultimaGenerada?.datos as Complementos | null) ?? null,
     anterioresAt: (ultimaGenerada?.subida_at as string | undefined) ?? null,

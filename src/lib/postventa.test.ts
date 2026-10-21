@@ -579,7 +579,8 @@ describe("letras que viajan con el equipo (0470)", () => {
     const salio = pedido({ ...base, letras_recibidas_almacen_at: "2026-10-14T14:00:00Z", despachado_at: "2026-10-14T15:00:00Z" });
     const paso = bloquesPedido(salio).flatMap((b) => b.pasos).find((p) => p.clave === "letras");
     expect(paso?.hecho).toBe(false);
-    expect(paso?.trabado).toMatch(/confirme a quién se entregaron/);
+    expect(paso?.trabado).toMatch(/Finanzas tiene que confirmar a quién se entregaron/);
+    expect(paso?.responsable).toBe("finanzas");
     const entregadas = bloquesPedido({ ...salio, letras_estado: "entregadas", letras_entregadas_a: "Edinson García" }).flatMap((b) => b.pasos).find((p) => p.clave === "letras");
     expect(entregadas?.hecho).toBe(true);
     expect(entregadas?.detalle).toMatch(/Edinson García/);

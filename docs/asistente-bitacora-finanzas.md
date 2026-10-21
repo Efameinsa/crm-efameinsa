@@ -1,6 +1,6 @@
 # Bitácora de Finanzas y Contabilidad: lo que se decidió alrededor del dinero
 
-Vigente al 20-10-2026 (tarde). Para Finanzas (Jhon) y Contabilidad/Facturación. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md, en especial 1.7 a 1.12, 2.6, 2.7 y 3.6) y la «Bitácora del CRM» (asistente-bitacora-general.md). Aquí no se repite cómo se usa cada pantalla: se cuenta **qué se decidió, cuándo, quién lo pidió y qué quedó en el aire**, para que pueda retomar el trabajo sin depender de la memoria de una reunión.
+Vigente al 21-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md, en especial 1.7 a 1.12, 2.6, 2.7 y 3.6) y la «Bitácora del CRM» (asistente-bitacora-general.md). Aquí no se repite cómo se usa cada pantalla: se cuenta **qué se decidió, cuándo, quién lo pidió y qué quedó en el aire**, para que pueda retomar el trabajo sin depender de la memoria de una reunión.
 
 ## Cómo leer esto
 
@@ -11,6 +11,11 @@ Vigente al 20-10-2026 (tarde). Para Finanzas (Jhon) y Contabilidad/Facturación.
 ---
 
 ## Cronología de decisiones que tocan su trabajo
+
+### 21-10 · Buzón de Jhon: facturar solo el anticipo y observación para Contabilidad
+- **Qué pidió Jhon (FAMILY FARMS, PED-0037-2026, 50 % adelanto + 50 % crédito 7 días):** al facturar un anticipo, la liquidación debe traer solo el monto que se va a facturar, para que cuadre con lo que el cliente va a abonar, y dejar el saldo por facturar y cobrar en el cuadro siguiente. También, un cuadro de observación para indicarle a Contabilidad si la operación es por anticipo, cierre de anticipo u otro comentario.
+- **Qué se hizo (21-10):** en «Abonos y facturas» del editor, «¿Qué se factura ahora?»: «Todo» o «Solo un anticipo». Con el anticipo, la hoja sale con el cuadro «FT ANTICIPO» solo por ese monto (con su N.º de factura, o PDTE) y el saldo aparte en «FT CIERRE PDTE». Si el pedido dice el % de adelanto, el monto viene puesto (se puede cambiar); si el saldo va en letras, las letras se arman sobre lo que queda después del anticipo.
+- **Observación para facturación:** sección nueva con «Por anticipo», «Cierre de anticipo» o «Sin indicación» (el CRM sugiere la que corresponde) y un comentario libre. Sale en un recuadro de la hoja y del PDF, en el aviso a Contabilidad y en «Por facturar», junto a la liquidación vigente.
 
 ### 20-10 · Reunión de gerencia con Jhon y Brenda: un solo circuito para facturar, sin correo
 - **Qué pasó (Beneficencia de Huancayo, PED-0022-2026):** la factura E001-840 salió en dólares, se anuló con nota de crédito y se emitió la E001-842. La 842 se pidió **por correo** el 16-10. Carlos: «el correo ya no existe, existe el CRM». Después postventa dio la orden de facturar y el pedido salía «atrasado» porque ya estaba facturado.

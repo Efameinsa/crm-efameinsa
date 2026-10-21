@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Paperclip, Send, X } from "lucide-react";
@@ -84,12 +84,20 @@ type Plazo = "normal" | "urgente" | "fecha";
 export function DerivarAAreaBoton({
   cuentaId,
   servicioId,
+  leadId,
+  mensajeInicial,
+  etiqueta = "Derivar a un área",
   cliente,
   referencia,
   compacto,
 }: {
   cuentaId?: string | null;
   servicioId?: string | null;
+  /** Un contacto de la bandeja (0575): al derivarlo sale de la bandeja. */
+  leadId?: string | null;
+  /** Lo que dijo el cliente, para no volver a escribirlo. */
+  mensajeInicial?: string | null;
+  etiqueta?: string;
   cliente: string;
   /** Lo que se lee arriba del diálogo: «Pedido PED-0412-2026». */
   referencia?: string | null;
@@ -99,12 +107,22 @@ export function DerivarAAreaBoton({
   const [abierto, setAbierto] = useState(false);
   const [area, setArea] = useState<AreaCaso>("finanzas");
   const [motivo, setMotivo] = useState<string | null>(null);
-  const [mensaje, setMensaje] = useState("");
+  const [mensaje, setMensaje] = useState(mensajeInicial?.trim() ?? "");
   const [plazo, setPlazo] = useState<Plazo>("normal");
   const [fecha, setFecha] = useState("");
   const [archivos, setArchivos] = useState<File[]>([]);
   const [problema, setProblema] = useState<string | null>(null);
   const [enviando, iniciar] = useTransition();
+
+  // El diálogo «Asignar» del mismo contacto puede pedir que se abra este (21-10).
+  useEffect(() => {
+    if (!leadId) return;
+    const abrir = (e: Event) => {
+      if ((e as CustomEvent<string>).detail === leadId) setAbierto(true);
+    };
+    window.addEventListener("derivar-a-area", abrir);
+    return () => window.removeEventListener("derivar-a-area", abrir);
+  }, [leadId]);
 
   const def = AREAS_CASO.find((a) => a.valor === area)!;
   const falta = !motivo
@@ -117,7 +135,7 @@ export function DerivarAAreaBoton({
 
   function limpiarTodo() {
     setMotivo(null);
-    setMensaje("");
+    setMensaje(mensajeInicial?.trim() ?? "");
     setPlazo("normal");
     setFecha("");
     setArchivos([]);
@@ -143,6 +161,7 @@ export function DerivarAAreaBoton({
         vence,
         cuentaId: cuentaId ?? null,
         servicioId: servicioId ?? null,
+        leadId: leadId ?? null,
         adjuntos: subida.adjuntos,
       });
       if (r.error) {
@@ -172,7 +191,7 @@ export function DerivarAAreaBoton({
         render={
           <Button size="sm" variant="outline" className={cn("gap-1.5", compacto ? "h-8 px-2.5 text-xs" : "")} title="Abrir un caso para Finanzas o Facturación">
             <Send className="size-3.5" />
-            <span className={compacto ? "hidden sm:inline" : undefined}>Derivar a un área</span>
+            <span className={compacto ? "hidden sm:inline" : undefined}>{etiqueta}</span>
           </Button>
         }
       />
@@ -182,6 +201,7 @@ export function DerivarAAreaBoton({
           <DialogDescription>
             {referencia ? `${referencia} · ` : ""}
             <b>{cliente}</b>. El área lo recibe en su bandeja «Casos de Central» y te contesta por el mismo caso.
+            {leadId ? " El contacto sale de esta bandeja y queda en «Derivados a otras áreas»." : ""}
           </DialogDescription>
         </DialogHeader>
 

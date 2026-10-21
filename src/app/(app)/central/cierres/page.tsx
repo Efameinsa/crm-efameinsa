@@ -17,6 +17,8 @@ import { firmarAdjuntosDeCierres, type AdjuntoCierre } from "@/lib/adjuntos-cier
 import { cargarCompendio, oportunidadDelInforme, type Compendio } from "@/lib/compendio-cierre";
 import { equiposDelPedido, type EquipoDelPedido } from "@/lib/acciones/postventa";
 import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
+import { DetalleDelServicio } from "@/components/crm/detalle-del-servicio";
+import { tipoPedidoDeItems } from "@/lib/informes";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -119,7 +121,7 @@ export default async function CierresCentralPage({
   let consulta = supabase
     .from("informes_cierre")
     .select(
-      "id, codigo, serie, fecha, emitido_at, asunto, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, oportunidad_id, venta_id, adjuntos, anulado_at, anulado_motivo, regularizado, reg_por_entregar, version, corregido_at, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial), cotizaciones!informes_cierre_cotizacion_id_fkey(id, codigo)",
+      "id, codigo, serie, fecha, emitido_at, asunto, items, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, oportunidad_id, venta_id, adjuntos, anulado_at, anulado_motivo, regularizado, reg_por_entregar, version, corregido_at, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial), cotizaciones!informes_cierre_cotizacion_id_fkey(id, codigo)",
     )
     .not("emitido_at", "is", null);
   if (busqueda) {
@@ -147,7 +149,7 @@ export default async function CierresCentralPage({
   // lista entera y no una por fila (migración 0087).
   const { data: pedidos } = await supabase
     .from("servicios_postventa")
-    .select("id, informe_cierre_id, numero_pedido_erp, pedido_ejecutado_at, liquidacion_at, aprobado_at, series_pedidas_at, liquidacion_adjunto, liquidacion_subida_at, liquidacion_rechazada_at, liquidacion_rechazada_motivo, facturacion_observada_at, facturacion_observada_motivo, apuro_almacen_at, apuro_almacen_n, apuro_finanzas_at, apuro_finanzas_n, accesorios_incluye, accesorios_detalle")
+    .select("id, informe_cierre_id, numero_pedido_erp, pedido_ejecutado_at, liquidacion_at, aprobado_at, series_pedidas_at, liquidacion_adjunto, liquidacion_subida_at, liquidacion_rechazada_at, liquidacion_rechazada_motivo, facturacion_observada_at, facturacion_observada_motivo, apuro_almacen_at, apuro_almacen_n, apuro_finanzas_at, apuro_finanzas_n, accesorios_incluye, accesorios_detalle, tipo_pedido")
     .in("informe_cierre_id", todas.map((f) => f.id));
   const pedidoPorInforme = new Map((pedidos ?? []).map((p) => [p.informe_cierre_id as string, p]));
 
@@ -642,6 +644,8 @@ export default async function CierresCentralPage({
                       cliente={{ cuentaId: f.cuenta_id, nombre: f.cliente_nombre, empresa: f.serie === "OPEN" ? "open" : f.serie === "EFAMEINSA" ? "efameinsa" : null }}
                       fileEntregado={pedido?.id ? (fileDePedido.get(pedido.id as string) ?? null) : null}
                       accesorios={pedido?.id ? { incluye: (pedido.accesorios_incluye as boolean | null) ?? null, detalle: (pedido.accesorios_detalle as string | null) ?? null } : null}
+                      esServicio={esPedidoDeServicio(pedido?.tipo_pedido as string | null | undefined)}
+                      sugiereServicio={esPedidoDeServicio(tipoPedidoDeItems(((f as { items?: unknown }).items as { tipo?: string; descripcion?: string; bloque?: string }[] | null) ?? []))}
                     />
                   );
                 })()}
@@ -674,7 +678,12 @@ export default async function CierresCentralPage({
                     </div>
                   );
                 })()}
-                {equiposPorInforme.has(f.id) && (
+                {/* EL SERVICIO SE ESCRIBE (0574): el cuadro de la cotización, editable. */}
+                {equiposPorInforme.has(f.id) && esPedidoDeServicio(pedido?.tipo_pedido as string | null | undefined) ? (
+                  <div className="mt-2">
+                    <DetalleDelServicio servicioId={pedido!.id as string} equipos={equiposPorInforme.get(f.id)!} despachado={false} />
+                  </div>
+                ) : equiposPorInforme.has(f.id) && (
                   <div className="mt-2">
                     <EquiposDelPedido
                       servicioId={pedido!.id as string}
@@ -694,4 +703,9 @@ export default async function CierresCentralPage({
     </SeccionPanel>
     </>
   );
+}
+
+/** Mantenimiento, revisión o embalaje: se escribe, no pide código al almacén (0574). */
+function esPedidoDeServicio(tipo: string | null | undefined) {
+  return tipo === "mantenimiento" || tipo === "revision" || tipo === "embalaje";
 }

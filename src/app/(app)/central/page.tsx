@@ -1,11 +1,13 @@
 import { fechaHoraLima, fechaLima } from "@/lib/fechas";
 import { ETIQUETA_TIPO_EXPEDIENTE } from "@/lib/tipo-expediente";
 import { cn } from "@/lib/utils";
+import Link from "@/components/enlace";
 import { Phone, MessageCircle, Globe, Megaphone, Camera, Mail, User, Users, IdCard, UserRoundPen, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { liberarLeadsSinTipificar } from "@/lib/setter-llamadas";
 import { AsignarLeadDialog } from "@/components/crm/asignar-lead-dialog";
+import { DerivarAAreaBoton } from "@/components/crm/derivar-a-area-boton";
 import { DescartarLeadBoton } from "@/components/crm/descartar-lead-boton";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { CargaDerivacion } from "@/components/crm/carga-derivacion";
@@ -78,14 +80,11 @@ const ETIQUETA_TIPO_PV: Record<string, string> = ETIQUETA_TIPO_EXPEDIENTE;
  * Se pide el conteo exacto y un tope que no recorte en silencio; si algún día
  * se pasa, la pantalla lo dice.
  */
+const COLUMNAS_BANDEJA =
+  "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, mensaje_original, mensaje_editado_at, datos_originales, datos_editados_at, adjuntos, fuente, gclid, gbraid, wbraid, fbclid, utm_source, utm_medium, utm_campaign, utm_content, experimento, pagina_entrada, pagina_envio, referente, codigo_campania_wa, plataforma_campania_wa, recibido_at, recibido_por, es_prueba, sugerido_a, sugerido_tipo, sugerido_por, cuenta_id";
+
 function consultaBandeja(supabase: Awaited<ReturnType<typeof createClient>>, modoEnsayo: boolean, soloPractica = false) {
-  const q = supabase
-    .from("leads")
-    .select(
-      "id, codigo, canal, nombre_contacto, razon_social, telefono, num_doc, email, mensaje, mensaje_original, mensaje_editado_at, datos_originales, datos_editados_at, adjuntos, fuente, gclid, gbraid, wbraid, fbclid, utm_source, utm_medium, utm_campaign, utm_content, experimento, pagina_entrada, pagina_envio, referente, codigo_campania_wa, plataforma_campania_wa, recibido_at, recibido_por, es_prueba, sugerido_a, sugerido_tipo, sugerido_por, cuenta_id",
-      { count: "exact" },
-    )
-    .eq("estado", "pendiente_triaje");
+  const q = supabase.from("leads").select(COLUMNAS_BANDEJA, { count: "exact" }).eq("estado", "pendiente_triaje");
   // Una cuenta de práctica (central_test, 19-10: la prueba del recorrido) ve SOLO los contactos
   // de práctica: así no puede derivar por error uno real.
   return (soloPractica ? q.eq("es_prueba", true) : modoEnsayo ? q : q.eq("es_prueba", false))
@@ -93,8 +92,12 @@ function consultaBandeja(supabase: Awaited<ReturnType<typeof createClient>>, mod
     .limit(TOPE_BANDEJA);
 }
 
-export default async function CentralPage() {
+export default async function CentralPage({ searchParams }: { searchParams: Promise<{ lead?: string }> }) {
   const supabase = await createClient();
+  // UN CONTACTO, NO LA BANDEJA (Santos, 21-10): en «Hoy» Central tocó
+  // «Derivar» en COFACO y caía en la bandeja entera con todos los demás.
+  // Con ?lead= la pantalla muestra solo ese contacto y abre «Asignar».
+  const { lead: leadFoco } = await searchParams;
 
   // El banco de pruebas solo se ve con el código de gerencia levantado, igual
   // que en la pantalla de derivados. Central lo reportó el 01-09: la atención
@@ -174,6 +177,29 @@ export default async function CentralPage() {
     cargarSupervisores(supabase),
   ]);
 
+  // El contacto que se vino a derivar. Puede no estar en la lista (más allá
+  // del tope) o haber salido de la bandeja mientras tanto: se busca aparte.
+  let foco = leadFoco ? ((leads ?? []).find((l) => l.id === leadFoco) ?? null) : null;
+  let focoFuera: { codigo: string | null; nombre: string; estado: string; asignadoA: string | null; asignadoAt: string | null } | null = null;
+  if (leadFoco && !foco) {
+    const { data: l } = await supabase
+      .from("leads")
+      .select(`${COLUMNAS_BANDEJA}, estado, asignado_at, asignado:perfiles!leads_asignado_a_fkey(nombre)`)
+      .eq("id", leadFoco)
+      .maybeSingle();
+    const info = l as unknown as ({ estado: string; asignado_at: string | null; asignado: { nombre: string } | null } & NonNullable<typeof leads>[number]) | null;
+    if (info?.estado === "pendiente_triaje") foco = info;
+    else if (info)
+      focoFuera = {
+        codigo: info.codigo,
+        nombre: info.razon_social || info.nombre_contacto || "El contacto",
+        estado: info.estado,
+        asignadoA: info.asignado?.nombre ?? null,
+        asignadoAt: info.asignado_at,
+      };
+  }
+  const visibles = foco ? [foco] : leadFoco ? [] : (leads ?? []);
+
   // Cuáles de los que están en la bandeja ya están en el sistema. Va acá y no
   // dentro del diálogo de asignar porque el problema era justamente que Central
   // no lo sabía ANTES de decidir: el 25-08 tenía 24 repetidos de 43 delante y
@@ -185,7 +211,7 @@ export default async function CentralPage() {
   // que trae las prácticas a esta cola.)
   const coincidencias = await coincidenciasDeLaBandeja(
     supabase,
-    (leads ?? []).filter((l) => !l.es_prueba),
+    visibles.filter((l) => !l.es_prueba),
   );
   const repetidos = [...coincidencias.values()].filter((c) => c.clase === "duplicado").length;
 
@@ -194,7 +220,7 @@ export default async function CentralPage() {
   // contacto conocido, no la base entera.
   // Las tres cosas que siguen no dependen entre sí: van juntas. Antes eran
   // tres viajes en fila en la pantalla que más se abre del CRM (11-09).
-  const idsQueRegistraron = [...new Set((leads ?? []).map((l) => l.recibido_por).filter(Boolean))] as string[];
+  const idsQueRegistraron = [...new Set(visibles.map((l) => l.recibido_por).filter(Boolean))] as string[];
   const [historias, { data: quienesRegistraron }, adjuntosPorLead] = await Promise.all([
     historiaDeCuentas(supabase, [...new Set([...coincidencias.values()].map((c) => c.cuentaId))]),
     idsQueRegistraron.length
@@ -202,7 +228,7 @@ export default async function CentralPage() {
       : Promise.resolve({ data: [] as { id: string; nombre: string; codigo_comercial: string | null }[] }),
     // Fotos/PDF que Central adjuntó al registrar (25-08): URLs firmadas en una
     // sola llamada batch, como en el historial de cuenta.
-    firmarAdjuntosDeLeads(supabase, leads ?? []),
+    firmarAdjuntosDeLeads(supabase, visibles),
   ]);
 
   // Quién avisó, cuando el contacto lo mandó un comercial desde la ficha de su
@@ -266,11 +292,46 @@ export default async function CentralPage() {
         </p>
       )}
 
-      {!leads || leads.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No hay contactos comerciales pendientes de asignar.</p>
+      {/* Se vino a derivar UN contacto (desde «Hoy» o un enlace): se dice cuál
+          y cómo volver a la bandeja entera, que sigue ahí. */}
+      {leadFoco && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+          <span>
+            {foco ? (
+              <>
+                Derivando <b>{foco.razon_social || foco.nombre_contacto || "el contacto"}</b>
+                {foco.codigo ? ` (${foco.codigo})` : ""}. Elija a quién en «Asignar».
+              </>
+            ) : focoFuera ? (
+              <>
+                <b>{focoFuera.nombre}</b>
+                {focoFuera.codigo ? ` (${focoFuera.codigo})` : ""} ya no está por derivar
+                {focoFuera.asignadoA
+                  ? `: se lo derivaron a ${focoFuera.asignadoA}${focoFuera.asignadoAt ? ` el ${fechaHoraLima(focoFuera.asignadoAt)}` : "."}`
+                  : focoFuera.estado === "descartado"
+                    ? ": se descartó."
+                    : "."}
+              </>
+            ) : (
+              "Ese contacto no existe o no lo puede ver."
+            )}
+          </span>
+          <span className="flex gap-3">
+            <Link href="/nuevo" className="text-xs font-semibold text-primary hover:underline">
+              Volver a Hoy
+            </Link>
+            <Link href="/central" className="text-xs font-semibold text-primary hover:underline">
+              Ver toda la bandeja ({(totalPendientes ?? leads?.length ?? 0).toLocaleString("es-PE")})
+            </Link>
+          </span>
+        </div>
+      )}
+
+      {visibles.length === 0 ? (
+        leadFoco ? null : <p className="text-sm text-muted-foreground">No hay contactos comerciales pendientes de asignar.</p>
       ) : (
         <div className="space-y-2">
-          {leads.map((lead) => {
+          {visibles.map((lead) => {
             const Icono = ICONO_CANAL[lead.canal] ?? Globe;
             // DE DÓNDE VINO (Santos, 11-09): formulario de Google Ads, landing
             // de campaña, web que vino de un anuncio, o web orgánica. Si el
@@ -398,7 +459,7 @@ export default async function CentralPage() {
                         : `entró solo${origen ? ` · ${origen.etiqueta.toLowerCase()}` : " (formulario web)"}`}
                     </span>
                   </div>
-                  <div className="ml-auto flex gap-2">
+                  <div className="ml-auto flex flex-wrap justify-end gap-2">
                     <AsignarLeadDialog
                       leadId={lead.id}
                       cuentaId={lead.cuenta_id ?? null}
@@ -410,6 +471,7 @@ export default async function CentralPage() {
                       mensaje={lead.mensaje}
                       comerciales={comerciales ?? []}
                       pideCodigoPostventa={pideCodigoPostventa}
+                      abrirAlCargar={foco?.id === lead.id}
                       sugerencia={
                         lead.sugerido_a
                           ? {
@@ -419,6 +481,18 @@ export default async function CentralPage() {
                             }
                           : null
                       }
+                    />
+                    {/* Lo que es de Finanzas o Facturación —un pago, una factura,
+                        las letras— no va a un comercial (Santos, 21-10: COFACO
+                        preguntaba por el número de factura de sus letras y en
+                        «Asignar» no estaba Finanzas). Va como caso (0575). */}
+                    <DerivarAAreaBoton
+                      leadId={lead.id}
+                      cuentaId={lead.cuenta_id ?? null}
+                      cliente={lead.razon_social || lead.nombre_contacto || "el contacto"}
+                      referencia={lead.codigo ? `Contacto ${lead.codigo}` : null}
+                      mensajeInicial={lead.mensaje}
+                      etiqueta="A Finanzas o Facturación"
                     />
                     <DerivarAvisoBoton
                       leadId={lead.id}

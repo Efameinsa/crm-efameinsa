@@ -107,6 +107,8 @@ interface Props {
    * tiene el código (gerencia, operaciones) o con el código levantado.
    */
   pideCodigoPostventa?: boolean;
+  /** Abrir el diálogo al cargar la pantalla (bandeja con ?lead=). */
+  abrirAlCargar?: boolean;
 }
 
 const ETIQUETA_TIPO: Record<string, string> = ETIQUETA_TIPO_EXPEDIENTE;
@@ -137,8 +139,9 @@ const MOTIVO: Record<CoincidenciaCartera["motivo"], { etiqueta: string; fuerte: 
 // histórico (RUC/DNI, teléfono, correo, nombre). Un match fuerte preselecciona
 // al comercial de esa cartera (regla R3); los de nombre solo advierten:
 // puede haber muchas "María Leguía".
-export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDoc, email, mensaje, comerciales, sugerencia, cuentaId = null, pideCodigoPostventa = false }: Props) {
-  const [abierto, setAbierto] = useState(false);
+export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDoc, email, mensaje, comerciales, sugerencia, cuentaId = null, pideCodigoPostventa = false, abrirAlCargar = false }: Props) {
+  // Abre solo cuando Central llega a derivar ESTE contacto (desde «Hoy», 21-10).
+  const [abierto, setAbierto] = useState(abrirAlCargar);
   const [coincidencias, setCoincidencias] = useState<CoincidenciaCartera[] | null>(null);
   /**
    * LA FICHA ELEGIDA ENTRE LAS COINCIDENCIAS (0223). Hasta el 10-09 el clic en
@@ -365,6 +368,27 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
               .join(" · ") || "Elija el comercial que va a atender este contacto."}
           </DialogDescription>
         </DialogHeader>
+        {/* Acá solo hay comerciales y postventa (Santos, 21-10: COFACO buscaba
+            Finanzas en esta lista). Se dice dónde está lo otro. */}
+        {/* 21-10 11:22, captura de Central: el aviso decía «cierre esta ventana
+            y use el botón de al lado», pero en pantalla angosta ese botón era
+            solo un ícono. Ahora se deriva desde acá mismo. */}
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+          <span className="text-muted-foreground">¿Es de pagos, facturas o letras? No va a un comercial.</span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 border-primary/40 px-2.5 text-xs font-semibold text-primary"
+            onClick={() => {
+              setAbierto(false);
+              // Lo abre el «A Finanzas o Facturación» de este mismo contacto.
+              setTimeout(() => window.dispatchEvent(new CustomEvent("derivar-a-area", { detail: leadId })), 150);
+            }}
+          >
+            Derivar a Finanzas o Facturación
+          </Button>
+        </div>
 
         {/* Cuando el aviso lo mandó un comercial, se dice de entrada: no es un
             contacto que llegó de la calle, es uno que ya se habló y viene con

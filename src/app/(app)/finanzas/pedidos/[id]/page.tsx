@@ -127,7 +127,7 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
         />
       )}
 
-      {vb && <LetrasDelPedido s={{ id, ...vb, letras_estado: vb.letras_estado as EstadoLetras | null }} cliente={p.cliente} />}
+      {vb && <LetrasDelPedido s={{ id, ...vb, letras_estado: vb.letras_estado as EstadoLetras | null }} cliente={p.cliente} puedeEntregar />}
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">

@@ -1177,7 +1177,8 @@ function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
               s.letras_estado === "van_con_el_equipo"
                 ? `Letras de crédito${s.letras_cantidad ? ` (${s.letras_cantidad})` : ""}: falta confirmar que se entregaron al cliente`
                 : `Letras de crédito entregadas al cliente${s.letras_cantidad ? ` (${s.letras_cantidad})` : ""}`,
-            responsable: "almacen" as ResponsablePaso,
+            // Antes de salir las recoge el almacén; la entrega al cliente la confirma Finanzas (0578).
+            responsable: (faltanLetrasEnAlmacen(s) ? "almacen" : "finanzas") as ResponsablePaso,
             hecho: s.letras_estado === "entregadas" || s.letras_estado === "firmadas",
             cuando: s.letras_entregadas_at ?? null,
             detalle:
@@ -1190,7 +1191,7 @@ function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
                 .join(" · ") || undefined,
             trabado:
               s.letras_estado === "van_con_el_equipo" && s.despachado_at
-                ? "El equipo salió con las letras: confirme a quién se entregaron. Sin eso no se da el doble check del despacho"
+                ? "El equipo salió con las letras: Finanzas tiene que confirmar a quién se entregaron. Después, postventa verifica el despacho"
                 : faltanLetrasEnAlmacen(s)
                   ? "El almacén tiene que recoger las letras en Finanzas antes de que salga"
                   : undefined,

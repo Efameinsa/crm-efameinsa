@@ -306,3 +306,38 @@ export async function quitarLineaDelPedido(itemId: string, servicioId: string): 
   revalidarLista(servicioId);
   return { error: null };
 }
+
+/**
+ * EL PEDIDO DE SERVICIO NO PASA POR EL ALMACÉN (0574; Santos 21-10): «en
+ * servicio no se pide código, es solo escrito, entonces no tiene que enterarse
+ * almacén». Central dice «es un servicio»: el pedido nace (sin avisar a nadie)
+ * como mantenimiento y se trae el detalle del cierre o de la cotización.
+ */
+export async function armarPedidoDeServicio(informeId: string): Promise<{ error: string | null }> {
+  await requerirPerfil();
+  const { supabase, servicioId, error } = await preparar(informeId);
+  if (error || !servicioId) return { error: error ?? "No se pudo crear el pedido" };
+  const { error: e1 } = await supabase.rpc("pasar_pedido_a_servicio", { p_servicio: servicioId, p_tipo: "mantenimiento" });
+  if (e1) return { error: limpiar(e1.message) };
+  // Si no hay líneas que traer, la tabla queda vacía para escribirlas a mano.
+  if (!(await supabase.from("pedido_equipos").select("id", { count: "exact", head: true }).eq("servicio_id", servicioId)).count) {
+    await supabase.rpc("traer_lineas_del_cierre", { p_servicio: servicioId });
+  }
+  revalidarLista(servicioId);
+  return { error: null };
+}
+
+export type FilaDelServicio = { id?: string | null; descripcion: string; cantidad: number; serie: string; precio: number | null };
+
+/** La tabla entera del detalle del servicio, como la dejó Central (0574). */
+export async function guardarDetalleDelServicio(servicioId: string, filas: FilaDelServicio[]): Promise<{ error: string | null }> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("guardar_detalle_del_servicio", {
+    p_servicio: servicioId,
+    p_filas: filas.map((f) => ({ id: f.id ?? null, descripcion: f.descripcion.trim(), cantidad: f.cantidad, serie: f.serie.trim(), precio: f.precio })),
+  });
+  if (error) return { error: limpiar(error.message) };
+  revalidarLista(servicioId);
+  return { error: null };
+}

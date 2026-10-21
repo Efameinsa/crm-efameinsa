@@ -264,11 +264,43 @@ export function EditorLiquidacion({
             {l.hayCola && (
               <div className="mt-2 rounded-md border border-border p-2">
                 <p className="text-xs">
-                  <b>{abonos.length ? "Lo que falta cobrar" : "Toda la operación"}</b> · {m(l.bloques[l.bloques.length - 1]?.filas[0].monto ?? 0)}
-                  <span className="text-muted-foreground"> · si ya se facturó (crédito, pago contra entrega), ponga aquí el número</span>
+                  <b>{abonos.length ? "Lo que falta cobrar" : "Toda la operación"}</b> · {m(redondear2(l.falta + (c.retenido?.monto ?? 0)))}
+                  <span className="text-muted-foreground">
+                    {l.anticipo ? " · ahora se factura solo el anticipo; el resto queda en «FT CIERRE PDTE»" : " · si ya se facturó (crédito, pago contra entrega), ponga aquí el número"}
+                  </span>
                 </p>
+                {/* Buzón Jhon 21-10: al facturar un anticipo, solo ese monto, para que cuadre con lo que va a abonar. */}
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] text-muted-foreground">¿Qué se factura ahora?</span>
+                  <button
+                    type="button"
+                    onClick={() => setC((v) => ({ ...v, anticipo: null }))}
+                    className={cn("rounded-md border px-2.5 py-1 text-xs", !l.anticipo ? "border-primary bg-primary/5 font-semibold text-foreground" : "border-border text-muted-foreground hover:bg-accent")}
+                  >
+                    Todo ({m(redondear2(l.falta + (c.retenido?.monto ?? 0)))})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setC((v) => ({ ...v, anticipo: v.anticipo && v.anticipo > 0 ? v.anticipo : redondear2((l.falta * (base.pctAdelanto ?? 50)) / 100) }))}
+                    className={cn("rounded-md border px-2.5 py-1 text-xs", l.anticipo ? "border-primary bg-primary/5 font-semibold text-foreground" : "border-border text-muted-foreground hover:bg-accent")}
+                  >
+                    Solo un anticipo
+                  </button>
+                </div>
                 <div className="mt-1.5 grid gap-2 sm:grid-cols-3">
-                  <Campo label="N.º de factura">
+                  {l.anticipo > 0 && (
+                    <Campo label={`Anticipo a facturar (${simbolo}, con IGV)`}>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={c.anticipo ?? ""}
+                        onChange={(ev) => setC((v) => ({ ...v, anticipo: ev.target.value === "" ? null : Number(ev.target.value) }))}
+                        className="h-8 text-right"
+                      />
+                    </Campo>
+                  )}
+                  <Campo label={l.anticipo ? "N.º de factura del anticipo" : "N.º de factura"}>
                     <Input
                       list={`facturas-${base.servicioId}`}
                       value={c.facturaSaldo ?? ""}
@@ -277,7 +309,15 @@ export function EditorLiquidacion({
                       placeholder="Vacío = FT PDTE"
                     />
                   </Campo>
+                  {l.anticipo > 0 && (
+                    <p className="self-end pb-1.5 text-[11px] text-muted-foreground">
+                      Queda por facturar y cobrar: <b className="text-foreground tabular-nums">{m(redondear2(l.falta - l.anticipo + (c.retenido?.monto ?? 0)))}</b>
+                    </p>
+                  )}
                 </div>
+                {c.anticipo != null && c.anticipo > 0 && !l.anticipo && (
+                  <p className="mt-1 text-[11px] text-amber-800">El anticipo tiene que ser menor que lo que falta cobrar ({m(l.falta)}): así como está, se factura todo.</p>
+                )}
               </div>
             )}
             {/* Buzón Jhon 19-10: si el abono ya se ve en la cuenta, se confirma aquí y entra a esta misma liquidación. */}
@@ -289,7 +329,7 @@ export function EditorLiquidacion({
                 servicioId={base.servicioId}
                 cliente={base.cliente}
                 moneda={base.moneda}
-                sugerido={l.hayCola ? (l.bloques[l.bloques.length - 1]?.filas[0].monto ?? 0) : 0}
+                sugerido={l.porCobrarAhora}
                 cuenta={base.empresa === "OPEN" ? "Open Investments" : "Efameinsa"}
                 variante="outline"
               />
@@ -302,6 +342,36 @@ export function EditorLiquidacion({
             {base.facturas.length > 0 && (
               <p className="mt-1.5 text-[11px] text-muted-foreground">Facturas registradas por Contabilidad: {base.facturas.map((f) => f.numero).join(", ")}.</p>
             )}
+          </Seccion>
+
+          {/* Buzón Jhon 21-10: decirle a Contabilidad, en la misma liquidación, cómo se factura. */}
+          <Seccion titulo="Observación para facturación" ayuda="Contabilidad la ve en la hoja, en Por facturar y en el aviso: si es un anticipo, el cierre del anticipo u otra indicación." editado={c.observacion?.tipo !== undefined || Boolean(c.observacion?.texto?.trim())}>
+            <div className="flex flex-wrap gap-1.5">
+              {([null, "anticipo", "cierre_anticipo"] as const).map((t) => {
+                const elegido = (c.observacion?.tipo === undefined ? l.observacionSugerida : c.observacion.tipo) === t;
+                return (
+                  <button
+                    key={t ?? "no"}
+                    type="button"
+                    onClick={() => setC((v) => ({ ...v, observacion: { ...(v.observacion ?? {}), tipo: t } }))}
+                    className={cn("rounded-md border px-2.5 py-1 text-xs", elegido ? "border-primary bg-primary/5 font-semibold text-foreground" : "border-border text-muted-foreground hover:bg-accent")}
+                  >
+                    {t === "anticipo" ? "Por anticipo" : t === "cierre_anticipo" ? "Cierre de anticipo" : "Sin indicación"}
+                    {t && t === l.observacionSugerida && c.observacion?.tipo === undefined ? " · sugerida" : ""}
+                  </button>
+                );
+              })}
+            </div>
+            <Campo label="Otro comentario para Contabilidad (opcional)" className="mt-2">
+              <Textarea
+                value={c.observacion?.texto ?? ""}
+                onChange={(e) => setC((v) => ({ ...v, observacion: { ...(v.observacion ?? {}), texto: e.target.value } }))}
+                rows={2}
+                className="text-xs uppercase"
+                placeholder="Ej.: FACTURAR A NOMBRE DE LA EMPRESA DEL GRUPO · EMITIR CON LA OC 123"
+              />
+            </Campo>
+            {l.observacion && <p className="mt-1.5 rounded bg-secondary px-2 py-1 text-[11px] font-semibold text-foreground">{l.observacion}</p>}
           </Seccion>
 
           <Seccion titulo="Detracción o retención" ayuda="Solo si aplica. Cuenta como pagado: postventa puede despachar aunque falte cobrarla.">

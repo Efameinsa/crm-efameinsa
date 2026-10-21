@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aplicarAjustes, calcularLiquidacion, complementosIniciales, type BaseLiquidacion, type Complementos } from "./liquidacion-automatica";
+import { aplicarAjustes, calcularLiquidacion, complementosIniciales, pctAdelanto, type BaseLiquidacion, type Complementos } from "./liquidacion-automatica";
 
 // Los cuatro Excel de Jhon (reunión 17-10): contado, anticipos con comisión,
 // detracción de un servicio y saldo en letras.
@@ -163,5 +163,61 @@ describe("liquidación automática (0534)", () => {
     expect(e.igv).toBe(2519.82);
     expect(e.total).toBe(16518.82);
     expect(e.gratuito).toBe(450);
+  });
+});
+
+// Buzón Jhon 21-10 (FAMILY FARMS PED-0037-2026, 50 % ADELANTO + 50 % CRÉDITO 7 DÍAS):
+// al facturar el anticipo solo va ese monto; el saldo, en el cuadro siguiente.
+describe("factura solo del anticipo y observación para facturación", () => {
+  const ff = base({ total: 2950, subtotal: 2500, igv: 450, pctAdelanto: 50, formaPago: "50% ADELANTO + 50% CREDITO 7 DIAS" });
+  it("sin abonos y 50 % de adelanto: sugiere facturar la mitad", () => {
+    const c = complementosIniciales(ff, "2026-10-21");
+    expect(c.anticipo).toBe(1475);
+    const l = calcularLiquidacion(ff, c, "2026-10-21");
+    expect(l.bloques).toHaveLength(2);
+    expect(l.bloques[0].filas[0]).toEqual({ izquierda: "FT ANTICIPO PDTE", concepto: "TOTAL", monto: 1475 });
+    expect(l.bloques[0].filas[1].concepto).toBe("ABONO 1");
+    expect(l.bloques[1].filas[0]).toEqual({ izquierda: "FT CIERRE PDTE", concepto: "TOTAL", monto: 1475 });
+    expect(l.bloques[1].filas[1].concepto).toBe("ABONO 2");
+    expect(l.porCobrarAhora).toBe(1475);
+    expect(l.saldo).toBe(2950);
+    expect(l.observacionSugerida).toBe("anticipo");
+    expect(l.observacion).toContain("OPERACIÓN POR ANTICIPO: FACTURAR US$ 1,475.00 DE US$ 2,950.00");
+    expect(l.notas[0]).toBe("FACTURA: FT ANTICIPO PDTE // FT CIERRE PDTE");
+  });
+  it("la factura del anticipo va en su bloque y es la vigente", () => {
+    const l = calcularLiquidacion(ff, { ...complementosIniciales(ff, "2026-10-21"), facturaSaldo: "E001-900" }, "2026-10-21");
+    expect(l.bloques[0].filas[0].izquierda).toBe("FT ANTICIPO E001-900");
+    expect(l.bloques[1].filas[0].izquierda).toBe("FT CIERRE PDTE");
+    expect(l.facturaVigente).toBe("E001-900");
+  });
+  it("«Todo» deja un solo bloque, como antes", () => {
+    const l = calcularLiquidacion(ff, { ...sin, anticipo: null }, "2026-10-21");
+    expect(l.bloques).toHaveLength(1);
+    expect(l.bloques[0].filas[0].monto).toBe(2950);
+    expect(l.observacion).toBe("");
+  });
+  it("con el anticipo ya abonado y facturado: sugiere cierre de anticipo, sin volver a partir", () => {
+    const b = { ...ff, abonos: [abono("a", 1475)], facturas: [{ numero: "E001-900", fechaEmision: "2026-10-22", registradaAt: "2026-10-22T12:00:00Z" }] };
+    const c = complementosIniciales(b, "2026-10-23");
+    expect(c.anticipo).toBeNull();
+    const l = calcularLiquidacion(b, { ...c, facturaSaldo: "" }, "2026-10-23");
+    expect(l.bloques.map((x) => x.filas[0].izquierda)).toEqual(["ANTICIPO FT E001-900", "FT CIERRE PDTE"]);
+    expect(l.observacionSugerida).toBe("cierre_anticipo");
+    expect(l.observacion).toBe("CIERRE DE ANTICIPO: FACTURAR EL SALDO DE US$ 1,475.00 (EL ANTICIPO VA EN FT E001-900)");
+  });
+  it("se puede quitar la observación o escribir otra", () => {
+    const c = complementosIniciales(ff, "2026-10-21");
+    expect(calcularLiquidacion(ff, { ...c, observacion: { tipo: null } }, "2026-10-21").observacion).toBe("");
+    expect(calcularLiquidacion(ff, { ...c, observacion: { tipo: null, texto: "emitir con la oc 55" } }, "2026-10-21").observacion).toBe("EMITIR CON LA OC 55");
+  });
+  it("las letras van sobre el saldo que queda después del anticipo", () => {
+    const l = calcularLiquidacion(ff, { ...sin, anticipo: 950, letras: { cantidad: 2, cadaDias: 30, giro: "2026-10-21", interes: 0 } }, "2026-10-21");
+    expect(l.letras.map((x) => x.monto)).toEqual([1000, 1000]);
+  });
+  it("el % sale del pedido o de la forma de pago", () => {
+    expect(pctAdelanto(50, null)).toBe(50);
+    expect(pctAdelanto(100, "20% ADELANTO // 80% FINALES DE MES")).toBe(20);
+    expect(pctAdelanto(100, "CONTADO")).toBeNull();
   });
 });

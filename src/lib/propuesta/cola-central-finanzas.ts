@@ -431,7 +431,8 @@ export async function colaCentral(supabase: Cliente): Promise<{ tareas: Tarea[];
       cliente: sinRuc(quien),
       que: `Derivar el contacto${l.canal ? ` · ${ETIQUETA_CANAL[l.canal] ?? l.canal}` : ""}`,
       porque: `Entró ${dias(l.recibido_at, hoy)} y todavía no tiene a quién. ${(l.mensaje ?? "").split("\n")[0].slice(0, 80)}`.trim(),
-      accion: { etiqueta: "Derivar", href: "/central" },
+      // Al contacto, no a la bandeja entera (Santos, 21-10, COFACO).
+      accion: { etiqueta: "Derivar", href: `/central?lead=${l.id}` },
     });
   }
 

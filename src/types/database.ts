@@ -15,6 +15,8 @@ export type AreaDestino =
   | "rrhh"
   | "proveedores"
   | "administracion"
+  | "finanzas"
+  | "facturacion"
   | "otros";
 
 export type CanalContacto =

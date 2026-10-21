@@ -5,6 +5,9 @@ import { MembreteDocumento } from "@/components/crm/membrete-documento";
 import { puedeVerPrecios } from "@/lib/postventa";
 import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
+import { DetalleDelServicio } from "@/components/crm/detalle-del-servicio";
+import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
+import { equiposDelPedido } from "@/lib/acciones/postventa";
 
 export const dynamic = "force-dynamic";
 
@@ -47,10 +50,12 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
   const supabase = await createClient();
   const { data: s } = await supabase
     .from("servicios_postventa")
-    .select("id, informe_cierre_id, numero_pedido_erp, cliente_texto, pedido_ejecutado_at, liquidacion_at, modalidad, pedido_generado_por, pedido_ejecutado_por, liquidacion_subida_por, liquidacion_por")
+    .select("id, informe_cierre_id, numero_pedido_erp, cliente_texto, pedido_ejecutado_at, liquidacion_at, modalidad, pedido_generado_por, pedido_ejecutado_por, liquidacion_subida_por, liquidacion_por, tipo_pedido, despachado_at, cerrado_at")
     .eq("id", id)
     .maybeSingle();
   if (!s) notFound();
+  // Antes de leer la tabla: un servicio sin líneas se llena solo con las del cierre.
+  const paraEditar = !s.despachado_at && !s.cerrado_at ? await equiposDelPedido(id) : [];
   const [{ data: inf }, { data: equipos }] = await Promise.all([
     s.informe_cierre_id
       ? supabase
@@ -59,7 +64,7 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
           .eq("id", s.informe_cierre_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase.from("pedido_equipos").select("orden, descripcion, serie").eq("servicio_id", id).order("orden"),
+    supabase.from("pedido_equipos").select("orden, descripcion, serie, cantidad, precio").eq("servicio_id", id).order("orden"),
   ]);
   const i = inf as unknown as {
     codigo: string | null; serie: string | null; fecha: string | null; cliente_nombre: string; cliente_doc: string | null; cliente_direccion: string | null;
@@ -75,8 +80,15 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
   const ids = [idCentral, idFinanzas].filter(Boolean) as string[];
   const { data: firmantes } = ids.length ? await supabase.from("perfiles").select("id, nombre").in("id", ids) : { data: [] };
   const nombreDe = (x: string | null) => (firmantes ?? []).find((f) => f.id === x)?.nombre ?? "";
-  const lista = (equipos ?? []) as { orden: number; descripcion: string; serie: string | null }[];
-  const pendientes = lista.filter((e) => !e.serie).length;
+  const lista = (equipos ?? []) as { orden: number; descripcion: string; serie: string | null; cantidad: number | null; precio: number | null }[];
+  // El servicio se escribe (0574): cantidad y serie de la máquina atendida, sin «serie pendiente».
+  const esServicio = ["mantenimiento", "revision", "embalaje"].includes((s.tipo_pedido as string | null) ?? "");
+  const conPrecio = esServicio && verPrecios && lista.some((e) => e.precio != null);
+  const pendientes = esServicio ? 0 : lista.filter((e) => !e.serie).length;
+  // CORREGIR DESDE LA HOJA (Santos 21-10, FAMILY FARMS PED-0037-2026: «generó
+  // el pedido por error y ahora no puede editarlo, no tiene vista para
+  // editar»). Mientras no salga, Central lo corrige aquí mismo; no se imprime.
+  const editable = perfil.rol === "central" && !s.despachado_at && !s.cerrado_at;
   const empresa = i?.serie === "OPEN" ? "Open Investments" : "Corporación Efameinsa e Ingeniería S.A.";
   const cliente = i?.cliente_nombre ?? (s.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "");
   const titulo = `PEDIDO ${s.numero_pedido_erp ?? "SIN NÚMERO"}`;
@@ -86,7 +98,8 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
   const enLaTabla = new Set(lista.map((e) => primeraLinea(e.descripcion)));
   // 0572 (FAMILY FARMS, PED-0037-2026): un servicio vendido no siembra fila
   // (0404); si Central no lo trajo a la tabla, el trabajo igual sale aquí.
-  const otros = (i?.items ?? []).filter((x) => x.descripcion?.trim() && !enLaTabla.has(primeraLinea(x.descripcion)));
+  // En un servicio todo va en «Detalle del servicio», que es lo que se edita (Santos 21-10).
+  const otros = esServicio ? [] : (i?.items ?? []).filter((x) => x.descripcion?.trim() && !enLaTabla.has(primeraLinea(x.descripcion)));
   const filas: [string, string | null][] = [
     ["Cliente", cliente],
     ["RUC / DNI", i?.cliente_doc ?? null],
@@ -111,6 +124,17 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
         <TituloParaImprimir titulo={`${titulo} - ${cliente}`.replace(/[^\w\s.\-áéíóúñÁÉÍÓÚÑ]/g, "")} />
         <BotonImprimir>Imprimir / guardar PDF</BotonImprimir>
       </div>
+
+      {editable && (
+        <div className="no-imprimir mb-6 rounded-lg border border-primary/40 bg-primary/5 p-3 text-foreground">
+          <p className="mb-2 text-xs font-semibold text-primary">Corregir el pedido antes de imprimir: los cambios se ven en la hoja de abajo al guardar.</p>
+          {esServicio ? (
+            <DetalleDelServicio servicioId={s.id as string} equipos={paraEditar} despachado={false} />
+          ) : (
+            <EquiposDelPedido servicioId={s.id as string} equipos={paraEditar} modo="central" despachado={false} cliente={cliente} enlaceEquipo={null} />
+          )}
+        </div>
+      )}
 
       {/* La empresa y el logo del cierre (Santos, 24-09). */}
       <MembreteDocumento
@@ -140,11 +164,11 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
       </table>
 
       <section className="mt-4">
-        <p className="font-bold">Equipos y series:</p>
+        <p className="font-bold">{esServicio ? "Detalle del servicio:" : "Equipos y series:"}</p>
         <table className="mt-1 w-full border-collapse text-[12px]">
           <thead>
             <tr>
-              {["#", "Equipo", "Serie"].map((h) => (
+              {(esServicio ? ["#", "Descripción", "Cant.", "Serie del equipo", ...(conPrecio ? ["Precio"] : [])] : ["#", "Equipo", "Serie"]).map((h) => (
                 <th key={h} className="border border-neutral-500 bg-neutral-100 px-2 py-1 text-left">{h}</th>
               ))}
             </tr>
@@ -154,14 +178,20 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
               <tr key={k}>
                 <td className="w-8 border border-neutral-500 px-2 py-1 align-top">{k + 1}</td>
                 <td className="whitespace-pre-line border border-neutral-500 px-2 py-1">{e.descripcion}</td>
+                {esServicio && <td className="w-14 border border-neutral-500 px-2 py-1 text-right align-top tabular-nums">{Number(e.cantidad ?? 1).toLocaleString("es-PE")}</td>}
                 <td className="w-40 border border-neutral-500 px-2 py-1 align-top font-mono font-semibold">
-                  {e.serie ?? <span className="font-sans text-[#8B1510]">SERIE PENDIENTE</span>}
+                  {e.serie ?? (esServicio ? "—" : <span className="font-sans text-[#8B1510]">SERIE PENDIENTE</span>)}
                 </td>
+                {conPrecio && (
+                  <td className="w-24 border border-neutral-500 px-2 py-1 text-right align-top tabular-nums">
+                    {e.precio == null ? "—" : Number(e.precio).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+                  </td>
+                )}
               </tr>
             ))}
             {lista.length === 0 && (
               <tr>
-                <td colSpan={3} className="border border-neutral-500 px-2 py-2 text-neutral-600">
+                <td colSpan={esServicio ? 4 + (conPrecio ? 1 : 0) : 3} className="border border-neutral-500 px-2 py-2 text-neutral-600">
                   Sin equipos cargados.
                 </td>
               </tr>
@@ -172,7 +202,7 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
 
       {otros.length > 0 && (
         <section className="mt-3">
-          <p className="font-bold">Trabajo y otros conceptos del cierre:</p>
+          <p className="font-bold">Otros conceptos del cierre:</p>
           <ul className="mt-1 list-disc pl-5">
             {otros.map((o, k) => (
               <li key={k} className="whitespace-pre-line">
