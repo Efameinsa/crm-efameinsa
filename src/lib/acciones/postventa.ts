@@ -1919,6 +1919,33 @@ export async function abrirAperturaDesdeCaso(
   }
   const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto, equipo, es_prueba").eq("id", id).maybeSingle();
   const quien = (s?.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
+  // LA INTERNA ES LA RECEPCIÓN DEL EQUIPO (0568; gerencia y Lesly 20-10): un
+  // solo circuito para lo que entra a planta. El almacén la recibe, la revisa y
+  // deja su informe en los pasos de la recepción, sin nada de cobro.
+  let recepcionId: string | null = null;
+  if (interna && antecedentes) {
+    const { data: at } = await supabase
+      .from("atenciones")
+      .select("equipo_texto, equipos_instalados(serie, modelo_texto)")
+      .eq("id", atencionId)
+      .maybeSingle();
+    const eq = (at?.equipos_instalados as unknown as { serie: string | null; modelo_texto: string | null } | null) ?? null;
+    const equipoTexto =
+      (eq?.modelo_texto?.split(/\r?\n/)[0]?.trim() || (at?.equipo_texto as string | null)?.split(/\r?\n/)[0]?.trim() || s?.equipo?.split(/\r?\n/)[0]?.trim() || "Equipo del caso").slice(0, 200);
+    const motivo = datos.tipoPedido === "garantia" ? "garantia" : datos.tipoPedido === "revision" ? "revision" : "reparacion";
+    const { data: rec, error: eRec } = await supabase.rpc("crear_recepcion_equipo", {
+      p_atencion: atencionId,
+      p_equipo: equipoTexto,
+      p_serie: eq?.serie ?? null,
+      p_motivo: motivo,
+      p_llega_por: "tecnico",
+      p_fecha: datos.fecha || null,
+      p_nota: `Apertura de servicio interna. Qué se ejecuta: ${antecedentes.que_ejecutar}`,
+      p_servicio: id,
+    });
+    if (eRec) console.error("apertura interna: no se creó la recepción", eRec.message);
+    else recepcionId = rec as string;
+  }
   const guia = lineasGuia((datos.guia || null) as GuiaApertura | null, datos.guiaDetalle || null);
   const pideGuia = guia.length ? ` Se solicita: ${guia.join(" / ").toLowerCase()}.` : "";
   const esPrueba = s?.es_prueba === true || perfil.es_prueba === true;
@@ -1944,9 +1971,9 @@ export async function abrirAperturaDesdeCaso(
       esPrueba,
     }),
     notificarAlmacen({
-      titulo: `${esGarantia ? "Repuestos por garantía" : "Apertura de servicio"} · ${quien}`,
-      cuerpo: paraAlmacen,
-      url: `/almacen/pedidos/${id}`,
+      titulo: `${esGarantia ? "Repuestos por garantía" : interna ? "Llega un equipo a planta (servicio interno)" : "Apertura de servicio"} · ${quien}`,
+      cuerpo: recepcionId ? `${paraAlmacen} Reciba y revise el equipo desde su orden de recepción.` : paraAlmacen,
+      url: recepcionId ? `/recepciones/${recepcionId}` : `/almacen/pedidos/${id}`,
       esPrueba,
     }),
     // Sin cierre no hay serie: sale con los correos de la empresa elegida (0410, 0421).

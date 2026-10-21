@@ -577,6 +577,42 @@ export async function registrarTrabajo(datos: {
  * le pide al cliente que firme la conformidad de algo que no funciona. Vuelve
  * a planificación para programar otra visita.
  */
+/**
+ * EL TÉCNICO FUE Y NO LO SOLUCIONÓ (reunión 20-10, Lino Espíritu: «no hay una
+ * opción que no se ha solucionado… vamos a llenar el informe… y se tiene que
+ * reprogramar»; «se trajo el equipo a planta»). Queda escrito qué pasó en la
+ * visita y el caso vuelve a Planificación: o se programa otra visita, o se
+ * emite la apertura de servicio INTERNA porque el equipo viene a planta.
+ */
+export async function visitaSinSolucion(datos: {
+  atencionId: string;
+  quePaso: string;
+  destino: "reprogramar" | "planta";
+}): Promise<{ error: string | null }> {
+  if (datos.quePaso.trim().length < 10) {
+    return { error: "Cuente qué se hizo en la visita y por qué no quedó solucionado" };
+  }
+  const supabase = await createClient();
+  const { data: a } = await supabase.from("atenciones").select("etapa, trabajo_realizado").eq("id", datos.atencionId).maybeSingle();
+  if (!a) return { error: "Esa atención no existe" };
+  if (a.etapa !== "atencion") return { error: "Esto se anota cuando el caso está en la etapa de atención" };
+  const hoy = new Date().toLocaleDateString("es-PE", { timeZone: "America/Lima" });
+  const texto = `[${hoy}] Visita sin solución: ${datos.quePaso.trim()}${
+    datos.destino === "planta" ? " — El equipo se trae a planta (apertura de servicio interna)." : " — Se reprograma otra visita."
+  }`;
+  const { error } = await supabase
+    .from("atenciones")
+    .update({
+      trabajo_realizado: [a.trabajo_realizado as string | null, texto].filter(Boolean).join("\n"),
+      etapa: "planificacion",
+      programada_at: null,
+    })
+    .eq("id", datos.atencionId);
+  if (error) return { error: error.message };
+  refrescar(datos.atencionId);
+  return { error: null };
+}
+
 export async function registrarPruebas(datos: {
   atencionId: string;
   detalle: string;

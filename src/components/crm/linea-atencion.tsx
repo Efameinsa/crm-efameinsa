@@ -51,6 +51,7 @@ import {
   programarAtencion,
   registrarPruebas,
   registrarTrabajo,
+  visitaSinSolucion,
   seguirSinIdentificarEquipo,
   verificarGarantia,
   omitirEtapa,
@@ -693,13 +694,11 @@ function CerrarAntesDeTiempo({
 
   if (!abierto) {
     return (
-      <button
-        type="button"
-        onClick={() => setAbierto(true)}
-        className="cursor-pointer text-xs font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
-      >
-        Esta atención ya terminó — cerrarla acá
-      </button>
+      // A la vista (gerencia 20-10: «está bien pequeñita esto»): cerrar los
+      // casos es lo que se pide a fin de mes.
+      <Button type="button" size="sm" variant="outline" onClick={() => setAbierto(true)}>
+        Cerrar este caso (ya terminó, no procede o se derivó)
+      </Button>
     );
   }
 
@@ -1497,6 +1496,7 @@ function PasoTrabajo({
         >
           {alCierre ? "Guardar y pasar al cierre" : "Guardar y pasar a pruebas"} <ChevronRight className="size-3.5" />
         </Button>
+        <VisitaSinSolucion atencionId={a.id} enviando={enviando} correr={correr} />
         <div className="border-t border-border pt-3">
           <AvisarQueHayVenta
             atencionId={a.id}
@@ -1508,6 +1508,75 @@ function PasoTrabajo({
         </div>
       </div>
     </Caja>
+  );
+}
+
+/**
+ * «No se solucionó» (reunión 20-10, Lino Espíritu): la visita no lo arregló.
+ * Se reprograma otra, o el equipo viene a planta y se emite la apertura
+ * interna desde el mismo caso.
+ */
+function VisitaSinSolucion({
+  atencionId,
+  enviando,
+  correr,
+}: {
+  atencionId: string;
+  enviando: boolean;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+}) {
+  const router = useRouter();
+  const [abierto, setAbierto] = useState(false);
+  const [quePaso, setQuePaso] = useState("");
+  if (!abierto) {
+    return (
+      <Button type="button" size="sm" variant="outline" onClick={() => setAbierto(true)}>
+        No se solucionó en la visita
+      </Button>
+    );
+  }
+  const corto = quePaso.trim().length < 10;
+  return (
+    <div className="space-y-2 rounded-md border border-amber-400 bg-amber-50 p-3 dark:border-amber-700 dark:bg-amber-950/30">
+      <p className="text-xs font-semibold text-foreground">No se solucionó en la visita</p>
+      <textarea
+        rows={2}
+        value={quePaso}
+        onChange={(e) => setQuePaso(e.target.value)}
+        placeholder="«Se revisó el quemador y la resistencia; sigue sin calentar. Se necesita revisarla en planta.»"
+        className="w-full rounded-md border border-border bg-background p-2.5 text-sm outline-none placeholder:text-muted-foreground"
+      />
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={enviando || corto}
+          porQue={corto ? "Cuente qué se hizo y por qué no quedó." : null}
+          onClick={() =>
+            correr(
+              () => visitaSinSolucion({ atencionId, quePaso, destino: "reprogramar" }),
+              "Anotado. Programe la nueva visita.",
+            )
+          }
+        >
+          Reprogramar otra visita
+        </Button>
+        <Button
+          size="sm"
+          disabled={enviando || corto}
+          porQue={corto ? "Cuente qué se hizo y por qué no quedó." : null}
+          onClick={() =>
+            correr(async () => {
+              const r = await visitaSinSolucion({ atencionId, quePaso, destino: "planta" });
+              if (!r.error) router.push(`/postventa/atenciones/${atencionId}?apertura=interna`);
+              return r;
+            }, "Anotado. Ahora la apertura de servicio interna.")
+          }
+        >
+          El equipo viene a planta
+        </Button>
+      </div>
+    </div>
   );
 }
 
