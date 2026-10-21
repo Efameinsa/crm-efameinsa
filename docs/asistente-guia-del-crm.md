@@ -839,6 +839,14 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - Reclasificar un caso deja una línea en su historial («Reclasificado: era problema técnico, ahora es repuesto»). Un caso de repuesto muestra arriba que se atiende con cotización y pedido.
 - El botón «Cerrar este caso» está a la vista debajo del circuito. Los casos se cierran: así se termina el mes.
 
+**Fichas parecidas: el mismo cliente registrado distinto** (desde el 21-10, pedido de Santos)
+- En «Fichas repetidas» hay dos pestañas: «Iguales» (mismo nombre o mismo documento) y «Parecidas: revisar a mano».
+- «Parecidas» muestra parejas de fichas que podrían ser el mismo cliente, con su porcentaje de coincidencia y el porqué: nombre parecido, un nombre dentro del otro, mismo teléfono o mismo correo.
+- Las dos fichas salen lado a lado: documento, cartera, contactos, dirección, lo que tiene cada una y su última gestión. El CRM propone cuál se queda (la que tiene RUC o más movimiento).
+- Si son el mismo cliente, «Unir» (pide el motivo y, si mueve carteras, el código de operaciones). Si no, «No son el mismo cliente» y la pareja no vuelve a salir.
+- Dos fichas con documentos distintos no se proponen: son clientes distintos. La búsqueda se hace cada noche. La lista abre en 60 % y se puede ver desde 80 % o desde 45 %.
+- La usan Central, operaciones y gerencia.
+
 **Fichas gemelas: el DNI dentro del RUC 10** (desde el 20-10)
 - El RUC de una persona natural es 10 + su DNI + un dígito. El CRM ya sabe que la ficha con DNI 44224120 y la del RUC 10442241207 son la misma persona.
 - El freno a casos duplicados mira también esas fichas y la misma máquina (serie) en cualquier ficha.

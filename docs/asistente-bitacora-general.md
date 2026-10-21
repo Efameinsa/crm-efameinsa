@@ -25,6 +25,9 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 - **Fichas unidas por el buzón (Brenda, 20-10):** LAVIPRONTO (tres fichas con los mismos contactos, ahora una sola con RUC, cada expediente con su comercial); Operador Nacional de Hoteles del Perú (Decameron), unida a la ficha con RUC con aprobación de gerencia y en la cartera de Brenda; y la ficha de Family Farms que tenía por error el RUC de un banco, también unida a FAMILY FARMS PERÚ, con ese RUC equivocado quitado.
 - **«Salieron, sin guía» cuenta igual en el Panorama y en la lista (almacén).** El Panorama decía 5 y la lista 3: el número sumaba revisiones técnicas (que no llevan guía) y se le escapaba un pedido que salió sin fotos de la carga. Ahora los dos usan la misma regla.
 
+### 21-10 · Fichas parecidas para revisar a mano (Santos)
+- Santos: «no creaste algo para poder contrastarlo manualmente… juntar fichas de clientes que sean lo mismo pero los han registrado diferente». Desde el 21-10, «Fichas repetidas» tiene la pestaña «Parecidas»: cada pareja con su porcentaje, lado a lado, para unir o descartar. Es lo que en la reunión del 20-10 se llamó «los de poca coincidencia, que tienen que ver ustedes».
+
 ### 21-10 · «El macro» del almacén y operaciones (Lesly, por Santos)
 - Lesly pedía una «foto macro»: Santos aclaró que es el panorama de almacén y operaciones. Desde el 21-10 está «El macro», como el de postventa, con cada número enlazado a su pantalla.
 
