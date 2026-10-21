@@ -5,6 +5,9 @@ import { MembreteDocumento } from "@/components/crm/membrete-documento";
 import { puedeVerPrecios } from "@/lib/postventa";
 import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
+import { DetalleDelServicio } from "@/components/crm/detalle-del-servicio";
+import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
+import { equiposDelPedido } from "@/lib/acciones/postventa";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +50,7 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
   const supabase = await createClient();
   const { data: s } = await supabase
     .from("servicios_postventa")
-    .select("id, informe_cierre_id, numero_pedido_erp, cliente_texto, pedido_ejecutado_at, liquidacion_at, modalidad, pedido_generado_por, pedido_ejecutado_por, liquidacion_subida_por, liquidacion_por, tipo_pedido")
+    .select("id, informe_cierre_id, numero_pedido_erp, cliente_texto, pedido_ejecutado_at, liquidacion_at, modalidad, pedido_generado_por, pedido_ejecutado_por, liquidacion_subida_por, liquidacion_por, tipo_pedido, despachado_at, cerrado_at")
     .eq("id", id)
     .maybeSingle();
   if (!s) notFound();
@@ -80,6 +83,11 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
   const esServicio = ["mantenimiento", "revision", "embalaje"].includes((s.tipo_pedido as string | null) ?? "");
   const conPrecio = esServicio && verPrecios && lista.some((e) => e.precio != null);
   const pendientes = esServicio ? 0 : lista.filter((e) => !e.serie).length;
+  // CORREGIR DESDE LA HOJA (Santos 21-10, FAMILY FARMS PED-0037-2026: «generó
+  // el pedido por error y ahora no puede editarlo, no tiene vista para
+  // editar»). Mientras no salga, Central lo corrige aquí mismo; no se imprime.
+  const editable = perfil.rol === "central" && !s.despachado_at && !s.cerrado_at;
+  const paraEditar = editable ? await equiposDelPedido(s.id as string) : [];
   const empresa = i?.serie === "OPEN" ? "Open Investments" : "Corporación Efameinsa e Ingeniería S.A.";
   const cliente = i?.cliente_nombre ?? (s.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "");
   const titulo = `PEDIDO ${s.numero_pedido_erp ?? "SIN NÚMERO"}`;
@@ -114,6 +122,17 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
         <TituloParaImprimir titulo={`${titulo} - ${cliente}`.replace(/[^\w\s.\-áéíóúñÁÉÍÓÚÑ]/g, "")} />
         <BotonImprimir>Imprimir / guardar PDF</BotonImprimir>
       </div>
+
+      {editable && (
+        <div className="no-imprimir mb-6 rounded-lg border border-primary/40 bg-primary/5 p-3 text-foreground">
+          <p className="mb-2 text-xs font-semibold text-primary">Corregir el pedido antes de imprimir: los cambios se ven en la hoja de abajo al guardar.</p>
+          {esServicio ? (
+            <DetalleDelServicio servicioId={s.id as string} equipos={paraEditar} despachado={false} />
+          ) : (
+            <EquiposDelPedido servicioId={s.id as string} equipos={paraEditar} modo="central" despachado={false} cliente={cliente} enlaceEquipo={null} />
+          )}
+        </div>
+      )}
 
       {/* La empresa y el logo del cierre (Santos, 24-09). */}
       <MembreteDocumento
