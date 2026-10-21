@@ -58,7 +58,7 @@ import { cn } from "@/lib/utils";
 const ESTADOS: Record<EstadoFila, { etiqueta: string; ayuda: string; franja: string; pastilla: string }> = {
   revisar: {
     etiqueta: "Revisar",
-    ayuda: "Hay un problema: código equivocado, una serie que el CRM ya tiene con un cliente o un modelo que no cuadra con su descripción.",
+    ayuda: "No se puede subir así: una serie que el CRM ya tiene con un cliente, o un mismo código puesto a modelos distintos en el Excel.",
     franja: "border-l-red-400",
     pastilla: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200",
   },
@@ -70,7 +70,7 @@ const ESTADOS: Record<EstadoFila, { etiqueta: string; ayuda: string; franja: str
   },
   nuevo: {
     etiqueta: "Código nuevo",
-    ayuda: "Esa configuración no existe en el catálogo: se propone un código que se CREA al subir. Si le gusta, queda; si no, escriba otro.",
+    ayuda: "Códigos del Excel que todavía no están dados de alta en el sistema: al subir se agregan con ese nombre (en preparación, para ponerles ficha).",
     franja: "border-l-orange-300",
     pastilla: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-200",
   },
@@ -80,14 +80,20 @@ const ESTADOS: Record<EstadoFila, { etiqueta: string; ayuda: string; franja: str
     franja: "border-l-sky-300",
     pastilla: "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200",
   },
+  falta: {
+    etiqueta: "Falta código",
+    ayuda: "En el Excel no tienen código. Escriba el que les corresponde; el CRM no lo adivina.",
+    franja: "border-l-amber-400",
+    pastilla: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200",
+  },
   ok: {
-    etiqueta: "Código correcto",
-    ayuda: "El código que ya tenía en el Excel está bien.",
+    etiqueta: "Código de Lesly",
+    ayuda: "El código que viene en el Excel y ya existe en el sistema. Manda el Excel: el CRM no lo cambia.",
     franja: "border-l-emerald-300",
     pastilla: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
   },
 };
-const ORDEN: EstadoFila[] = ["revisar", "elegir", "nuevo", "sugerido", "ok"];
+const ORDEN: EstadoFila[] = ["revisar", "falta", "elegir", "nuevo", "sugerido", "ok"];
 
 interface Grupo {
   clave: string;
@@ -156,13 +162,13 @@ function SenalCodigo({ codigo, existentes, deLesly }: { codigo: string; existent
   if (e)
     return (
       <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-        <CheckCircle2 className="size-3" /> Ya existe en el catálogo{!e.activo && " (retirado: actívelo después)"}
+        <CheckCircle2 className="size-3" /> Ya existe en el sistema{!e.activo && " (retirado: actívelo después)"}
       </span>
     );
   return (
     <span className="inline-flex items-center gap-1 text-[11px] text-orange-700 dark:text-orange-300">
       <Sparkles className="size-3" />{" "}
-      {deLesly ? "Lo puso Lesly en su Excel · aún no está en el catálogo, se agrega al subir" : "Código nuevo · se agrega al catálogo al subir"}
+      {deLesly ? "Código de Lesly · aún no está en el sistema, se da de alta al subir" : "Código nuevo · se da de alta al subir"}
     </span>
   );
 }
@@ -340,7 +346,7 @@ export function RevisarStock({ carga, existentes }: { carga: CargaStock; existen
         <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
           <span>Cómo leer el código:</span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="rounded border border-border bg-background px-1.5 font-mono">LAVW23</span> ya existe en el catálogo
+            <span className="rounded border border-border bg-background px-1.5 font-mono">LAVW23</span> ya existe en el sistema
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="rounded border border-dashed border-orange-300 bg-orange-50/60 px-1.5 font-mono text-orange-800 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-200">
@@ -479,8 +485,8 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
                 ? `Revisar · ${problemaCorto(f0.motivo)}`
                 : grupo.estado === "nuevo" && f0.crear === false
                   ? "Código retirado · se reactiva"
-                  : grupo.estado === "nuevo" && f0.codigoExcel && f0.codigo === f0.codigoExcel
-                    ? "Código nuevo (lo puso Lesly)"
+                  : grupo.estado === "nuevo"
+                    ? "Código nuevo · se da de alta"
                     : estilo.etiqueta}
             </span>
             <span className="text-sm font-semibold">
@@ -517,7 +523,7 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
           )}
           {f0.candidatos.length > 0 && (
             <div className="space-y-1 pt-0.5">
-              <span className="text-[11px] text-muted-foreground">Códigos de este modelo en el catálogo (toque uno para usarlo):</span>
+              <span className="text-[11px] text-muted-foreground">Códigos de este modelo en el sistema (toque uno para usarlo):</span>
               <div className="flex flex-wrap gap-1.5">
                 {f0.candidatos.map((c) => (
                   <button

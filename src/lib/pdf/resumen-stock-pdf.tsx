@@ -20,6 +20,7 @@ const FONDO: Record<EstadoStock, string> = {
   nuevo: "#FFF1E4",
   sugerido: "#EAF3FB",
   ok: "#FFFFFF",
+  falta: "#FFF6DB",
 };
 const TINTA: Record<EstadoStock, string> = {
   revisar: "#A3241A",
@@ -27,6 +28,7 @@ const TINTA: Record<EstadoStock, string> = {
   nuevo: "#B45309",
   sugerido: "#1F5E8C",
   ok: "#2F6B3A",
+  falta: "#8A5A00",
 };
 
 export interface FilaResumen {
@@ -220,9 +222,9 @@ export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarg
         <View style={s.notas}>
           <Text style={s.notaTitulo}>Lo relevante</Text>
           <Text style={s.nota}>
-            Estados: {(["ok", "sugerido", "nuevo", "elegir", "revisar"] as EstadoStock[])
+            Estados: {(["ok", "sugerido", "nuevo", "falta", "elegir", "revisar"] as EstadoStock[])
               .filter((e) => porEstado[e])
-              .map((e) => `${porEstado[e]} ${e === "ok" ? "código correcto" : e === "sugerido" ? "ya existe — faltaba ponerlo" : e === "nuevo" ? "código nuevo" : e === "elegir" ? "elegir entre códigos" : "por revisar"}`)
+              .map((e) => `${porEstado[e]} ${e === "ok" ? "código de Lesly" : e === "sugerido" ? "ya existe — faltaba ponerlo" : e === "nuevo" ? "código nuevo" : e === "falta" ? "sin código" : e === "elegir" ? "elegir entre códigos" : "por revisar"}`)
               .join(" · ")}
           </Text>
           {pendientesRevisar.size > 0 && (
@@ -232,7 +234,7 @@ export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarg
           )}
           {nuevos.length > 0 && (
             <Text style={s.nota}>
-              Códigos nuevos (se agregan al catálogo en preparación; ficha y activación después): {nuevos.join(", ")}
+              Códigos nuevos (se dan de alta en el sistema en preparación; ficha y activación después): {nuevos.join(", ")}
             </Text>
           )}
           {vendidas.length > 0 && (

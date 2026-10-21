@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as XLSX from "xlsx";
-import { emparejar, esHojaDeStock, familia, leerExcelStock, rasgos, siguienteCodigoLibre, type ProductoCatalogo } from "./stock-importaciones";
+import { emparejar, revisarSegunExcel, esHojaDeStock, familia, leerExcelStock, rasgos, siguienteCodigoLibre, type ProductoCatalogo } from "./stock-importaciones";
 
 const prod = (sku: string, descripcion: string, extra: Partial<ProductoCatalogo> = {}): ProductoCatalogo => ({
   id: sku,
@@ -177,5 +177,43 @@ describe("leerExcelStock", () => {
     expect(filas[1]).toMatchObject({ codigoExcel: "SECMAX152", item: "I25158", modelo: "TITAN LIGHT CDT29MSCPS", serie: "601KWRE2N078" });
     expect(JSON.stringify(filas)).not.toContain("7311");
     expect(JSON.stringify(filas)).not.toContain("1088");
+  });
+});
+
+describe("revisarSegunExcel (manda el Excel de Lesly)", () => {
+  const catalogo = [
+    prod("SECGIA10", "", { modelo: "GIANT C MAX (CDG27MUCPS)", nombre: "SECADORA C. APILABLE", marca: "LG" }),
+    prod("SECNSEN", "SECADORA PRIMUS MOD: NSENXAGS173NW01", { modelo: "NSENXAGS173NW01", activo: false }),
+  ];
+  it("respeta el código aunque el sistema diga otra cosa, crea el que no existe y reactiva el retirado", () => {
+    const [a, b, c] = revisarSegunExcel(
+      [
+        fila("GIANT C MAX CWG27MDCRS", "LAVADORA LG GIANT C MAX", { hoja: "STOCK DE EQUIPOS LG", codigoExcel: "SECGIA10", serie: "S1" }),
+        fila("PROFLEX 100-16-00/226", "MESA DE PLANCHADO", { codigoExcel: "PROF02", serie: null }),
+        fila("NSENXAGS173NW01", "SECADORA", { codigoExcel: "SECNSEN", serie: "S3" }),
+      ],
+      catalogo,
+      [],
+    );
+    expect(a).toMatchObject({ estado: "ok", codigo: "SECGIA10", candidatos: [] });
+    expect(b).toMatchObject({ estado: "nuevo", crear: true, codigo: "PROF02" });
+    expect(c).toMatchObject({ estado: "nuevo", crear: false, codigo: "SECNSEN" });
+  });
+  it("sin código no adivina; serie con cliente y código a dos modelos van a revisar", () => {
+    const [a, b, c, d] = revisarSegunExcel(
+      [
+        fila("UT120", "SECADORA MOD: UT120L", { serie: "A1" }),
+        fila("UT075", "SECADORA MOD. UT075", { codigoExcel: "SECU75", serie: "A2" }),
+        fila("RX240", "LAVADORA MOD. RX240", { codigoExcel: "LAVX", serie: "A3" }),
+        fila("RX180", "LAVADORA MOD. RX180", { codigoExcel: "LAVX", serie: "A4" }),
+      ],
+      catalogo,
+      [{ serie: "A2", cliente: "ECOLAV", pedido: "467-26" }],
+    );
+    expect(a).toMatchObject({ estado: "falta", codigo: null });
+    expect(b.estado).toBe("revisar");
+    expect(b.motivo).toContain("ECOLAV");
+    expect(c.estado).toBe("revisar");
+    expect(d.motivo).toContain("modelos distintos");
   });
 });

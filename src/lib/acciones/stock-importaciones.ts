@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   emparejar,
+  revisarSegunExcel,
   leerExcelStock,
   rasgos,
   siguienteCodigoLibre,
@@ -191,7 +192,8 @@ export async function analizarExcelStock(formData: FormData): Promise<{ error: s
   }
 
   const [productos, ocupadas] = await Promise.all([productosParaComparar(), seriesOcupadas()]);
-  const propuestas = emparejar(lectura.filas, productos, ocupadas);
+  // Manda el Excel de Lesly (Santos 21-10): el CRM no corrige sus códigos.
+  const propuestas = revisarSegunExcel(lectura.filas, productos, ocupadas);
   const filas: FilaCarga[] = propuestas.map((p) => ({
     ...p,
     // Lo que el CRM confirma o encontró sin dudas queda marcado para subir; una
@@ -200,7 +202,7 @@ export async function analizarExcelStock(formData: FormData): Promise<{ error: s
     // Un código nuevo que Lesly ya escribió en su Excel es decisión suya: viene marcado para subir.
     decision: p.ocupada
       ? "no_subir"
-      : p.estado === "ok" || p.estado === "sugerido" || (p.estado === "nuevo" && !!p.codigoExcel && p.codigo === p.codigoExcel)
+      : p.estado === "ok" || p.estado === "nuevo"
         ? "subir"
         : "pendiente",
     codigoFinal: p.codigo,

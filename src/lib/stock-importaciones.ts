@@ -27,7 +27,7 @@ import * as XLSX from "xlsx";
  * con códigos de secadora.
  */
 
-export type EstadoFila = "ok" | "sugerido" | "elegir" | "nuevo" | "revisar";
+export type EstadoFila = "ok" | "sugerido" | "elegir" | "nuevo" | "revisar" | "falta";
 
 export interface FilaStock {
   hoja: string;
@@ -523,6 +523,92 @@ export function emparejar(
       candidatos,
       rasgos: r,
       tipo: tipoEquipo(`${f.descripcion} ${f.modelo}`),
+      crear,
+      ocupada: ocupada ? { cliente: ocupada.cliente, cuentaId: ocupada.cuentaId ?? null, pedidoId: ocupada.pedidoId ?? null, pedido: ocupada.pedido ?? null } : null,
+    };
+  });
+}
+
+/**
+ * MANDA EL EXCEL DE LESLY (Santos, 21-10 tarde: «mejor no te guíes del
+ * catálogo»). El código que Lesly escribió es el que vale: no se compara con la
+ * configuración de los productos ni se propone otro. Solo se avisa lo que de
+ * verdad no se puede subir:
+ *   · casilla sin código → «Falta código» (no se sugiere nada);
+ *   · una serie que el CRM ya tiene con un cliente → «Revisar», viene «No subir»;
+ *   · un mismo código puesto a modelos distintos dentro del propio Excel;
+ *   · algo que no parece un código.
+ * Del sistema solo se usa si el código ya existe (para darlo de alta o no al
+ * subir), nunca para corregirlo.
+ */
+export function revisarSegunExcel(filas: FilaStock[], productos: ProductoCatalogo[], seriesOcupadas: SerieOcupada[]): Propuesta[] {
+  const porSku = new Map(productos.map((p) => [p.sku.toUpperCase(), p]));
+  const ocupadas = new Map(seriesOcupadas.map((s) => [s.serie.toUpperCase(), s]));
+  // El modelo de cada fila: el que dice la descripción si lo dice (SS23E), si no la columna MODELO.
+  const modeloDe = (f: FilaStock) => {
+    if (/LG/i.test(f.hoja)) return soloAlfanum(f.modelo);
+    const md = modeloDeLaDescripcion(f.descripcion);
+    return familia(md ?? f.modelo);
+  };
+  const modelosPorCodigo = new Map<string, Set<string>>();
+  for (const f of filas) {
+    if (!f.codigoExcel) continue;
+    const m = modelosPorCodigo.get(f.codigoExcel) ?? new Set<string>();
+    m.add(modeloDe(f));
+    modelosPorCodigo.set(f.codigoExcel, m);
+  }
+
+  return filas.map((f) => {
+    const r = rasgos(`${f.descripcion} ${f.modelo}`);
+    const tipo = tipoEquipo(`${f.descripcion} ${f.modelo}`);
+    const ocupada = f.serie ? ocupadas.get(f.serie) : undefined;
+    let estado: EstadoFila;
+    let motivo: string;
+    let codigo: string | null = f.codigoExcel;
+    let crear = false;
+
+    if (!f.codigoExcel) {
+      estado = "falta";
+      codigo = null;
+      motivo = "En el Excel no tiene código. Escriba el código que le corresponde";
+    } else if (!CODIGO_VALIDO.test(f.codigoExcel)) {
+      estado = "revisar";
+      codigo = null;
+      motivo = `«${f.codigoExcel}» no parece un código (solo letras, números y guion)`;
+    } else if ((modelosPorCodigo.get(f.codigoExcel)?.size ?? 0) > 1) {
+      estado = "revisar";
+      motivo = `En el Excel el código ${f.codigoExcel} está puesto a modelos distintos (${[...modelosPorCodigo.get(f.codigoExcel)!].join(", ")}). Confirme que es el mismo equipo`;
+    } else {
+      const p = porSku.get(f.codigoExcel);
+      if (!p) {
+        estado = "nuevo";
+        crear = true;
+        motivo = `Código de Lesly. Todavía no está dado de alta en el sistema: al subir se agrega`;
+      } else if (!p.activo) {
+        estado = "nuevo";
+        motivo = `Código de Lesly. Está retirado en el sistema: las máquinas entran con él y queda por activarlo`;
+      } else {
+        estado = "ok";
+        motivo = "Código de Lesly";
+      }
+    }
+
+    if (ocupada) {
+      estado = "revisar";
+      motivo = `Esta serie ya está en el CRM con ${ocupada.cliente ?? "un cliente"}${ocupada.pedido ? ` (pedido ${ocupada.pedido})` : ""}: ya se vendió o está reservada. Pásela a vendido o reserva en el Excel; aquí no se sube como stock libre`;
+    }
+    if (!f.serie && f.cantidad > 0 && /MESA|PROFLEX/i.test(`${f.descripcion} ${f.modelo}`)) {
+      motivo += ". Sin serie de placa en el Excel: entra como unidades, no por serie";
+    }
+
+    return {
+      ...f,
+      estado,
+      motivo,
+      codigo,
+      candidatos: [],
+      rasgos: r,
+      tipo,
       crear,
       ocupada: ocupada ? { cliente: ocupada.cliente, cuentaId: ocupada.cuentaId ?? null, pedidoId: ocupada.pedidoId ?? null, pedido: ocupada.pedido ?? null } : null,
     };

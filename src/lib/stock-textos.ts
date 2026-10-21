@@ -2,19 +2,22 @@
 // resumen (0576). Aquí y no en lib/stock-importaciones.ts: ese archivo trae la
 // librería de Excel, que no debe ir al navegador.
 
-export type EstadoStock = "ok" | "sugerido" | "elegir" | "nuevo" | "revisar";
+export type EstadoStock = "ok" | "sugerido" | "elegir" | "nuevo" | "revisar" | "falta";
 
 export const ETIQUETA_ESTADO: Record<EstadoStock, string> = {
   revisar: "Revisar",
   elegir: "Elegir entre códigos",
   nuevo: "Código nuevo",
   sugerido: "Ya existe — faltaba ponerlo",
-  ok: "Código correcto",
+  ok: "Código de Lesly",
+  falta: "Falta código",
 };
 
 /** «Revisar» dice CUÁL es el problema (Santos 21-10: «pones revisar pero no dices qué problema es»). */
 export function problemaCorto(motivo: string): string {
   if (/ya está en el CRM con/.test(motivo)) return "Serie ya vendida o reservada";
+  if (/puesto a modelos distintos/.test(motivo)) return "Mismo código para modelos distintos";
+  if (/no parece un código/.test(motivo)) return "No parece un código";
   if (/tipo de equipo: Excel lavadora/.test(motivo)) return "Es lavadora con código de secadora";
   if (/tipo de equipo: Excel secadora/.test(motivo)) return "Es secadora con código de lavadora";
   if (/MODELO dice/.test(motivo)) return "Modelo y descripción no coinciden";
@@ -31,9 +34,7 @@ export function problemaCorto(motivo: string): string {
 /** La etiqueta completa de una máquina, como la ve Lesly. */
 export function etiquetaEstado(f: { estado: EstadoStock; motivo: string; codigo: string | null; codigoExcel: string | null; crear?: boolean }): string {
   if (f.estado === "revisar") return `Revisar · ${problemaCorto(f.motivo)}`;
-  if (f.estado === "nuevo" && f.codigoExcel && f.codigo === f.codigoExcel) {
-    return f.crear === false ? "Código retirado · se reactiva" : "Código nuevo (lo puso Lesly)";
-  }
   if (f.estado === "nuevo" && f.crear === false) return "Código retirado · se reactiva";
+  if (f.estado === "nuevo") return "Código nuevo · se da de alta";
   return ETIQUETA_ESTADO[f.estado];
 }
