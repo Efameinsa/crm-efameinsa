@@ -200,7 +200,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 **Panorama del almacén** (desde el 20-10): arriba está la tarjeta «Faltan fotos» (cuántas de planta y cuántas de agencia) y el grupo «Equipos que llegan a planta». Lesly: «en el panorama de pendientes no le sale».
 **Equipos que llegan a planta** (desde el 20-10): la orden de recepción (REC-00001…) la da postventa desde el caso. El almacén registra que llegó (con fotos), la revisión (técnico y diagnóstico) y qué sigue (devolver o cotizar).
 
-- **Dueño:** almacén (Jeysson, cuenta ALM; Ariana, cuenta ALM2). Lesly supervisa desde operaciones.
+- **Dueño:** almacén (Diana, cuenta ALM; Ariana, cuenta ALM2). Lesly supervisa desde operaciones.
 - **Qué entra:** las solicitudes de serie y código, las pruebas pedidas y las aperturas emitidas.
 - **Pasos:**
   1. Asigna la serie a cada unidad (una fila por máquina; las torres llevan dos series).
@@ -1135,7 +1135,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - PV3: Ariana Flores.
 
 **Otras áreas**
-- **Almacén:** Jeysson Alania (ALM) y Ariana Flores (ALM2).
+- **Almacén:** Diana (ALM, desde el 21-10; reemplaza a Jeysson Alania, que ya no trabaja en la empresa) y Ariana Flores (ALM2).
 - **Finanzas:** Jhon Calsin.
 - **Contabilidad / Facturación:** cuenta Facturación.
 - **Importaciones:** cuenta IMP (por confirmar quién la usa; ver dudas).

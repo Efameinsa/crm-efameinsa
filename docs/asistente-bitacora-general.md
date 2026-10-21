@@ -479,7 +479,7 @@ Carlos recorrió el CRM con Brenda (postventa 2) usando tres clientes reales: Be
 - **PV3 Ariana Flores.**
 
 **Almacén**
-- **ALM:** cuenta del almacén (Jeysson recibe sus avisos).
+- **ALM:** cuenta del almacén (desde el 21-10 la usa Diana, que reemplaza a Jeysson).
 - **ALM2:** Ariana Flores (desde 06-10).
 
 **Técnicos**
