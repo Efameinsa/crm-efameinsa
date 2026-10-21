@@ -25,6 +25,17 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 - **Fichas unidas por el buzón (Brenda, 20-10):** LAVIPRONTO (tres fichas con los mismos contactos, ahora una sola con RUC, cada expediente con su comercial); Operador Nacional de Hoteles del Perú (Decameron), unida a la ficha con RUC con aprobación de gerencia y en la cartera de Brenda; y la ficha de Family Farms que tenía por error el RUC de un banco, también unida a FAMILY FARMS PERÚ, con ese RUC equivocado quitado.
 - **«Salieron, sin guía» cuenta igual en el Panorama y en la lista (almacén).** El Panorama decía 5 y la lista 3: el número sumaba revisiones técnicas (que no llevan guía) y se le escapaba un pedido que salió sin fotos de la carga. Ahora los dos usan la misma regla.
 
+### 21-10 · Agenda del almacén y su cierre del día (Santos)
+- Santos pidió definir la agenda del almacén en el CRM «como lo que tiene postventa y comercial, pero enfocado a sus actividades propias del área»: qué debe figurar y qué acciones hizo en el día. Decisiones: las tareas son del área (hoy las trabaja Diana); «otras gestiones» en texto libre hasta mapearlas; la meta es cero colgados (ninguna prueba esperando más de 2 días, ningún despacho atrasado, ninguna salida sin cerrar), no una cantidad; y gerencia ve el cierre del día del almacén en el mismo «Cierre del día».
+- Antes de hacerla se midió: en 3 semanas el almacén probó 66 máquinas, registró 90 series, sacó 25 pedidos y atendió 23 llamadas, pero no tenía reporte del día y en 18 de las 25 salidas no quedó grabado quién las hizo; las pruebas, los protocolos y las series tampoco quedaban en el registro de acciones. Eso se arregló primero: ahora todo deja rastro.
+- Hecho y en uso: la pantalla «Agenda del almacén» (indicadores, «Hoy, en orden», «Lo que hizo el almacén hoy», otras gestiones, todos los números plegados), el «Reporte del día» del almacén, la lista «Equipos que llegan a planta» (antes daba error) y el rastro completo.
+- Pendiente: mapear las «otras gestiones» recurrentes como pasos cuando Lesly y Diana las enumeren.
+
+### 21-10 · El protocolo ya no pide Word (Lesly)
+- Lesly reclamó que en la cuenta de Almacén, después de subir las fotos y llenar la ficha, el CRM seguía pidiendo subir el Word del protocolo en las máquinas sin hoja de chequeo (centrífuga, ablandador…). Eso era del proceso antiguo: hoy todo el protocolo se hace en el CRM.
+- Desde hoy ninguna máquina exige PDF ni Word para «Probada y embalada» ni para terminar un protocolo de stock; adjuntarlo es opcional. Se pide: fotos, modelo de la placa, serie, técnico y, si hay plantilla, una casilla de la hoja.
+- Santos: lo que se cambie en almacén para Lesly debe valer igual en las cuentas de almacén; esta regla vale para todas.
+
 ### 21-10 · Central deriva casos a Finanzas y Facturación (Santos)
 - **Pedido de Santos:** «Central debería poder derivar casos a Finanzas, Facturación y RR. HH.». Primero se mostraron las pantallas y, aprobadas, se hizo: «Derivar a un área» en la ficha del cliente y en «Sus pedidos», «Casos de Central» para cada área y «Casos a otras áreas» para Central.
 - **Por qué:** antes Central solo tenía la «Urgencia a Finanzas» (sin respuesta, solo sobre un pedido liberado) y los avisos de Central (solo informan). Lo demás iba por WhatsApp o correo, sin saber quién lo tenía.

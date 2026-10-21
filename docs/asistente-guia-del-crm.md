@@ -818,13 +818,11 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Un protocolo por máquina**, no uno por pedido.
 - **«Probada y embalada» exige, por cada máquina de la unidad** (incluida la secadora de una torre):
   - al menos una foto;
-  - el protocolo o informe en PDF o Word;
   - la ficha (modelo de la placa, serie, técnico);
   - en la hoja de chequeo, si hay plantilla, al menos una casilla marcada (desde el 14-10 no se exigen todas: se marca solo lo que corresponde).
 - **El N.º de protocolo lo pone el CRM, correlativo** (desde el 20-10, pedido de Lesly). No se escribe: sale al marcar «Probada y embalada» (o «Protocolo terminado» en un equipo en stock), con el formato 0003-2026, 0004-2026…, y vuelve a 0001 cada año. Aparece en el pedido y en el informe de prueba y embalaje. La secadora de una torre lleva el número de su lavadora; un kit de repuestos, uno solo; el equipo que viene con protocolo de stock conserva el suyo. Los protocolos marcados antes no cambian. Antes era una casilla opcional (Santos, 14-10).
 - **Excepciones:**
-  - Las máquinas con hoja de chequeo en el sistema (lavadora, secadora —también la de una torre—, desmanchadora, prensa de planchado, rodillo o calandria y calderín) no exigen PDF ni Word, porque el sistema ya lo genera.
-  - Las que no tienen hoja (centrífuga, ablandador y otras) sí lo exigen.
+  - **Ninguna máquina exige PDF ni Word** (desde el 21-10, pedido de Lesly): todo el protocolo se hace en el CRM —fotos, ficha y, si hay plantilla, la hoja de chequeo— y el informe de prueba y embalaje lo genera el sistema. Se puede adjuntar un Word si se quiere, pero no frena. Vale igual en la cuenta de almacén y en la de operaciones. Antes solo se había quitado a las máquinas con hoja (lavadora, secadora, desmanchadora, prensa, rodillo y calderín, 13-10); las demás (centrífuga, ablandador…) lo seguían pidiendo.
   - El repuesto solo pide protocolo, foto y técnico.
   - **Una fila de SERVICIO** (embalaje, transporte, instalación…: el renglón empieza con «SERVICIO» y no es una máquina) se mide como un repuesto: bastan las fotos y el técnico; no pide Word ni PDF, modelo, serie ni hoja de chequeo, porque el informe de prueba y embalaje lo genera el sistema con las fotos. Se puede adjuntar un Word si se quiere (desde el 17-10, buzón de Lesly, caso ABACHI).
 - **Pedido de repuestos con varias piezas = un KIT, un solo protocolo** (desde el 16-10, a pedido de Ariana, con el kit de instalación a gas de LINO ESPIRITU). En el pedido del almacén sale el bloque **«Protocolo del kit completo»**: se suben una vez las fotos del kit armado (video y PDF opcionales), el técnico y la fecha, y **«Kit completo probado y embalado»** marca todas las piezas que van en el despacho. Las filas de las piezas ya no piden fotos una por una; las fotos que ya se habían subido pieza por pieza también cuentan. El informe de prueba y embalaje sale en **una sola hoja**: «INFORME DE PROTOCOLO DE PRUEBA DE KIT DE REPUESTOS» (el nombre del kit se cambia en «Completar o corregir los datos de esta hoja»), con la tabla de piezas, su código y su cantidad, y todas las fotos juntas.
@@ -1227,7 +1225,7 @@ Por orden de gerencia del 09-10: Central no deriva a postventa sin autorización
 «Corregir la derivación» pide el código del supervisor. Si fue un aviso a otras áreas, use «Revertir» en «Lo que derivé», también con código. Si lo que está mal es el texto o el cliente de la solicitud, use el lápiz de «Inicio · lo que solicitó el cliente». (3.10)
 
 **25. ¿Por qué el almacén no puede marcar «Probada y embalada»?**
-Porque falta algo del protocolo de alguna máquina: una foto, el PDF o Word (salvo las máquinas con hoja en el sistema), la ficha con modelo, serie y técnico, o la hoja de chequeo sin ninguna casilla marcada. Una fila de servicio (embalaje, transporte, instalación) solo pide fotos y técnico (desde el 17-10). El N.º de protocolo ya no se pide (desde el 14-10). El botón lista lo que falta; para un pedido concreto, consulte qué le falta a cada máquina. (3.7)
+Porque falta algo del protocolo de alguna máquina: una foto, la ficha con modelo, serie y técnico, o la hoja de chequeo sin ninguna casilla marcada. Una fila de servicio (embalaje, transporte, instalación) solo pide fotos y técnico (desde el 17-10). El N.º de protocolo ya no se pide (desde el 14-10) y el PDF o Word tampoco (desde el 21-10). El botón lista lo que falta; para un pedido concreto, consulte qué le falta a cada máquina. (3.7)
 
 **26. Ya marcamos «probada y embalada» pero hay que cambiar algo.**
 Hace falta el código de operaciones (Lesly) y un motivo. Lo marcado como probado queda bloqueado a propósito. (3.7)
