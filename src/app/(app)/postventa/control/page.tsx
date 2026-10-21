@@ -1,3 +1,4 @@
+import { RegularizarPedidos, type FilaRegularizar } from "@/components/crm/regularizar-pedidos";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
@@ -57,7 +58,15 @@ export default async function ControlPedidosPage({
   // Abre en «Por paso» (Santos, 13-10: «paso a paso con filtro abiertos / todos… no se ve»):
   // es la vista que pidió la reunión; el tablero queda a un toque.
   const vista =
-    sp.vista === "tablero" ? "tablero" : sp.vista === "despachos" ? "despachos" : sp.vista === "cerrados" ? "cerrados" : "paso";
+    sp.vista === "tablero"
+      ? "tablero"
+      : sp.vista === "despachos"
+        ? "despachos"
+        : sp.vista === "cerrados"
+          ? "cerrados"
+          : sp.vista === "regularizar"
+            ? "regularizar"
+            : "paso";
   const falta = /^[a-z_]+$/.test(sp.falta ?? "") ? (sp.falta as string) : null;
   const perfil = await requerirPerfil();
   const supabase = await createClient();
@@ -173,6 +182,40 @@ export default async function ControlPedidosPage({
   // sin stock y el informe enviado (lib/pedidos-por-paso, igual que la agenda).
   const filas: FilaTabla[] = vista === "paso" ? await complementarFilas(supabase, vivos.map((s) => filaDe(s, verPrecios, hoy))) : [];
 
+  // REGULARIZAR (gerencia 20-10, Pepas de Oro): los pedidos de antes del
+  // circuito o entregados hace más de un mes y sin cerrar, como lista de trabajo.
+  const MES = 30 * 86_400_000;
+  const aRegularizar =
+    vista === "regularizar"
+      ? vivos.filter((s) => {
+          const entrega = s.despachado_at ?? (s.fecha_despacho ? `${s.fecha_despacho}T12:00:00` : null);
+          return Boolean(motivoHistoria(s, hoy)) || (entrega != null && hoy.getTime() - new Date(entrega).getTime() > MES);
+        })
+      : [];
+  const garantiaPorPedido = new Map<string, boolean>();
+  if (aRegularizar.length) {
+    const ids = aRegularizar.map((s) => s.id);
+    for (let i = 0; i < ids.length; i += 100) {
+      const { data: eqs } = await supabase
+        .from("equipos_instalados")
+        .select("servicio_id, garantia_hasta")
+        .in("servicio_id", ids.slice(i, i + 100))
+        .eq("es_repuesto", false);
+      for (const e of (eqs ?? []) as { servicio_id: string; garantia_hasta: string | null }[]) {
+        if (e.garantia_hasta && new Date(`${e.garantia_hasta}T23:59:59`) >= hoy) garantiaPorPedido.set(e.servicio_id, true);
+      }
+    }
+  }
+  const filasRegularizar: FilaRegularizar[] =
+    vista === "regularizar"
+      ? (await complementarFilas(supabase, aRegularizar.map((s) => filaDe(s, verPrecios, hoy))))
+          .map((fila) => {
+            const s = aRegularizar.find((x) => x.id === fila.id)!;
+            return { fila, entrega: s.despachado_at ?? s.fecha_despacho ?? null, enGarantia: garantiaPorPedido.get(fila.id) === true };
+          })
+          .sort((a, b) => Number(b.enGarantia) - Number(a.enGarantia) || (b.entrega ?? "").localeCompare(a.entrega ?? ""))
+      : [];
+
   return (
     <SeccionPanel
       titulo="Control de pedidos"
@@ -221,6 +264,12 @@ export default async function ControlPedidosPage({
               Cola del Excel
             </Link>
             <Link
+              href="/postventa/control?vista=regularizar"
+              className={cn("px-2.5 py-1", vista === "regularizar" ? "bg-primary text-primary-foreground" : "bg-background text-foreground hover:bg-accent")}
+            >
+              Regularizar
+            </Link>
+            <Link
               href="/postventa/control?vista=cerrados"
               className={cn("px-2.5 py-1", vista === "cerrados" ? "bg-primary text-primary-foreground" : "bg-background text-foreground hover:bg-accent")}
             >
@@ -231,7 +280,9 @@ export default async function ControlPedidosPage({
       }
     >
       <p className="mb-4 max-w-prose text-xs text-muted-foreground">
-        {vista === "cerrados"
+        {vista === "regularizar"
+          ? "Los pedidos de antes del CRM, o entregados hace más de un mes, que siguen sin cerrar. Se regularizan uno por uno: lo que falta (pago confirmado, protocolo, guía, puesta en marcha) se pide al área que le toca y se sigue hasta cerrar el pedido."
+          : vista === "cerrados"
           ? "Los pedidos que ya se cerraron, del más reciente al más antiguo. Toque uno para ver todo su recorrido: despacho, puesta en marcha, fotos y documentos."
           : vista === "paso"
           ? "Una fila por empresa (la flecha despliega sus pedidos y su máquina), una columna por paso. Toque «Falta plano», «Falta despacho» o el paso que quiera y quedan solo los pedidos que lo deben: esa es su lista de trabajo. Cada paso se marca en la ficha del pedido."
@@ -296,6 +347,8 @@ export default async function ControlPedidosPage({
         />
       ) : pedidos.length === 0 ? (
         <p className="text-sm text-muted-foreground">No hay pedidos del flujo en curso ahora mismo.</p>
+      ) : vista === "regularizar" ? (
+        <RegularizarPedidos filas={filasRegularizar} cerradosHoy={0} />
       ) : vista === "paso" ? (
         <TablaPorPaso filas={filas} falta={falta} base="/postventa/control" q={(sp.q ?? "").trim()} ver={ver} />
       ) : (
