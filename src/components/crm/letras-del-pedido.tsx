@@ -30,13 +30,14 @@ const fecha = (iso: string) =>
  *
  * 1. El almacén recoge las letras en Finanzas y lo marca: sin eso la salida no
  *    se registra.
- * 2. Al entregarlas, quien estuvo ahí dice quién las recibió (y foto del cargo
- *    si hay). Finanzas y postventa reciben el aviso; sin esto postventa no da
- *    el doble check del despacho.
+ * 2. La entrega al cliente la confirma FINANZAS (Santos 21-10, COFACO; 0578):
+ *    dice quién las recibió (y foto del cargo si hay). Postventa recibe el
+ *    aviso y recién ahí da el doble check del despacho.
  *
  * `puedeRecibir`: solo el almacén marca que las tiene en la mano.
+ * `puedeEntregar`: solo Finanzas marca que el cliente las recibió.
  */
-export function LetrasDelPedido({ s, cliente, puedeRecibir = false }: { s: DatosLetras; cliente: string; puedeRecibir?: boolean }) {
+export function LetrasDelPedido({ s, cliente, puedeRecibir = false, puedeEntregar = false }: { s: DatosLetras; cliente: string; puedeRecibir?: boolean; puedeEntregar?: boolean }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [recibio, setRecibio] = useState("");
@@ -113,11 +114,16 @@ export function LetrasDelPedido({ s, cliente, puedeRecibir = false }: { s: Datos
             <p className="text-[11px] leading-snug text-muted-foreground">Solo el almacén marca que ya tiene las letras en la mano.</p>
           )}
         </>
+      ) : !puedeEntregar ? (
+        <p className="text-xs text-amber-900/80 dark:text-amber-300/80">
+          {s.letras_recibidas_almacen_at ? `El almacén las recogió el ${fecha(s.letras_recibidas_almacen_at)}. ` : ""}
+          Falta que <b>Finanzas</b> confirme que el cliente recibió las {cuantas}. Cuando lo marque, a postventa le llega el aviso y ya puede verificar el despacho.
+        </p>
       ) : (
         <>
           <p className="text-xs text-amber-900/80 dark:text-amber-300/80">
             {s.letras_recibidas_almacen_at ? `El almacén las recogió el ${fecha(s.letras_recibidas_almacen_at)}. ` : ""}
-            Cuando se entreguen, diga quién las recibió. Finanzas y postventa reciben el aviso; sin esto no se cierra el despacho.
+            Confirme a quién se entregaron. Postventa recibe el aviso y recién ahí verifica el despacho.
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
             <input
@@ -146,7 +152,7 @@ export function LetrasDelPedido({ s, cliente, puedeRecibir = false }: { s: Datos
                 if (!fotos) return;
                 const r = await entregarLetras(s.id, { recibio, fotos, nota, cliente });
                 if (r.error) return void setProblema(r.error);
-                toast.success("Letras entregadas: Finanzas y postventa ya recibieron el aviso");
+                toast.success("Letras entregadas: postventa ya recibió el aviso para verificar el despacho");
                 router.refresh();
               });
             }}

@@ -17,7 +17,8 @@ import { seRastrea } from "@/lib/campo-rastreo";
 import { AvisoNuevaVersion } from "@/components/crm/aviso-nueva-version";
 import { VigilanteDeCuenta } from "@/components/crm/vigilante-de-cuenta";
 import { AsistenteFlotante } from "@/components/crm/asistente-flotante";
-import { ComunicadoDeGerencia, type ComunicadoPendiente } from "@/components/crm/comunicado-de-gerencia";
+import { type ComunicadoPendiente } from "@/components/crm/comunicado-de-gerencia";
+import { ComunicadoEnVivo } from "@/components/crm/comunicado-en-vivo";
 import { AvisoSugerenciaResuelta, type SugerenciaResuelta } from "@/components/crm/aviso-sugerencia-resuelta";
 import { asistenteEncendido } from "@/lib/asistente/claude";
 import { sugerenciasPara } from "@/lib/asistente/sugerencias";
@@ -143,7 +144,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <AvisoNuevaVersion versionInicial={process.env.VERCEL_GIT_COMMIT_SHA ?? "dev"} />
       {/* Otra cuenta entró en este mismo navegador (buzón, Ariana 09-10). En demostración y auditoría la sesión es a propósito de otra persona. */}
       {!demo && !ranuraAuditoria && <VigilanteDeCuenta userId={perfil.id} nombre={perfil.nombre} />}
-      {comunicado && !perfil.es_prueba && !ranuraAuditoria && !demo && <ComunicadoDeGerencia comunicado={comunicado} />}
+      {!perfil.es_prueba && !ranuraAuditoria && !demo && <ComunicadoEnVivo inicial={comunicado} />}
       {avisoResueltas}
       {asistenteEncendido() && !demo && !ranuraAuditoria && (
         <AsistenteFlotante nombre={perfil.nombre} sugerencias={sugerenciasPara(perfil)} />
@@ -249,9 +250,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {/* «Ni bien entra, un pop-up que pase las 4 láminas y un link, y una
             disposición de gerencia» (Carlos, 14-09). No en las cuentas de
             práctica ni en la ranura de auditoría. */}
-        {comunicado && !perfil.es_prueba && !ranuraAuditoria && !demo && (
-          <ComunicadoDeGerencia comunicado={comunicado} />
-        )}
+        {!perfil.es_prueba && !ranuraAuditoria && !demo && <ComunicadoEnVivo inicial={comunicado} />}
         {avisoResueltas}
         {/* El asistente, en todas las pantallas: la pregunta nace de lo que
             se está mirando, así que no puede vivir en otra sección. Desde el

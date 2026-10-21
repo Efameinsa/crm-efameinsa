@@ -56,10 +56,14 @@ export function ComunicadoDeGerencia({ comunicado }: { comunicado: ComunicadoPen
   const [feedbackHecho, setFeedbackHecho] = useState(Boolean(comunicado.feedback_at));
   const [cumplido, setCumplido] = useState(Boolean(comunicado.cumplido_at));
   const laminas = comunicado.laminas;
-  const total = laminas.length + 1; // + la lámina final (disposición y feedback)
-  const enFinal = i >= laminas.length;
-  const l = enFinal ? null : laminas[i];
   const pideFeedback = Boolean(comunicado.feedback_correo || comunicado.feedback_whatsapp);
+  // Un afiche suelto (almuerzo del 22-10) no tiene lámina final: sin
+  // disposición ni feedback, se cierra desde la última imagen.
+  const hayFinal = Boolean(comunicado.disposicion) || pideFeedback;
+  const total = laminas.length + (hayFinal ? 1 : 0);
+  const enFinal = hayFinal && i >= laminas.length;
+  const l = enFinal ? null : laminas[i];
+  const enUltima = i >= total - 1;
   const puedeCerrar = !pideFeedback || feedbackHecho;
 
   const ir = useCallback((k: number) => setI(Math.max(0, Math.min(total - 1, k))), [total]);
@@ -155,7 +159,7 @@ export function ComunicadoDeGerencia({ comunicado }: { comunicado: ComunicadoPen
     <Dialog open={abierto} onOpenChange={alCerrar}>
       <DialogContent
         showCloseButton={false}
-        className="gap-3 p-0 sm:max-w-[440px] [&>*]:px-0"
+        className="w-auto max-w-[calc(100%-1rem)] gap-3 p-0 sm:max-w-[calc(100vw-2rem)] [&>*]:px-0"
         onTouchStart={alTocar}
         onTouchEnd={alSoltar}
       >
@@ -182,8 +186,12 @@ export function ComunicadoDeGerencia({ comunicado }: { comunicado: ComunicadoPen
           <button
             type="button"
             onClick={siguiente}
-            className="group relative mx-4 block overflow-hidden rounded-lg border border-border bg-secondary text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            style={{ aspectRatio: "4 / 5", maxHeight: "68vh" }}
+            className="group relative mx-2 block overflow-hidden sm:mx-4 rounded-lg border border-border bg-secondary text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            // GRANDE (Santos 21-10: «más grande, casi la mitad o 3/4 de la
+            // pantalla»): el alto manda —80 % de la pantalla— y el ancho sale
+            // del 4:5 del afiche. En el celular manda el ancho: casi toda la
+            // pantalla, con 16 px de aire a cada lado.
+            style={{ aspectRatio: "4 / 5", height: "min(80dvh, calc((100vw - 2rem) * 1.25))" }}
             aria-label={`${l.titulo}. Toque para ver la siguiente lámina.`}
           >
             {l.imagen ? (
@@ -197,11 +205,11 @@ export function ComunicadoDeGerencia({ comunicado }: { comunicado: ComunicadoPen
                   key={l.imagen}
                   src={l.imagen}
                   srcSet={l.imagen2x ? `${l.imagen} 720w, ${l.imagen2x} 1080w` : undefined}
-                  sizes="(max-width: 480px) 92vw, 408px"
+                  sizes="(max-width: 480px) 92vw, 64vh"
                   alt={l.titulo}
                   decoding="async"
                   fetchPriority={i === 0 ? "high" : "auto"}
-                  className="relative size-full object-cover"
+                  className="relative size-full object-contain"
                 />
               </>
             ) : (
@@ -210,9 +218,9 @@ export function ComunicadoDeGerencia({ comunicado }: { comunicado: ComunicadoPen
                 {l.texto && <p className="mt-2 text-sm leading-relaxed text-foreground">{l.texto}</p>}
               </div>
             )}
-            <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-gradient-to-t from-black/45 to-transparent px-3 pb-2 pt-8 text-[11px] font-medium text-white opacity-90 transition-opacity group-hover:opacity-100">
+            {!enUltima && <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-gradient-to-t from-black/45 to-transparent px-3 pb-2 pt-8 text-[11px] font-medium text-white opacity-90 transition-opacity group-hover:opacity-100">
               {i < laminas.length - 1 ? "Toca la imagen para seguir" : "Toca para terminar"} <ChevronRight className="size-3.5" />
-            </span>
+            </span>}
           </button>
         ) : (
           <div className="mx-4 space-y-3">
@@ -294,7 +302,7 @@ export function ComunicadoDeGerencia({ comunicado }: { comunicado: ComunicadoPen
                 />
               ))}
             </div>
-            {!enFinal && (
+            {!enUltima && (
               <Button size="sm" variant="ghost" className="h-8 px-2" onClick={siguiente} aria-label="Siguiente">
                 <ChevronRight className="size-4" />
               </Button>
@@ -306,7 +314,7 @@ export function ComunicadoDeGerencia({ comunicado }: { comunicado: ComunicadoPen
                 Lo veo luego
               </Button>
             )}
-            {enFinal && puedeCerrar && (
+            {enUltima && puedeCerrar && (
               <Button size="sm" disabled={enviando} onClick={() => acusar("leido")}>
                 Cerrar
               </Button>
