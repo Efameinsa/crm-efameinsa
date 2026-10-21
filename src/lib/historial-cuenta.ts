@@ -409,8 +409,13 @@ export async function cargarHistorialCuenta(
         proximaAccion: a.proxima_accion,
         proximaAccionAt: a.proxima_accion_at,
         proximaAccionHora: a.proxima_accion_hora ? String(a.proxima_accion_hora).slice(0, 5) : null,
-        adjuntos: ((a as { adjuntos?: { path: string; nombre: string }[] }).adjuntos ?? [])
-          .map((x) => ({ nombre: x.nombre, url: urlPorRuta.get(x.path) ?? "" }))
+        adjuntos: ((a as { adjuntos?: { path: string; nombre: string; agregado_por?: string | null; agregado_at?: string }[] }).adjuntos ?? [])
+          .map((x) => ({
+            nombre: x.nombre,
+            url: urlPorRuta.get(x.path) ?? "",
+            // Lo que se le agregó después con el «+» (21-10) dice quién y cuándo.
+            ...(x.agregado_at ? { agregadoPor: x.agregado_por ?? null, agregadoAt: x.agregado_at } : {}),
+          }))
           .filter((x) => x.url),
       };
     }),

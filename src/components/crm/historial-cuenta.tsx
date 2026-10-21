@@ -12,6 +12,7 @@ import {
   type EventoTimeline,
 } from "@/components/crm/linea-tiempo-cuenta";
 import { TipoExpedienteBadge } from "@/components/crm/tipo-expediente-badge";
+import { AgregarFotosGestion } from "@/components/crm/agregar-fotos-gestion";
 import { bordeTipoExpediente, colorTipoExpediente, etiquetaTipoExpediente } from "@/lib/tipo-expediente";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -56,7 +57,16 @@ function textoBuscable(evento: EventoTimeline): string {
 // un botón para abrir la del cliente entero); en la ficha del cliente se ve
 // todo, cada fila con el color de su expediente y un filtro para quedarse con
 // uno.
-export function HistorialCuenta({ eventos, oportunidadActualId }: { eventos: EventoTimeline[]; oportunidadActualId?: string }) {
+export function HistorialCuenta({
+  eventos,
+  oportunidadActualId,
+  puedeAgregarFotos = false,
+}: {
+  eventos: EventoTimeline[];
+  oportunidadActualId?: string;
+  /** El «+» de cada gestión para sumarle imágenes (21-10): dueño del expediente o gerencia. */
+  puedeAgregarFotos?: boolean;
+}) {
   const [vista, setVista] = useState<"tabla" | "timeline">("tabla");
   const [orden, setOrden] = useState<"reciente" | "antiguo">("reciente");
   const [busqueda, setBusqueda] = useState("");
@@ -235,7 +245,7 @@ export function HistorialCuenta({ eventos, oportunidadActualId }: { eventos: Eve
       {filtrados.length === 0 ? (
         <p className="text-sm text-muted-foreground">Sin resultados para &ldquo;{busqueda}&rdquo;.</p>
       ) : vista === "tabla" ? (
-        <TablaHistorial eventos={visibles} oportunidadActualId={oportunidadActualId} conExpediente={conExpediente} />
+        <TablaHistorial eventos={visibles} oportunidadActualId={oportunidadActualId} conExpediente={conExpediente} puedeAgregarFotos={puedeAgregarFotos} />
       ) : (
         <LineaTiempoCuenta oportunidadActualId={oportunidadActualId} eventos={visibles} conExpediente={conExpediente} />
       )}
@@ -253,7 +263,7 @@ export function HistorialCuenta({ eventos, oportunidadActualId }: { eventos: Eve
   );
 }
 
-function TablaHistorial({ eventos, oportunidadActualId, conExpediente }: { eventos: EventoTimeline[]; oportunidadActualId?: string; conExpediente: boolean }) {
+function TablaHistorial({ eventos, oportunidadActualId, conExpediente, puedeAgregarFotos }: { eventos: EventoTimeline[]; oportunidadActualId?: string; conExpediente: boolean; puedeAgregarFotos: boolean }) {
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -267,7 +277,7 @@ function TablaHistorial({ eventos, oportunidadActualId, conExpediente }: { event
         </TableHeader>
         <TableBody>
           {eventos.map((evento) => (
-            <FilaHistorial key={`${evento.tipo}-${evento.id}`} evento={evento} oportunidadActualId={oportunidadActualId} conExpediente={conExpediente} />
+            <FilaHistorial key={`${evento.tipo}-${evento.id}`} evento={evento} oportunidadActualId={oportunidadActualId} conExpediente={conExpediente} puedeAgregarFotos={puedeAgregarFotos} />
           ))}
         </TableBody>
       </Table>
@@ -275,7 +285,7 @@ function TablaHistorial({ eventos, oportunidadActualId, conExpediente }: { event
   );
 }
 
-function FilaHistorial({ evento, oportunidadActualId, conExpediente }: { evento: EventoTimeline; oportunidadActualId?: string; conExpediente: boolean }) {
+function FilaHistorial({ evento, oportunidadActualId, conExpediente, puedeAgregarFotos }: { evento: EventoTimeline; oportunidadActualId?: string; conExpediente: boolean; puedeAgregarFotos: boolean }) {
   const router = useRouter();
   // Sin `!= null` la fila prometía navegación que no existe: en la ficha del
   // cliente no llega `oportunidadActualId`, así que las cotizaciones del
@@ -402,14 +412,25 @@ function FilaHistorial({ evento, oportunidadActualId, conExpediente }: { evento:
         )}
       </TableCell>
       <TableCell className="align-top">
-        {evento.tipo === "actividad" &&
-          (evento.resultado ? (
-            <span className="inline-flex rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-foreground">
-              {evento.resultado.nombre}
-            </span>
-          ) : (
-            <span className="text-xs text-muted-foreground">—</span>
-          ))}
+        {evento.tipo === "actividad" && (
+          // El «+» al lado del resultado (Santos, 21-10): la imagen que llegó
+          // después se le suma a ESTA gestión, sin registrar otra.
+          <div className="flex items-start gap-1.5">
+            {evento.resultado ? (
+              <span className="inline-flex rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-foreground">
+                {evento.resultado.nombre}
+              </span>
+            ) : (
+              <span className="text-xs text-muted-foreground">—</span>
+            )}
+            {puedeAgregarFotos && evento.expediente === oportunidadActualId && (
+              <AgregarFotosGestion
+                actividadId={evento.id}
+                gestion={`${ETIQUETA_ACTIVIDAD[evento.tipoActividad] ?? evento.tipoActividad} del ${fechaConHora(evento.fecha)}`}
+              />
+            )}
+          </div>
+        )}
         {evento.tipo === "cotizacion" && (
           <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold", COLOR_COTIZACION[evento.color])}>
             {evento.estadoLabel}

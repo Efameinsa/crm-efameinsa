@@ -31,6 +31,9 @@ export interface ResultadoGestionEvento {
 export interface AdjuntoEvento {
   nombre: string;
   url: string; // URL firmada de Storage (bucket privado 'adjuntos'), vence en 1 h
+  /** Agregado después a la gestión con el «+» del historial (21-10). */
+  agregadoPor?: string | null;
+  agregadoAt?: string;
 }
 const ES_IMAGEN = /\.(png|jpe?g|webp)$/i;
 
@@ -54,11 +57,14 @@ export function AdjuntosDelEvento({ adjuntos }: { adjuntos?: AdjuntoEvento[] }) 
           target="_blank"
           rel="noreferrer"
           onClick={(e) => e.stopPropagation()}
-          title={ad.nombre}
-          className="block overflow-hidden rounded-md border border-border bg-secondary hover:ring-2 hover:ring-primary/40"
+          title={ad.agregadoAt ? `${ad.nombre} — agregada después${ad.agregadoPor ? ` por ${ad.agregadoPor}` : ""}, ${fechaConHora(ad.agregadoAt)}` : ad.nombre}
+          className="relative block overflow-hidden rounded-md border border-border bg-secondary hover:ring-2 hover:ring-primary/40"
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- URL firmada que vence en 1 h: no pasa por el optimizador */}
           <img src={ad.url} alt={ad.nombre} loading="lazy" className="h-16 w-auto max-w-[8rem] object-cover" />
+          {ad.agregadoAt && (
+            <span className="absolute bottom-0 right-0 rounded-tl bg-background/85 px-1 text-[9px] font-semibold text-muted-foreground">+ después</span>
+          )}
         </a>
       ))}
       {otros.map((ad, i) => (
