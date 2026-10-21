@@ -54,6 +54,8 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
     .eq("id", id)
     .maybeSingle();
   if (!s) notFound();
+  // Antes de leer la tabla: un servicio sin líneas se llena solo con las del cierre.
+  const paraEditar = !s.despachado_at && !s.cerrado_at ? await equiposDelPedido(id) : [];
   const [{ data: inf }, { data: equipos }] = await Promise.all([
     s.informe_cierre_id
       ? supabase
@@ -87,7 +89,6 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
   // el pedido por error y ahora no puede editarlo, no tiene vista para
   // editar»). Mientras no salga, Central lo corrige aquí mismo; no se imprime.
   const editable = perfil.rol === "central" && !s.despachado_at && !s.cerrado_at;
-  const paraEditar = editable ? await equiposDelPedido(s.id as string) : [];
   const empresa = i?.serie === "OPEN" ? "Open Investments" : "Corporación Efameinsa e Ingeniería S.A.";
   const cliente = i?.cliente_nombre ?? (s.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "");
   const titulo = `PEDIDO ${s.numero_pedido_erp ?? "SIN NÚMERO"}`;
@@ -97,7 +98,8 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
   const enLaTabla = new Set(lista.map((e) => primeraLinea(e.descripcion)));
   // 0572 (FAMILY FARMS, PED-0037-2026): un servicio vendido no siembra fila
   // (0404); si Central no lo trajo a la tabla, el trabajo igual sale aquí.
-  const otros = (i?.items ?? []).filter((x) => x.descripcion?.trim() && !enLaTabla.has(primeraLinea(x.descripcion)));
+  // En un servicio todo va en «Detalle del servicio», que es lo que se edita (Santos 21-10).
+  const otros = esServicio ? [] : (i?.items ?? []).filter((x) => x.descripcion?.trim() && !enLaTabla.has(primeraLinea(x.descripcion)));
   const filas: [string, string | null][] = [
     ["Cliente", cliente],
     ["RUC / DNI", i?.cliente_doc ?? null],
@@ -200,7 +202,7 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
 
       {otros.length > 0 && (
         <section className="mt-3">
-          <p className="font-bold">Trabajo y otros conceptos del cierre:</p>
+          <p className="font-bold">Otros conceptos del cierre:</p>
           <ul className="mt-1 list-disc pl-5">
             {otros.map((o, k) => (
               <li key={k} className="whitespace-pre-line">

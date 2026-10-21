@@ -1014,6 +1014,15 @@ export async function equiposDelPedido(servicioId: string): Promise<EquipoDelPed
   // Primera vez: se arma desde el cierre (o del texto del pedido si no hay cierre).
   const { error } = await supabase.rpc("sembrar_equipos_del_pedido", { p_servicio: servicioId });
   if (error) return [];
+  // EL SERVICIO YA VIENE ESCRITO EN SU RECUADRO (Santos 21-10, FAMILY FARMS:
+  // «eso debería estar dentro del recuadro de detalle de servicio»). Un pedido
+  // de servicio no siembra filas (0404): se traen las líneas del cierre o la
+  // cotización, salvo que alguien ya haya guardado o vaciado el detalle a mano.
+  const { data: sp } = await supabase.from("servicios_postventa").select("tipo_pedido, observaciones").eq("id", servicioId).maybeSingle();
+  const obs = (sp?.observaciones as string | null) ?? "";
+  if (["mantenimiento", "revision", "embalaje"].includes((sp?.tipo_pedido as string | null) ?? "") && !/detalle del servicio|quitó de la lista/.test(obs)) {
+    await supabase.rpc("traer_lineas_del_cierre", { p_servicio: servicioId });
+  }
   // La consulta lleva un filtro de más a propósito: Next memoriza los fetch
   // idénticos dentro de un mismo render, y sin esto devolvía la lista vacía
   // de la primera consulta aunque la siembra ya estuviera en la base.
