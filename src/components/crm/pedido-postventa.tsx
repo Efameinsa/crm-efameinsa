@@ -361,7 +361,7 @@ export function PedidoPostventa({
                 servicioId={servicio.id}
                 equipos={equiposDeLaApertura}
                 tipo="videollamada_preinstalacion"
-                etiqueta="Derivar llamada"
+                etiqueta="Derivación de llamada"
                 compacto
               />
             )}
@@ -417,7 +417,7 @@ export function PedidoPostventa({
                 servicioId={servicio.id}
                 equipos={equiposDeLaApertura}
                 tipo="videollamada_puesta_marcha"
-                etiqueta="Derivar llamada"
+                etiqueta="Derivación de llamada"
                 compacto
               />
             )}
