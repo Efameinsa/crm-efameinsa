@@ -112,7 +112,9 @@ function problemaCorto(motivo: string): string {
   if (/tipo de equipo: Excel lavadora/.test(motivo)) return "Es lavadora con código de secadora";
   if (/tipo de equipo: Excel secadora/.test(motivo)) return "Es secadora con código de lavadora";
   if (/MODELO dice/.test(motivo)) return "Modelo y descripción no coinciden";
-  if (/no existe en el CRM/.test(motivo)) return "Ese código no existe";
+  const mal = motivo.match(/SÍ está, con el código (\S+?):/);
+  if (mal) return `Código mal escrito (la máquina está como ${mal[1]})`;
+  if (/no existe en el (CRM|catálogo)/.test(motivo)) return "Ese código no existe";
   if (/calentamiento:/.test(motivo)) return "El tipo de gas no coincide";
   if (/voltaje:/.test(motivo)) return "El voltaje no coincide";
   if (/control:/.test(motivo)) return "El control no coincide";

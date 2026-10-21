@@ -393,8 +393,11 @@ export function emparejar(
         : [];
       if (!propio) {
         estado = "revisar";
-        motivo = `El código ${f.codigoExcel} no existe en el CRM`;
         codigo = unico;
+        // Lo que no existe es el CÓDIGO, no la máquina (Santos 21-10: la UCT080 sí está, como LAVT080).
+        motivo = unico
+          ? `El código ${f.codigoExcel} no existe en el catálogo, pero esta máquina (${f.modelo}) SÍ está, con el código ${unico}: usar ${unico}`
+          : `El código ${f.codigoExcel} no existe en el catálogo y no encontré la máquina con otro código`;
       } else if (choques.length) {
         estado = "revisar";
         motivo = `El código ${f.codigoExcel} no calza: ${choques.join("; ")}`;
