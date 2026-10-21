@@ -84,7 +84,9 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
   // queda solo lo que no lleva fila (servicios sin costo y otros conceptos).
   const primeraLinea = (t: string) => t.split("\n")[0].trim().toUpperCase();
   const enLaTabla = new Set(lista.map((e) => primeraLinea(e.descripcion)));
-  const otros = (i?.items ?? []).filter((x) => x.bloque && x.bloque !== "venta" && !enLaTabla.has(primeraLinea(x.descripcion)));
+  // 0572 (FAMILY FARMS, PED-0037-2026): un servicio vendido no siembra fila
+  // (0404); si Central no lo trajo a la tabla, el trabajo igual sale aquí.
+  const otros = (i?.items ?? []).filter((x) => x.descripcion?.trim() && !enLaTabla.has(primeraLinea(x.descripcion)));
   const filas: [string, string | null][] = [
     ["Cliente", cliente],
     ["RUC / DNI", i?.cliente_doc ?? null],
@@ -170,7 +172,7 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
 
       {otros.length > 0 && (
         <section className="mt-3">
-          <p className="font-bold">Otros conceptos del cierre:</p>
+          <p className="font-bold">Trabajo y otros conceptos del cierre:</p>
           <ul className="mt-1 list-disc pl-5">
             {otros.map((o, k) => (
               <li key={k} className="whitespace-pre-line">

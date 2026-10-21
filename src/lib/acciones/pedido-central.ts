@@ -255,3 +255,54 @@ export async function corregirSerie(itemId: string, servicioId: string, serie: s
   return { error: null };
 }
 
+
+/**
+ * CENTRAL EDITA LA LISTA «EQUIPOS Y SERIES» (0572; Santos 21-10, PED-0037-2026
+ * de FAMILY FARMS: «no jaló el detalle del trabajo, equipos y series… dale para
+ * que edite»). Un mantenimiento no siembra filas (0404); aquí se traen las
+ * líneas del cierre, se agrega, se corrige el texto o se quita una línea, hasta
+ * que el pedido salga. Cada cambio queda en las observaciones del pedido.
+ */
+function revalidarLista(servicioId: string) {
+  revalidar(servicioId);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath("/central/pedidos");
+}
+
+export async function traerLineasDelCierre(servicioId: string): Promise<{ error: string | null; traidas?: number }> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("traer_lineas_del_cierre", { p_servicio: servicioId });
+  if (error) return { error: limpiar(error.message) };
+  revalidarLista(servicioId);
+  return { error: null, traidas: Number(data ?? 0) };
+}
+
+export async function agregarLineaAlPedido(servicioId: string, descripcion: string, serie: string): Promise<{ error: string | null }> {
+  await requerirPerfil();
+  if (!descripcion.trim()) return { error: "Escriba qué equipo o trabajo es" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("agregar_linea_al_pedido", { p_servicio: servicioId, p_descripcion: descripcion.trim(), p_serie: serie.trim() || null });
+  if (error) return { error: limpiar(error.message) };
+  revalidarLista(servicioId);
+  return { error: null };
+}
+
+export async function editarLineaDelPedido(itemId: string, servicioId: string, descripcion: string): Promise<{ error: string | null }> {
+  await requerirPerfil();
+  if (!descripcion.trim()) return { error: "Escriba qué equipo o trabajo es" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("editar_linea_del_pedido", { p_item: itemId, p_descripcion: descripcion.trim() });
+  if (error) return { error: limpiar(error.message) };
+  revalidarLista(servicioId);
+  return { error: null };
+}
+
+export async function quitarLineaDelPedido(itemId: string, servicioId: string): Promise<{ error: string | null }> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("quitar_linea_del_pedido", { p_item: itemId });
+  if (error) return { error: limpiar(error.message) };
+  revalidarLista(servicioId);
+  return { error: null };
+}

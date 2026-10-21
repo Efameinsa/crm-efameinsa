@@ -16,7 +16,7 @@ import { Check, Loader2, PackageX, ScanBarcode, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { abrirOtroCircuito, agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarProcedencia, marcarSinStock, quitarLineaQueNoCorresponde, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
 import { probarEquipoDelPedido, probarKitDelPedido, tecnicoYFechaDeLaPrueba } from "@/lib/acciones/almacen";
-import { corregirSerie } from "@/lib/acciones/pedido-central";
+import { agregarLineaAlPedido, corregirSerie, editarLineaDelPedido, quitarLineaDelPedido, traerLineasDelCierre } from "@/lib/acciones/pedido-central";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
 import type { FotoAlmacen } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
@@ -113,7 +113,9 @@ export function EquiposDelPedido({
       )}
       <p className="mt-0.5 text-xs text-muted-foreground">
         {equipos.length === 0
-          ? "El cierre no trae equipos que lleven serie (por ejemplo, un servicio de mantenimiento): no hay lista que armar."
+          ? modo === "central" && !despachado
+            ? "El cierre no trae equipos del catálogo (por ejemplo, un servicio de mantenimiento). Traiga sus líneas o agréguelas a mano, con la serie de cada máquina."
+            : "El cierre no trae equipos que lleven serie (por ejemplo, un servicio de mantenimiento): no hay lista que armar."
           : despachado
             ? sinSerie > 0
               ? `El pedido ya salió y ${sinSerie === 1 ? "una máquina está" : `${sinSerie} máquinas están`} sin serie: sin ella postventa no puede atender un caso.`
@@ -170,6 +172,8 @@ export function EquiposDelPedido({
           );
         })}
       </ol>
+      {/* CENTRAL ARMA LA LISTA (0572; Santos 21-10, PED-0037-2026). */}
+      {modo === "central" && !despachado && <AgregarLineas servicioId={servicioId} vacia={equipos.length === 0} />}
       {modo === "postventa" && equipos.length > 1 && (despachado || parcial) && (
         <OtroCircuito servicioId={servicioId} equipos={despachado ? equipos : equipos.filter((e) => !e.en_este_despacho)} despachado={despachado} />
       )}
@@ -249,6 +253,163 @@ function OtroCircuito({ servicioId, equipos, despachado }: { servicioId: string;
 
 /** Un renglón de servicio (instalación, mantenimiento) no es una máquina que sale del almacén. */
 const pareceServicio = (descripcion: string) => /^\s*SERVICIO\s/i.test(descripcion);
+
+/**
+ * TRAER DEL CIERRE O AGREGAR A MANO (0572; Santos 21-10, FAMILY FARMS
+ * PED-0037-2026: «no jaló el detalle del trabajo, equipos y series… dale para
+ * que edite»). Un mantenimiento no siembra filas (0404): Central trae las
+ * líneas del cierre —con la serie que venga escrita en el texto— o agrega la
+ * suya. Queda en las observaciones del pedido.
+ */
+function AgregarLineas({ servicioId, vacia }: { servicioId: string; vacia: boolean }) {
+  const router = useRouter();
+  const [abierto, setAbierto] = useState(false);
+  const [descripcion, setDescripcion] = useState("");
+  const [serie, setSerie] = useState("");
+  const [problema, setProblema] = useState<string | null>(null);
+  const [pendiente, startTransition] = useTransition();
+  const traer = () => {
+    setProblema(null);
+    startTransition(async () => {
+      const r = await traerLineasDelCierre(servicioId);
+      if (r.error) return setProblema(r.error);
+      if (!r.traidas) toast.info("Todas las líneas del cierre ya están en la lista");
+      else toast.success(r.traidas === 1 ? "Se trajo 1 línea del cierre" : `Se trajeron ${r.traidas} líneas del cierre`);
+      router.refresh();
+    });
+  };
+  const agregar = () => {
+    setProblema(null);
+    startTransition(async () => {
+      const r = await agregarLineaAlPedido(servicioId, descripcion, serie);
+      if (r.error) return setProblema(r.error);
+      toast.success("Línea agregada al pedido");
+      setDescripcion("");
+      setSerie("");
+      setAbierto(false);
+      router.refresh();
+    });
+  };
+  return (
+    <div className="mt-2 space-y-1.5 text-xs">
+      <div className="flex flex-wrap gap-1.5">
+        {vacia && (
+          <Button size="sm" className="h-7 text-xs" onClick={traer} disabled={pendiente}>
+            {pendiente && !abierto && <Loader2 className="size-3 animate-spin" />} Traer las líneas del cierre
+          </Button>
+        )}
+        {!abierto && (
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setAbierto(true)} disabled={pendiente}>
+            + Agregar equipo o trabajo
+          </Button>
+        )}
+      </div>
+      {abierto && (
+        <div className="space-y-1.5 rounded-md border border-border bg-muted/40 p-2">
+          <textarea
+            value={descripcion}
+            onChange={(ev) => setDescripcion(ev.target.value)}
+            rows={2}
+            placeholder="Equipo o trabajo (ej. Mantenimiento preventivo lavadora UniMac UCT060)"
+            className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs"
+          />
+          <Input value={serie} onChange={(ev) => setSerie(ev.target.value)} placeholder="Serie (si la tiene)" className="h-8 font-mono text-xs" />
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="h-7 text-xs"
+              onClick={agregar}
+              disabled={pendiente || !descripcion.trim()}
+              porQue={!descripcion.trim() ? "Escriba qué equipo o trabajo es." : null}
+            >
+              {pendiente && <Loader2 className="size-3 animate-spin" />} Agregar
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAbierto(false)} disabled={pendiente}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+      {problema && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2 leading-snug text-destructive">{problema}</p>}
+    </div>
+  );
+}
+
+/** Central corrige el texto de una línea o la quita (0572). Una serie ya puesta se corrige con el código. */
+function EditarLinea({ e, servicioId }: { e: EquipoDelPedido; servicioId: string }) {
+  const router = useRouter();
+  const [paso, setPaso] = useState<"nada" | "editar" | "quitar">("nada");
+  const [texto, setTexto] = useState(e.descripcion);
+  const [problema, setProblema] = useState<string | null>(null);
+  const [pendiente, startTransition] = useTransition();
+  const correr = (accion: () => Promise<{ error: string | null }>, exito: string) => {
+    setProblema(null);
+    startTransition(async () => {
+      const r = await accion();
+      if (r.error) return setProblema(r.error);
+      toast.success(exito);
+      setPaso("nada");
+      router.refresh();
+    });
+  };
+  return (
+    <div className="mt-1.5 text-[11px]">
+      {paso === "nada" && (
+        <div className="flex gap-3">
+          <button
+            type="button"
+            className="font-medium text-primary hover:underline"
+            onClick={() => {
+              setTexto(e.descripcion);
+              setPaso("editar");
+            }}
+          >
+            Corregir el texto
+          </button>
+          <button type="button" className="font-medium text-destructive hover:underline" onClick={() => setPaso("quitar")}>
+            Quitar del pedido
+          </button>
+        </div>
+      )}
+      {paso === "editar" && (
+        <div className="space-y-1.5">
+          <textarea value={texto} onChange={(ev) => setTexto(ev.target.value)} rows={3} className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs" />
+          <div className="flex gap-2">
+            <Button size="sm" className="h-7 text-xs" disabled={pendiente || !texto.trim()} onClick={() => correr(() => editarLineaDelPedido(e.id, servicioId, texto), "Texto corregido")}>
+              {pendiente && <Loader2 className="size-3 animate-spin" />} Guardar
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setPaso("nada")} disabled={pendiente}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+      {paso === "quitar" && (
+        <div className="space-y-1.5">
+          <p className="leading-snug text-foreground">
+            «{e.descripcion.split("\n")[0]}» sale de la lista del pedido{e.serie ? " (la ficha de la máquina no se toca)" : ""}. Queda escrito en las
+            observaciones quién lo quitó.
+          </p>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="destructive"
+              className="h-7 text-xs"
+              disabled={pendiente}
+              onClick={() => correr(() => quitarLineaDelPedido(e.id, servicioId), "Línea quitada del pedido")}
+            >
+              {pendiente && <Loader2 className="size-3 animate-spin" />} Sí, quitar
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setPaso("nada")} disabled={pendiente}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+      {problema && <p role="alert" className="mt-1 rounded-md border border-destructive/30 bg-destructive/5 p-2 leading-snug text-destructive">{problema}</p>}
+    </div>
+  );
+}
 
 function NoCorresponde({ e, servicioId }: { e: EquipoDelPedido; servicioId: string }) {
   const router = useRouter();
@@ -855,6 +1016,11 @@ function Fila({
             </div>
           )}
         </div>
+      )}
+
+      {/* Central corrige el texto o quita la línea (0572). */}
+      {modo === "central" && !despachado && !e.prueba_lista_at && archivosGuardados.length === 0 && partes.length === 0 && (
+        <EditarLinea e={e} servicioId={servicioId} />
       )}
 
       {/* «NO CORRESPONDE» (Lesly, 16-10; 0515): un servicio que vino del cierre
