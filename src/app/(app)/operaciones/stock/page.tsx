@@ -115,7 +115,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
       <div className="flex gap-1 border-b border-border">
         {[
           { clave: "subir", etiqueta: "Subir el Excel de stock", href: "/operaciones/stock" },
-          { clave: "codigos", etiqueta: "Códigos del catálogo", href: "/operaciones/stock?ver=codigos" },
+          { clave: "codigos", etiqueta: "Códigos y series", href: "/operaciones/stock?ver=codigos" },
         ].map((t) => (
           <Link
             key={t.clave}
@@ -130,7 +130,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
           </Link>
         ))}
       </div>
-      <SeccionPanel titulo={pestana === "subir" ? "Subir el Excel de stock" : "Todos los códigos"}>{contenido}</SeccionPanel>
+      <SeccionPanel titulo={pestana === "subir" ? "Subir el Excel de stock" : "Códigos y series"}>{contenido}</SeccionPanel>
     </div>
   );
 }

@@ -63,16 +63,43 @@ export interface ProductoCatalogo {
 export interface SerieOcupada {
   serie: string;
   cliente: string | null;
+  /** Para llevar a Lesly directo a la ficha y al pedido (reunión 21-10: fue a buscar a mano para quién era). */
+  cuentaId?: string | null;
+  pedidoId?: string | null;
+  pedido?: string | null;
+}
+
+/** Lavadora, secadora, rodillo… lo que Lesly pidió ver junto al código (21-10). */
+export function tipoEquipo(texto: unknown): string {
+  const t = sinTildes(texto);
+  if (/LAVADORA|\bLAV\b|LAV\.|LAVAD\./.test(t)) return "lavadora";
+  if (/SECADORA|\bSEC\b/.test(t)) return "secadora";
+  if (/RODILLO|CALANDRIA/.test(t)) return "rodillo";
+  if (/MESA/.test(t)) return "mesa de planchado";
+  if (/PRENSA/.test(t)) return "prensa";
+  if (/CALDERIN/.test(t)) return "calderín";
+  if (/COCHE|CARRO/.test(t)) return "coche";
+  return "equipo";
+}
+
+/** La configuración en una frase corta: «M9 · 220V 1-3PH», «Unilinc · GLP · inox». */
+export function resumenRasgos(r: Rasgos): string {
+  return [r.control, r.calentamiento, r.cilindro, r.voltaje, r.sistemaLg, r.apilable === "sí" ? "apilable" : r.apilable === "no" ? "no apilable" : null, r.dosificador]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 export interface Propuesta extends FilaStock {
   estado: EstadoFila;
   motivo: string;
   codigo: string | null;
-  candidatos: { sku: string; activo: boolean; choques: string[] }[];
+  candidatos: { sku: string; activo: boolean; choques: string[]; resumen: string }[];
   rasgos: Rasgos;
+  tipo: string;
   /** El código propuesto no existe: hay que crear el producto. */
   crear: boolean;
+  /** La serie ya está con un cliente en el CRM. */
+  ocupada: { cliente: string | null; cuentaId: string | null; pedidoId: string | null; pedido: string | null } | null;
 }
 
 // ------------------------------------------------------------------ texto
@@ -107,6 +134,8 @@ export interface Rasgos {
   sistemaLg?: string;
   apilable?: string;
   tipo?: string;
+  /** Sailstar 2026 (Lesly 21-10): llegaron «con sistema de aire FRL y dosificador externo» y no son las mismas que ya están. */
+  dosificador?: string;
 }
 
 const NOMBRE_RASGO: Record<keyof Rasgos, string> = {
@@ -117,6 +146,7 @@ const NOMBRE_RASGO: Record<keyof Rasgos, string> = {
   sistemaLg: "código LG",
   apilable: "apilable",
   tipo: "tipo de equipo",
+  dosificador: "dosificador",
 };
 
 export function rasgos(texto: unknown): Rasgos {
@@ -148,6 +178,7 @@ export function rasgos(texto: unknown): Rasgos {
   else if (t.includes("APIL")) r.apilable = "sí";
   if (/LAVADORA|\bLAV\b|LAV\.|LAVAD\./.test(t)) r.tipo = "lavadora";
   else if (t.includes("SECADORA")) r.tipo = "secadora";
+  if (/DOSIFICADOR EXTERNO|AIRE FRL|AIRE COMPRIMIDO FRL|SISTEMA DE AIRE/.test(t)) r.dosificador = "dosificador externo / aire FRL";
   return r;
 }
 
@@ -268,6 +299,8 @@ function prepararCatalogo(productos: ProductoCatalogo[]): Candidato[] {
       const deFicha = rasgos([p.panel, p.calentamiento, p.nombreFicha].join(" "));
       for (const k of Object.keys(deFicha) as (keyof Rasgos)[]) r[k] ??= deFicha[k];
       if (!r.calentamiento && /VAP/i.test(p.sku)) r.calentamiento = "vapor";
+      // Un producto con descripción que no nombra el dosificador externo NO lo trae: las Sailstar nuevas sí.
+      if (!r.dosificador && p.descripcion) r.dosificador = "sin dosificador externo";
       const familias = new Set([familia(p.modelo)]);
       const m = sinTildes(p.modelo);
       const lg = PALABRAS_LG.find((w) => m.includes(w));
@@ -320,7 +353,7 @@ export function emparejar(
   const catalogo = prepararCatalogo(productos);
   const porSku = new Map(productos.map((p) => [p.sku.toUpperCase(), p]));
   const ocupados = new Set(productos.map((p) => p.sku.toUpperCase()));
-  const ocupadas = new Map(seriesOcupadas.map((s) => [s.serie.toUpperCase(), s.cliente]));
+  const ocupadas = new Map(seriesOcupadas.map((s) => [s.serie.toUpperCase(), s]));
   // Misma configuración = mismo código tentativo («si es lo mismo, le pongo el mismo código»).
   const tentativos = new Map<string, string>();
 
@@ -376,7 +409,9 @@ export function emparejar(
     const mejor = limpios[0];
     const empatados = mejor ? limpios.filter((e) => e.puntos === mejor.puntos) : [];
     const unico = mejor && empatados.length === 1 ? mejor.c.p.sku.toUpperCase() : null;
-    const candidatos = evaluados.slice(0, 6).map((e) => ({ sku: e.c.p.sku.toUpperCase(), activo: e.c.p.activo, choques: e.choques }));
+    const candidatos = evaluados
+      .slice(0, 6)
+      .map((e) => ({ sku: e.c.p.sku.toUpperCase(), activo: e.c.p.activo, choques: e.choques, resumen: resumenRasgos({ ...e.c.r, dosificador: e.c.r.dosificador?.startsWith("sin") ? undefined : e.c.r.dosificador }) }));
 
     let estado: EstadoFila;
     let motivo: string;
@@ -446,9 +481,12 @@ export function emparejar(
 
     const avisos: string[] = [];
     if (avisoModelo) avisos.push(avisoModelo);
-    if (f.serie && ocupadas.has(f.serie)) {
-      const cliente = ocupadas.get(f.serie);
-      avisos.push(`Esta serie ya está en el CRM con ${cliente ?? "un cliente"}: ¿se vendió o está reservada? No se sube como stock libre`);
+    const ocupada = f.serie ? ocupadas.get(f.serie) : undefined;
+    if (f.serie && ocupada !== undefined) {
+      // Lesly (21-10): «Importaciones me ha dado la liquidación después que ya hemos vendido la máquina».
+      avisos.push(
+        `Esta serie ya está en el CRM con ${ocupada?.cliente ?? "un cliente"}${ocupada?.pedido ? ` (pedido ${ocupada.pedido})` : ""}: ya se vendió o está reservada. Pásela a vendido o reserva en el Excel; aquí no se sube como stock libre`,
+      );
     }
     if (avisos.length) {
       estado = "revisar";
@@ -459,6 +497,16 @@ export function emparejar(
       motivo += ". Sin serie de placa en el Excel: entra como unidades, no por serie";
     }
 
-    return { ...f, estado, motivo, codigo, candidatos, rasgos: r, crear };
+    return {
+      ...f,
+      estado,
+      motivo,
+      codigo,
+      candidatos,
+      rasgos: r,
+      tipo: tipoEquipo(`${f.descripcion} ${f.modelo}`),
+      crear,
+      ocupada: ocupada ? { cliente: ocupada.cliente, cuentaId: ocupada.cuentaId ?? null, pedidoId: ocupada.pedidoId ?? null, pedido: ocupada.pedido ?? null } : null,
+    };
   });
 }

@@ -97,6 +97,31 @@ describe("emparejar", () => {
     expect(["SECU75", "SECU553", "SECU752"]).not.toContain(a.codigo);
   });
 
+  it("Sailstar con dosificador externo / aire FRL: no es la que ya existe, va código nuevo de la misma familia", () => {
+    const cat = [...catalogo, prod("LAVG50", "LAVADORA EXTRACTORA SAILSTAR, MOD.: GP50, CON CALENTAMIENTO A VAPOR, CONTROL: TOUCH, FUERZA: 350G, CAP: 50 KG, (220V/60HZ/3PH)", { modelo: "GP50", marca: "SAILSTAR" })];
+    const [p] = emparejar(
+      [fila("GP50", "LAVADORA EXTRACTORA SAILSTAR, MOD.: GP50, CON CALENTAMIENTO A VAPOR, CONTROL: TOUCH, c/ SISTEMA DE AIRE FRL, 5 PUERTOS DOSIFICADOR EXTERNO, FUERZA: 350G, CAP: 50 KG, (220V/60HZ/3PH)", { marca: "SAILSTAR" })],
+      cat,
+      [],
+    );
+    expect(p.estado).toBe("nuevo");
+    expect(p.codigo).toBe("LAVG501");
+    expect(p.candidatos[0]).toMatchObject({ sku: "LAVG50" });
+    expect(p.candidatos[0].choques.join()).toContain("dosificador");
+    expect(p.tipo).toBe("lavadora");
+  });
+
+  it("serie que ya está con un cliente: revisar, con el cliente y el pedido", () => {
+    const [p] = emparejar(
+      [fila("UT075", "SECADORA, MOD. UT075, DUAL DIGITAL, CILINDRO GALVANIZADO, GAS NATURAL, X(220V/60HZ/1-3PH)", { codigoExcel: "SECU553" })],
+      catalogo,
+      [{ serie: "2608067071", cliente: "PRODECO DEL SUR", cuentaId: "c1", pedidoId: "p1", pedido: "PED-0010-2026" }],
+    );
+    expect(p.estado).toBe("revisar");
+    expect(p.motivo).toContain("PED-0010-2026");
+    expect(p.ocupada).toMatchObject({ cuentaId: "c1", pedidoId: "p1" });
+  });
+
   it("serie que ya está con un cliente: revisar", () => {
     const [p] = emparejar(
       [fila("UT075", "SECADORA, MOD. UT075, DUAL DIGITAL, CILINDRO GALVANIZADO, GAS NATURAL, X(220V/60HZ/1-3PH)", { codigoExcel: "SECU553" })],

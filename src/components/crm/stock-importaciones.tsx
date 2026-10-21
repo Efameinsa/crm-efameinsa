@@ -15,17 +15,20 @@ import {
   Upload,
   Wand2,
 } from "lucide-react";
+import Link from "next/link";
 import {
   analizarExcelStock,
+  buscarSerie,
   decidirStock,
   subirStock,
   sugerirCodigo,
   type CargaStock,
+  type DondeEstaSerie,
   type FilaCarga,
   type ResultadoSubida,
   type SugerenciaCodigo,
 } from "@/lib/acciones/stock-importaciones";
-import type { EstadoFila } from "@/lib/stock-importaciones";
+import type { EstadoFila, Rasgos } from "@/lib/stock-importaciones";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -120,6 +123,40 @@ function problemaCorto(motivo: string): string {
   if (/control:/.test(motivo)) return "El control no coincide";
   if (/retirado/.test(motivo)) return "Código retirado";
   return "Revisar";
+}
+
+/**
+ * La configuración como chips: tipo, panel, calentamiento, cilindro, voltaje.
+ * Lesly (21-10): el mismo modelo (UCT060, UCT080) tiene un código por PANEL
+ * (M9 / M30) y «faltaría poner si es lavadora, secadora o rodillo».
+ */
+function ChipsRasgos({ tipo, rasgos, destacar }: { tipo?: string; rasgos: Rasgos; destacar?: boolean }) {
+  const chips = [
+    tipo,
+    rasgos.control && `panel ${rasgos.control}`,
+    rasgos.calentamiento,
+    rasgos.cilindro,
+    rasgos.voltaje,
+    rasgos.sistemaLg,
+    rasgos.apilable === "sí" ? "apilable" : rasgos.apilable === "no" ? "no apilable" : null,
+    rasgos.dosificador?.startsWith("sin") ? null : rasgos.dosificador,
+  ].filter(Boolean) as string[];
+  if (chips.length === 0) return null;
+  return (
+    <span className="inline-flex flex-wrap gap-1">
+      {chips.map((c, i) => (
+        <span
+          key={c}
+          className={cn(
+            "rounded-md px-1.5 py-px text-[11px]",
+            i === 0 && destacar ? "bg-foreground/[0.08] font-medium" : "bg-muted text-muted-foreground",
+          )}
+        >
+          {c}
+        </span>
+      ))}
+    </span>
+  );
 }
 
 /** Los códigos del catálogo: si existe y si está activo. */
@@ -452,6 +489,7 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
               {f0.codigoExcel ? ` · en el Excel: ${f0.codigoExcel}` : " · sin código en el Excel"}
             </span>
           </div>
+          <ChipsRasgos tipo={f0.tipo} rasgos={f0.rasgos} destacar />
           <p className="line-clamp-1 text-xs text-muted-foreground" title={f0.descripcion}>
             {f0.descripcion}
           </p>
@@ -459,26 +497,47 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
             {grupo.estado === "revisar" && <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-500" />}
             <span>{f0.motivo}</span>
           </p>
+          {f0.ocupada && (
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+              <span className="font-medium">{f0.ocupada.cliente ?? "Cliente sin nombre"}</span>
+              {f0.ocupada.pedido && <span className="text-muted-foreground">pedido {f0.ocupada.pedido}</span>}
+              {f0.ocupada.cuentaId && (
+                <Link href={`/gerencia/clientes/${f0.ocupada.cuentaId}`} prefetch={false} className="underline underline-offset-2" target="_blank">
+                  Ver ficha del cliente
+                </Link>
+              )}
+              {f0.ocupada.pedidoId && (
+                <Link href={`/postventa/pedidos/${f0.ocupada.pedidoId}`} prefetch={false} className="underline underline-offset-2" target="_blank">
+                  Ver el pedido
+                </Link>
+              )}
+            </p>
+          )}
           {f0.candidatos.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-              <span className="text-[11px] text-muted-foreground">Parecidos en el catálogo:</span>
-              {f0.candidatos.map((c) => (
-                <button
-                  key={c.sku}
-                  type="button"
-                  onClick={() => setCodigo(c.sku)}
-                  title={c.choques.length ? `Difiere en ${c.choques.join("; ")}` : "Misma configuración"}
-                  className={cn(
-                    "rounded border px-1.5 py-0.5 font-mono text-[11px] hover:bg-muted",
-                    codigo === c.sku ? "border-foreground/60 bg-foreground/[0.06]" : "border-border",
-                    c.choques.length > 0 && "text-muted-foreground",
-                  )}
-                >
-                  {c.sku}
-                  {!c.activo && " · retirado"}
-                  {c.choques.length > 0 && <span className="ml-1">≠ {c.choques.map((x) => x.split(":")[0]).join(", ")}</span>}
-                </button>
-              ))}
+            <div className="space-y-1 pt-0.5">
+              <span className="text-[11px] text-muted-foreground">Códigos de este modelo en el catálogo (toque uno para usarlo):</span>
+              <div className="flex flex-wrap gap-1.5">
+                {f0.candidatos.map((c) => (
+                  <button
+                    key={c.sku}
+                    type="button"
+                    onClick={() => setCodigo(c.sku)}
+                    title={c.choques.length ? `Difiere en ${c.choques.join("; ")}` : "Misma configuración"}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] hover:bg-muted",
+                      codigo === c.sku ? "border-foreground/60 bg-foreground/[0.06]" : "border-border",
+                      c.choques.length > 0 && "text-muted-foreground",
+                    )}
+                  >
+                    <span className="font-mono font-medium">{c.sku}</span>
+                    {c.resumen && <span className="text-muted-foreground">{c.resumen}</span>}
+                    {!c.activo && <span className="text-muted-foreground">· retirado</span>}
+                    {c.choques.length > 0 && (
+                      <span className="text-orange-700 dark:text-orange-300">≠ {c.choques.map((x) => x.split(":")[0]).join(", ")}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           <button type="button" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground" onClick={() => setVerSeries((v) => !v)}>
@@ -599,7 +658,10 @@ export function ListaCodigos({ codigos }: { codigos: CodigoCatalogo[] }) {
     .sort((a, b) => Number(b.enPreparacion) - Number(a.enPreparacion) || a.sku.localeCompare(b.sku));
   return (
     <div className="space-y-4">
-      <GeneradorCodigo />
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <GeneradorCodigo />
+        <BuscadorSerie />
+      </div>
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
@@ -664,6 +726,72 @@ export function ListaCodigos({ codigos }: { codigos: CodigoCatalogo[] }) {
   );
 }
 
+/**
+ * «¿Dónde está esta serie?» (Lesly, 21-10): antes verificaba con la serie para
+ * quién era la máquina; ahora que el código lo da el almacén, no tenía dónde.
+ */
+export function BuscadorSerie() {
+  const [serie, setSerie] = useState("");
+  const [r, setR] = useState<DondeEstaSerie | null>(null);
+  const [pendiente, iniciar] = useTransition();
+  const ESTADO: Record<string, string> = { disponible: "disponible", reservado: "reservada", despachado: "despachada" };
+  return (
+    <div className="space-y-3 rounded-xl border border-border p-4">
+      <div className="flex items-center gap-2">
+        <Search className="size-4 text-[#8B1510]" />
+        <p className="text-sm font-medium">¿Dónde está esta serie?</p>
+      </div>
+      <p className="text-xs text-muted-foreground">Dice si está en el almacén, en un pedido o ya con un cliente.</p>
+      <form
+        className="flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          iniciar(async () => {
+            const res = await buscarSerie(serie);
+            if (res.error) toast.error(res.error);
+            setR(res.resultado ?? null);
+          });
+        }}
+      >
+        <Input value={serie} onChange={(e) => setSerie(e.target.value.toUpperCase())} placeholder="2607009967" className="font-mono" />
+        <Button type="submit" variant="outline" disabled={pendiente || serie.trim().length < 3}>
+          {pendiente ? "Buscando…" : "Buscar"}
+        </Button>
+      </form>
+      {r && (
+        <div className="space-y-1.5 text-sm">
+          {r.almacen && (
+            <p>
+              En el almacén: <b>{ESTADO[r.almacen.estado] ?? r.almacen.estado}</b>
+              {r.almacen.sku && <span className="font-mono"> · {r.almacen.sku}</span>}
+              {r.almacen.ubicacion && <span className="text-muted-foreground"> · {r.almacen.ubicacion}</span>}
+            </p>
+          )}
+          {r.cliente && (
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span>
+                Con el cliente <b>{r.cliente.cliente ?? "sin nombre"}</b>
+                {r.cliente.pedido && <span className="text-muted-foreground"> · pedido {r.cliente.pedido}</span>}
+              </span>
+              {r.cliente.cuentaId && (
+                <Link href={`/gerencia/clientes/${r.cliente.cuentaId}`} prefetch={false} className="text-xs underline underline-offset-2" target="_blank">
+                  Ver ficha
+                </Link>
+              )}
+              {r.cliente.pedidoId && (
+                <Link href={`/postventa/pedidos/${r.cliente.pedidoId}`} prefetch={false} className="text-xs underline underline-offset-2" target="_blank">
+                  Ver el pedido
+                </Link>
+              )}
+            </p>
+          )}
+          {!r.almacen && !r.cliente && <p className="text-muted-foreground">La serie {r.serie} no está en el CRM: ni en el almacén ni en ningún pedido.</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function GeneradorCodigo() {
   const [modelo, setModelo] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -679,6 +807,11 @@ function GeneradorCodigo() {
       <p className="text-xs text-muted-foreground">
         Pegue la descripción como viene de Importaciones. Si ya hay un código con esa misma configuración se lo digo (para no duplicar); si no,
         le propongo el siguiente libre.
+      </p>
+      <p className="rounded-md bg-muted/60 px-3 py-2 text-[11px] text-muted-foreground">
+        <b className="text-foreground">Cómo se arma un código</b> (Lesly, 21-10): empieza por el tipo (LAV, SEC, CAL, ME, PR, CO), lleva algo del
+        modelo para distinguirlo (LAVG50 = GP50, LAVW23 = WET 23) y una variante del mismo modelo —otro panel, otro voltaje, dosificador— suma un
+        número al final (LAVW105 → LAVW1051). Nunca se repite uno que exista, ni retirado.
       </p>
       <div className="grid gap-2 sm:grid-cols-[12rem_1fr_auto]">
         <Input value={modelo} onChange={(e) => setModelo(e.target.value)} placeholder="Modelo (UT075)" />
