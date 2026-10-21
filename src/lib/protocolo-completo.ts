@@ -17,10 +17,12 @@ import { propuestaDeHoja, type DatosHoja, type Maquina } from "@/lib/protocolo-h
  * Beneficencia de Huancayo: «solo debe marcarse lo que uno considere, no deben
  * ser obligatorios todos los checks y las X»): basta con una marcada.
  *
- * El PDF/Word solo se pide a la máquina SIN hoja de chequeo en el sistema
- * (Lesly, 13-10: «ya no debería solicitar subir Word porque el sistema ya lo
- * genera»): si la tiene, el informe de prueba y embalaje con la hoja completa
- * es el protocolo. Subir el Word sigue pudiéndose, ya no frena.
+ * El PDF/Word ya NO se pide a ninguna máquina (Lesly, 21-10, en Almacén: «se
+ * sube la foto, se llena la ficha pero también pedía que se suba el Word»):
+ * todo el protocolo se hace en el CRM —fotos, ficha del informe y, si hay
+ * plantilla, la hoja de chequeo— y el informe de prueba y embalaje lo genera
+ * el sistema. Subir un Word sigue pudiéndose, nunca frena (0580). Antes solo
+ * se había quitado a las máquinas con hoja (13-10).
  *
  * Una fila que es un SERVICIO (embalaje, transporte, instalación…) no es una
  * máquina: el informe de prueba y embalaje lo genera el CRM con sus fotos, así
@@ -58,10 +60,6 @@ export type LoQueVaConElClic = {
 const esImagen = (a: NonNullable<ArchivoProtocolo>) =>
   (a.tipo ?? "").startsWith("image/") || /\.(jpe?g|png|webp|gif|heic)$/i.test(a.path ?? "");
 
-// El video de la prueba (14-10) no es el protocolo PDF/Word: no lo reemplaza.
-const esVideo = (a: NonNullable<ArchivoProtocolo>) =>
-  (a.tipo ?? "").startsWith("video/") || a.etiqueta === "video" || /\.(mp4|mov|webm|3gp)$/i.test(a.path ?? "");
-
 const lista = (x: unknown): NonNullable<ArchivoProtocolo>[] => (Array.isArray(x) ? x.filter((a): a is NonNullable<ArchivoProtocolo> => Boolean(a)) : []);
 
 /** La fila es un servicio y no una máquina (mismo criterio que es_linea_de_servicio, 0404). */
@@ -89,7 +87,6 @@ function faltaEnLaHoja(
   const plantilla = hojaDelSistema(e, maquina, repuesto);
   const falta: string[] = [];
   if (!archivos.some(esImagen)) falta.push("fotos");
-  if (!repuesto && !plantilla && !archivos.some((a) => !esImagen(a) && !esVideo(a))) falta.push("protocolo o informe (PDF o Word)");
   if (!repuesto && !guardado.modelo?.trim()) falta.push("modelo de la placa (en la ficha del informe)");
   if (!repuesto && !(guardado.serie ?? propuesta.serie ?? e.serie)?.trim()) falta.push("serie");
   if (!(tecnicoEnPantalla.trim() || guardado.tecnico?.trim())) falta.push("técnico que hizo la prueba");

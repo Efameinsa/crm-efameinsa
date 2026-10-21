@@ -33,7 +33,7 @@ describe("faltaParaProbar", () => {
     expect(faltaParaProbar(sinWord, [])).toEqual([]);
   });
 
-  it("sin hoja de chequeo en el sistema (centrífuga) sigue pidiendo el Word/PDF", () => {
+  it("sin hoja de chequeo (centrífuga) tampoco pide el Word/PDF: fotos y ficha bastan (Lesly, 21-10, 0580)", () => {
     const centrifuga: MaquinaParaProbar = {
       ...cofaco,
       descripcion: "CENTRIFUGA INDUSTRIAL MARCA GMP MODELO 160.30A",
@@ -41,7 +41,8 @@ describe("faltaParaProbar", () => {
       protocolo_fotos: [{ path: "a.jpg", tipo: "image/jpeg" }],
       protocolo_datos: { principal: { modelo: "160.30A", tecnico: "T" } },
     };
-    expect(faltaParaProbar(centrifuga, []).join()).toContain("PDF o Word");
+    expect(faltaParaProbar(centrifuga, [])).toEqual([]);
+    expect(faltaParaProbar({ ...centrifuga, protocolo_fotos: [] }, []).join()).toContain("fotos");
   });
 
   it("la plancha del calderín ya no pide Word/PDF: tiene su hoja (Almacén, 21-10, VITALIAN)", () => {
@@ -56,20 +57,6 @@ describe("faltaParaProbar", () => {
     expect(falta).not.toContain("PDF o Word");
     expect(falta).toContain("PROTOCOLO DE PLANCHA VAPORIZANTE");
     expect(faltaParaProbar({ ...plancha, protocolo_chequeo: { principal: { plantilla: "plancha", marcas: { "componentes.fugas-de-vapor.vapor": "ok" } } } }, [])).toEqual([]);
-  });
-
-  it("el video de la prueba no reemplaza al Word/PDF (Ariana, 14-10)", () => {
-    const centrifuga: MaquinaParaProbar = {
-      ...cofaco,
-      descripcion: "CENTRIFUGA INDUSTRIAL MARCA GMP MODELO 160.30A",
-      protocolo_ref: "P-7",
-      protocolo_fotos: [
-        { path: "a.jpg", tipo: "image/jpeg" },
-        { path: "prueba.mp4", tipo: "video/mp4", etiqueta: "video" },
-      ],
-      protocolo_datos: { principal: { modelo: "160.30A", tecnico: "T" } },
-    };
-    expect(faltaParaProbar(centrifuga, []).join()).toContain("PDF o Word");
   });
 
   it("con la ficha, fotos, PDF y la hoja completa se puede", () => {

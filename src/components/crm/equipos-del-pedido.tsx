@@ -642,14 +642,14 @@ function Fila({
       partes: Object.fromEntries(partes.map((p) => [p.id, [...deParte(p.id).fotos.map(comoArchivo(false)), ...deParte(p.id).docs.map(comoArchivo(true))]])),
     },
   });
-  // Con hoja de chequeo en el sistema el informe lo genera el CRM: el Word/PDF es opcional (Lesly, 13-10).
+  // El informe lo genera el CRM: el Word/PDF es opcional para toda máquina (Lesly, 13-10 con hoja; 21-10 sin hoja, 0580).
   // Una fila de SERVICIO tampoco lo pide: el informe sale con sus fotos (Lesly, 17-10, 0529).
   const tituloDocs = (maquina: MaquinaParaProbar, cual: "principal" | "secadora", de: string) =>
     esFilaDeServicio(maquina, maquina === e ? partes : [])
       ? `Otro informe de ${de} (PDF o Word, opcional: es un servicio, el informe de prueba y embalaje lo genera el sistema con las fotos)`
       : hojaDelSistema(maquina, cual, repuesto)
       ? `Otro protocolo o informe de ${de} (PDF o Word, opcional: el informe lo genera el sistema con la hoja de chequeo)`
-      : `Protocolo o informe de ${de} (PDF o Word, varios)`;
+      : `Otro protocolo o informe de ${de} (PDF o Word, opcional: el informe lo genera el sistema con las fotos y la ficha)`;
 
   /** El técnico y la fecha van a la hoja de cada máquina de la unidad (la secadora de la torre también). */
   function guardarTecnicoYFecha() {
@@ -1666,7 +1666,7 @@ function ArchivosDeParte({ p, servicioId, probada, candado }: { p: EquipoDelPedi
         (abierto ? (
           <div className="space-y-1.5 rounded-md bg-muted/40 p-2">
             <TomarOSubirVarias titulo={`Fotos de la ${nombre}`} archivos={fotos} onChange={setFotos} maximo={100} />
-            <Documentos archivos={docs} onChange={setDocs} titulo={`Protocolo o informe de la ${nombre} (PDF o Word)`} />
+            <Documentos archivos={docs} onChange={setDocs} titulo={`Otro protocolo o informe de la ${nombre} (PDF o Word, opcional)`} />
             {problema && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
             <div className="flex gap-1.5">
               <Button
