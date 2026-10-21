@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Paperclip, Send, X } from "lucide-react";
@@ -113,6 +113,16 @@ export function DerivarAAreaBoton({
   const [archivos, setArchivos] = useState<File[]>([]);
   const [problema, setProblema] = useState<string | null>(null);
   const [enviando, iniciar] = useTransition();
+
+  // El diálogo «Asignar» del mismo contacto puede pedir que se abra este (21-10).
+  useEffect(() => {
+    if (!leadId) return;
+    const abrir = (e: Event) => {
+      if ((e as CustomEvent<string>).detail === leadId) setAbierto(true);
+    };
+    window.addEventListener("derivar-a-area", abrir);
+    return () => window.removeEventListener("derivar-a-area", abrir);
+  }, [leadId]);
 
   const def = AREAS_CASO.find((a) => a.valor === area)!;
   const falta = !motivo

@@ -459,7 +459,7 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
                         : `entró solo${origen ? ` · ${origen.etiqueta.toLowerCase()}` : " (formulario web)"}`}
                     </span>
                   </div>
-                  <div className="ml-auto flex gap-2">
+                  <div className="ml-auto flex flex-wrap justify-end gap-2">
                     <AsignarLeadDialog
                       leadId={lead.id}
                       cuentaId={lead.cuenta_id ?? null}
@@ -493,7 +493,6 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
                       referencia={lead.codigo ? `Contacto ${lead.codigo}` : null}
                       mensajeInicial={lead.mensaje}
                       etiqueta="A Finanzas o Facturación"
-                      compacto
                     />
                     <DerivarAvisoBoton
                       leadId={lead.id}

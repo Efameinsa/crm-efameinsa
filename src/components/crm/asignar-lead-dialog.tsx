@@ -370,9 +370,25 @@ export function AsignarLeadDialog({ leadId, nombre, razonSocial, telefono, numDo
         </DialogHeader>
         {/* Acá solo hay comerciales y postventa (Santos, 21-10: COFACO buscaba
             Finanzas en esta lista). Se dice dónde está lo otro. */}
-        <p className="rounded-md bg-secondary/60 px-3 py-2 text-xs text-muted-foreground">
-          ¿Es de pagos, facturas o letras? Eso no va a un comercial: cierre esta ventana y use <b>«A Finanzas o Facturación»</b>, al lado de «Asignar».
-        </p>
+        {/* 21-10 11:22, captura de Central: el aviso decía «cierre esta ventana
+            y use el botón de al lado», pero en pantalla angosta ese botón era
+            solo un ícono. Ahora se deriva desde acá mismo. */}
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+          <span className="text-muted-foreground">¿Es de pagos, facturas o letras? No va a un comercial.</span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 border-primary/40 px-2.5 text-xs font-semibold text-primary"
+            onClick={() => {
+              setAbierto(false);
+              // Lo abre el «A Finanzas o Facturación» de este mismo contacto.
+              setTimeout(() => window.dispatchEvent(new CustomEvent("derivar-a-area", { detail: leadId })), 150);
+            }}
+          >
+            Derivar a Finanzas o Facturación
+          </Button>
+        </div>
 
         {/* Cuando el aviso lo mandó un comercial, se dice de entrada: no es un
             contacto que llegó de la calle, es uno que ya se habló y viene con
