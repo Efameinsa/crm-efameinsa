@@ -33,24 +33,14 @@ export default async function PedidosPorLiquidarPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("servicios_postventa")
-    .select("id, cliente_texto, numero_pedido_erp, monto, moneda, informe_cierre_id, liquidacion_at, liquidacion_adjunto, liquidacion_subida_at, liquidacion_rechazada_at, liquidacion_rechazada_motivo, cerrado_at, created_at")
+    .select("id, cliente_texto, numero_pedido_erp, monto, moneda, informe_cierre_id, liquidacion_at, liquidacion_adjunto, liquidacion_subida_at, liquidacion_rechazada_at, liquidacion_rechazada_motivo, created_at")
     .not("numero_pedido_erp", "is", null)
     .not("informe_cierre_id", "is", null)
     .is("liquidacion_at", null)
-    // UN SERVICIO SE CIERRA ANTES DE FACTURARSE (Jhon, 21-10, AGROCASAGRANDE
-    // PED-0028-2026): la instalación terminó y el pedido se cerró el 14-10, pero
-    // la HES del cliente llegó después y el pedido ya no salía aquí. Cerrado
-    // sigue entrando mientras no tenga factura ni «no se factura».
-    .or("cerrado_at.is.null,no_se_factura_at.is.null")
+    .is("cerrado_at", null)
     .order("created_at", { ascending: true })
     .limit(200);
-  const crudas = (data ?? []) as { id: string; cerrado_at: string | null }[];
-  const cerrados = crudas.filter((f) => f.cerrado_at).map((f) => f.id);
-  const { data: facturados } = cerrados.length
-    ? await supabase.from("facturas_pedido").select("servicio_id").in("servicio_id", cerrados).is("anulada_at", null)
-    : { data: [] };
-  const conFactura = new Set(((facturados ?? []) as { servicio_id: string }[]).map((f) => f.servicio_id));
-  const filas = crudas.filter((f) => !f.cerrado_at || !conFactura.has(f.id)) as unknown as {
+  const filas = (data ?? []) as {
     id: string; cliente_texto: string | null; numero_pedido_erp: string; monto: number | null; moneda: string | null; informe_cierre_id: string;
     liquidacion_adjunto: { path: string; nombre: string } | null; liquidacion_subida_at: string | null;
     liquidacion_rechazada_at: string | null; liquidacion_rechazada_motivo: string | null;
