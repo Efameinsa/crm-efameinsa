@@ -26,7 +26,7 @@ export default async function FichasRepetidasPage() {
         <div>
           <h1 className="text-xl font-bold text-foreground">Fichas repetidas</h1>
           <p className="text-xs text-muted-foreground">
-            Clientes con dos o más fichas que se llaman igual (sin contar tildes, puntos ni S.A.C.), con movimiento en al menos una. Unirlas junta
+            Clientes con dos o más fichas que se llaman igual (sin contar tildes, puntos ni S.A.C.), con movimiento en al menos una, o con el mismo documento: el mismo RUC/DNI, o el DNI de una persona dentro de su RUC 10 (0569, gerencia 20-10). Unirlas junta
             expedientes, contactos, casos, máquinas y pedidos en una sola. Si no son el mismo, márquelo y el grupo no vuelve a salir.
           </p>
         </div>

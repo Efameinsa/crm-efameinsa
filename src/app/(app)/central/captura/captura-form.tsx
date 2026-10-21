@@ -40,6 +40,7 @@ const CANALES = [
 
 const MOTIVO: Record<CoincidenciaCartera["motivo"], { etiqueta: string; fuerte: boolean }> = {
   documento: { etiqueta: "mismo RUC/DNI", fuerte: true },
+  dni_en_ruc: { etiqueta: "su DNI está dentro del RUC 10 (la misma persona)", fuerte: true },
   telefono: { etiqueta: "mismo teléfono", fuerte: true },
   correo: { etiqueta: "mismo correo", fuerte: true },
   nombre: { etiqueta: "nombre parecido", fuerte: false },
