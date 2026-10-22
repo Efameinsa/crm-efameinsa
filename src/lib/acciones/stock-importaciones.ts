@@ -254,6 +254,9 @@ export async function subirStock(cargaId: string, sacarAusentes: boolean): Promi
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("stock_carga_subir", { p_carga: cargaId, p_sacar_ausentes: sacarAusentes });
   if (error) return { error: limpiarError(error.message) };
+  // Cotejo con el catálogo (0586, Carlos 22-10): la cifra vieja «(ref.)» de los equipos
+  // que no vinieron en el Excel deja de mostrarse. Si falla, la subida ya está hecha.
+  await supabase.rpc("catalogo_cotejar_con_almacen");
   revalidatePath("/operaciones/stock");
   revalidatePath("/operaciones/catalogo");
   revalidatePath("/comercial/stock");

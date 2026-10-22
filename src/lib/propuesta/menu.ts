@@ -263,6 +263,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Clientes", href: "/nuevo/clientes", icono: "clientes", coincide: ["/nuevo/clientes", "/gerencia/clientes", "/gerencia/cartera-liberable"] },
     { etiqueta: "Reportes", href: "/nuevo/reportes", icono: "numeros", coincide: ["/nuevo/reportes", "/gerencia/supervision", "/gerencia/gestion-whatsapp", "/gerencia/llamadas", "/gerencia/reportes"] },
     { etiqueta: "Control", href: "/nuevo/control", icono: "control", coincide: ["/nuevo/control", "/gerencia/accesos", "/gerencia/auditoria"] },
+    // El stock por serie, la subida del Excel y los resúmenes (Carlos 22-10: «ese módulo todavía no lo puedo ver yo»).
+    { etiqueta: "Stock y códigos", href: "/operaciones/stock?ver=almacen", icono: "pedidos", coincide: ["/operaciones/stock"] },
     // Lo que el personal reporta desde el 💡 (Santos, 06-10): admin lo atiende, gerencia lo ve.
     { etiqueta: "Observaciones", href: "/observaciones", icono: "observaciones", coincide: ["/observaciones", "/sugerencias"] },
     // Lo que el personal le pregunta a Efamein, como un chat (Carlos, 15-10).
