@@ -106,7 +106,7 @@ export async function hechosDelAlmacen(supabase: Cliente, fecha: string): Promis
       .limit(200),
     supabase.from("protocolos_stock").select("id, descripcion, serie, terminado_at, terminado_por").gte("terminado_at", desde).lt("terminado_at", hasta).limit(200),
     // Lo anotado a mano por la gente del almacén («Otras gestiones de hoy»).
-    supabase.from("bitacora_dia").select("id, perfil_id, orden, texto, perfiles!inner(nombre, es_almacen)").eq("fecha", fecha).eq("perfiles.es_almacen", true).order("orden").limit(200),
+    supabase.from("bitacora_dia").select("id, perfil_id, orden, texto, created_at, perfiles!inner(nombre, es_almacen)").eq("fecha", fecha).eq("perfiles.es_almacen", true).order("orden").limit(200),
   ]);
 
   const hechos: Hecho[] = [];
@@ -148,9 +148,11 @@ export async function hechosDelAlmacen(supabase: Cliente, fecha: string): Promis
   for (const p of (stock ?? []) as { id: string; descripcion: string; serie: string | null; terminado_at: string; terminado_por: string | null }[]) {
     poner({ id: `st-${p.id}`, tipo: "stock", cuando: p.terminado_at, que: "Terminó el protocolo de un equipo en stock", cliente: null, detalle: `${primeraLinea(p.descripcion)}${p.serie ? ` · serie ${p.serie}` : ""}`, quien: p.terminado_por, href: `/almacen/protocolos/stock/${p.id}` });
   }
-  for (const b of (anotado ?? []) as unknown as { id: string; perfil_id: string; orden: number; texto: string; perfiles: { nombre: string } }[]) {
-    // Lo anotado no tiene hora: va al final del día, en el orden en que se escribió.
-    hechos.push({ id: `bi-${b.id}`, tipo: "anotado", cuando: `${hasta.slice(0, 10)}T04:${String(Math.min(b.orden, 59)).padStart(2, "0")}:00.000Z`, hora: null, que: b.texto, cliente: null, detalle: null, quien: b.perfiles?.nombre ?? null, href: null, delAlmacen: true });
+  for (const b of (anotado ?? []) as unknown as { id: string; perfil_id: string; orden: number; texto: string; created_at: string | null; perfiles: { nombre: string } }[]) {
+    // Lo anotado va con la hora en que se anotó (Santos 22-10: «Registrar actividad»,
+    // embalajes y despachos sin pedido); si no hay hora, al final del día.
+    const cuando = b.created_at && en(b.created_at, desde, hasta) ? b.created_at : `${hasta.slice(0, 10)}T04:${String(Math.min(b.orden, 59)).padStart(2, "0")}:00.000Z`;
+    hechos.push({ id: `bi-${b.id}`, tipo: "anotado", cuando, hora: b.created_at && en(b.created_at, desde, hasta) ? horaReal(b.created_at) : null, que: b.texto, cliente: null, detalle: null, quien: b.perfiles?.nombre ?? null, href: null, delAlmacen: true });
   }
 
   // Los nombres, de una vez.

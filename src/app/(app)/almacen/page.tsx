@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { torresSinSegundaSerie } from "@/lib/torres";
 import { colaDelDia, type Tarea, type Urgencia } from "@/lib/propuesta/cola-del-dia";
 import { agruparTareas, hechosDelAlmacen, indicadoresDelAlmacen, resumenDeHechos, separarHechos, type Hecho, type TipoHecho } from "@/lib/almacen-dia";
-import { BitacoraDia } from "@/components/crm/bitacora-dia";
+import { ActividadesAlmacen } from "@/components/crm/actividades-almacen";
 import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
 import { ArrowRight, CheckCircle2, ClipboardCheck, FileText, Plus } from "lucide-react";
 
@@ -47,16 +47,6 @@ export const dynamic = "force-dynamic";
  */
 interface Cuadro { titulo: string; numero: number; ayuda: string; href: string; alerta?: boolean }
 const cliente = (t: string | null) => (t ?? "Cliente sin nombre").replace(/^\d{8,11}\s*-\s*/, "");
-
-const SUGERENCIAS_ALMACEN = [
-  "Se ordenó y limpió el almacén",
-  "Se recibieron repuestos de Importaciones",
-  "Se hizo inventario de repuestos",
-  "Se entregó un repuesto en ventanilla",
-  "Se atendió a un transportista",
-  "Se preparó material de embalaje",
-  "Fin de mis labores",
-];
 
 const URGENCIA: Record<Urgencia, { texto: string; clase: string }> = {
   atrasado: { texto: "Atrasado", clase: "bg-destructive/10 text-destructive border-destructive/30" },
@@ -189,7 +179,7 @@ export default async function AlmacenPage() {
     colaDelDia(supabase, perfil, "almacen"),
     hechosDelAlmacen(supabase, hoy),
     // Lo anotado a mano por quien está en sesión («Otras gestiones de hoy»).
-    supabase.from("bitacora_dia").select("id, orden, texto").eq("perfil_id", perfil.id).eq("fecha", hoy).order("orden", { ascending: true }),
+    supabase.from("bitacora_dia").select("id, orden, texto, created_at").eq("perfil_id", perfil.id).eq("fecha", hoy).order("orden", { ascending: true }),
     // LA LLAMADA QUE LE ENTRA AL ALMACÉN (Lesly, 25-09): se registra acá y va a
     // la cola de Central, como el «Pasar contacto a Central» de comercial y postventa.
     listarMandadoACentral(supabase, perfil.id),
@@ -272,6 +262,10 @@ export default async function AlmacenPage() {
           </p>
         </div>
         <div className="flex flex-wrap justify-end gap-2">
+          {/* Lo que hace en planta sin pedido del CRM (Santos 22-10): a un clic desde arriba. */}
+          <a href="#registrar-actividad" className="inline-flex h-8 items-center gap-1.5 rounded-md bg-[#8B1510] px-3 text-sm font-medium text-white hover:bg-[#8B1510]/90">
+            <Plus className="size-3.5" /> Registrar actividad
+          </a>
           <Link href="/almacen/protocolos" className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground hover:bg-accent">
             <ClipboardCheck className="size-4" aria-hidden />
             Protocolos
@@ -422,10 +416,20 @@ export default async function AlmacenPage() {
               </details>
             )}
           </div>
-          <div>
-            <p className="mb-1.5 text-xs font-semibold text-foreground">Otras gestiones de hoy</p>
-            <p className="mb-2 text-[11px] leading-snug text-muted-foreground">Lo que no es un pedido ni una llamada: inventario, orden del almacén, repuestos que llegaron, entregas en ventanilla. Entra al reporte del día.</p>
-            <BitacoraDia fecha={hoy} actividades={bitacora ?? []} sugerencias={SUGERENCIAS_ALMACEN} ejemplo="Se recibieron 4 cajas de repuestos de Importaciones" />
+          <div id="registrar-actividad">
+            <p className="mb-1.5 text-xs font-semibold text-foreground">Actividades que no están en el CRM</p>
+            <p className="mb-2 text-[11px] leading-snug text-muted-foreground">
+              Lo que hizo en planta sin un pedido del CRM: embalar o despachar un producto, recibir mercadería, entregar en ventanilla, inventario. Queda con la hora y entra a su reporte del día.
+            </p>
+            <ActividadesAlmacen
+              fecha={hoy}
+              actividades={((bitacora ?? []) as { id: string; orden: number; texto: string; created_at: string | null }[]).map((b) => ({
+                id: b.id,
+                orden: b.orden,
+                texto: b.texto,
+                hora: b.created_at ? new Date(b.created_at).toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hour12: false }) : null,
+              }))}
+            />
           </div>
         </div>
       </SeccionPanel>
