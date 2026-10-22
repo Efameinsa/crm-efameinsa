@@ -14,8 +14,9 @@ import {
   type CodigosExistentes,
 } from "@/components/crm/stock-importaciones";
 import { ResumenGeneralStock } from "@/components/crm/resumen-general-stock";
-import { AlmacenPorSerie, type FilaAlmacen } from "@/components/crm/almacen-por-serie";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { AlmacenPorSerie } from "@/components/crm/almacen-por-serie";
+import { cargarAlmacenPorSerie, cargarContraste, cargarProyeccion } from "@/lib/almacen-datos";
+import type { FilaCarga } from "@/lib/acciones/stock-importaciones";
 import { productosParaComparar, type CargaStock } from "@/lib/acciones/stock-importaciones";
 import { rasgos } from "@/lib/stock-importaciones";
 import { cn } from "@/lib/utils";
@@ -85,54 +86,16 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
       </div>
     );
   } else if (pestana === "almacen") {
-    // El almacén por serie (Carlos 22-10): una fila por máquina, con el pedido que la reservó o con el que salió.
-    const { data: inv } = await supabase
-      .from("inventario_equipos")
-      .select("id, serie, estado, ubicacion, ingreso_at, salida_at, modelo, descripcion, empresa, item_importaciones, proveedor, servicio_id, pedido_equipo_id, reservado_para, productos(sku, marca, modelo, nombre)")
-      .neq("estado", "baja")
-      .order("ingreso_at", { ascending: true })
-      .limit(3000);
-    type Inv = {
-      id: string; serie: string; estado: FilaAlmacen["estado"]; ubicacion: string | null; ingreso_at: string; salida_at: string | null; modelo: string | null;
-      descripcion: string | null; empresa: string | null; item_importaciones: string | null; proveedor: string | null; servicio_id: string | null;
-      pedido_equipo_id: string | null; reservado_para: string | null;
-      productos: { sku: string | null; marca: string | null; modelo: string | null; nombre: string } | { sku: string | null; marca: string | null; modelo: string | null; nombre: string }[] | null;
-    };
-    const maquinas = (inv ?? []) as unknown as Inv[];
-    const admin = createAdminClient();
-    const idsServicio = [...new Set(maquinas.map((m) => m.servicio_id).filter(Boolean))] as string[];
-    const idsCuenta = [...new Set(maquinas.filter((m) => !m.servicio_id && m.reservado_para).map((m) => m.reservado_para))] as string[];
-    const [{ data: servicios }, { data: cuentas }] = await Promise.all([
-      idsServicio.length ? admin.from("servicios_postventa").select("id, cliente_texto, numero_pedido_erp").in("id", idsServicio) : Promise.resolve({ data: [] as { id: string; cliente_texto: string | null; numero_pedido_erp: string | null }[] }),
-      idsCuenta.length ? admin.from("cuentas").select("id, razon_social").in("id", idsCuenta) : Promise.resolve({ data: [] as { id: string; razon_social: string }[] }),
+    // El almacén por serie (Carlos 22-10): máquinas con su pedido, totales como en la hoja de
+    // Importaciones, lo que está por llegar y el cotejo con el catálogo. Gerencia mira; operaciones edita.
+    const { data: revisando } = await supabase.from("stock_cargas").select("filas").eq("estado", "revisando").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    const [{ filas, totales }, proyeccion, contraste] = await Promise.all([
+      cargarAlmacenPorSerie(supabase),
+      cargarProyeccion(supabase),
+      cargarContraste(supabase, (revisando?.filas ?? null) as FilaCarga[] | null),
     ]);
-    const porServicio = new Map((servicios ?? []).map((s) => [s.id, s]));
-    const porCuenta = new Map((cuentas ?? []).map((c) => [c.id, c.razon_social]));
-    const sinRuc = (s: string | null | undefined) => (s ?? "").replace(/^\d{8,11}\s*-\s*/, "").trim() || null;
-    const filas: FilaAlmacen[] = maquinas.map((m) => {
-      const p = Array.isArray(m.productos) ? m.productos[0] : m.productos;
-      const s = m.servicio_id ? porServicio.get(m.servicio_id) : null;
-      return {
-        id: m.id,
-        serie: m.serie,
-        estado: m.estado,
-        codigo: p?.sku ?? null,
-        marca: m.proveedor === "LG" ? "LG" : (p?.marca ?? null),
-        modelo: m.modelo ?? p?.modelo ?? "",
-        descripcion: m.descripcion ?? p?.nombre ?? "",
-        ubicacion: m.ubicacion,
-        ingreso: m.ingreso_at,
-        salida: m.salida_at,
-        empresa: m.empresa,
-        item: m.item_importaciones,
-        proveedor: m.proveedor,
-        cliente: sinRuc(s?.cliente_texto) ?? (m.reservado_para ? (porCuenta.get(m.reservado_para) ?? null) : null),
-        pedido: s?.numero_pedido_erp ?? null,
-        servicioId: m.servicio_id,
-        porPedido: !!m.pedido_equipo_id,
-      };
-    });
-    contenido = <AlmacenPorSerie filas={filas} />;
+    const puedeEditar = perfil.rol === "operaciones" || perfil.rol === "admin" || !!perfil.es_operaciones;
+    contenido = <AlmacenPorSerie filas={filas} totales={totales} contraste={contraste} proyeccion={proyeccion} puedeEditar={puedeEditar} />;
   } else {
     const [productos, { data: stock }] = await Promise.all([productosParaComparar(), supabase.rpc("stock_por_producto")]);
     const enAlmacen = new Map(((stock ?? []) as { producto_id: string; disponibles: number }[]).map((s) => [s.producto_id, s.disponibles]));

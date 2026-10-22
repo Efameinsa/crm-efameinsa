@@ -562,6 +562,16 @@ function TarjetaEquipo({
               {stockDe(e).etiqueta}
             </span>
           )}
+          {/* Lo que está por llegar (Carlos 22-10): se ve, se vende, pero no suma al stock. */}
+          {e.enCamino && (
+            <span
+              title="Lo que Importaciones tiene por llegar de este código. No suma al stock."
+              className="rounded-full border border-dashed border-sky-400 px-1.5 py-0.5 text-[10px] font-semibold text-sky-800 dark:text-sky-300"
+            >
+              +{e.enCamino.cantidad} en camino
+              {e.enCamino.fecha ? ` · llega ${new Date(`${e.enCamino.fecha}T12:00:00`).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit" })}` : ""}
+            </span>
+          )}
 
           {!e.tieneFicha && (
             <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-700">
