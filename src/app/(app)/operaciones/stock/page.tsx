@@ -82,7 +82,8 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
           </div>
         )}
         {/* El informe de los lunes de Importaciones, ahora armado por el CRM (reunión Santos–Lesly 22-10). */}
-        <ResumenGeneralStock enAlmacen={enAlmacen ?? 0} cargaEnRevision={revisando && carga ? { id: carga.id, archivo: carga.archivo } : null} />
+        {/* Desde la 0588 lo claro entra al leer el Excel: el resumen del almacén ya es el real; la vista previa de la carga sobra. */}
+        <ResumenGeneralStock enAlmacen={enAlmacen ?? 0} />
       </div>
     );
   } else if (pestana === "almacen") {
@@ -130,8 +131,8 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
         <div>
           <h1 className="text-lg font-semibold text-foreground">Stock y códigos</h1>
           <p className="mt-0.5 max-w-3xl text-sm text-muted-foreground">
-            Suba el Excel de stock de Importaciones: el CRM le dice qué máquinas ya tienen bien su código, cuáles no y propone uno para las
-            que faltan. Usted decide y sube al almacén. Los costos no se suben.
+            Suba el Excel de stock de Importaciones y las máquinas entran al almacén en el acto. El CRM solo le señala las observaciones: las que
+            no tienen código, las que hay que revisar y las series que ya están con un cliente. Los costos no se suben.
           </p>
         </div>
       </div>
