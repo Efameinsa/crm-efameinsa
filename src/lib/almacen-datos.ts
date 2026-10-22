@@ -2,7 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { armarIndustriales, armarLg, type FilaStockGeneral } from "@/lib/stock-general";
 import type { FilaAlmacen, FilaContraste, TotalesAlmacen } from "@/components/crm/almacen-por-serie";
-import type { FilaInventarioComercial, LlegadaComercial } from "@/components/crm/inventario-comercial";
+import type { LlegadaComercial } from "@/components/crm/inventario-comercial";
+import type { MaquinaTabla } from "@/components/crm/almacen-tabla";
 import type { Proyeccion } from "@/lib/acciones/inventario";
 import type { FilaCarga } from "@/lib/acciones/stock-importaciones";
 
@@ -86,7 +87,8 @@ export async function cargarAlmacenPorSerie(supabase: SupabaseClient): Promise<{
         ubicacion: m.ubicacion,
         marca,
         proveedor: m.proveedor,
-        esLg: p?.segmento === "semi_industrial" || /^LG$/i.test(marca ?? ""),
+        // LG es la marca, no el segmento: un calderín Sidi Mondial «semi-industrial» no es LG.
+        esLg: /^LG$/i.test(marca ?? "") || /^LG$/i.test(m.proveedor ?? ""),
       };
     });
   const ind = armarIndustriales(generales);
@@ -170,22 +172,31 @@ export async function cargarContraste(supabase: SupabaseClient, cargaEnRevision:
 }
 
 /** Lo que ve el comercial: máquinas en planta sin costo, sin fecha de ingreso ni dueño de la reserva (Carlos 22-10). */
-export async function cargarInventarioComercial(supabase: SupabaseClient): Promise<{ filas: FilaInventarioComercial[]; llegadas: LlegadaComercial[] }> {
+export async function cargarInventarioComercial(supabase: SupabaseClient): Promise<{ filas: MaquinaTabla[]; llegadas: LlegadaComercial[] }> {
   const [lista, proyeccion] = await Promise.all([maquinas(supabase), cargarProyeccion(supabase)]);
-  const filas: FilaInventarioComercial[] = lista
+  const filas: MaquinaTabla[] = lista
     .filter((m) => m.estado === "disponible" || m.estado === "reservado")
     .map((m) => {
       const p = uno(m.productos);
       return {
         id: m.id,
+        serie: m.serie,
+        estado: m.estado,
         codigo: p?.sku ?? null,
         marca: marcaDe(m),
         modelo: m.modelo ?? p?.modelo ?? "",
         descripcion: m.descripcion ?? p?.nombre ?? "",
-        serie: m.serie,
         ubicacion: m.ubicacion,
+        // Lo que el comercial no ve no viaja al navegador.
+        ingreso: "",
+        salida: null,
         empresa: m.empresa,
-        estado: m.estado as "disponible" | "reservado",
+        item: null,
+        proveedor: m.proveedor,
+        cliente: null,
+        pedido: null,
+        servicioId: null,
+        porPedido: false,
       };
     });
   const llegadas: LlegadaComercial[] = proyeccion.map((p) => ({ id: p.id, codigo: p.codigo, descripcion: p.descripcion, cantidad: p.cantidad, fechaEstimada: p.fechaEstimada }));

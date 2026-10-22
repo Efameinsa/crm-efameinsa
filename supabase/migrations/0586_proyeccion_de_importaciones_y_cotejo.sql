@@ -67,6 +67,10 @@ begin
   if v_disponibles = 0 then
     raise exception 'El almacén está vacío: primero suba el Excel de stock y pulse «Subir al almacén»';
   end if;
+  -- El catálogo (productos) es uno solo, no tiene copia de prueba: una cuenta de práctica no lo toca.
+  if es_cuenta_prueba() then
+    return jsonb_build_object('puestos_en_cero', 0, 'disponibles', v_disponibles, 'prueba', true);
+  end if;
   update productos p
      set ficha = coalesce(p.ficha, '{}'::jsonb)
                  || jsonb_build_object('stock_referencia_anterior', (p.ficha->>'stock_referencia')::int,

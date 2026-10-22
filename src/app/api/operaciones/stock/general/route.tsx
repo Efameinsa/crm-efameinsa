@@ -85,7 +85,8 @@ export async function GET(request: Request) {
         ubicacion: i.ubicacion,
         marca,
         proveedor: i.proveedor,
-        esLg: p?.segmento === "semi_industrial" || /^LG$/i.test(marca ?? ""),
+        // LG es la marca, no el segmento: un calderín Sidi Mondial «semi-industrial» no es LG.
+        esLg: /^LG$/i.test(marca ?? "") || /^LG$/i.test(i.proveedor ?? ""),
       });
     }
     // Las piezas sin serie de placa (mesas, coches) no entran al almacén por serie:
