@@ -13,6 +13,7 @@ import {
   type CodigoCatalogo,
   type CodigosExistentes,
 } from "@/components/crm/stock-importaciones";
+import { ResumenGeneralStock } from "@/components/crm/resumen-general-stock";
 import { productosParaComparar, type CargaStock } from "@/lib/acciones/stock-importaciones";
 import { rasgos } from "@/lib/stock-importaciones";
 import { cn } from "@/lib/utils";
@@ -36,13 +37,16 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
 
   let contenido: React.ReactNode;
   if (pestana === "subir") {
-    const { data } = await supabase
-      .from("stock_cargas")
-      .select("id, archivo, hojas, filas, ausentes, estado, resultado, created_at, subida_at")
-      .in("estado", ["revisando", "subida"])
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const [{ data }, { count: enAlmacen }] = await Promise.all([
+      supabase
+        .from("stock_cargas")
+        .select("id, archivo, hojas, filas, ausentes, estado, resultado, created_at, subida_at")
+        .in("estado", ["revisando", "subida"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase.from("inventario_equipos").select("id", { count: "exact", head: true }).eq("estado", "disponible"),
+    ]);
     const carga: CargaStock | null = data
       ? {
           id: data.id,
@@ -74,6 +78,8 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
             <BotonResumenPdf cargaId={carga.id} />
           </div>
         )}
+        {/* El informe de los lunes de Importaciones, ahora armado por el CRM (reunión Santos–Lesly 22-10). */}
+        <ResumenGeneralStock enAlmacen={enAlmacen ?? 0} cargaEnRevision={revisando && carga ? { id: carga.id, archivo: carga.archivo } : null} />
       </div>
     );
   } else {
