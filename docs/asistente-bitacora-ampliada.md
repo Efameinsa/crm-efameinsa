@@ -1,6 +1,6 @@
 # Bitácora ampliada (gerencia, administración, Central y operaciones)
 
-Vigente al 21-10-2026. Complementa la «Bitácora del CRM» general (asistente-bitacora-general.md). Santos, 14-10: Central y operaciones (Lesly) deben tener el mismo contexto que gerencia —estados, montos, dinero— para continuar lo que se habló en las reuniones. Aquí va:
+Vigente al 22-10-2026. Complementa la «Bitácora del CRM» general (asistente-bitacora-general.md). Santos, 14-10: Central y operaciones (Lesly) deben tener el mismo contexto que gerencia —estados, montos, dinero— para continuar lo que se habló en las reuniones. Aquí va:
 - estrategia, presupuestos de publicidad y marketing;
 - web y campañas;
 - desempeño por comercial y metas;
@@ -16,6 +16,14 @@ Vigente al 21-10-2026. Complementa la «Bitácora del CRM» general (asistente-b
 ---
 
 ## Cronología
+
+### 21-10 (~15:50) · Llamada de Carlos con Santos: correo de la web nueva, correos claros, respaldo y hosting
+- **Correo «Anuncio de la web nueva» (W0):** a Carlos el texto le pareció «excelente» (web renovada, catálogo, 3D, realidad aumentada, tres equipos de ejemplo). Solo pidió cambiar la imagen principal por una foto clara y real, y **lanzarlo ese mismo día a todos, lo más masivo posible pero progresivo** según el volumen. El envío sigue esperando la orden expresa de Santos.
+- **Regla de Carlos para los correos (21-10):** las imágenes son fotos claras (luz de día u oficina, tonos blancos), con equipos reales y su marca visible y personas reales (polo granate). La línea oscura carbón y granate le pareció «muy Halloween» y la marcó en 40 de 47 correos. El pie firma solo «Efameinsa». Santos agregó: la imagen muestra literalmente lo que dice el correo (por ejemplo, la máquina probada con el tambor vacío y la hoja de chequeo, no con ropa adentro), y es la misma foto en correo y WhatsApp. Carlos revisa el resto cuando todas las fotos estén pasadas a claras.
+- **Artículos y cambios de la web:** Carlos los revisa y comenta en los dos Word (sustento: búsquedas de Google y YouTube; cambia el contenido de cerca de la mitad de la web; ejemplo: la página del precio de la lavadora industrial de 30 kg que habla de precio sin darlo).
+- **Respaldo de los sistemas:** Juan Carlos daría espacio para copiar a diario la máquina virtual del CRM (se acepta perder hasta un día). Carlos pide un manual de una hoja (dónde está, qué sistema, cómo se entra), que **la primera copia se saque junto con él y Juan Carlos**, luego periódica, y **probar cada tres meses que la copia sirve**. Se definía el 22-10.
+- **Correos y hosting:** el inventario real es de 92 buzones (Santos había dicho unos 72); Carlos usa entre 16 y 20 GB. Las webs pasan por los servidores del proveedor actual antes de Cloudflare (medio segundo más); se resuelve cambiando de hosting. Carlos está de acuerdo con ese camino; falta la propuesta.
+- **Otros:** Lesly corrige su Excel de stock y lo sube; Brenda sin pendientes; pedir factura desde un pedido antiguo se vio raro y Santos lo revisa con la persona.
 
 ### 20-10 · Web: los cambios de texto pasan primero por un Word de Santos (plan SEO y GEO)
 - **Qué decidió Santos:** ningún cambio de texto en efameinsa.com (títulos, descripciones, encabezados, preguntas frecuentes, fichas, sectores) se sube sin que él lo marque en un Word («Va / Cambiar / No»), «para no pecar mucho de IA». Cada artículo nuevo lleva al menos dos imágenes, con sus instrucciones para generarlas (fotos reales primero, sin texto ni logos).
@@ -161,24 +169,8 @@ Vigente al 21-10-2026. Complementa la «Bitácora del CRM» general (asistente-b
 - **Tasa de llegada a cotización por fuente:** formulario del anuncio 27 %, página de campaña 45 %, web 64 %, WhatsApp de Meta 18 %.
 - **Gestión de proyectos:** Santos propone un ciclo (acta el mismo día → criterio de aceptación → prueba → validación del usuario clave → aviso → medir uso). Ofreció un tablero de adopción para Carlos; **sin respuesta**.
 
-### 06-10
-- **Carlos pidió «leads de mayor calidad».** Santos presentó un diagnóstico digital del año:
-  - Inversión: Google S/ 34.511 y Meta S/ 4.831.
-  - Ventas 2026: US$ 1,87 millones en 335 cierres. En septiembre, US$ 316 mil, 54 % de Las Bambas.
-  - Ventas con prueba de origen en anuncios: Google 7 y Meta 1.
-  - Tasa de cierre del CRM: 6,9 %.
-  - El 54 % abandona el formulario.
-  - La publicidad gráfica (Display) de Industrial traía contactos basura.
-  - El segmento del lead no se registra en el 98,5 % de los casos.
-- **Techo propuesto por Santos: S/ 7.800 al mes** (Google 5.930 y Meta 1.870). Meta: 110 cotizaciones calificadas a ≤ S/ 70 cada una.
-- **Pendiente de aprobación de Carlos:**
-  - quitar Display de Industrial;
-  - llevar el formulario Industrial a una página de campaña;
-  - Meta con públicos parecidos de ticket alto;
-  - botones de respuesta rápida en WhatsApp.
-  - (La devolución de ventas a Google y Meta ya se hizo.)
-- **«Setter» con IA para WhatsApp:** Carlos lo dejó para una segunda etapa por costo. «Primero calidad, no cantidad». Si se hace, nunca da precios, stock ni plazos.
-- **Pendientes de marketing de Santos:** perfil del pasante, reseñas, logo y web de Open, plan de inversión en Ads, brillos en las fotos de producto y métricas de postventa. Prioridad: tráfico web y artes replicados en orgánico.
+### 06-10 (resumido)
+- Resumen: Carlos pidió «leads de mayor calidad». Diagnóstico de Santos: Google S/ 34.511 y Meta S/ 4.831 en el año; ventas 2026 US$ 1,87 millones en 335 cierres (septiembre US$ 316 mil, 54 % de Las Bambas); ventas con prueba de origen en anuncios: Google 7 y Meta 1; cierre del CRM 6,9 %; 54 % abandona el formulario; Display de Industrial traía basura; el segmento del lead falta en el 98,5 %. Techo propuesto: S/ 7.800 al mes (Google 5.930, Meta 1.870) para 110 cotizaciones calificadas a ≤ S/ 70. Pendientes de Carlos: quitar Display de Industrial, formulario a página de campaña, públicos de ticket alto, botones rápidos de WhatsApp. El setter con IA quedó para una segunda etapa por costo («primero calidad, no cantidad»).
 
 ### 05-10
 - **Reporte de WhatsApp por comercial** (Word por persona): chats por contestar, sin calificar, «no contesta» apurado y mediana de espera.
@@ -215,46 +207,17 @@ Vigente al 21-10-2026. Complementa la «Bitácora del CRM» general (asistente-b
 - **Metas propuestas** (no aprobadas): 25 gestiones al día por equipo, C2 20 y C9 15; WhatsApp ≤ 15 min y 100 % calificado; 2 visitas y 5 videollamadas por semana. Sigue vigente la meta anterior (35) hasta que Carlos apruebe.
 - **Hosting:** S/ 299 al mes (Carlos lo confirmó). El dominio vencía el 05-10; otra persona tiene agendada la renovación.
 
-### 29-09 · Gerencia con marketing (Karen, Carlos, Santos)
-- **Reseñas YA:** piloto con personal antiguo (Catherine, Brenda, Lesly, John) desde su celular. Karen quería unas 10 pronto, para voltear las negativas de los últimos 2 años.
-  - Después vendría una directiva: el comercial o técnico pide la reseña al cerrar o entregar, con QR.
-  - Puntos en Crece y en la evaluación anual.
-  - Ver la advertencia del 07-10 sobre las políticas de Google.
-- **Meta:** al menos una campaña corta (2-3 días) por semana, rotando sector (minero, agro, hotelero), más publicaciones orgánicas.
-- **Google Ads, opción B (Santos):** Comercial S/ 150 + Industrial S/ 190 = **S/ 340 al día (~S/ 10.200 al mes)**. Es el mismo gasto, con más peso en Industrial.
-  - Se descartó el reparto 115/150 porque bajaba los cotizados en un tercio.
-  - **Antes era:** sin tope fijo. **Después:** S/ 250 al día desde el 09-10.
-- **SEO:** replantear (FAQ, fichas, Cámara de Comercio, reseñas), con IA como apoyo y revisión humana.
-- **Open Investments:** necesita web informativa por licitaciones. Su SEO es distinto al de Efameinsa.
-- **CRM, etapa 2:** tablets para técnicos.
-- **Estratega 2026-2030:** meta de US$ 5 millones al 2030, desde US$ 1,09 millones. Gerencia debe validar los pesos; las finanzas son provisionales (no hay estados financieros).
-- **Ideas sin decisión:**
-  - oficinas temporales en provincias (como Novinsa en Huancayo);
-  - marcador de huella en el módulo de RR. HH. para premiar puntualidad en Crece;
-  - plantillas pagadas de WhatsApp (~S/ 0,30).
-- **Base de datos en la nube excedió la cuota gratuita.** Santos no paga el plan Pro (US$ 25): «no hay dinero». No volver a proponerlo.
+### 29-09 · Gerencia con marketing (Karen, Carlos, Santos) (resumido)
+- Resumen: reseñas de Google con un piloto del personal antiguo (ver la advertencia del 07-10) y luego directiva con QR al entregar; Meta: al menos una campaña corta por semana rotando sector; Google Ads opción B, S/ 340 al día (~S/ 10.200 al mes; después S/ 250 al día desde el 09-10); SEO replanteado con revisión humana; Open necesita web por licitaciones; tablets para técnicos en la etapa 2; Estratega 2026-2030 con meta de US$ 5 millones al 2030 (desde US$ 1,09 millones), pesos por validar; ideas sin decisión: oficinas temporales en provincia, marcador de huella, plantillas pagadas de WhatsApp. La base en la nube excedió la cuota gratuita y Santos no paga el plan Pro: «no hay dinero»; no volver a proponerlo.
 
 ### 28-09 · Tres reuniones
 - Resumen: email marketing a la cartera con meta de reactivar el 5 % (prueba de ~S/ 200); fondos de mercadeo de Alliance: Carlos derogó la «opción C» y se reporta todo el gasto de mayo a agosto (S/ 17.446,74 = US$ 4.806,26; se devuelve el 50 %, US$ 2.403,13; lo sube Richard, sin confirmar; plazo 31-12-2026); orden de Carlos: Google ya está alto, bajar semi-industrial y hogar y sumar a Industrial **sin subir el total** (criterio desde entonces); plan de octubre de S/ 9.000 no aprobado; septiembre: Katerine 38 %, Brenda 36,9 %, Moisés 27,6 %, Ariana 22 % de contactos a cotización (equipo 24,4 %); Meta ~S/ 4 por oportunidad cotizada contra ~S/ 116 en Google; Efameinsa tiene ~40 % del tráfico web de los cuatro competidores (rival en Google: Serfac).
 
-### 25-09 · Alliance, LG, Perumín
-- **Alliance:** los fondos se habilitan si las compras pasan un umbral (~US$ 300 mil). Se reporta cada 4 meses. Enero-abril ya se entregó.
-- **LG:** pide un plan integral (marketing, campañas, precios en lavandería) y co-inversión, como una franquicia 50/50. Mide por año, cierra en septiembre y la reunión suele ser en noviembre, en Asia. Hay problemas con LG Perú desde hace unos 3 años.
-- **Perumín:** mapear y planificar (expositor o asistente). Ya se perdieron ferias.
-- **Vendedor de campo:** gerencia tiene un bosquejo. Pide «ventanitas» en el CRM para controlarlo y después reestructurar carteras.
-- Gerencia pide a Santos un ritmo sostenible y que avise si está saturado.
-- **Crece:** propuesta de indicadores por puesto para comerciales, **pendiente**. Si se activa, sus puntos bajarían a la mitad desde el primer mes.
+### 25-09 · Alliance, LG, Perumín (resumido)
+- Resumen: Alliance habilita fondos si las compras pasan ~US$ 300 mil y se reporta cada 4 meses (enero-abril entregado); LG pide plan integral y co-inversión tipo 50/50 (mide por año, reunión en noviembre en Asia); Perumín: decidir participación; vendedor de campo con «ventanitas» de control en el CRM; Crece por indicadores por puesto, pendiente.
 
-### 23-09 · Decisiones de gerencia (política comercial)
-- **Precios:** gerencia **no fijó un % libre ni un piso**. Filtros antes de cotizar:
-  - Cliente nuevo: costos y margen.
-  - Cliente existente: historial y presupuestos anteriores del mismo equipo, para no dar precios distintos sin razón.
-  - **Servicios que se renuevan cada año: mínimo +10 % sobre el año anterior,** salvo justificación aprobada.
-  - **Repuestos sin precio mínimo** (según antigüedad, stock o importación, costo, historial y margen).
-  - El almacén debe tener el stock de repuestos al día.
-- **Cartera liberable a 3 meses sin venta** (antes 6), con redistribución cada 3 meses.
-- **Ariana (C4)** pierde la llave de vender mantenimiento: vende solo lavadoras.
-- **Las aprobaciones siguen firmadas «Gerencia Comercial»;** el puesto lo cubrirá un tercero.
+### 23-09 · Decisiones de gerencia (política comercial) (resumido)
+- Resumen: sin % libre ni piso de precio (cliente nuevo: costos y margen; existente: historial del mismo equipo); servicios que se renuevan cada año, mínimo +10 % salvo justificación; repuestos sin precio mínimo; cartera liberable a 3 meses sin venta (antes 6) con redistribución cada 3 meses; C4 vende solo lavadoras; aprobaciones firmadas «Gerencia Comercial».
 
 ### 22-09 · Open Investments
 - Empresa independiente: «otro concepto, otros colores».
@@ -343,7 +306,7 @@ Vigente al 21-10-2026. Complementa la «Bitácora del CRM» general (asistente-b
 9. **Open Investments:** nombre («Efameinsa Open» según Carlos o «Open Investments» según Santos), alojamiento, buzón y documentos de licitación.
 10. **Alliance:** confirmar que Richard subió el reclamo de mayo a agosto antes del 31-12. Preparar el periodo siguiente.
 11. **LG:** plan integral y co-inversión para la reunión anual. **Perumín:** decidir participación.
-12. **Paquete web y hosting con correos:** cerrar en octubre.
+12. **Paquete web y hosting con correos:** cerrar en octubre. El 21-10 Carlos aprobó el camino de cambiar de hosting (92 buzones); falta la propuesta de Santos.
 
 **Comercial y personal**
 13. **Cartera de C6** (~80 fichas y 77 chats) y corrección del anuncio que nombra a su asesor.
@@ -363,7 +326,7 @@ Vigente al 21-10-2026. Complementa la «Bitácora del CRM» general (asistente-b
 
 **Sistemas y costos**
 26. **Asistente IA:** crédito hasta el 03-11 sin medio de pago, credencial hasta el 13-11. En plan gratuito no es confiable.
-27. **Respaldo externo cifrado** (archivos, Crece y Estratega sin copia fuera de la PC).
+27. **Respaldo externo cifrado** (archivos, Crece y Estratega sin copia fuera de la PC). El 21-10 Carlos pidió manual de una hoja, primera copia junto con él y Juan Carlos y prueba cada tres meses (se definía el 22-10).
 28. **Seguridad Meta:** retirar al ex colaborador y que la página de Facebook pase al portafolio de la empresa.
 29. **Tableros de seguimiento para Carlos** (ciclo de pedidos y adopción): ofrecidos, sin respuesta.
 
