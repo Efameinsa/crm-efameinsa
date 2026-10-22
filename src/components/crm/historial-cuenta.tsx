@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ArrowDownUp, ChevronRight, FileText } from "lucide-react";
 import {
@@ -73,6 +73,28 @@ export function HistorialCuenta({
   const [expandido, setExpandido] = useState(false);
   // En el expediente arranca en «este expediente»; en la ficha, en «todos».
   const [filtroExpediente, setFiltroExpediente] = useState<string | null>(oportunidadActualId ?? null);
+  // LLEGAR A UNA GESTIÓN CON «VER» (Brenda, 22-10): el historial del caso
+  // enlaza a `#gestion-<id>`. La fila puede estar fuera de las 25 primeras o de
+  // otro expediente: se abre todo, se baja hasta ella y queda marcada un rato.
+  const [resaltada, setResaltada] = useState<string | null>(null);
+  useEffect(() => {
+    const m = /^#gestion-(.+)$/.exec(window.location.hash);
+    const ev = m ? eventos.find((e) => e.tipo === "actividad" && e.id === m[1]) : null;
+    if (!ev) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- una sola vez, al llegar con #gestion-<id>
+    setVista("tabla");
+    setBusqueda("");
+    setExpandido(true);
+    if (oportunidadActualId && ev.expediente !== oportunidadActualId && !ev.expedienteArchivado) setFiltroExpediente(null);
+    setResaltada(ev.id);
+    const t = window.setTimeout(() => setResaltada(null), 6000);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!resaltada) return;
+    requestAnimationFrame(() => document.getElementById(`gestion-${resaltada}`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
+  }, [resaltada]);
 
   // Los expedientes que aparecen en esta historia, para el filtro: el de
   // movimiento más reciente primero, con su tipo y cuántas filas tiene.
@@ -245,7 +267,7 @@ export function HistorialCuenta({
       {filtrados.length === 0 ? (
         <p className="text-sm text-muted-foreground">Sin resultados para &ldquo;{busqueda}&rdquo;.</p>
       ) : vista === "tabla" ? (
-        <TablaHistorial eventos={visibles} oportunidadActualId={oportunidadActualId} conExpediente={conExpediente} puedeAgregarFotos={puedeAgregarFotos} />
+        <TablaHistorial eventos={visibles} oportunidadActualId={oportunidadActualId} conExpediente={conExpediente} puedeAgregarFotos={puedeAgregarFotos} resaltada={resaltada} />
       ) : (
         <LineaTiempoCuenta oportunidadActualId={oportunidadActualId} eventos={visibles} conExpediente={conExpediente} />
       )}
@@ -263,7 +285,7 @@ export function HistorialCuenta({
   );
 }
 
-function TablaHistorial({ eventos, oportunidadActualId, conExpediente, puedeAgregarFotos }: { eventos: EventoTimeline[]; oportunidadActualId?: string; conExpediente: boolean; puedeAgregarFotos: boolean }) {
+function TablaHistorial({ eventos, oportunidadActualId, conExpediente, puedeAgregarFotos, resaltada }: { eventos: EventoTimeline[]; oportunidadActualId?: string; conExpediente: boolean; puedeAgregarFotos: boolean; resaltada: string | null }) {
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -277,7 +299,7 @@ function TablaHistorial({ eventos, oportunidadActualId, conExpediente, puedeAgre
         </TableHeader>
         <TableBody>
           {eventos.map((evento) => (
-            <FilaHistorial key={`${evento.tipo}-${evento.id}`} evento={evento} oportunidadActualId={oportunidadActualId} conExpediente={conExpediente} puedeAgregarFotos={puedeAgregarFotos} />
+            <FilaHistorial key={`${evento.tipo}-${evento.id}`} evento={evento} oportunidadActualId={oportunidadActualId} conExpediente={conExpediente} puedeAgregarFotos={puedeAgregarFotos} resaltada={evento.tipo === "actividad" && evento.id === resaltada} />
           ))}
         </TableBody>
       </Table>
@@ -285,7 +307,7 @@ function TablaHistorial({ eventos, oportunidadActualId, conExpediente, puedeAgre
   );
 }
 
-function FilaHistorial({ evento, oportunidadActualId, conExpediente, puedeAgregarFotos }: { evento: EventoTimeline; oportunidadActualId?: string; conExpediente: boolean; puedeAgregarFotos: boolean }) {
+function FilaHistorial({ evento, oportunidadActualId, conExpediente, puedeAgregarFotos, resaltada = false }: { evento: EventoTimeline; oportunidadActualId?: string; conExpediente: boolean; puedeAgregarFotos: boolean; resaltada?: boolean }) {
   const router = useRouter();
   // Sin `!= null` la fila prometía navegación que no existe: en la ficha del
   // cliente no llega `oportunidadActualId`, así que las cotizaciones del
@@ -297,6 +319,7 @@ function FilaHistorial({ evento, oportunidadActualId, conExpediente, puedeAgrega
 
   return (
     <TableRow
+      id={evento.tipo === "actividad" ? `gestion-${evento.id}` : undefined}
       role={navegable ? "link" : undefined}
       tabIndex={navegable ? 0 : undefined}
       onClick={navegable ? () => router.push(`/comercial/oportunidades/${evento.oportunidadId}`) : undefined}
@@ -307,6 +330,8 @@ function FilaHistorial({ evento, oportunidadActualId, conExpediente, puedeAgrega
         navegable && "cursor-pointer transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none",
         evento.tipo === "solicitud" && "bg-[#7E1210]/5",
         deAntes && "bg-muted/40 opacity-75",
+        "scroll-mt-24 transition-[background-color,box-shadow] duration-700",
+        resaltada && "bg-amber-100 shadow-[inset_4px_0_0_0_var(--color-amber-500)] dark:bg-amber-900/40",
       )}
     >
       <TableCell

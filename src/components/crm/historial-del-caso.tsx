@@ -3,6 +3,8 @@ import { ETIQUETA_ETAPA, tituloDelTipo, type EtapaAtencion } from "@/lib/atencio
 import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { ETIQUETA_TIPO_APERTURA } from "@/lib/aperturas-llamada";
 import { fechaHoraLima } from "@/lib/fechas";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 
 /**
  * EL HISTORIAL DE ESTE CASO, PASO A PASO Y CON NOMBRE (reunión de gerencia
@@ -38,6 +40,7 @@ export async function HistorialDelCaso({ atencionId, creadoAt }: { atencionId: s
       .eq("atencion_id", atencionId),
   ]);
   const desde = caso?.created_at ?? creadoAt;
+  const oportunidadId = (caso?.oportunidad_id as string | null | undefined) ?? null;
   const [{ data: gestiones }, { data: pedido }] = await Promise.all([
     caso?.oportunidad_id && desde
       ? (() => {
@@ -109,7 +112,10 @@ export async function HistorialDelCaso({ atencionId, creadoAt }: { atencionId: s
   const nombre = new Map(((perfiles ?? []) as { id: string; nombre: string; codigo_comercial: string | null }[]).map((p) => [p.id, `${p.nombre}${p.codigo_comercial ? ` (${p.codigo_comercial})` : ""}`]));
   const de = (id: string | null | undefined) => (id ? (nombre.get(id) ?? null) : null);
 
-  const lineas: { cuando: string; quien: string | null; que: string; tipo: "caso" | "gestion" | "almacen" }[] = [];
+  // DE DÓNDE VIENE CADA FILA (Brenda, 22-10: «veo gestiones acá y no las puedo
+  // editar, ¿o está jalando de otra parte?»). El historial junta tres sitios y
+  // no se escribe aquí: cada fila dice dónde vive y «Ver» lleva a ese lugar.
+  const lineas: { cuando: string; quien: string | null; que: string; tipo: "caso" | "gestion" | "derivacion" | "apertura"; href: string | null }[] = [];
   for (const f of filas) {
     if (f.deshecha_at) continue;
     const d = f.despues ?? {};
@@ -131,7 +137,7 @@ export async function HistorialDelCaso({ atencionId, creadoAt }: { atencionId: s
     }
     if ("cerrado_at" in d && d.cerrado_at) que.push(`Se cerró${d.motivo_cierre ? `: ${String(d.motivo_cierre)}` : ""}`);
     if (que.length === 0) continue;
-    lineas.push({ cuando: f.cuando, quien: de(f.quien), que: que.join(" · "), tipo: "caso" });
+    lineas.push({ cuando: f.cuando, quien: de(f.quien), que: que.join(" · "), tipo: "caso", href: null });
   }
   // Las notas «[Atención …]» las escribe el mismo caso al avanzar: con el
   // registro de acciones ya están arriba; sin él (antes del 16-10) son lo único.
@@ -144,6 +150,7 @@ export async function HistorialDelCaso({ atencionId, creadoAt }: { atencionId: s
       quien: de(g.realizada_por),
       que: `${ETIQUETA_ACTIVIDAD[g.tipo] ?? g.tipo}${nota ? `: ${nota}` : ""}`,
       tipo: "gestion",
+      href: caso?.oportunidad_id ? `/comercial/oportunidades/${caso.oportunidad_id}#gestion-${g.id}` : null,
     });
   }
   for (const l of derivadas) {
@@ -153,20 +160,40 @@ export async function HistorialDelCaso({ atencionId, creadoAt }: { atencionId: s
         cuando: l.solicitada_at,
         quien: de(l.solicitada_por),
         que: `Derivó al almacén: ${tipo}${l.programada_para ? ` para el ${fechaHoraLima(l.programada_para)}` : ""}${l.tecnico ? ` · ${l.tecnico}` : ""}`,
-        tipo: "almacen",
+        tipo: "derivacion",
+        href: `/aperturas/${l.id}`,
       });
-    if (l.informe_at) lineas.push({ cuando: l.informe_at, quien: de(l.informe_por), que: `El almacén respondió: ${tipo}`, tipo: "almacen" });
-    if (l.enviada_cliente_at) lineas.push({ cuando: l.enviada_cliente_at, quien: null, que: "Se le envió el informe al cliente", tipo: "almacen" });
-    if (l.anulada_at) lineas.push({ cuando: l.anulada_at, quien: null, que: `Se anuló la derivación${l.anulada_motivo ? `: ${l.anulada_motivo}` : ""}`, tipo: "almacen" });
+    if (l.informe_at) lineas.push({ cuando: l.informe_at, quien: de(l.informe_por), que: `El almacén respondió: ${tipo}`, tipo: "derivacion", href: `/aperturas/${l.id}` });
+    if (l.enviada_cliente_at) lineas.push({ cuando: l.enviada_cliente_at, quien: null, que: "Se le envió el informe al cliente", tipo: "derivacion", href: `/aperturas/${l.id}` });
+    if (l.anulada_at) lineas.push({ cuando: l.anulada_at, quien: null, que: `Se anuló la derivación${l.anulada_motivo ? `: ${l.anulada_motivo}` : ""}`, tipo: "derivacion", href: `/aperturas/${l.id}` });
   }
+  const hrefPedido = caso?.servicio_id ? `/postventa/pedidos/${caso.servicio_id}` : null;
   if (ped) {
-    if (ped.tecnico_salio_at) lineas.push({ cuando: ped.tecnico_salio_at, quien: de(ped.tecnico_salio_por), que: `Salió el técnico${ped.tecnico_asignado ? ` (${ped.tecnico_asignado})` : ""}`, tipo: "almacen" });
-    if (ped.tecnico_llego_at) lineas.push({ cuando: ped.tecnico_llego_at, quien: de(ped.tecnico_llego_por), que: "El técnico llegó donde el cliente", tipo: "almacen" });
-    if (ped.cerrado_at) lineas.push({ cuando: ped.cerrado_at, quien: de(ped.cerrado_por), que: "Se cerró la apertura de servicio", tipo: "almacen" });
+    if (ped.tecnico_salio_at) lineas.push({ cuando: ped.tecnico_salio_at, quien: de(ped.tecnico_salio_por), que: `Salió el técnico${ped.tecnico_asignado ? ` (${ped.tecnico_asignado})` : ""}`, tipo: "apertura", href: hrefPedido });
+    if (ped.tecnico_llego_at) lineas.push({ cuando: ped.tecnico_llego_at, quien: de(ped.tecnico_llego_por), que: "El técnico llegó donde el cliente", tipo: "apertura", href: hrefPedido });
+    if (ped.cerrado_at) lineas.push({ cuando: ped.cerrado_at, quien: de(ped.cerrado_por), que: "Se cerró la apertura de servicio", tipo: "apertura", href: hrefPedido });
   }
   lineas.sort((x, y) => x.cuando.localeCompare(y.cuando));
 
-  const ROTULO = { caso: "Caso", gestion: "Gestión", almacen: "Almacén" } as const;
+  const ORIGEN = {
+    caso: { rotulo: "Este caso", ver: null, color: "border-border bg-secondary text-muted-foreground" },
+    gestion: {
+      rotulo: "Expediente del cliente",
+      ver: "Ver en el expediente",
+      color: "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-200",
+    },
+    derivacion: {
+      rotulo: "Derivación al almacén",
+      ver: "Ver la derivación",
+      color: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200",
+    },
+    apertura: {
+      rotulo: "Apertura de servicio",
+      ver: "Ver la apertura",
+      color: "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-800 dark:bg-violet-950/50 dark:text-violet-200",
+    },
+  } as const;
+  const hayGestiones = lineas.some((l) => l.tipo === "gestion");
   return (
     <div className="space-y-2 text-xs">
       {lineas.length === 0 ? (
@@ -176,16 +203,51 @@ export async function HistorialDelCaso({ atencionId, creadoAt }: { atencionId: s
             : "Todavía no hay cambios registrados en este caso."}
         </p>
       ) : (
-        <ol className="space-y-1.5 border-l border-border pl-3">
-          {lineas.map((l, i) => (
-            <li key={i}>
-              <span className="font-medium text-foreground">{fechaHoraLima(l.cuando)}</span>
-              <span className="text-muted-foreground"> · {l.quien ?? "el sistema"}</span>
-              <span className="ml-1.5 rounded bg-secondary px-1 py-px text-[10px] font-medium text-muted-foreground">{ROTULO[l.tipo]}</span>
-              <p className="whitespace-pre-line text-foreground">{l.que}</p>
-            </li>
-          ))}
-        </ol>
+        <>
+          {/* Un historial de lectura: lo que se escribió queda con nombre y
+              fecha. Por eso no se edita acá; se agrega en su lugar. */}
+          <p className="text-muted-foreground">
+            Aquí se juntan, en orden, los cambios del caso y lo que se registró en otros lugares. Cada fila dice de dónde
+            viene; con <b className="font-semibold text-foreground">Ver</b> va a ese lugar.
+            {hayGestiones &&
+              (oportunidadId ? (
+                <>
+                  {" "}
+                  Las gestiones no se editan: para sumar algo,{" "}
+                  <Link href={`/comercial/oportunidades/${oportunidadId}?gestion=1`} className="font-medium text-primary hover:underline">
+                    registre una gestión nueva
+                  </Link>
+                  .
+                </>
+              ) : (
+                " Las gestiones no se editan: para sumar algo, registre una gestión nueva en el expediente del cliente."
+              ))}
+          </p>
+          <ol className="space-y-1.5 border-l border-border pl-3">
+            {lineas.map((l, i) => {
+              const o = ORIGEN[l.tipo];
+              return (
+                <li key={i} className="group -ml-1 rounded-md px-1 py-1 transition-colors hover:bg-accent/50">
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                    <span className="font-medium text-foreground">{fechaHoraLima(l.cuando)}</span>
+                    <span className="text-muted-foreground">· {l.quien ?? "el sistema"}</span>
+                    <span className={`rounded border px-1.5 py-px text-[10px] font-medium ${o.color}`}>{o.rotulo}</span>
+                    {l.href && o.ver && (
+                      <Link
+                        href={l.href}
+                        className="ml-auto inline-flex shrink-0 items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-primary hover:bg-accent hover:underline"
+                      >
+                        {o.ver}
+                        <ChevronRight className="size-3" aria-hidden />
+                      </Link>
+                    )}
+                  </div>
+                  <p className="whitespace-pre-line text-foreground">{l.que}</p>
+                </li>
+              );
+            })}
+          </ol>
+        </>
       )}
     </div>
   );
