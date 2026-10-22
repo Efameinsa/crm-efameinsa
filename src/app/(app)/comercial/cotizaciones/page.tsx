@@ -108,10 +108,17 @@ export default async function MisCotizacionesPage({
     duenos = [...new Set([perfil.id, ...((area ?? []) as { id: string }[]).map((x) => x.id)])];
   }
 
+  // EL COMERCIAL VE TODO EL ARCHIVO DE SU CARTERA (22-10, Katerine con Clínica
+  // Jesús del Norte: de 19 cotizaciones veía las 3 que hizo ella; las otras
+  // eran de Ariana, C8 y C9 cuando el cliente era de ellas). Para un comercial
+  // con cartera, la RLS ya deja exactamente «las mías + las de mis clientes»
+  // (cot_hist_comercial), así que no se filtra por autor. Postventa y
+  // gerencia siguen con el filtro: a ellas la RLS les abre mucho más.
+  const verCartera = perfil.rol === "comercial" && !perfil.es_postventa;
   let qArchivo = supabase
     .from("cotizaciones_historicas")
-    .select("id, codigo, serie, cliente, fecha, monto_sin_igv, anio, cargada_por", { count: "exact" })
-    .in("comercial_id", duenos);
+    .select("id, codigo, serie, cliente, fecha, monto_sin_igv, anio, cargada_por, comercial_id, asesor_codigo", { count: "exact" });
+  if (!verCartera) qArchivo = qArchivo.in("comercial_id", duenos);
   let qCrm = supabase
     .from("cotizaciones")
     .select("id, codigo, serie, estado, total, moneda, enviada_at, vigencia_dias, version, oportunidad_id, oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))")
@@ -244,7 +251,12 @@ export default async function MisCotizacionesPage({
       borrador: false,
       oportunidadHref: null,
       delArchivo: true,
-      nota: c.cargada_por ? "cargada a mano" : null,
+      nota:
+        verCartera && c.comercial_id !== perfil.id
+          ? `hecha por ${c.asesor_codigo ?? "otro"}`
+          : c.cargada_por
+            ? "cargada a mano"
+            : null,
     })),
   ].sort((a, b) => ((a.fecha ?? "") < (b.fecha ?? "") ? 1 : -1));
 
