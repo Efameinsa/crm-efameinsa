@@ -252,7 +252,7 @@ export default async function MisCotizacionesPage({
       oportunidadHref: null,
       delArchivo: true,
       nota:
-        verCartera && c.comercial_id !== perfil.id
+        verCartera && c.comercial_id !== perfil.id && c.asesor_codigo !== perfil.codigo_comercial
           ? `hecha por ${c.asesor_codigo ?? "otro"}`
           : c.cargada_por
             ? "cargada a mano"
