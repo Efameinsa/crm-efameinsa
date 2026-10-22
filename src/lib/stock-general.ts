@@ -54,8 +54,11 @@ export function marcaDe(f: Pick<FilaStockGeneral, "marca" | "esLg" | "proveedor"
   return f.esLg ? "LG" : mayus(f.proveedor) || "—";
 }
 
+/** PLANTA, EXHIBICIÓN… Un número aquí es un costo corrido de columna en el Excel (22-10): jamás se imprime. */
 export function disponibleDe(f: Pick<FilaStockGeneral, "ubicacion">): string {
-  return mayus(f.ubicacion) || "PLANTA";
+  const u = mayus(f.ubicacion);
+  if (!u || /^[\d.,\s-]+$/.test(u)) return "PLANTA";
+  return u;
 }
 
 export const esExhibicion = (f: Pick<FilaStockGeneral, "ubicacion">) => /EXHIB/i.test(f.ubicacion ?? "");

@@ -281,7 +281,7 @@ export function RevisarStock({ carga, existentes }: { carga: CargaStock; existen
 
   const ayudaFiltro =
     filtro === "pendientes"
-      ? "Lo que todavía no decidió. Lo que el CRM confirmó o encontró sin dudas ya viene marcado para subir."
+      ? `Solo lo que todavía no decidió. Las ${cuenta.subir} marcadas para subir no se muestran aquí (véalas en «Todos»); ninguna está en el almacén hasta que pulse «Subir al almacén».`
       : filtro === "todos"
         ? "Todas las máquinas del Excel, agrupadas."
         : ESTADOS[filtro].ayuda;
@@ -298,9 +298,10 @@ export function RevisarStock({ carga, existentes }: { carga: CargaStock; existen
           <BotonResumenPdf cargaId={carga.id} />
           <p className="w-full text-sm text-muted-foreground sm:w-auto">
             {/* Lesly (21-10): «257 de 273» le sonó a que faltaban máquinas. Se dice lo que falta. */}
+            {/* Santos (22-10) leyó «ya están listas» como «ya subieron»: se dice que nada entró aún. */}
             {cuenta.pendiente === 0
-              ? "Todo decidido · listo para subir"
-              : `Falta decidir ${cuenta.pendiente} de ${total} · las otras ${decididas} ya están listas`}
+              ? "Todo decidido · listo para subir (todavía nada está en el almacén)"
+              : `Falta decidir ${cuenta.pendiente} de ${total} · las otras ${decididas} están marcadas, pero todavía nada está en el almacén`}
           </p>
         </div>
         <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-muted">
@@ -376,7 +377,9 @@ export function RevisarStock({ carga, existentes }: { carga: CargaStock; existen
           <b>{cuenta.subir}</b> van a subir{cuenta.pendiente > 0 && <> · <b>{cuenta.pendiente}</b> sin decidir</>}
           {codigosNuevos.length > 0 && <span className="text-orange-700 dark:text-orange-300"> · {codigosNuevos.length} códigos nuevos</span>}
         </p>
-        {cuenta.pendiente > 0 && <p className="text-xs text-muted-foreground">Lo que quede sin decidir no se sube. Puede volver cuando quiera.</p>}
+        <p className="text-xs text-muted-foreground">
+          Nada entra al almacén hasta pulsar el botón.{cuenta.pendiente > 0 && " Lo que quede sin decidir no se sube; puede volver cuando quiera."}
+        </p>
         <Button className="ml-auto" disabled={cuenta.subir === 0 || pendiente} onClick={() => setConfirmar(true)}>
           <Upload className="size-4" /> Subir al almacén
         </Button>
