@@ -3,6 +3,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { notificar, notificarAlmacen, notificarFinanzas } from "@/lib/notificaciones";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { enlaceCierreDelPedido } from "@/lib/enlace-cierre-central";
 
 // EL CIERRE SE CONVIERTE EN PEDIDO (0290, reunión de Santos con Carlos, 23-09
 // 14:58). Los pasos de Central antes de los dos checks: preparar el pedido con
@@ -248,11 +250,71 @@ export async function apurarDesdeCentral(servicioId: string, area: "almacen" | "
 export async function corregirSerie(itemId: string, servicioId: string, serie: string, pin: string, motivo: string) {
   await requerirPerfil();
   const supabase = await createClient();
+  const { data: antes } = await supabase.from("pedido_equipos").select("serie, parte_nombre").eq("id", itemId).maybeSingle();
   const { error } = await supabase.rpc("corregir_serie_del_equipo", { p_item: itemId, p_serie: serie, p_pin: pin, p_motivo: motivo });
   if (error) return { error: limpiar(error.message) };
+  const nueva = serie.trim().toUpperCase();
+  await avisarCambioDeSerie(
+    servicioId,
+    "Serie corregida",
+    `${antes?.parte_nombre ? `${antes.parte_nombre}: ` : ""}${antes?.serie ?? "—"} → ${nueva}. Motivo: ${motivo.trim()}.`,
+  );
   revalidar(servicioId);
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   return { error: null };
+}
+
+/**
+ * QUITAR LA SERIE DE LA SECADORA DE LA TORRE TAMBIÉN PIDE CÓDIGO (0579; buzón
+ * Lesly 21-10: «debe pedir PIN… y una vez modificado debe notificar»). Antes
+ * se quitaba con un clic y se ponía otra sin rastro.
+ */
+export async function quitarSerieDeParte(itemId: string, servicioId: string, pin: string, motivo: string) {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { data: antes } = await supabase.from("pedido_equipos").select("serie, parte_nombre").eq("id", itemId).maybeSingle();
+  const { error } = await supabase.rpc("quitar_parte_del_equipo", { p_item: itemId, p_pin: pin, p_motivo: motivo });
+  if (error) return { error: limpiar(error.message) };
+  await avisarCambioDeSerie(servicioId, "Serie quitada", `${antes?.parte_nombre ?? "Otra máquina"}: se quitó la serie ${antes?.serie ?? "—"}. Motivo: ${motivo.trim()}.`);
+  revalidar(servicioId);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath("/postventa/equipos");
+  return { error: null };
+}
+
+/**
+ * Un cambio de serie ya dada se avisa (Lesly 21-10): a Central, que pidió las
+ * series y genera el pedido con ellas; a postventa y al almacén/operaciones.
+ * No le llega a quien hizo el cambio.
+ */
+async function avisarCambioDeSerie(servicioId: string, que: string, detalle: string) {
+  const perfil = await requerirPerfil();
+  const supabase = await createClient();
+  const { data: srv } = await supabase.from("servicios_postventa").select("cliente_texto, es_prueba").eq("id", servicioId).maybeSingle();
+  const titulo = `${que} · ${sinRuc(srv?.cliente_texto) || "pedido"}`;
+  const cuerpo = `${detalle} Lo hizo ${perfil.nombre ?? "—"}.`;
+  const enlaceCentral = await enlaceCierreDelPedido(supabase, servicioId);
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("perfiles")
+    .select("id, rol, es_postventa, solo_preventivo, es_almacen, es_operaciones")
+    .eq("activo", true)
+    .eq("es_prueba", srv?.es_prueba === true)
+    .is("espejo_de", null)
+    .or("rol.eq.central,es_postventa.eq.true,es_almacen.eq.true,es_operaciones.eq.true");
+  await Promise.all(
+    (data ?? [])
+      .filter((p) => p.id !== perfil.id && !(p.rol !== "central" && p.es_postventa && p.solo_preventivo && !p.es_almacen && !p.es_operaciones))
+      .map((p) =>
+        notificar({
+          userId: p.id,
+          tipo: "almacen",
+          titulo,
+          cuerpo,
+          url: p.rol === "central" ? enlaceCentral : p.es_almacen || p.es_operaciones ? `/almacen/pedidos/${servicioId}` : `/postventa/pedidos/${servicioId}`,
+        }),
+      ),
+  );
 }
 
 

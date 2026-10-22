@@ -167,7 +167,7 @@ export function PanelProtocoloDeStock({
       </div>
       <TomarOSubirVarias titulo="Fotos de la prueba" archivos={fotos} onChange={setFotos} maximo={100} />
       <VideosDeLaPrueba titulo="Video de la prueba (opcional)" archivos={videos} onChange={setVideos} />
-      <Documentos archivos={docs} onChange={setDocs} titulo="Protocolo o informe (PDF o Word; con hoja de chequeo en el sistema es opcional)" />
+      <Documentos archivos={docs} onChange={setDocs} titulo="Otro protocolo o informe (PDF o Word, opcional: el informe lo genera el sistema)" />
       <div className="flex flex-wrap items-center gap-2">
         <Button
           size="sm"

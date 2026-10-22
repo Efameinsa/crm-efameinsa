@@ -18,6 +18,14 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 21-10 · El stock de Importaciones se sube codificado al CRM (Lesly, el ingeniero, Santos)
+- **Pedido (audios del 21-10):** Lesly codificaba a mano el Excel de stock de Importaciones guiándose por el catálogo, y se le duplicaban códigos. Pidió subir el Excel y que el CRM diga a qué máquina le pertenece qué código, cuál falta codificar y que proponga un código tentativo que ella acepta; y tener a la vista todos los códigos ya creados, con la opción de pegar la descripción de un equipo nuevo y que salga el código.
+- **Reglas del ingeniero:** se suben solo las hojas de stock (industriales y LG); la reserva y lo vendido no. **Los costos no van al CRM:** «nos va a cargar el precio y las comerciales van a decir: ya puedo vender sobre esto»; el precio de venta lo da el ingeniero aparte. El Excel de Importaciones está verificado: cada máquina que recibe código pasa a reserva y de ahí a vendido.
+- **Hecho ese mismo día:** pantalla «Stock y códigos» en el menú de operaciones (ver la guía). Lesly ya no necesita revisar un Excel aparte: la propuesta la ve y la decide en el CRM.
+- **Lo que encontró la primera comparación (282 máquinas):** 166 con el código bien puesto, 48 sin código pero con un código igual en el CRM, 10 que necesitan código nuevo y 58 por revisar. Entre ellas: las lavadoras LG Giant C Max estaban con códigos de secadora (SECGIA…; las lavadoras son LAVGIA132 no apilable y LAVGIA13 apilable); LAV080 no existe (la UCT080 es LAVT080); 8 series que el Excel tiene en planta ya figuran en el CRM con clientes; y en el catálogo, SECU55 y SECU502 parecen tener las fichas cruzadas y la descripción de LAVW105 es la de una UWT130.
+- **Reunión Santos–Lesly 21-10 13:05 (revisión de la propuesta):** Lesly confirmó que las lavadoras Giant C Max con código SEC fueron un error suyo al copiar; que las series «ya en un pedido» (ECOLAV, VIDAWASI…) son máquinas que Importaciones liquidó después de vendidas y van a vendido o reserva; que las Sailstar nuevas llegaron con aire FRL y dosificador externo y por eso llevan código nuevo; que el mismo modelo lleva un código por panel (M9 / M30); y pidió ver junto al código si es lavadora, secadora o rodillo y cuántas máquinas son. Todo quedó aplicado el mismo día en «Stock y códigos» y en el Excel de revisión. El objetivo del ingeniero: con todo codificado, Importaciones maneja el código y las comerciales buscan por modelo o por código.
+- **Pendiente (Lesly):** corregir su Excel después del almuerzo y subirlo; decidir los grupos «Revisar» y «Código nuevo» y subir al almacén; pasar a vendido o reserva las 8 series con clientes; pedir a Importaciones las series de placa de las 5 mesas BIMAP; poner ficha y activar los códigos nuevos y reactivar SECNSEN.
+
 ### 20-10 (tarde y noche) · Brenda corrige los datos de cualquier cliente, antecedentes del equipo y fichas unidas (Santos, Brenda, almacén)
 - **Brenda corrige los datos de cualquier cliente (Santos, 20-10).** Santos: «Brenda, desde su cuenta de postventa o de comercial, debe poder editar la dirección, el RUC, el número y el nombre de cada empresa cliente, así sea de otra cartera». Desde ese día, desde PV2 y desde C1, busca cualquier cliente y corrige nombre o razón social, RUC o DNI, rubro, la **dirección de la empresa** y los contactos. El dueño de la cartera recibe un aviso cuando ella corrige algo de su cliente. Caso que lo motivó: la dirección de Family Farms, que en la cabecera de la ficha no se podía cambiar en ninguna pantalla (ahora el enlace dice «Corregir nombre, RUC o dirección»).
 - **Ese poder es sobre los DATOS del cliente, no sobre lo comercial.** Ese mismo día se le abrió por un rato a PV2 la vista de cotizaciones y cierres de otras carteras, y Santos lo revirtió: «comercial solo puede ver su comercial y postventa puede ver postventa; ella tiene su cuenta de comercial y desde ahí busca lo que necesite». No cambia carteras ni ve cotizaciones ajenas desde postventa.
@@ -25,11 +33,37 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 - **Fichas unidas por el buzón (Brenda, 20-10):** LAVIPRONTO (tres fichas con los mismos contactos, ahora una sola con RUC, cada expediente con su comercial); Operador Nacional de Hoteles del Perú (Decameron), unida a la ficha con RUC con aprobación de gerencia y en la cartera de Brenda; y la ficha de Family Farms que tenía por error el RUC de un banco, también unida a FAMILY FARMS PERÚ, con ese RUC equivocado quitado.
 - **«Salieron, sin guía» cuenta igual en el Panorama y en la lista (almacén).** El Panorama decía 5 y la lista 3: el número sumaba revisiones técnicas (que no llevan guía) y se le escapaba un pedido que salió sin fotos de la carga. Ahora los dos usan la misma regla.
 
+### 21-10 · Imágenes que completan una gestión, sin registrar otra (Santos)
+- Santos pidió que en el historial del expediente del comercial cada gestión tenga un «+» para pegar o subir una imagen que enriquezca lo ya anotado, sin tener que registrar una «gestión» nueva solo para colgar la foto.
+- Por qué: inventar una gestión para adjuntar una captura ensuciaba la historia y contaba un contacto que no hubo.
+- Lo agregado después queda con el nombre de quien lo agregó y la hora; la nota y el resultado de la gestión no se tocan.
+
+### 21-10 (tarde) · Letras, fichas unidas, una cartera que se movió por error y fotos en la gestión (Santos)
+- **Las letras entregadas las confirma Finanzas (Santos):** «subir las letras le corresponde a Finanzas… luego postventa pulsa verificar despacho». Antes podían registrarlo también el almacén y postventa; ahora ellos ven «Falta que Finanzas confirme…».
+- **Fichas parecidas al 100 % unidas (Santos):** «todas las que tienen 100 % los puedes juntar, a excepción de los WhatsApps (solo un nombre)». Se unieron unas 640 parejas; se quedó la ficha con documento, si no la de cartera, si no la de más movimiento. Las demás siguen en «Parecidas» para revisarlas a mano.
+- **Caso SERVICIOS ALIMENTICIOS Y AFINES (21-10):** el cliente desapareció de la cartera de Katerine. No fue por las fichas unidas: Central derivó el reclamo de la calandria a la cuenta comercial C1 (que también es de Brenda) en vez de a postventa, y con el código de gerencia la cartera pasó a C1. Se deshizo desde el registro de acciones y el contacto volvió a Central para derivarlo a postventa. **Lección:** un reclamo de postventa se deriva a la cuenta de postventa, no a la comercial de la misma persona; ante «el cliente desapareció de mi cartera», mirar primero quién lo derivó.
+- **Comunicado interno con imagen:** el afiche del almuerzo corporativo del 22-10 se publicó para todos en el CRM y aparece incluso a quien ya lo tenía abierto.
+
+### 21-10 · Agenda del almacén y su cierre del día (Santos)
+- Santos pidió definir la agenda del almacén en el CRM «como lo que tiene postventa y comercial, pero enfocado a sus actividades propias del área»: qué debe figurar y qué acciones hizo en el día. Decisiones: las tareas son del área (hoy las trabaja Diana); «otras gestiones» en texto libre hasta mapearlas; la meta es cero colgados (ninguna prueba esperando más de 2 días, ningún despacho atrasado, ninguna salida sin cerrar), no una cantidad; y gerencia ve el cierre del día del almacén en el mismo «Cierre del día».
+- Antes de hacerla se midió: en 3 semanas el almacén probó 66 máquinas, registró 90 series, sacó 25 pedidos y atendió 23 llamadas, pero no tenía reporte del día y en 18 de las 25 salidas no quedó grabado quién las hizo; las pruebas, los protocolos y las series tampoco quedaban en el registro de acciones. Eso se arregló primero: ahora todo deja rastro.
+- Hecho y en uso: la pantalla «Agenda del almacén» (indicadores, «Hoy, en orden», «Lo que hizo el almacén hoy», otras gestiones, todos los números plegados), el «Reporte del día» del almacén, la lista «Equipos que llegan a planta» (antes daba error) y el rastro completo.
+- Pendiente: mapear las «otras gestiones» recurrentes como pasos cuando Lesly y Diana las enumeren.
+
+### 21-10 · El protocolo ya no pide Word (Lesly)
+- Lesly reclamó que en la cuenta de Almacén, después de subir las fotos y llenar la ficha, el CRM seguía pidiendo subir el Word del protocolo en las máquinas sin hoja de chequeo (centrífuga, ablandador…). Eso era del proceso antiguo: hoy todo el protocolo se hace en el CRM.
+- Desde hoy ninguna máquina exige PDF ni Word para «Probada y embalada» ni para terminar un protocolo de stock; adjuntarlo es opcional. Se pide: fotos, modelo de la placa, serie, técnico y, si hay plantilla, una casilla de la hoja.
+- Santos: lo que se cambie en almacén para Lesly debe valer igual en las cuentas de almacén; esta regla vale para todas.
+
 ### 21-10 · Central deriva casos a Finanzas y Facturación (Santos)
 - **Pedido de Santos:** «Central debería poder derivar casos a Finanzas, Facturación y RR. HH.». Primero se mostraron las pantallas y, aprobadas, se hizo: «Derivar a un área» en la ficha del cliente y en «Sus pedidos», «Casos de Central» para cada área y «Casos a otras áreas» para Central.
 - **Por qué:** antes Central solo tenía la «Urgencia a Finanzas» (sin respuesta, solo sobre un pedido liberado) y los avisos de Central (solo informan). Lo demás iba por WhatsApp o correo, sin saber quién lo tenía.
 - **Urgente = 2 horas.** Si nadie lo toma, vuelve a sonar en el área y se enteran Central y gerencia.
 - **RR. HH. queda para después:** el área ya tiene responsable, pero todavía no tiene cuenta en el CRM.
+
+### 21-10 · El pedido de servicio no pasa por el almacén (Santos)
+- Santos: el código se le pide al almacén solo cuando es **producto** (equipo, repuesto o accesorio): «en servicio no se pide código, es solo escrito, entonces no tiene que enterarse almacén». Pidió una opción de servicio, que el detalle se redacte o se jale de la cotización, con el nombre de los servicios y la cantidad «sin monto necesariamente», y que Central lo edite de manera amigable.
+- Desde el 21-10, en el paso 1 del pedido Central elige **Producto** (pide el código al almacén, como siempre) o **Servicio** (viene marcado cuando el cierre son servicios). Con «Armar el detalle del servicio» el pedido nace sin avisar al almacén y aparece el cuadro «Detalle del servicio»: N.º, descripción, cantidad, serie del equipo y precio opcional, editable en cada casilla, con «Agregar línea», quitar y «Guardar cambios».
 
 ### 21-10 · Central edita «Equipos y series» del pedido (Santos, por Central)
 - Central avisó que el pedido de FAMILY FARMS (PED-0037-2026) «no jaló el detalle del trabajo, equipos y series». El cierre eran dos mantenimientos preventivos; desde el 06-10 una línea de servicio no arma fila en la lista del pedido (para no pedir series que no existen), así que el pedido salía sin nada. Santos: «aun así dale para que edite».
@@ -135,40 +169,26 @@ Carlos recorrió el CRM con Brenda (postventa 2) usando tres clientes reales: Be
 - La comisión que descuenta el banco la cobra el comercial; postventa recibe el aviso solo para saberlo.
 - Con detracción o retención la operación queda cancelada y postventa puede despachar aunque falte cobrarla.
 
-### 17-10 · Grupo Turismo Costa del Sol: los hoteles se ven desde la empresa madre (Ariana, Santos)
-- **Qué pasó:** Gabriela cotizó una garantía para Hotelera Cusco (Costa del Sol Wyndham Cusco). Ariana tomó el caso y quería verla dentro de Turismo Costa del Sol, la cadena; creía que esa empresa no estaba en el CRM. Sí estaba, pero el grupo nunca se había armado y había varias fichas sueltas con nombres parecidos.
-- **Qué se decidió (Santos, 17-10):** la cotización se sigue facturando a Hotelera Cusco. Se colgaron del grupo Turismo Costa del Sol: Hotelera Cusco, Costa del Sol S A y sus sedes Chiclayo y Callao, y la sede Pucallpa. La cartera de cada ficha no cambió (quién se queda con el grupo sigue pendiente de gerencia).
-- **Qué se hizo en el CRM:** la ficha de una empresa con grupo muestra también los expedientes vivos de las otras empresas, con el nombre de cada una.
-- **Pendiente:** hay fichas «Turismo Costa del Sol» sin RUC que convendría unir a la que tiene RUC.
+### 17-10 · Grupo Turismo Costa del Sol: los hoteles se ven desde la empresa madre (Ariana, Santos) (resumido)
+- Hotelera Cusco y las demás empresas de Costa del Sol se colgaron del grupo Turismo Costa del Sol (la cotización se sigue facturando a Hotelera Cusco y la cartera no cambió); la ficha de una empresa con grupo muestra los expedientes de las otras. Pendiente: unir las fichas «Turismo Costa del Sol» sin RUC.
 
-### 17-10 · Las casillas del protocolo se ven como botones (Ariana)
-- **Qué pasó:** Ariana (almacén) no podía «poner checks» en la hoja de chequeo. Sí tenía permiso: las casillas ✓ y ✗ eran cuadritos blancos vacíos al lado del campo de Observaciones, y al pasar el mouse salía el cursor de escribir.
-- **Qué se hizo:** las casillas vacías muestran su ✓ o ✗ tenue y se colorean al pasar el mouse; arriba de la hoja hay una línea que explica cómo marcar y que hay que «Guardar protocolo». En el papel impreso no cambia nada.
-- **Después (mismo día):** Ariana completó la hoja con ✓ en «CANT.» de Programación y el CRM no la dejaba marcar «Probada y embalada» porque solo contaba las casillas de RESULTADOS; además el ✓ tenue de las casillas vacías parecía una marca. Santos decidió que **un ✓ en CANT. también cuenta**. Las casillas vacías pasaron a gris con borde punteado y las marcadas a color lleno.
+### 17-10 · Las casillas del protocolo se ven como botones (Ariana) (resumido)
+- Las casillas ✓/✗ del protocolo ahora se ven como botones y la hoja explica cómo marcar y guardar (Ariana no veía dónde marcar).
 
-### 17-10 · La ficha del cliente muestra todo y se anota sin salir de ella (Ariana, Santos)
-- **Qué pasó:** Ariana (postventa) dijo que en la ficha del cliente «no veía toda la información» y que tenía que apretar «Registrar gestión» para que aparecieran más cosas. Con su propia sesión se vio por qué: la cabecera fija ocupaba media pantalla en las computadoras de la oficina, la cotización y la última gestión solo se veían dentro del expediente, y el botón la llevaba a otra pantalla sin decirlo.
-- **Qué se hizo (Santos, 17-10):** la cabecera se achicó y solo las pestañas quedan fijas al bajar; «Anotar gestión» abre el formulario al costado de la ficha (reemplaza a «Registrar seguimiento»); cada expediente vivo muestra su cotización, próxima acción y última gestión; lo menos usado pasó a «Más acciones»; la pestaña Equipos permite registrar una máquina del cliente; el expediente tiene «← Ficha del cliente» y, si es de postventa, ya no muestra «Calificación».
-- **Pendiente (para ver con gerencia):** un «Resumen» pensado para postventa (equipos y garantía primero) y un solo verbo para anotar en todas las pantallas.
+### 17-10 · La ficha del cliente muestra todo y se anota sin salir de ella (Ariana, Santos) (resumido)
+- Cabecera más chica en la ficha del cliente y «Anotar gestión» al costado, sin salir de la ficha (Ariana no veía toda la información). Pendiente con gerencia: un «Resumen» para postventa.
 
-### 17-10 · Mi cuenta del cliente en efameinsa.com y avisos por cada estado (Santos)
-- **Qué pidió Santos:** que cada cliente tenga usuario y contraseña en efameinsa.com, entregados por correo y por un WhatsApp de atención al cliente; que vea desde su perfil su cotización, sus pedidos, repuestos, mantenimientos, documentos y fotos; que reciba un aviso en cada cambio de estado (embalado, salió, llegó a la agencia de su provincia, lo recibió, técnico enviado y llegó, puesta en marcha); y un chat. Objetivo: mejor experiencia del cliente y más opiniones en Google.
-- **Qué se hizo:** Mi cuenta ya lee el historial del CRM; en el CRM hay botones «El técnico salió / llegó», el «Ya lo recibí» del cliente y «Mensajes de Mi cuenta» en la ficha, el pedido y el caso. El motor de avisos quedó en **piloto**: solo la lista de prueba recibe de verdad.
-- **Pendiente:** el chip nuevo para el WhatsApp de atención al cliente (lo pide Santos), método de pago en Meta y aprobación de las plantillas; visto bueno de Santos a los textos; ilustraciones de los correos; ampliar la lista del piloto.
+### 17-10 · Mi cuenta del cliente en efameinsa.com y avisos por cada estado (Santos) (resumido)
+- «Mi cuenta» del cliente en efameinsa.com lee el historial del CRM y los avisos por cada estado quedaron en piloto. Pendiente: chip del WhatsApp de atención al cliente, plantillas de Meta y visto bueno de Santos a los textos.
 
 ### 17-10 · Postventa: una carpeta por cliente (Ariana, Santos)
 - Resumen: Ariana no encontraba su trabajo (ECOLAV, Choquehuanca) porque había 385 expedientes de postventa abiertos para 277 clientes. Santos decidió una carpeta por cliente, con cada asunto como caso con su responsable; ayudar no quita la carpeta, cada acción queda con su nombre y existe «Hoy cubro a…». Ese día se unieron 108 expedientes (277 carpetas para 277 clientes). La unión de cotizaciones no se deshace con un clic: se pide a Santos.
 
-### 17-10 · Pedir a Lesly, la versión nueva sin recargas sorpresa y la ficha que llega al pedido (Santos)
-- **«Pedir a Lesly» (buzón del catálogo):** Santos: «crea un buzón para pedir productos o que Lesly actualice y que le llegue a Lesly, que eso no pidan en el buzón porque no tiene que ver con el CRM sino con operaciones». En el buzón del CRM llegaban pedidos de fichas técnicas, precios o stock que había que reenviarle. Desde el 17-10 hay un botón propio en la barra; Lesly los ve en «Pedidos al catálogo» y contesta («Lo estoy viendo», «Hecho» o «No procede»). Si alguien lo escribe en el buzón del CRM, el buzón le avisa y se lo pasa.
-- **Versión nueva sin recargas sorpresa:** el 16-10 se había hecho que el CRM se recargara solo si la pantalla llevaba 2 minutos quieta. Santos recordó que una recarga sola ya había hecho perder trabajo y molestaba. Desde el 17-10 vuelve la regla de siempre: la pantalla en uso nunca se recarga sola; la actualización llega al pasar a otra pantalla.
-- **La ficha corregida llega al pedido:** cuatro observaciones del buzón (06–16/10) eran nombres o RUC corregidos en la ficha que seguían viejos en el pedido o en la máquina. Desde el 17-10 se ponen al día solos en lo que sigue abierto.
+### 17-10 · Pedir a Lesly, la versión nueva sin recargas sorpresa y la ficha que llega al pedido (Santos) (resumido)
+- «Pedir a Lesly» para productos y catálogo (ya no por el buzón del CRM); la versión nueva ya no recarga sola la pantalla; la ficha corregida se pone al día en el pedido y la máquina abiertos.
 
-### 16-10 (noche) · Cotizaciones: descuento al final del total y el aviso «falta confirmar» (Katerine, Ariana, Santos)
-- **Descuento o paquete especial (Katerine, a pedido de gerencia):** gerencia quería poder dejar un paquete en una cifra cerrada sin tocar el precio de cada equipo. Desde el 16-10, debajo del total del cotizador está «+ Agregar descuento o paquete especial» («Descuento» o «Descuento por paquete especial», con o sin IGV). En el PDF sale debajo del SUB TOTAL. **Todo descuento pasa por gerencia** antes de confirmar.
-- **Caso ECOLAV (Ariana):** Ariana armó una cotización en un expediente que estaba a nombre de Rubí; gerencia la aprobó y Ariana no la encontraba, aunque Rubí sí la veía. El aviso de aprobación solo le llegaba a la dueña del expediente y, al buscar al cliente, la lista escondía «Lo que pasó por gerencia».
-- **Regla de Santos (16-10):** «todos deberían poder ver todo… no hay que estar supeditado a alguien en específico… pero la acción que cometa alguien debe quedar registrada con su nombre para rastrear».
-- **Qué se hizo:** el aviso «gerencia aprobó» le llega a quien armó la cotización y también al dueño; dice «falta confirmarla» y lleva directo al botón Confirmar. El borrador aprobado dice «aprobada · falta confirmar», y cada cotización muestra quién la hizo y quién la confirmó.
+### 16-10 (noche) · Cotizaciones: descuento al final del total y el aviso «falta confirmar» (Katerine, Ariana, Santos) (resumido)
+- Descuento o paquete especial debajo del total del cotizador, con gerencia (Katerine). Caso ECOLAV: Ariana no encontraba la cotización que gerencia aprobó en un expediente de Rubí. Regla de Santos: «todos deberían poder ver todo… pero la acción que cometa alguien debe quedar registrada con su nombre»; el aviso llega a quien la armó y al dueño, y dice «aprobada · falta confirmar».
 
 ### 16-10 (tarde) · Buzón: postventa, almacén y comerciales
 - **Contactos en casos de otra compañera (Ariana, COR-PORACION 3C):** no podía guardar el contacto porque el caso estaba a nombre de Rubí. Desde el 16-10, cualquiera de postventa agrega y corrige contactos en los clientes con caso de postventa, a nombre de quien sea (igual que ya pasaba al cotizar). Es la misma regla: el caso es del área. (resumido; el detalle está en la guía).
@@ -479,7 +499,7 @@ Carlos recorrió el CRM con Brenda (postventa 2) usando tres clientes reales: Be
 - **PV3 Ariana Flores.**
 
 **Almacén**
-- **ALM:** cuenta del almacén (Jeysson recibe sus avisos).
+- **ALM:** cuenta del almacén (desde el 21-10 la usa Diana, que reemplaza a Jeysson).
 - **ALM2:** Ariana Flores (desde 06-10).
 
 **Técnicos**

@@ -27,7 +27,7 @@ import * as XLSX from "xlsx";
  * con códigos de secadora.
  */
 
-export type EstadoFila = "ok" | "sugerido" | "elegir" | "nuevo" | "revisar";
+export type EstadoFila = "ok" | "sugerido" | "elegir" | "nuevo" | "revisar" | "falta";
 
 export interface FilaStock {
   hoja: string;
@@ -63,16 +63,43 @@ export interface ProductoCatalogo {
 export interface SerieOcupada {
   serie: string;
   cliente: string | null;
+  /** Para llevar a Lesly directo a la ficha y al pedido (reunión 21-10: fue a buscar a mano para quién era). */
+  cuentaId?: string | null;
+  pedidoId?: string | null;
+  pedido?: string | null;
+}
+
+/** Lavadora, secadora, rodillo… lo que Lesly pidió ver junto al código (21-10). */
+export function tipoEquipo(texto: unknown): string {
+  const t = sinTildes(texto);
+  if (/LAVADORA|\bLAV\b|LAV\.|LAVAD\./.test(t)) return "lavadora";
+  if (/SECADORA|\bSEC\b/.test(t)) return "secadora";
+  if (/RODILLO|CALANDRIA/.test(t)) return "rodillo";
+  if (/PRENSA/.test(t)) return "prensa";
+  if (/MESA/.test(t)) return "mesa de planchado";
+  if (/CALDERIN/.test(t)) return "calderín";
+  if (/COCHE|CARRO/.test(t)) return "coche";
+  return "equipo";
+}
+
+/** La configuración en una frase corta: «M9 · 220V 1-3PH», «Unilinc · GLP · inox». */
+export function resumenRasgos(r: Rasgos): string {
+  return [r.control, r.calentamiento, r.cilindro, r.voltaje, r.sistemaLg, r.apilable === "sí" ? "apilable" : r.apilable === "no" ? "no apilable" : null, r.dosificador]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 export interface Propuesta extends FilaStock {
   estado: EstadoFila;
   motivo: string;
   codigo: string | null;
-  candidatos: { sku: string; activo: boolean; choques: string[] }[];
+  candidatos: { sku: string; activo: boolean; choques: string[]; resumen: string }[];
   rasgos: Rasgos;
+  tipo: string;
   /** El código propuesto no existe: hay que crear el producto. */
   crear: boolean;
+  /** La serie ya está con un cliente en el CRM. */
+  ocupada: { cliente: string | null; cuentaId: string | null; pedidoId: string | null; pedido: string | null } | null;
 }
 
 // ------------------------------------------------------------------ texto
@@ -107,6 +134,8 @@ export interface Rasgos {
   sistemaLg?: string;
   apilable?: string;
   tipo?: string;
+  /** Sailstar 2026 (Lesly 21-10): llegaron «con sistema de aire FRL y dosificador externo» y no son las mismas que ya están. */
+  dosificador?: string;
 }
 
 const NOMBRE_RASGO: Record<keyof Rasgos, string> = {
@@ -117,7 +146,11 @@ const NOMBRE_RASGO: Record<keyof Rasgos, string> = {
   sistemaLg: "código LG",
   apilable: "apilable",
   tipo: "tipo de equipo",
+  dosificador: "aire FRL / dosificador",
 };
+
+/** Un código como los escribe Lesly: letras, números y guion. */
+const CODIGO_VALIDO = /^[A-Z0-9][A-Z0-9-]{1,24}$/;
 
 export function rasgos(texto: unknown): Rasgos {
   const t = sinTildes(texto);
@@ -148,6 +181,9 @@ export function rasgos(texto: unknown): Rasgos {
   else if (t.includes("APIL")) r.apilable = "sí";
   if (/LAVADORA|\bLAV\b|LAV\.|LAVAD\./.test(t)) r.tipo = "lavadora";
   else if (t.includes("SECADORA")) r.tipo = "secadora";
+  // Lo que distingue a las Sailstar nuevas es el sistema de aire FRL (así las codificó Lesly el 21-10:
+  // con FRL = variante nueva; solo con dosificador externo = el código de siempre).
+  if (/AIRE FRL|AIRE COMPRIMIDO FRL|SISTEMA DE AIRE/.test(t)) r.dosificador = "sistema de aire FRL";
   return r;
 }
 
@@ -268,6 +304,8 @@ function prepararCatalogo(productos: ProductoCatalogo[]): Candidato[] {
       const deFicha = rasgos([p.panel, p.calentamiento, p.nombreFicha].join(" "));
       for (const k of Object.keys(deFicha) as (keyof Rasgos)[]) r[k] ??= deFicha[k];
       if (!r.calentamiento && /VAP/i.test(p.sku)) r.calentamiento = "vapor";
+      // Un producto con descripción que no nombra el dosificador externo NO lo trae: las Sailstar nuevas sí.
+      if (!r.dosificador && p.descripcion) r.dosificador = "sin sistema de aire FRL";
       const familias = new Set([familia(p.modelo)]);
       const m = sinTildes(p.modelo);
       const lg = PALABRAS_LG.find((w) => m.includes(w));
@@ -320,7 +358,7 @@ export function emparejar(
   const catalogo = prepararCatalogo(productos);
   const porSku = new Map(productos.map((p) => [p.sku.toUpperCase(), p]));
   const ocupados = new Set(productos.map((p) => p.sku.toUpperCase()));
-  const ocupadas = new Map(seriesOcupadas.map((s) => [s.serie.toUpperCase(), s.cliente]));
+  const ocupadas = new Map(seriesOcupadas.map((s) => [s.serie.toUpperCase(), s]));
   // Misma configuración = mismo código tentativo («si es lo mismo, le pongo el mismo código»).
   const tentativos = new Map<string, string>();
 
@@ -376,7 +414,9 @@ export function emparejar(
     const mejor = limpios[0];
     const empatados = mejor ? limpios.filter((e) => e.puntos === mejor.puntos) : [];
     const unico = mejor && empatados.length === 1 ? mejor.c.p.sku.toUpperCase() : null;
-    const candidatos = evaluados.slice(0, 6).map((e) => ({ sku: e.c.p.sku.toUpperCase(), activo: e.c.p.activo, choques: e.choques }));
+    const candidatos = evaluados
+      .slice(0, 6)
+      .map((e) => ({ sku: e.c.p.sku.toUpperCase(), activo: e.c.p.activo, choques: e.choques, resumen: resumenRasgos({ ...e.c.r, dosificador: e.c.r.dosificador?.startsWith("sin") ? undefined : e.c.r.dosificador }) }));
 
     let estado: EstadoFila;
     let motivo: string;
@@ -391,21 +431,34 @@ export function emparejar(
             .filter((k) => r[k] && c.r[k] && choca(k, r[k]!, c.r[k]!))
             .map((k) => `${NOMBRE_RASGO[k]}: Excel ${r[k]} / CRM ${c.r[k]}`)
         : [];
-      if (!propio) {
+      if (!propio && unico) {
+        // Lo que no existe es el CÓDIGO, no la máquina (Santos 21-10: la UCT080 sí está, como LAVT080).
         estado = "revisar";
         codigo = unico;
-        // Lo que no existe es el CÓDIGO, no la máquina (Santos 21-10: la UCT080 sí está, como LAVT080).
-        motivo = unico
-          ? `El código ${f.codigoExcel} no existe en el catálogo, pero esta máquina (${f.modelo}) SÍ está, con el código ${unico}: usar ${unico}`
-          : `El código ${f.codigoExcel} no existe en el catálogo y no encontré la máquina con otro código`;
+        motivo = `El código ${f.codigoExcel} no existe en el catálogo, pero esta máquina (${f.modelo}) SÍ está, con el código ${unico}: usar ${unico}`;
+      } else if (!propio && CODIGO_VALIDO.test(f.codigoExcel)) {
+        // Lesly ya escribió el código nuevo en su Excel (21-10 tarde: PROF02, LAVG501…): se crea con ese.
+        estado = "nuevo";
+        crear = true;
+        codigo = f.codigoExcel;
+        ocupados.add(codigo);
+        motivo = evaluados[0]
+          ? `Lesly ya le puso ${f.codigoExcel} en su Excel. Ese código todavía no está en el catálogo: al subir se agrega (el más parecido, ${evaluados[0].c.p.sku}, difiere en ${evaluados[0].choques.join("; ") || "el modelo"})`
+          : `Lesly ya le puso ${f.codigoExcel} en su Excel. Ese código todavía no está en el catálogo: al subir se agrega`;
+      } else if (!propio) {
+        estado = "revisar";
+        codigo = null;
+        motivo = `«${f.codigoExcel}» no parece un código (solo letras, números y guion) y no encontré la máquina en el catálogo`;
       } else if (choques.length) {
         estado = "revisar";
         motivo = `El código ${f.codigoExcel} no calza: ${choques.join("; ")}`;
         codigo = unico;
       } else if (!propio.activo) {
-        estado = "revisar";
-        motivo = `El código ${f.codigoExcel} está retirado del catálogo`;
-        codigo = unico ?? f.codigoExcel;
+        // Existe pero está retirado: las máquinas entran y Lesly lo activa cuando tenga la ficha.
+        estado = "nuevo";
+        crear = false;
+        codigo = f.codigoExcel;
+        motivo = `El código ${f.codigoExcel} existe pero está retirado del catálogo: las máquinas entran con él y queda por ponerle ficha y activarlo`;
       } else {
         estado = "ok";
         motivo = "El código que puso Lesly está bien";
@@ -446,9 +499,12 @@ export function emparejar(
 
     const avisos: string[] = [];
     if (avisoModelo) avisos.push(avisoModelo);
-    if (f.serie && ocupadas.has(f.serie)) {
-      const cliente = ocupadas.get(f.serie);
-      avisos.push(`Esta serie ya está en el CRM con ${cliente ?? "un cliente"}: ¿se vendió o está reservada? No se sube como stock libre`);
+    const ocupada = f.serie ? ocupadas.get(f.serie) : undefined;
+    if (f.serie && ocupada !== undefined) {
+      // Lesly (21-10): «Importaciones me ha dado la liquidación después que ya hemos vendido la máquina».
+      avisos.push(
+        `Esta serie ya está en el CRM con ${ocupada?.cliente ?? "un cliente"}${ocupada?.pedido ? ` (pedido ${ocupada.pedido})` : ""}: ya se vendió o está reservada. Pásela a vendido o reserva en el Excel; aquí no se sube como stock libre`,
+      );
     }
     if (avisos.length) {
       estado = "revisar";
@@ -459,6 +515,102 @@ export function emparejar(
       motivo += ". Sin serie de placa en el Excel: entra como unidades, no por serie";
     }
 
-    return { ...f, estado, motivo, codigo, candidatos, rasgos: r, crear };
+    return {
+      ...f,
+      estado,
+      motivo,
+      codigo,
+      candidatos,
+      rasgos: r,
+      tipo: tipoEquipo(`${f.descripcion} ${f.modelo}`),
+      crear,
+      ocupada: ocupada ? { cliente: ocupada.cliente, cuentaId: ocupada.cuentaId ?? null, pedidoId: ocupada.pedidoId ?? null, pedido: ocupada.pedido ?? null } : null,
+    };
+  });
+}
+
+/**
+ * MANDA EL EXCEL DE LESLY (Santos, 21-10 tarde: «mejor no te guíes del
+ * catálogo»). El código que Lesly escribió es el que vale: no se compara con la
+ * configuración de los productos ni se propone otro. Solo se avisa lo que de
+ * verdad no se puede subir:
+ *   · casilla sin código → «Falta código» (no se sugiere nada);
+ *   · una serie que el CRM ya tiene con un cliente → «Revisar», viene «No subir»;
+ *   · un mismo código puesto a modelos distintos dentro del propio Excel;
+ *   · algo que no parece un código.
+ * Del sistema solo se usa si el código ya existe (para darlo de alta o no al
+ * subir), nunca para corregirlo.
+ */
+export function revisarSegunExcel(filas: FilaStock[], productos: ProductoCatalogo[], seriesOcupadas: SerieOcupada[]): Propuesta[] {
+  const porSku = new Map(productos.map((p) => [p.sku.toUpperCase(), p]));
+  const ocupadas = new Map(seriesOcupadas.map((s) => [s.serie.toUpperCase(), s]));
+  // El modelo de cada fila: el que dice la descripción si lo dice (SS23E), si no la columna MODELO.
+  const modeloDe = (f: FilaStock) => {
+    if (/LG/i.test(f.hoja)) return soloAlfanum(f.modelo);
+    const md = modeloDeLaDescripcion(f.descripcion);
+    return familia(md ?? f.modelo);
+  };
+  const modelosPorCodigo = new Map<string, Set<string>>();
+  for (const f of filas) {
+    if (!f.codigoExcel) continue;
+    const m = modelosPorCodigo.get(f.codigoExcel) ?? new Set<string>();
+    m.add(modeloDe(f));
+    modelosPorCodigo.set(f.codigoExcel, m);
+  }
+
+  return filas.map((f) => {
+    const r = rasgos(`${f.descripcion} ${f.modelo}`);
+    const tipo = tipoEquipo(`${f.descripcion} ${f.modelo}`);
+    const ocupada = f.serie ? ocupadas.get(f.serie) : undefined;
+    let estado: EstadoFila;
+    let motivo: string;
+    let codigo: string | null = f.codigoExcel;
+    let crear = false;
+
+    if (!f.codigoExcel) {
+      estado = "falta";
+      codigo = null;
+      motivo = "En el Excel no tiene código. Escriba el código que le corresponde";
+    } else if (!CODIGO_VALIDO.test(f.codigoExcel)) {
+      estado = "revisar";
+      codigo = null;
+      motivo = `«${f.codigoExcel}» no parece un código (solo letras, números y guion)`;
+    } else if ((modelosPorCodigo.get(f.codigoExcel)?.size ?? 0) > 1) {
+      estado = "revisar";
+      motivo = `En el Excel el código ${f.codigoExcel} está puesto a modelos distintos (${[...modelosPorCodigo.get(f.codigoExcel)!].join(", ")}). Confirme que es el mismo equipo`;
+    } else {
+      const p = porSku.get(f.codigoExcel);
+      if (!p) {
+        estado = "nuevo";
+        crear = true;
+        motivo = `Código de Lesly. Todavía no está dado de alta en el sistema: al subir se agrega`;
+      } else if (!p.activo) {
+        estado = "nuevo";
+        motivo = `Código de Lesly. Está retirado en el sistema: las máquinas entran con él y queda por activarlo`;
+      } else {
+        estado = "ok";
+        motivo = "Código de Lesly";
+      }
+    }
+
+    if (ocupada) {
+      estado = "revisar";
+      motivo = `Esta serie ya está en el CRM con ${ocupada.cliente ?? "un cliente"}${ocupada.pedido ? ` (pedido ${ocupada.pedido})` : ""}: ya se vendió o está reservada. Pásela a vendido o reserva en el Excel; aquí no se sube como stock libre`;
+    }
+    if (!f.serie && f.cantidad > 0 && /MESA|PROFLEX/i.test(`${f.descripcion} ${f.modelo}`)) {
+      motivo += ". Sin serie de placa en el Excel: entra como unidades, no por serie";
+    }
+
+    return {
+      ...f,
+      estado,
+      motivo,
+      codigo,
+      candidatos: [],
+      rasgos: r,
+      tipo,
+      crear,
+      ocupada: ocupada ? { cliente: ocupada.cliente, cuentaId: ocupada.cuentaId ?? null, pedidoId: ocupada.pedidoId ?? null, pedido: ocupada.pedido ?? null } : null,
+    };
   });
 }

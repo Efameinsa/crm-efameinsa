@@ -49,6 +49,13 @@ export async function GET(request: Request) {
   // que cierra su día. Gerencia puede pedir el de otro pasándolo explícito.
   const comercialId = url.searchParams.get("comercial") ?? user.id;
 
+  // La cuenta del almacén tiene su propio reporte (21-10): gerencia lo abre
+  // desde «Cierre del día» por esta ruta, así que de acá se la manda.
+  {
+    const { data: p } = await supabase.from("perfiles").select("es_almacen").eq("id", comercialId).maybeSingle();
+    if (p?.es_almacen) return NextResponse.redirect(new URL(`/api/reportes/almacen?${url.searchParams.toString()}`, request.url));
+  }
+
   const { data, error } = await supabase.rpc("reporte_diario_comercial", {
     p_comercial: comercialId,
     p_fecha: fecha,

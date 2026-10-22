@@ -1059,14 +1059,7 @@ export async function agregarParteDelEquipo(itemId: string, servicioId: string, 
   return ok();
 }
 
-/** Quitar la segunda máquina agregada por error, antes del despacho (0359). */
-export async function quitarParteDelEquipo(itemId: string, servicioId: string): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("quitar_parte_del_equipo", { p_item: itemId });
-  if (error) return falla(enCastellano(error.message));
-  revalidarSeries(servicioId);
-  return ok();
-}
+// Quitar la segunda máquina pide el código desde el 0579: quitarSerieDeParte (pedido-central.ts).
 
 function revalidarSeries(servicioId: string) {
   revalidatePath(`/postventa/pedidos/${servicioId}`);

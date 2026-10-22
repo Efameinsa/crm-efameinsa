@@ -141,12 +141,8 @@ export default async function GerenciaPage({
             Cotizaciones del período con Efameinsa:{" "}
             <b className="tabular-nums text-foreground">
               {series.efameinsa} de {series.total}
-            </b>{" "}
-            ({series.conMotivo} con motivo)
-            {series.efameinsa > series.conMotivo && (
-              <span className="text-amber-700"> · {series.efameinsa - series.conMotivo} sin motivo</span>
-            )}
-            <span className="ml-1.5 text-[11px]">· Open es la primera opción</span>
+            </b>
+            <span className="ml-1.5 text-[11px]">· equipos con Efameinsa; repuestos y servicios con Open</span>
           </span>
           <ArrowRight className="size-3.5 text-muted-foreground" />
         </Link>

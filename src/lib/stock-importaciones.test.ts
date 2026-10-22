@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as XLSX from "xlsx";
-import { emparejar, esHojaDeStock, familia, leerExcelStock, rasgos, siguienteCodigoLibre, type ProductoCatalogo } from "./stock-importaciones";
+import { emparejar, revisarSegunExcel, esHojaDeStock, familia, leerExcelStock, rasgos, siguienteCodigoLibre, type ProductoCatalogo } from "./stock-importaciones";
 
 const prod = (sku: string, descripcion: string, extra: Partial<ProductoCatalogo> = {}): ProductoCatalogo => ({
   id: sku,
@@ -97,6 +97,46 @@ describe("emparejar", () => {
     expect(["SECU75", "SECU553", "SECU752"]).not.toContain(a.codigo);
   });
 
+  it("Sailstar con dosificador externo / aire FRL: no es la que ya existe, va código nuevo de la misma familia", () => {
+    const cat = [...catalogo, prod("LAVG50", "LAVADORA EXTRACTORA SAILSTAR, MOD.: GP50, CON CALENTAMIENTO A VAPOR, CONTROL: TOUCH, FUERZA: 350G, CAP: 50 KG, (220V/60HZ/3PH)", { modelo: "GP50", marca: "SAILSTAR" })];
+    const [p] = emparejar(
+      [fila("GP50", "LAVADORA EXTRACTORA SAILSTAR, MOD.: GP50, CON CALENTAMIENTO A VAPOR, CONTROL: TOUCH, c/ SISTEMA DE AIRE FRL, 5 PUERTOS DOSIFICADOR EXTERNO, FUERZA: 350G, CAP: 50 KG, (220V/60HZ/3PH)", { marca: "SAILSTAR" })],
+      cat,
+      [],
+    );
+    expect(p.estado).toBe("nuevo");
+    expect(p.codigo).toBe("LAVG501");
+    expect(p.candidatos[0]).toMatchObject({ sku: "LAVG50" });
+    expect(p.candidatos[0].choques.join()).toContain("dosificador");
+    expect(p.tipo).toBe("lavadora");
+  });
+
+  it("Lesly escribe en el Excel un código que no existe y la máquina tampoco: se crea con ese código", () => {
+    const [p] = emparejar([fila("PROFLEX 100-16-00/226", "MESA DE PLANCHADO ASPIRANTE-SOPLANTE CON BRAZO 220V/60HZ", { codigoExcel: "PROF02", marca: "BIMAP" })], catalogo, []);
+    expect(p.estado).toBe("nuevo");
+    expect(p.crear).toBe(true);
+    expect(p.codigo).toBe("PROF02");
+  });
+
+  it("Lesly escribe un código retirado: las máquinas entran y queda por activarlo", () => {
+    const cat = [...catalogo, prod("SECNSEN", "SECADORA SEMI INDUSTRIAL APILABLE ELECTRICO, PRIMUS, MOD: NSENXAGS173NW01, (220V/60HZ/3PH)", { modelo: "NSENXAGS173NW01", activo: false, marca: "PRIMUS" })];
+    const [p] = emparejar([fila("NSENXAGS173NW01", "SECADORA.APIL.ELECT.MOD.NSENXAGS173NW01 120/240/60/3PH", { codigoExcel: "SECNSEN", marca: "PRIMUS" })], cat, []);
+    expect(p.estado).toBe("nuevo");
+    expect(p.crear).toBe(false);
+    expect(p.codigo).toBe("SECNSEN");
+  });
+
+  it("serie que ya está con un cliente: revisar, con el cliente y el pedido", () => {
+    const [p] = emparejar(
+      [fila("UT075", "SECADORA, MOD. UT075, DUAL DIGITAL, CILINDRO GALVANIZADO, GAS NATURAL, X(220V/60HZ/1-3PH)", { codigoExcel: "SECU553" })],
+      catalogo,
+      [{ serie: "2608067071", cliente: "PRODECO DEL SUR", cuentaId: "c1", pedidoId: "p1", pedido: "PED-0010-2026" }],
+    );
+    expect(p.estado).toBe("revisar");
+    expect(p.motivo).toContain("PED-0010-2026");
+    expect(p.ocupada).toMatchObject({ cuentaId: "c1", pedidoId: "p1" });
+  });
+
   it("serie que ya está con un cliente: revisar", () => {
     const [p] = emparejar(
       [fila("UT075", "SECADORA, MOD. UT075, DUAL DIGITAL, CILINDRO GALVANIZADO, GAS NATURAL, X(220V/60HZ/1-3PH)", { codigoExcel: "SECU553" })],
@@ -137,5 +177,43 @@ describe("leerExcelStock", () => {
     expect(filas[1]).toMatchObject({ codigoExcel: "SECMAX152", item: "I25158", modelo: "TITAN LIGHT CDT29MSCPS", serie: "601KWRE2N078" });
     expect(JSON.stringify(filas)).not.toContain("7311");
     expect(JSON.stringify(filas)).not.toContain("1088");
+  });
+});
+
+describe("revisarSegunExcel (manda el Excel de Lesly)", () => {
+  const catalogo = [
+    prod("SECGIA10", "", { modelo: "GIANT C MAX (CDG27MUCPS)", nombre: "SECADORA C. APILABLE", marca: "LG" }),
+    prod("SECNSEN", "SECADORA PRIMUS MOD: NSENXAGS173NW01", { modelo: "NSENXAGS173NW01", activo: false }),
+  ];
+  it("respeta el código aunque el sistema diga otra cosa, crea el que no existe y reactiva el retirado", () => {
+    const [a, b, c] = revisarSegunExcel(
+      [
+        fila("GIANT C MAX CWG27MDCRS", "LAVADORA LG GIANT C MAX", { hoja: "STOCK DE EQUIPOS LG", codigoExcel: "SECGIA10", serie: "S1" }),
+        fila("PROFLEX 100-16-00/226", "MESA DE PLANCHADO", { codigoExcel: "PROF02", serie: null }),
+        fila("NSENXAGS173NW01", "SECADORA", { codigoExcel: "SECNSEN", serie: "S3" }),
+      ],
+      catalogo,
+      [],
+    );
+    expect(a).toMatchObject({ estado: "ok", codigo: "SECGIA10", candidatos: [] });
+    expect(b).toMatchObject({ estado: "nuevo", crear: true, codigo: "PROF02" });
+    expect(c).toMatchObject({ estado: "nuevo", crear: false, codigo: "SECNSEN" });
+  });
+  it("sin código no adivina; serie con cliente y código a dos modelos van a revisar", () => {
+    const [a, b, c, d] = revisarSegunExcel(
+      [
+        fila("UT120", "SECADORA MOD: UT120L", { serie: "A1" }),
+        fila("UT075", "SECADORA MOD. UT075", { codigoExcel: "SECU75", serie: "A2" }),
+        fila("RX240", "LAVADORA MOD. RX240", { codigoExcel: "LAVX", serie: "A3" }),
+        fila("RX180", "LAVADORA MOD. RX180", { codigoExcel: "LAVX", serie: "A4" }),
+      ],
+      catalogo,
+      [{ serie: "A2", cliente: "ECOLAV", pedido: "467-26" }],
+    );
+    expect(a).toMatchObject({ estado: "falta", codigo: null });
+    expect(b.estado).toBe("revisar");
+    expect(b.motivo).toContain("ECOLAV");
+    expect(c.estado).toBe("revisar");
+    expect(d.motivo).toContain("modelos distintos");
   });
 });

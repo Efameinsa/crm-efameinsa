@@ -12,6 +12,7 @@ import {
   bloquesPedido,
   cierreExigePuesta,
   circuitoDe,
+  creditoDelExcel,
   saldoPendiente,
   estadoPago,
   evaluarPagoParaDespacho,
@@ -246,6 +247,8 @@ export function PedidoPostventa({
           </a>
           {pagoTotal ? (
             <span className="text-[11px] font-semibold text-[#1E7F4F]">Pagado completo: no hay saldo por confirmar</span>
+          ) : creditoDelExcel(servicio) ? (
+            <span className="text-[11px] font-semibold text-amber-800">Adelanto pagado · el saldo es a crédito: se cobra con la orden de facturar</span>
           ) : (
             <PedirConfirmacionPago servicioId={servicio.id} solicitadoAt={servicio.pago_solicitado_at ?? null} otra />
           )}

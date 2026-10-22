@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   emparejar,
+  revisarSegunExcel,
   leerExcelStock,
   rasgos,
   siguienteCodigoLibre,
@@ -82,21 +83,85 @@ export async function productosParaComparar(): Promise<ProductoCatalogo[]> {
   }));
 }
 
-/** Series que el CRM ya tiene con un cliente (equipo instalado o pedido). */
-async function seriesOcupadas(): Promise<SerieOcupada[]> {
+type Uno<T> = T | T[] | null;
+const uno = <T,>(v: Uno<T>): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
+
+/**
+ * Series que el CRM ya tiene con un cliente (equipo instalado o pedido), con
+ * a quién y en qué pedido. Lesly (21-10) fue a buscar a mano para quién era la
+ * 2607009967 («antes con la serie verificaba para quién»): acá viene ya.
+ */
+async function seriesOcupadas(soloEstas?: string[]): Promise<SerieOcupada[]> {
   const admin = createAdminClient();
-  const [instalados, pedidos] = await Promise.all([
-    admin.from("equipos_instalados").select("serie, cliente_texto, cuentas(razon_social)").not("serie", "is", null).eq("es_prueba", false),
-    admin.from("pedido_equipos").select("serie").not("serie", "is", null).eq("es_prueba", false),
-  ]);
-  const mapa = new Map<string, string | null>();
-  for (const p of pedidos.data ?? []) mapa.set(String(p.serie).toUpperCase(), null);
-  type Inst = { serie: string; cliente_texto: string | null; cuentas: { razon_social: string } | { razon_social: string }[] | null };
-  for (const e of (instalados.data ?? []) as unknown as Inst[]) {
-    const c = Array.isArray(e.cuentas) ? e.cuentas[0] : e.cuentas;
-    mapa.set(e.serie.toUpperCase(), c?.razon_social ?? e.cliente_texto ?? null);
+  let qi = admin
+    .from("equipos_instalados")
+    .select("serie, cliente_texto, cuenta_id, servicio_id, cuentas(razon_social), servicios_postventa(numero_pedido_erp)")
+    .not("serie", "is", null)
+    .eq("es_prueba", false);
+  let qp = admin
+    .from("pedido_equipos")
+    .select("serie, servicio_id, servicios_postventa(cuenta_id, numero_pedido_erp, cuentas(razon_social))")
+    .not("serie", "is", null)
+    .eq("es_prueba", false);
+  if (soloEstas) {
+    qi = qi.in("serie", soloEstas);
+    qp = qp.in("serie", soloEstas);
   }
-  return [...mapa].map(([serie, cliente]) => ({ serie, cliente }));
+  const [instalados, pedidos] = await Promise.all([qi, qp]);
+  const mapa = new Map<string, SerieOcupada>();
+  type Ped = { serie: string; servicio_id: string | null; servicios_postventa: Uno<{ cuenta_id: string | null; numero_pedido_erp: string | null; cuentas: Uno<{ razon_social: string }> }> };
+  for (const p of (pedidos.data ?? []) as unknown as Ped[]) {
+    const s = uno(p.servicios_postventa);
+    mapa.set(String(p.serie).toUpperCase(), {
+      serie: String(p.serie).toUpperCase(),
+      cliente: uno(s?.cuentas ?? null)?.razon_social ?? null,
+      cuentaId: s?.cuenta_id ?? null,
+      pedidoId: p.servicio_id,
+      pedido: s?.numero_pedido_erp ?? null,
+    });
+  }
+  type Inst = { serie: string; cliente_texto: string | null; cuenta_id: string | null; servicio_id: string | null; cuentas: Uno<{ razon_social: string }>; servicios_postventa: Uno<{ numero_pedido_erp: string | null }> };
+  for (const e of (instalados.data ?? []) as unknown as Inst[]) {
+    const serie = e.serie.toUpperCase();
+    const previo = mapa.get(serie);
+    mapa.set(serie, {
+      serie,
+      cliente: uno(e.cuentas)?.razon_social ?? e.cliente_texto ?? previo?.cliente ?? null,
+      cuentaId: e.cuenta_id ?? previo?.cuentaId ?? null,
+      pedidoId: e.servicio_id ?? previo?.pedidoId ?? null,
+      pedido: uno(e.servicios_postventa)?.numero_pedido_erp ?? previo?.pedido ?? null,
+    });
+  }
+  return [...mapa.values()];
+}
+
+export interface DondeEstaSerie {
+  serie: string;
+  almacen: { estado: string; sku: string | null; ubicacion: string | null } | null;
+  cliente: SerieOcupada | null;
+}
+
+/** «¿Dónde está esta serie?»: en el almacén, en un pedido o con un cliente (Lesly 21-10). */
+export async function buscarSerie(serie: string): Promise<{ error: string | null; resultado?: DondeEstaSerie }> {
+  const sinPermiso = await soloOperaciones();
+  if (sinPermiso) return { error: sinPermiso };
+  const s = serie.trim().toUpperCase();
+  if (s.length < 3) return { error: "Escriba la serie completa" };
+  const supabase = await createClient();
+  const [{ data: inv }, ocupadas] = await Promise.all([
+    supabase.from("inventario_equipos").select("estado, ubicacion, productos(sku)").ilike("serie", s).neq("estado", "baja").maybeSingle(),
+    seriesOcupadas([s]),
+  ]);
+  type Inv = { estado: string; ubicacion: string | null; productos: Uno<{ sku: string | null }> };
+  const i = inv as unknown as Inv | null;
+  return {
+    error: null,
+    resultado: {
+      serie: s,
+      almacen: i ? { estado: i.estado, sku: uno(i.productos)?.sku ?? null, ubicacion: i.ubicacion } : null,
+      cliente: ocupadas.find((o) => o.serie === s) ?? null,
+    },
+  };
 }
 
 /** Lee el Excel, propone un código por máquina y guarda la propuesta para revisarla. */
@@ -115,17 +180,31 @@ export async function analizarExcelStock(formData: FormData): Promise<{ error: s
     return { error: "No se pudo leer el Excel. ¿Está abierto en otra versión o dañado?" };
   }
   if (lectura.filas.length === 0) {
+    // Lesly (21-10 17:00) subió el Excel de REVISIÓN (hojas LÉEME, Máquinas…) y el
+    // aviso no le decía cuál era el archivo correcto.
+    const hojas = lectura.ignoradas.concat(lectura.hojas);
+    const esRevision = hojas.some((h) => /^(m[aá]quinas|l[eé]eme|c[oó]digos nuevos)$/i.test(h));
     return {
-      error: `No encontré máquinas en hojas de stock. Hojas leídas: ${lectura.hojas.join(", ") || "ninguna"}; ignoradas: ${lectura.ignoradas.join(", ") || "ninguna"}.`,
+      error: esRevision
+        ? `«${archivo.name}» es el Excel de revisión, no el de stock. Suba el Excel de stock de Importaciones (el que tiene las hojas «STOCK DE EQUIPOS INDUSTRIALES» y «STOCK DE EQUIPOS LG»).`
+        : `En «${archivo.name}» no encontré máquinas. Este Excel trae las hojas ${hojas.map((h) => `«${h}»`).join(", ") || "sin nombre"}; hace falta el Excel de stock de Importaciones, con las hojas «STOCK DE EQUIPOS INDUSTRIALES» y «STOCK DE EQUIPOS LG» (columnas CODIGO, MODELO, SERIE…).`,
     };
   }
 
   const [productos, ocupadas] = await Promise.all([productosParaComparar(), seriesOcupadas()]);
-  const propuestas = emparejar(lectura.filas, productos, ocupadas);
+  // Manda el Excel de Lesly (Santos 21-10): el CRM no corrige sus códigos.
+  const propuestas = revisarSegunExcel(lectura.filas, productos, ocupadas);
   const filas: FilaCarga[] = propuestas.map((p) => ({
     ...p,
-    // Lo que el CRM confirma o encontró sin dudas queda marcado para subir; lo demás, que lo decida Lesly.
-    decision: p.estado === "ok" || p.estado === "sugerido" ? "subir" : "pendiente",
+    // Lo que el CRM confirma o encontró sin dudas queda marcado para subir; una
+    // serie que ya está con un cliente viene como «no subir» (Lesly 21-10: «ese
+    // tengo que sacarlo, pasarlo a vendido»); lo demás, que lo decida Lesly.
+    // Un código nuevo que Lesly ya escribió en su Excel es decisión suya: viene marcado para subir.
+    decision: p.ocupada
+      ? "no_subir"
+      : p.estado === "ok" || p.estado === "nuevo"
+        ? "subir"
+        : "pendiente",
     codigoFinal: p.codigo,
   }));
 

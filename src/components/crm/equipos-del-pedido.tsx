@@ -14,9 +14,9 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2, PackageX, ScanBarcode, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { abrirOtroCircuito, agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarProcedencia, marcarSinStock, quitarLineaQueNoCorresponde, quitarParteDelEquipo, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
+import { abrirOtroCircuito, agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarProcedencia, marcarSinStock, quitarLineaQueNoCorresponde, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
 import { probarEquipoDelPedido, probarKitDelPedido, tecnicoYFechaDeLaPrueba } from "@/lib/acciones/almacen";
-import { agregarLineaAlPedido, corregirSerie, editarLineaDelPedido, quitarLineaDelPedido, traerLineasDelCierre } from "@/lib/acciones/pedido-central";
+import { agregarLineaAlPedido, corregirSerie, editarLineaDelPedido, quitarLineaDelPedido, quitarSerieDeParte, traerLineasDelCierre } from "@/lib/acciones/pedido-central";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
 import type { FotoAlmacen } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ import { agregarArchivosDelEquipo, quitarArchivoDelEquipo } from "@/lib/acciones
 import { subirConProgreso } from "@/lib/subir-con-progreso";
 import { cn } from "@/lib/utils";
 import { esTorre, seriesDeLaDescripcion } from "@/lib/torres";
-import { esFilaDeServicio, faltaParaProbar, hojaDelSistema, type ArchivoProtocolo, type MaquinaParaProbar } from "@/lib/protocolo-completo";
+import { esAccesorioDelPedido, esFilaDeServicio, faltaParaProbar, hojaDelSistema, type ArchivoProtocolo, type MaquinaParaProbar } from "@/lib/protocolo-completo";
 
 /** Las tres opciones de la generación de código (0385), con el nombre que usa Lesly. */
 const PROCEDENCIA: Record<string, string> = {
@@ -166,6 +166,7 @@ export function EquiposDelPedido({
               partes={partesDe(e.id)}
               candado={candado}
               repuesto={repuesto}
+              accesorio={esAccesorioDelPedido(e, equipos)}
               kit={kit}
               unica={equipos.length === 1}
             />
@@ -472,6 +473,7 @@ function Fila({
   partes,
   candado,
   repuesto,
+  accesorio,
   kit,
   unica,
 }: {
@@ -487,6 +489,8 @@ function Fila({
   partes: EquipoDelPedido[];
   candado: boolean;
   repuesto: boolean;
+  /** Accesorio de la máquina principal del pedido (la plancha del calderín): solo pide fotos. */
+  accesorio: boolean;
   /** Pieza de un kit de repuestos: su protocolo va en el bloque del kit, no en la fila (0517). */
   kit: boolean;
   /** Es lo único en la lista: no se puede quitar como «no corresponde» (0515). */
@@ -507,6 +511,9 @@ function Fila({
   const [serieNueva, setSerieNueva] = useState("");
   const [motivoSerie, setMotivoSerie] = useState("");
   const [pinSerie, setPinSerie] = useState("");
+  // Cuál serie se corrige: la de la unidad o la de la secadora de la torre (0579;
+  // Lesly 21-10: la de la secadora se quitaba sin código y sin aviso).
+  const [corregirCual, setCorregirCual] = useState(e.id);
   // Aviso de largo (Lesly, 30-09): la serie de una Unimac entró con un dígito menos.
   // Sale una vez por valor; con el mismo valor, el segundo clic registra igual.
   const [avisoSerie, setAvisoSerie] = useState<{ para: string; texto: string } | null>(null);
@@ -566,6 +573,14 @@ function Fila({
 
   const confirmando = (valor: string) => avisoSerie?.para === valor.trim().toUpperCase();
 
+  function cerrarCorreccion() {
+    setCorrigiendo(false);
+    setCorregirCual(e.id);
+    setSerieNueva("");
+    setMotivoSerie("");
+    setPinSerie("");
+  }
+
   function conRevision(valor: string, hacer: () => void) {
     if (confirmando(valor)) {
       setAvisoSerie(null);
@@ -622,6 +637,7 @@ function Fila({
   const comoArchivo = (documento: boolean) => (f: File): ArchivoProtocolo => ({ path: f.name, tipo: documento ? f.type || "application/pdf" : f.type || "image/jpeg" });
   const falta = faltaParaProbar(e as MaquinaParaProbar, partes as MaquinaParaProbar[], {
     repuesto,
+    accesorio,
     nombre: `Máquina ${e.orden}`,
     clic: {
       protocoloRef: protocolo,
@@ -631,14 +647,16 @@ function Fila({
       partes: Object.fromEntries(partes.map((p) => [p.id, [...deParte(p.id).fotos.map(comoArchivo(false)), ...deParte(p.id).docs.map(comoArchivo(true))]])),
     },
   });
-  // Con hoja de chequeo en el sistema el informe lo genera el CRM: el Word/PDF es opcional (Lesly, 13-10).
+  // El informe lo genera el CRM: el Word/PDF es opcional para toda máquina (Lesly, 13-10 con hoja; 21-10 sin hoja, 0580).
   // Una fila de SERVICIO tampoco lo pide: el informe sale con sus fotos (Lesly, 17-10, 0529).
   const tituloDocs = (maquina: MaquinaParaProbar, cual: "principal" | "secadora", de: string) =>
-    esFilaDeServicio(maquina, maquina === e ? partes : [])
+    accesorio && maquina === e && partes.length === 0
+      ? `Otro informe de ${de} (PDF o Word, opcional: es un accesorio de la máquina principal, basta con sus fotos)`
+      : esFilaDeServicio(maquina, maquina === e ? partes : [])
       ? `Otro informe de ${de} (PDF o Word, opcional: es un servicio, el informe de prueba y embalaje lo genera el sistema con las fotos)`
       : hojaDelSistema(maquina, cual, repuesto)
       ? `Otro protocolo o informe de ${de} (PDF o Word, opcional: el informe lo genera el sistema con la hoja de chequeo)`
-      : `Protocolo o informe de ${de} (PDF o Word, varios)`;
+      : `Otro protocolo o informe de ${de} (PDF o Word, opcional: el informe lo genera el sistema con las fotos y la ficha)`;
 
   /** El técnico y la fecha van a la hoja de cada máquina de la unidad (la secadora de la torre también). */
   function guardarTecnicoYFecha() {
@@ -824,14 +842,14 @@ function Fila({
                 <button
                   type="button"
                   disabled={pendiente}
-                  className="text-muted-foreground hover:text-destructive hover:underline"
+                  className="text-muted-foreground hover:underline"
                   onClick={() => {
-                    if (confirm(`¿Quitar la serie ${p.serie} (${p.parte_nombre ?? "otra máquina"}) de esta unidad?`)) {
-                      correr(() => quitarParteDelEquipo(p.id, servicioId), "Serie quitada");
-                    }
+                    setCorregirCual(p.id);
+                    setSerieNueva("");
+                    setCorrigiendo(true);
                   }}
                 >
-                  Quitar
+                  ¿Equivocada? Corregir o quitar con código
                 </button>
               )}
               {puedeSubirFotos && <BotonAgregarFotos archivos={deParte(p.id).fotos} onChange={(f) => cambiarParte(p.id, { fotos: f })} />}
@@ -926,7 +944,30 @@ function Fila({
         <div className="mt-1.5">
           {corrigiendo ? (
             <div className="space-y-1.5 rounded-md border border-amber-500/40 bg-amber-500/5 p-2">
-              <p className="text-[11px] text-amber-900">La serie queda fija. Para cambiarla hace falta el código de operaciones o gerencia, y queda escrito por qué.</p>
+              <p className="text-[11px] text-amber-900">
+                La serie queda fija. Para cambiarla{partes.length > 0 ? " o quitarla" : ""} hace falta el código de operaciones o gerencia; queda escrito
+                por qué y se avisa a Central, postventa y almacén.
+              </p>
+              {partes.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                  <span className="text-muted-foreground">¿Cuál?</span>
+                  {[{ id: e.id, nombre: torre ? "Lavadora" : "Esta máquina", serie: e.serie }, ...partes.map((p) => ({ id: p.id, nombre: p.parte_nombre ?? "Otra máquina", serie: p.serie }))].map((x) => (
+                    <button
+                      key={x.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={corregirCual === x.id}
+                      onClick={() => setCorregirCual(x.id)}
+                      className={cn(
+                        "rounded-full border px-2 py-0.5 font-medium",
+                        corregirCual === x.id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:bg-accent",
+                      )}
+                    >
+                      {x.nombre} · <span className="font-mono">{x.serie}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="grid gap-1.5 sm:grid-cols-2">
                 <Input value={serieNueva} onChange={(x) => setSerieNueva(x.target.value)} placeholder="Serie correcta" className="h-8 font-mono text-sm uppercase" />
                 <Input value={motivoSerie} onChange={(x) => setMotivoSerie(x.target.value)} placeholder="Por qué (ej.: se leyó mal la placa)" className="h-8 text-sm" />
@@ -937,7 +978,7 @@ function Fila({
                 <p className="text-[11px] leading-snug text-muted-foreground">
                   Falta:{" "}
                   {[
-                    !serieNueva.trim() && "la serie correcta",
+                    !serieNueva.trim() && (partes.some((p) => p.id === corregirCual) ? "la serie correcta (o «Quitar esta serie»)" : "la serie correcta"),
                     motivoSerie.trim().length < 5 && "el motivo (al menos una frase corta)",
                     pinSerie.replace(/\D/g, "").length < 4 && "el código de 4 dígitos",
                   ]
@@ -951,17 +992,50 @@ function Fila({
                   size="sm"
                   className="h-8"
                   disabled={pendiente || !serieNueva.trim() || motivoSerie.trim().length < 5 || pinSerie.replace(/\D/g, "").length < 4}
-                  onClick={() => conRevision(serieNueva, () => correr(() => corregirSerie(e.id, servicioId, serieNueva, pinSerie, motivoSerie), "Serie corregida; quedó escrito en el pedido"))}
+                  onClick={() =>
+                    conRevision(serieNueva, () =>
+                      correr(async () => {
+                        const r = await corregirSerie(corregirCual, servicioId, serieNueva, pinSerie, motivoSerie);
+                        if (!r.error) cerrarCorreccion();
+                        return r;
+                      }, "Serie corregida; quedó escrito en el pedido y se avisó"),
+                    )
+                  }
                 >
                   {confirmando(serieNueva) ? "Sí, corregir así" : "Corregir"}
                 </Button>
-                <Button size="sm" variant="ghost" className="h-8" onClick={() => setCorrigiendo(false)}>
+                {corregirCual !== e.id && partes.some((p) => p.id === corregirCual) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 border-destructive/40 text-destructive hover:bg-destructive/5"
+                    disabled={pendiente || motivoSerie.trim().length < 5 || pinSerie.replace(/\D/g, "").length < 4}
+                    title="Quita esta serie de la unidad; después puede registrar la correcta"
+                    onClick={() =>
+                      correr(async () => {
+                        const r = await quitarSerieDeParte(corregirCual, servicioId, pinSerie, motivoSerie);
+                        if (!r.error) cerrarCorreccion();
+                        return r;
+                      }, "Serie quitada; quedó escrito en el pedido y se avisó")
+                    }
+                  >
+                    Quitar esta serie
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" className="h-8" onClick={cerrarCorreccion}>
                   Cancelar
                 </Button>
               </div>
             </div>
           ) : (
-            <button type="button" className="text-[11px] text-muted-foreground hover:underline" onClick={() => setCorrigiendo(true)}>
+            <button
+              type="button"
+              className="text-[11px] text-muted-foreground hover:underline"
+              onClick={() => {
+                setCorregirCual(e.id);
+                setCorrigiendo(true);
+              }}
+            >
               ¿Serie equivocada? Corregir con código
             </button>
           )}
@@ -1599,7 +1673,7 @@ function ArchivosDeParte({ p, servicioId, probada, candado }: { p: EquipoDelPedi
         (abierto ? (
           <div className="space-y-1.5 rounded-md bg-muted/40 p-2">
             <TomarOSubirVarias titulo={`Fotos de la ${nombre}`} archivos={fotos} onChange={setFotos} maximo={100} />
-            <Documentos archivos={docs} onChange={setDocs} titulo={`Protocolo o informe de la ${nombre} (PDF o Word)`} />
+            <Documentos archivos={docs} onChange={setDocs} titulo={`Otro protocolo o informe de la ${nombre} (PDF o Word, opcional)`} />
             {problema && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-snug text-destructive">{problema}</p>}
             <div className="flex gap-1.5">
               <Button

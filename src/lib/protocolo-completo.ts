@@ -17,15 +17,24 @@ import { propuestaDeHoja, type DatosHoja, type Maquina } from "@/lib/protocolo-h
  * Beneficencia de Huancayo: «solo debe marcarse lo que uno considere, no deben
  * ser obligatorios todos los checks y las X»): basta con una marcada.
  *
- * El PDF/Word solo se pide a la máquina SIN hoja de chequeo en el sistema
- * (Lesly, 13-10: «ya no debería solicitar subir Word porque el sistema ya lo
- * genera»): si la tiene, el informe de prueba y embalaje con la hoja completa
- * es el protocolo. Subir el Word sigue pudiéndose, ya no frena.
+ * El PDF/Word ya NO se pide a ninguna máquina (Lesly, 21-10, en Almacén: «se
+ * sube la foto, se llena la ficha pero también pedía que se suba el Word»):
+ * todo el protocolo se hace en el CRM —fotos, ficha del informe y, si hay
+ * plantilla, la hoja de chequeo— y el informe de prueba y embalaje lo genera
+ * el sistema. Subir un Word sigue pudiéndose, nunca frena (0580). Antes solo
+ * se había quitado a las máquinas con hoja (13-10).
  *
  * Una fila que es un SERVICIO (embalaje, transporte, instalación…) no es una
  * máquina: el informe de prueba y embalaje lo genera el CRM con sus fotos, así
  * que pide solo fotos y técnico, como un repuesto (Lesly, 17-10, ABACHI
  * PED-0033-2026, «me pide subir Word del informe pero no debería»; 0529).
+ *
+ * Un ACCESORIO que acompaña a la máquina principal del mismo pedido (la
+ * plancha del calderín, un kit de mangueras, la base…) no lleva protocolo:
+ * basta con sus fotos (Almacén, 21-10, VITALIAN PED con el calderín SIDI
+ * BR-8: «para los accesorios complementarios al producto primario no se
+ * considere la ficha de protocolo, solo considerar para poder subir fotos»).
+ * La hoja de chequeo sigue a mano en el informe, pero no frena.
  *
  * Función pura: la usa el botón (para decir qué falta antes de pulsar) y el
  * servidor (que es quien de verdad frena).
@@ -58,15 +67,24 @@ export type LoQueVaConElClic = {
 const esImagen = (a: NonNullable<ArchivoProtocolo>) =>
   (a.tipo ?? "").startsWith("image/") || /\.(jpe?g|png|webp|gif|heic)$/i.test(a.path ?? "");
 
-// El video de la prueba (14-10) no es el protocolo PDF/Word: no lo reemplaza.
-const esVideo = (a: NonNullable<ArchivoProtocolo>) =>
-  (a.tipo ?? "").startsWith("video/") || a.etiqueta === "video" || /\.(mp4|mov|webm|3gp)$/i.test(a.path ?? "");
-
 const lista = (x: unknown): NonNullable<ArchivoProtocolo>[] => (Array.isArray(x) ? x.filter((a): a is NonNullable<ArchivoProtocolo> => Boolean(a)) : []);
 
 /** La fila es un servicio y no una máquina (mismo criterio que es_linea_de_servicio, 0404). */
 export function esFilaDeServicio(e: Pick<MaquinaParaProbar, "descripcion">, partes: unknown[] = []) {
   return partes.length === 0 && /^\s*SERVICIO\s/i.test(e.descripcion ?? "");
+}
+
+/** Lo que por su nombre es un accesorio y no una máquina (PLANCHADORA sí es máquina). */
+const ACCESORIO = /^\s*(PLANCHA(?!DORA)|KIT\b|MANGUERAS?\b|ACCESORIOS?\b|SOPORTES?\b|BASES?\b|PEDESTAL|CARRO|COCHE|CANASTILLAS?\b|PISTOLA|BRAZO|MESA DE PLANCHADO)/i;
+
+/**
+ * La fila es un accesorio de la máquina principal del pedido: su nombre es de
+ * accesorio y en el mismo pedido va otra fila que es una máquina (no otro
+ * accesorio ni un servicio). Sola en el pedido, se prueba como cualquier máquina.
+ */
+export function esAccesorioDelPedido(e: Pick<MaquinaParaProbar, "id" | "descripcion">, filas: Pick<MaquinaParaProbar, "id" | "descripcion">[]) {
+  if (!ACCESORIO.test(e.descripcion ?? "")) return false;
+  return filas.some((f) => f.id !== e.id && !ACCESORIO.test(f.descripcion ?? "") && !/^\s*SERVICIO\s/i.test(f.descripcion ?? ""));
 }
 
 /** La hoja de chequeo que el sistema llena para esta máquina (null = no hay plantilla: se sube el Word/PDF). */
@@ -89,7 +107,6 @@ function faltaEnLaHoja(
   const plantilla = hojaDelSistema(e, maquina, repuesto);
   const falta: string[] = [];
   if (!archivos.some(esImagen)) falta.push("fotos");
-  if (!repuesto && !plantilla && !archivos.some((a) => !esImagen(a) && !esVideo(a))) falta.push("protocolo o informe (PDF o Word)");
   if (!repuesto && !guardado.modelo?.trim()) falta.push("modelo de la placa (en la ficha del informe)");
   if (!repuesto && !(guardado.serie ?? propuesta.serie ?? e.serie)?.trim()) falta.push("serie");
   if (!(tecnicoEnPantalla.trim() || guardado.tecnico?.trim())) falta.push("técnico que hizo la prueba");
@@ -111,13 +128,17 @@ function faltaEnLaHoja(
 export function faltaParaProbar(
   e: MaquinaParaProbar,
   partes: MaquinaParaProbar[],
-  opciones: { repuesto?: boolean; clic?: LoQueVaConElClic; nombre?: string } = {},
+  opciones: { repuesto?: boolean; accesorio?: boolean; clic?: LoQueVaConElClic; nombre?: string } = {},
 ): string[] {
   const repuesto = opciones.repuesto === true || esFilaDeServicio(e, partes);
   const clic = opciones.clic ?? {};
   const tecnico = clic.tecnico ?? "";
   const nombre = opciones.nombre ?? "La máquina";
   const falta: string[] = [];
+  if (opciones.accesorio && partes.length === 0) {
+    const fotos = [...lista(e.protocolo_fotos), ...lista(clic.principal)];
+    return fotos.some(esImagen) ? [] : [`${nombre}: fotos`];
+  }
   // El N.º de protocolo no va en el documento (Santos, 14-10, Beneficencia de Huancayo): no se exige (0480).
 
   const propios = [...lista(e.protocolo_fotos), ...lista(clic.principal)];

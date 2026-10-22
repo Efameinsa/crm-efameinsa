@@ -414,6 +414,10 @@ export function llevaOrdenFacturar(s: ServicioPostventa): boolean {
   if (s.orden_facturar_at) return true;
   if (pedidoSinCobro(s)) return false;
   if (s.cerrado_at != null || s.completado) return false;
+  // A CRÉDITO SIEMPRE HAY SALDO (COFACO 21-10): el «SI» del Excel era el
+  // adelanto y el % no se cargó, así que se leía «pagado completo» y a Brenda
+  // no le salía el botón aunque Finanzas esperaba su orden.
+  if (creditoDelExcel(s)) return true;
   if (s.pct_antes_despacho == null) return false;
   // Ya pagado completo: no queda nada que cobrar (AGROCASAGRANDE, venta a
   // crédito ya cancelada; su 2.ª visita es otro pedido de servicio).
@@ -486,8 +490,28 @@ export function textoCondicionPago(s: Pick<ServicioPostventa, "pct_antes_despach
  * tras tapar— daría saldo cero y se leería «pagado», que es justo lo contrario
  * de lo que pasa.
  */
+/**
+ * VENTA A CRÉDITO DEL EXCEL CON «SI» EN EL ABONO (COFACO y Antapaccay, 21-10).
+ * Ese «SI» es el adelanto, no la venta entera: con letras, «crédito», «a 60
+ * días» o un % menor a 100, el saldo se cobra al facturar. Sin cifras en el
+ * CRM no hay otra forma de saberlo que la condición escrita.
+ */
+export function creditoDelExcel(
+  s: Pick<ServicioPostventa, "informe_cierre_id" | "pago_confirmado_at" | "monto_pagado" | "confirmacion_abono" | "pct_antes_despacho" | "forma_pago" | "letras_cantidad" | "letras_estado" | "origen">,
+): boolean {
+  if (s.informe_cierre_id != null || s.pago_confirmado_at != null || Number(s.monto_pagado ?? 0) > 0) return false;
+  if (!marcadoEnExcel(s.confirmacion_abono) || s.origen === "caso") return false;
+  return (
+    Number(s.letras_cantidad ?? 0) > 0 ||
+    (s.letras_estado != null && s.letras_estado !== "no_lleva") ||
+    /(letra|cr[eé]dito|financ|a\s*\d+\s*d[ií]as)/i.test(s.forma_pago ?? "") ||
+    (s.pct_antes_despacho != null && Number(s.pct_antes_despacho) < 100)
+  );
+}
+
 export function estadoPago(s: ServicioPostventa): EstadoPago {
   if (s.pago_estado) return s.pago_estado;
+  if (creditoDelExcel(s)) return "parcial";
   // Con cifras reales (pedido nacido en el CRM, o con abonos cargados) el
   // saldo manda: «Finanzas confirmó» con monto pagado 0 se leía «completo» y
   // por eso el 14-09 la salida del 495-26 no mostró el campo de autorización
@@ -1162,7 +1186,7 @@ function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
       trabado:
         s.despachado_at == null && !aperturaEmitida && s.informe_cierre_id != null
           ? circuito.esServicio ? "Sin apertura de servicio no sale el técnico" : "Sin apertura de despacho no sale nada del almacén"
-          : !pagado && !pagoDesconocido && s.despachado_at == null && !despachoAutorizadoConSaldo
+          : !pagado && !pagoDesconocido && s.despachado_at == null && !despachoAutorizadoConSaldo && !creditoDelExcel(s)
             ? "No se despacha con saldo pendiente sin autorización"
             : circuito.esEquipo && provincia && s.despachado_at == null && s.preinstalacion_ok_at == null
               ? "Es provincia y el cliente todavía no confirmó la preinstalación: conviene tenerla antes de que salga el camión"

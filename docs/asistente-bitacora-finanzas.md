@@ -12,6 +12,11 @@ Vigente al 21-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 
 ## Cronología de decisiones que tocan su trabajo
 
+### 21-10 · Las letras entregadas las confirma Finanzas; Central deriva casos a Finanzas y Facturación (Santos)
+- **Quién confirma las letras (Santos, 21-10):** «subir las letras le corresponde a Finanzas… luego postventa pulsa verificar despacho». Desde el 21-10, «Letras entregadas al cliente» (con fotos y quién las recibió) solo lo registra Finanzas, desde su pedido (también gerencia). **Antes era:** almacén, postventa o Finanzas. En postventa y en el almacén el paso dice «Falta que Finanzas confirme…». Después de eso postventa da el «Despacho verificado» y ordena facturar.
+- **Caso COFACO (21-10):** Jhon dio el visto bueno el 20-10 en la noche con las letras «van con el equipo»; le llegó el aviso para confirmar la entrega. Luego Brenda verifica el despacho y ordena facturar (sin puesta en marcha, con código de gerencia).
+- **Casos de Central (21-10):** Central ya no le escribe a Finanzas ni a Facturación por WhatsApp: les abre un caso («Casos de Central» en cada área), que se toma, se responde o se pide un dato por el mismo caso. Urgente = 2 horas; si nadie lo toma, vuelve a sonar y se enteran Central y gerencia. Desde la bandeja de Central también se puede mandar un contacto «A Finanzas o Facturación». Caso que lo motivó: COFACO, «las letras no indican el número de factura»; Central lo buscaba en «Asignar», donde solo hay comerciales y postventa.
+
 ### 21-10 · Buzón de Jhon: facturar solo el anticipo y observación para Contabilidad
 - **Qué pidió Jhon (FAMILY FARMS, PED-0037-2026, 50 % adelanto + 50 % crédito 7 días):** al facturar un anticipo, la liquidación debe traer solo el monto que se va a facturar, para que cuadre con lo que el cliente va a abonar, y dejar el saldo por facturar y cobrar en el cuadro siguiente. También, un cuadro de observación para indicarle a Contabilidad si la operación es por anticipo, cierre de anticipo u otro comentario.
 - **Qué se hizo (21-10):** en «Abonos y facturas» del editor, «¿Qué se factura ahora?»: «Todo» o «Solo un anticipo». Con el anticipo, la hoja sale con el cuadro «FT ANTICIPO» solo por ese monto (con su N.º de factura, o PDTE) y el saldo aparte en «FT CIERRE PDTE». Si el pedido dice el % de adelanto, el monto viene puesto (se puede cambiar); si el saldo va en letras, las letras se arman sobre lo que queda después del anticipo.
@@ -60,28 +65,20 @@ Vigente al 21-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 - **19-10 (buzón de Jhon):** en ese mismo pedido la E001-840 se anuló con nota de crédito. Jhon dejó el N.º de factura en blanco para que quedara pendiente, pero el CRM seguía guardando la E001-840 en el historial y la volvía a poner en la liquidación siguiente. Ahora, si se deja en blanco, queda «Factura pendiente», no vuelve sola y Contabilidad recibe el aviso «Otra vez por facturar». Se corrigieron sus liquidaciones N.º 2 y N.º 3. Pendiente: las facturas del pedido no se pueden marcar como «anulada», así que la E001-840 sigue en la lista.
 - **Pendiente:** que Jhon pruebe con un pedido real y diga qué falta frente a su plantilla. Hasta el 17-10 en la noche ninguna liquidación generada había sido validada todavía. **Actualización 19-10:** Jhon validó la primera (VIDAWASI N.º 1) y desde su buzón ya salieron tres mejoras (factura en blanco, expediente a la vista y entrega gratuita).
 
-### 16-10 (noche) · Liquidaciones en secuencia, botón «Pagos» del comercial y descuento al final de la cotización
-- **Liquidaciones anteriores (consulta de Central, caso ABACHI):** parecía que la liquidación anterior se había borrado al subir la de cancelación. No se borra nada: en ABACHI estaban las tres (pago a cuenta, la actualizada con la factura y la de operación cancelada). Solo se veía el enlace a la última. Desde el 16-10, en Central > Cierres cada liquidación lleva su número en la secuencia (N.º 1 es la primera que subió Finanzas) y dice «Vigente» o «Anterior»; en el paso de la liquidación del pedido se ven todas.
-- **Dónde mira el comercial sus abonos (Katerine):** cada cierre emitido tiene un botón «Pagos» con los abonos que confirmó Finanzas y la comisión que descontó el banco. El voucher que llega después se sube en el mismo cierre, con el código de Central; **el pago lo sigue confirmando Finanzas**.
-- **Descuento al final del total (pedido de gerencia):** una cotización puede llevar «Descuento» o «Descuento por paquete especial» debajo del SUB TOTAL, siempre con aprobación de gerencia. Al pasar la cotización al cierre, el descuento se reparte entre los renglones, así que el total del cierre ya viene con descuento.
+### 16-10 (noche) · Liquidaciones en secuencia, botón «Pagos» del comercial y descuento al final de la cotización (resumido)
+- Ninguna liquidación se borra: quedan en secuencia (caso ABACHI). El comercial ve sus abonos y la comisión con el botón «Pagos» del cierre. El descuento al final del total de una cotización siempre pasa por gerencia y se reparte al pasar al cierre.
 
-### 16-10 · Las consultas del comercial sobre el pago llegan por el CRM, con el voucher (Katerine)
-- **Qué contó Katerine:** el comercial le pregunta a Contabilidad si el abono del cliente tuvo comisión interplaza; normalmente le contesta Jhon y, si la hubo, le manda un pantallazo del monto para cobrárselo al cliente. Y cuando el cliente cancela el saldo, el comercial registraba una llamada y mandaba un correo a Contabilidad con el voucher. Todo eso iba por correo; gerencia indicó que ahora va por el CRM.
-- **Qué se hizo:** el comercial tiene en «Pagos» del pedido dos botones con el voucher adjunto: «Preguntar si hubo comisión» y «Avisar que el cliente canceló». A Finanzas le llega el aviso y lo contesta en el pedido, en «Consultas del comercial»: «No hubo comisión» o «Hubo comisión» con el monto y el pantallazo. Confirmar u observar el abono también contesta la consulta. Lo que se confirma sigue siendo lo acreditado en el banco, no el voucher.
+### 16-10 · Las consultas del comercial sobre el pago llegan por el CRM, con el voucher (Katerine) (resumido)
+- El comercial pregunta por la comisión interplaza o avisa que el cliente canceló desde «Pagos» del pedido, con el voucher; Finanzas contesta en «Consultas del comercial» (antes era por WhatsApp; pedido de Katerine).
 
-### 15-10 (tarde) · Facturación: volver a ver el expediente en las aperturas
-- **Qué pidió:** Facturación quería volver a ver el expediente de la venta al confirmar una apertura, como cuando Finanzas hacía la validación. Solo aparecía dentro de «Ver la validación del crédito», así que en las ventas al contado no había cómo verlo.
-- **Qué se hizo:** cada apertura tiene ahora «Ver el expediente» (cliente y RUC, cierre, pedido, comercial, equipo, forma de pago, total, confirmado y saldo, y el cierre completo con adjuntos). La sugerencia llegó dos veces con la misma captura; se atendió una sola vez.
+### 15-10 (tarde) · Facturación: volver a ver el expediente en las aperturas (resumido)
+- Cada apertura tiene «Ver el expediente» para Facturación, también en las ventas al contado.
 
-### 15-10 (tarde) · Correo del cliente y N.º de operación en el cierre (buzón de Gabriela)
-- Gabriela pidió que el cierre traiga el correo del cliente y el número de operación del pago, para que Finanzas los copie sin buscarlos. Desde ese día el correo está en «Se le factura a» (avisa si falta) y el «N.º de operación» va debajo de «Forma de pago»: se llena solo si el cliente ya pagó; si no, queda vacío.
-- Los dos datos salen en el cierre, en su PDF y en el «Expediente» que abren Finanzas y Facturación. Si un cierre ya emitido no los tiene, el comercial los agrega con la corrección (código de Central) y a Finanzas le llega el aviso de corrección si el pedido ya existe.
-- **Ojo:** el N.º de operación lo escribe el comercial; no reemplaza la confirmación del abono contra el banco, que sigue siendo de Finanzas.
+### 15-10 (tarde) · Correo del cliente y N.º de operación en el cierre (buzón de Gabriela) (resumido)
+- El cierre trae el correo del cliente y el N.º de operación del pago (pedido de Gabriela); ese número no reemplaza la confirmación del abono contra el banco, que sigue siendo de Finanzas.
 
-### 15-10 12:51 · Pagos parciales que se leían como pagados (Carlos, Ariana, Santos)
-- Postventa quiso despachar dos pedidos (Abachi y Wong Lu Vega) porque el paso «Finanzas confirmó» salía en verde; solo había adelantos. Carlos: sin el 100 % (o el adelanto acordado) no se despacha.
-- Desde ese día el pedido muestra en ámbar cuánto se pagó y cuánto falta cuando lo confirmado no cubre la condición. **Lo que ustedes hacen no cambia:** confirman cada abono como siempre. Lo que cambia es que el adelanto ya no se lee como pago completo.
-- Seis pedidos abiertos estaban así al 15-10: Alcántara (abono de reserva), PRODECO (50 % acordado, todavía no se llega; el cliente espera fotos de la máquina embalada para pagar), Wong Lu Vega (20 %), Rojas Plaza, Abachi y Vidawasi (contado con adelanto). Cuando entre el saldo de cualquiera, confirmarlo en el pedido lo pone en verde.
+### 15-10 12:51 · Pagos parciales que se leían como pagados (Carlos, Ariana, Santos) (resumido)
+- Carlos: sin el 100 % (o el adelanto acordado) no se despacha. Desde ese día el pago parcial se ve en ámbar con cuánto falta (casos Abachi y Wong Lu Vega); Finanzas sigue confirmando cada abono como siempre.
 
 ### 15-10 09:53 · Reunión de Carlos con Santos
 - **Sin pago confirmado o validado por Finanzas no hay apertura.** La apertura es la orden de despacho: el almacén despacha lo que dice, sin mirar pagos. Postventa confirma antes con Finanzas («¿ya tienes las letras?») y avisa al almacén. El CRM ya lo frena desde el 14-10.
@@ -91,13 +88,8 @@ Vigente al 21-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 - **Moneda:** todo se vende en dólares. Si el cliente paga en soles con el tipo de cambio de la empresa, el cierre sigue en dólares (consorcio del Portal Marqués).
 - **Correcciones de cierre:** desde el 15-10 las autoriza Central, no Lesly. Si el pedido ya existe, Finanzas recibe el aviso cuando cambia algo de facturación o pago.
 
-### 14-10 (tarde) · Nuevo anticipo por facturar y cierre anulado de AGROCASAGRANDE
-- **Un pedido puede facturarse una vez por anticipo** (buzón de Jhon). Caso: PRODECO (PED-0010-2026) pagó un primer adelanto el 30-09, se liquidó y se facturó (E001-826). Luego hizo dos pagos a cuenta más, para facturar como 2.º adelanto, pero la liquidación nueva no le aparecía a Facturación.
-  - Ahora, si Finanzas sube una liquidación con «factura pendiente» **después** de la última factura del pedido, el pedido vuelve a «Por facturar» con el aviso «Nuevo anticipo por facturar» y la nota de Finanzas. A Facturación también le llega a la campana.
-  - Mientras tanto, ese pedido no sale como «liquidación por actualizar»: le toca a Facturación. Cuando registren la factura nueva, Finanzas actualiza la liquidación con el número, como siempre.
-  - Antes era: «Por facturar» solo mostraba pedidos sin ninguna factura.
-- **El cierre del servicio de AGROCASAGRANDE (EFAMEINSA 010-2026) se anuló** a las 17:47: lo anuló Ariana con código, motivo «mala coordinación». Su pedido (PED-0028-2026) se cerró solo. **No hay que facturarlo** mientras no se emita un cierre nuevo. A Jhon se le avisó.
-  - Desde ese día, quien emitió un cierre también puede anularlo con código. Si lo anula alguien que no es Central, le llega aviso a Central y también a Finanzas si ya tenía el pedido.
+### 14-10 (tarde) · Nuevo anticipo por facturar y cierre anulado de AGROCASAGRANDE (resumido)
+- Un pedido puede facturarse otra vez por anticipo: una liquidación con «factura pendiente» posterior a la última factura lo devuelve a «Por facturar» con el aviso «Nuevo anticipo por facturar» (caso PRODECO; antes solo salían pedidos sin ninguna factura). El cierre del servicio de AGROCASAGRANDE se anuló el 14-10 y no se factura; quien emitió un cierre puede anularlo con código.
 
 ### 14-10 15:05 · AGROCASAGRANDE: facturar el servicio de puesta en marcha (llamada con el ingeniero)
 - Se vendió aparte el servicio de instalación, puesta en marcha y capacitación de sus 2 secadoras: cotización Presu_2345-26, US$ 450 + IGV (US$ 531), crédito 30 días, aprobada por gerencia.
@@ -210,7 +202,7 @@ Dos excepciones: los pedidos **sin cobro** (garantía, servicio desde un caso) n
 ## Pendientes que les tocan o esperan a gerencia
 
 **Les tocan a Finanzas y Contabilidad**
-- **COFACO:** visto bueno tardío, letras firmadas y factura anotada.
+- **COFACO:** el visto bueno ya está (20-10). Falta que Finanzas confirme las letras entregadas y las marque firmadas cuando vuelvan, y que Contabilidad anote la factura (Central abrió un caso por el N.º de factura de las letras).
 - **Excel de 58 pedidos por regularizar** (14-10), que Santos compartió: 6 con letras, 15 a crédito, 33 con pago sin confirmar y 4 por revisar en el CRM; 11 ya estaban embalados. Si el archivo no le llegó, pídaselo a Santos: los mensajes de WhatsApp lo anunciaban, pero el adjunto se manda a mano.
 - **Guías sin comprobante:** revisar las que ya salieron y anotar su factura o boleta.
 - **Guías autorizadas sin salida registrada** (vistas en los datos el 14-10): Lecarnaque (13-10) y Mercedarias (10-10). Confirmar con el almacén si salieron.
@@ -226,7 +218,7 @@ Dos excepciones: los pedidos **sin cobro** (garantía, servicio desde un caso) n
 - Error de pantalla que frena corregir una cotización con un precio bajo lista ya aprobado (Beneficencia de Huancayo).
 - Las cuentas bancarias de OPEN se copiaron de un modelo antiguo y no se han verificado contra el banco **(por confirmar)**. Si cambian las cuentas de una empresa, avise a Santos para actualizar el PDF de la cotización.
 - La empresa del documento cuando el cliente no tiene ningún cierre todavía cae en EFAMEINSA por defecto; falta usar la empresa de la venta histórica.
-- Las facturas del pedido no se pueden marcar «anulada» (caso E001-840, PED-0022-2026, anulada con nota de crédito): sigue en la lista; se hará si se repite.
+- ~~Las facturas del pedido no se pueden marcar «anulada».~~ Resuelto el 20-10: la nota de crédito deja la factura anulada (tachada). Falta registrar la de la E001-840 de Beneficencia.
 - Propuesta del 19-10 (caso VIDAWASI): frenar «Registrar la salida» desde postventa mientras la guía no esté confirmada **(por confirmar con Santos)**.
 
 ---

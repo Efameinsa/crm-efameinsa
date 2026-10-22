@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { faltaParaProbar, type MaquinaParaProbar } from "./protocolo-completo";
+import { esAccesorioDelPedido, faltaParaProbar, type MaquinaParaProbar } from "./protocolo-completo";
 import { PLANTILLAS, renglonesConMarca } from "./protocolo-checklist";
 
 // El caso de COFACO INDUSTRIES (Santos, 13-10): sin fotos ni documento se podía marcar.
@@ -33,7 +33,7 @@ describe("faltaParaProbar", () => {
     expect(faltaParaProbar(sinWord, [])).toEqual([]);
   });
 
-  it("sin hoja de chequeo en el sistema (centrífuga) sigue pidiendo el Word/PDF", () => {
+  it("sin hoja de chequeo (centrífuga) tampoco pide el Word/PDF: fotos y ficha bastan (Lesly, 21-10, 0580)", () => {
     const centrifuga: MaquinaParaProbar = {
       ...cofaco,
       descripcion: "CENTRIFUGA INDUSTRIAL MARCA GMP MODELO 160.30A",
@@ -41,21 +41,22 @@ describe("faltaParaProbar", () => {
       protocolo_fotos: [{ path: "a.jpg", tipo: "image/jpeg" }],
       protocolo_datos: { principal: { modelo: "160.30A", tecnico: "T" } },
     };
-    expect(faltaParaProbar(centrifuga, []).join()).toContain("PDF o Word");
+    expect(faltaParaProbar(centrifuga, [])).toEqual([]);
+    expect(faltaParaProbar({ ...centrifuga, protocolo_fotos: [] }, []).join()).toContain("fotos");
   });
 
-  it("el video de la prueba no reemplaza al Word/PDF (Ariana, 14-10)", () => {
-    const centrifuga: MaquinaParaProbar = {
+  it("la plancha del calderín ya no pide Word/PDF: tiene su hoja (Almacén, 21-10, VITALIAN)", () => {
+    const plancha: MaquinaParaProbar = {
       ...cofaco,
-      descripcion: "CENTRIFUGA INDUSTRIAL MARCA GMP MODELO 160.30A",
-      protocolo_ref: "P-7",
-      protocolo_fotos: [
-        { path: "a.jpg", tipo: "image/jpeg" },
-        { path: "prueba.mp4", tipo: "video/mp4", etiqueta: "video" },
-      ],
-      protocolo_datos: { principal: { modelo: "160.30A", tecnico: "T" } },
+      descripcion: "PLANCHA VAPORIZANTE INDUSTRIAL\nMARCA:SIDI MONDIAL (Italia) \nMODELO:STAR SIDI",
+      serie: "I26489",
+      protocolo_fotos: [{ path: "x/protocolo-2-a.jpeg", tipo: "image/jpeg" }],
+      protocolo_datos: { principal: { equipo: "PLANCHA VAPORIZANTE INDUSTRIAL", modelo: "STAR SIDI", serie: "I26489", tecnico: "Solis" } },
     };
-    expect(faltaParaProbar(centrifuga, []).join()).toContain("PDF o Word");
+    const falta = faltaParaProbar(plancha, [], { nombre: "Máquina 2" }).join(" | ");
+    expect(falta).not.toContain("PDF o Word");
+    expect(falta).toContain("PROTOCOLO DE PLANCHA VAPORIZANTE");
+    expect(faltaParaProbar({ ...plancha, protocolo_chequeo: { principal: { plantilla: "plancha", marcas: { "componentes.fugas-de-vapor.vapor": "ok" } } } }, [])).toEqual([]);
   });
 
   it("con la ficha, fotos, PDF y la hoja completa se puede", () => {
@@ -113,5 +114,30 @@ describe("faltaParaProbar", () => {
     expect(faltaParaProbar(s, [])).toEqual([]);
     expect(faltaParaProbar({ ...s, protocolo_fotos: [] }, []).join()).toContain("fotos");
     expect(faltaParaProbar({ ...s, descripcion: "SERVICIO DE INSTALACION LAVADORA Y SECADORA", protocolo_datos: {} }, []).join()).toBe("La máquina: técnico que hizo la prueba");
+  });
+});
+
+describe("accesorio de la máquina principal", () => {
+  const calderin = { id: "c", descripcion: "CALDERIN GENERADOR DE VAPOR INDUSTRIAL\nMARCA: SIDI MONDIAL" };
+  const plancha: MaquinaParaProbar = {
+    ...cofaco,
+    id: "p",
+    descripcion: "PLANCHA VAPORIZANTE INDUSTRIAL\nMARCA:SIDI MONDIAL (Italia) \nMODELO:STAR SIDI",
+    serie: "I26489",
+    sin_serie: true,
+    protocolo_fotos: [{ path: "x/protocolo-2-a.jpeg", tipo: "image/jpeg" }],
+  };
+
+  it("la plancha del calderín solo pide fotos (Almacén, 21-10, VITALIAN)", () => {
+    expect(esAccesorioDelPedido(plancha, [calderin, plancha])).toBe(true);
+    expect(faltaParaProbar(plancha, [], { accesorio: true, nombre: "Máquina 2" })).toEqual([]);
+    expect(faltaParaProbar({ ...plancha, protocolo_fotos: [] }, [], { accesorio: true, nombre: "Máquina 2" })).toEqual(["Máquina 2: fotos"]);
+  });
+
+  it("sola en el pedido, o una PLANCHADORA, se prueba como máquina", () => {
+    expect(esAccesorioDelPedido(plancha, [plancha])).toBe(false);
+    expect(esAccesorioDelPedido({ id: "s", descripcion: "SERVICIO DE INSTALACION" }, [plancha, { id: "s", descripcion: "SERVICIO DE INSTALACION" }].slice(0, 1))).toBe(false);
+    expect(esAccesorioDelPedido({ id: "r", descripcion: "PLANCHADORA DE RODILLO ELECTRICA" }, [calderin])).toBe(false);
+    expect(esAccesorioDelPedido({ id: "k", descripcion: "KIT DE MANGUERAS" }, [{ id: "l", descripcion: "LAVADORA PRIMUS RX240" }])).toBe(true);
   });
 });

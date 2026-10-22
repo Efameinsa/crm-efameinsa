@@ -520,6 +520,18 @@ describe("orden a Finanzas para facturar (0460, reunión 13-10)", () => {
   it("no aparece si ya está pagado completo", () => {
     expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: 0, pago_estado: "completo" })).toBe(false);
   });
+  it("con letras aparece aunque el Excel diga pagado y no tenga % (COFACO 21-10)", () => {
+    expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: null, pago_estado: "completo", confirmacion_abono: "SI", letras_cantidad: 3, letras_estado: "entregadas" })).toBe(true);
+    expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: null, letras_estado: "no_lleva" })).toBe(false);
+  });
+  it("el «SI» del Excel en una venta a crédito es el adelanto, no el pago completo (21-10)", () => {
+    const excel = { informe_cierre_id: null, pago_confirmado_at: null, monto_pagado: 0, monto: 26550, confirmacion_abono: "SI", pct_antes_despacho: null, origen: "excel", cerrado_at: null, completado: false } as unknown as ServicioPostventa;
+    expect(estadoPago({ ...excel, forma_pago: "50% ADELANTO + 50% SALDO EN 3 LETRAS" })).toBe("parcial");
+    expect(estadoPago({ ...excel, forma_pago: "CREDITO60 DIAS" })).toBe("parcial");
+    expect(llevaOrdenFacturar({ ...excel, forma_pago: "CREDITO60 DIAS" })).toBe(true);
+    expect(estadoPago({ ...excel, forma_pago: "CONTADO" })).toBe("completo");
+    expect(llevaOrdenFacturar({ ...excel, forma_pago: "CONTADO" })).toBe(false);
+  });
   it("una vez dada, se queda a la vista", () => {
     expect(llevaOrdenFacturar({ ...base, pct_antes_despacho: 100, orden_facturar_at: "2026-10-13T20:00:00Z" })).toBe(true);
   });

@@ -48,7 +48,7 @@ import { SelectorHora } from "@/components/crm/selector-hora";
 import { cn } from "@/lib/utils";
 import { fechaCalendario, fechaHoraLima } from "@/lib/fechas";
 import { hoyLima } from "@/lib/periodo";
-import { AYUDA_SERIE_EFAMEINSA, MOTIVO_SERIE_MINIMO, SERIE_POR_DEFECTO, motivoSerieSuficiente } from "@/lib/serie-facturacion";
+import { SERIE_POR_DEFECTO, motivoSerieSuficiente } from "@/lib/serie-facturacion";
 import { fraseDeAvisados, type CorreccionInforme } from "@/lib/correccion-informe";
 
 // Informe de cierre de ventas: la pantalla que el comercial llena.
@@ -307,7 +307,6 @@ export function FormularioInforme({
     presupuesto?.fuente === "crm" && presupuesto.serie === "EFAMEINSA" && motivoSerieSuficiente(presupuesto.motivoSerie)
       ? (presupuesto.motivoSerie ?? null)
       : null;
-  const pideMotivoSerie = serie === "EFAMEINSA" && !motivoHeredado;
   const [comprobante, setComprobante] = useState<"factura" | "boleta_ruc" | "boleta_dni">(b?.comprobante ?? "factura");
   const [clienteNuevo, setClienteNuevo] = useState(b ? b.clienteNuevo : cuenta.esNueva);
   // La cotización que salió a nombre de otra empresa del grupo (0310) trae a
@@ -1139,45 +1138,13 @@ export function FormularioInforme({
               </p>
             </>
           )}
-          {/* OPEN PRIMERO (gerencia, 23-09-2026): Efameinsa se permite, con
-              su motivo. A la vista y no en la sección plegada: es lo que
-              gerencia va a mirar. */}
+          {/* Sin motivo desde el 21-10 (gerencia): equipos con Efameinsa,
+              repuestos y servicios con Open, sin dar explicaciones. */}
           {serie === "EFAMEINSA" && enCorreccion && (
             <Bloqueado activo>
               <p className="mt-1.5 text-[11px] text-muted-foreground">Factura Efameinsa{motivoSerie ? ` · «${motivoSerie}»` : ""}</p>
             </Bloqueado>
           )}
-          {serie === "EFAMEINSA" && !enCorreccion &&
-            (pideMotivoSerie ? (
-              <div className="mt-2 space-y-1 rounded-md border border-amber-500/40 bg-amber-500/5 p-2">
-                <Campo etiqueta="¿Por qué factura Efameinsa y no Open?" pista={AYUDA_SERIE_EFAMEINSA}>
-                  <Textarea
-                    value={motivoSerie}
-                    onChange={(e) => setMotivoSerie(e.target.value)}
-                    rows={2}
-                    placeholder="Ej.: cliente antiguo; se le explicó el cambio a Open y pidió seguir facturando con Efameinsa"
-                  />
-                </Campo>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  {motivoSerie.trim().length < MOTIVO_SERIE_MINIMO ? (
-                    <p className="text-[11px] text-amber-700">Falta el motivo (una frase) para poder guardar el cierre.</p>
-                  ) : (
-                    <span />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setSerie("OPEN")}
-                    className="text-[11px] text-primary hover:underline"
-                  >
-                    Facturar con Open Investments
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <p className="mt-1.5 text-[11px] text-muted-foreground">
-                Factura Efameinsa por el motivo que quedó en la cotización: «{motivoHeredado}»
-              </p>
-            ))}
           {avisosIdentidad.map((aviso, i) => (
             <p key={i} className="mt-1.5 flex items-start gap-1.5 text-[11px] text-amber-700">
               <TriangleAlert className="mt-0.5 size-3 flex-none" />

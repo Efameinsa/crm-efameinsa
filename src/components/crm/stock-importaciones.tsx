@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ChevronDown,
   CircleSlash,
+  FileDown,
   FileSpreadsheet,
   ListChecks,
   Search,
@@ -15,17 +16,21 @@ import {
   Upload,
   Wand2,
 } from "lucide-react";
+import Link from "next/link";
 import {
   analizarExcelStock,
+  buscarSerie,
   decidirStock,
   subirStock,
   sugerirCodigo,
   type CargaStock,
+  type DondeEstaSerie,
   type FilaCarga,
   type ResultadoSubida,
   type SugerenciaCodigo,
 } from "@/lib/acciones/stock-importaciones";
-import type { EstadoFila } from "@/lib/stock-importaciones";
+import type { EstadoFila, Rasgos } from "@/lib/stock-importaciones";
+import { problemaCorto } from "@/lib/stock-textos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,7 +58,7 @@ import { cn } from "@/lib/utils";
 const ESTADOS: Record<EstadoFila, { etiqueta: string; ayuda: string; franja: string; pastilla: string }> = {
   revisar: {
     etiqueta: "Revisar",
-    ayuda: "Hay un problema: código equivocado, una serie que el CRM ya tiene con un cliente o un modelo que no cuadra con su descripción.",
+    ayuda: "No se puede subir así: una serie que el CRM ya tiene con un cliente, o un mismo código puesto a modelos distintos en el Excel.",
     franja: "border-l-red-400",
     pastilla: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200",
   },
@@ -65,7 +70,7 @@ const ESTADOS: Record<EstadoFila, { etiqueta: string; ayuda: string; franja: str
   },
   nuevo: {
     etiqueta: "Código nuevo",
-    ayuda: "Esa configuración no existe en el catálogo: se propone un código que se CREA al subir. Si le gusta, queda; si no, escriba otro.",
+    ayuda: "Códigos del Excel que todavía no están dados de alta en el sistema: al subir se agregan con ese nombre (en preparación, para ponerles ficha).",
     franja: "border-l-orange-300",
     pastilla: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-200",
   },
@@ -75,14 +80,20 @@ const ESTADOS: Record<EstadoFila, { etiqueta: string; ayuda: string; franja: str
     franja: "border-l-sky-300",
     pastilla: "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200",
   },
+  falta: {
+    etiqueta: "Falta código",
+    ayuda: "En el Excel no tienen código. Escriba el que les corresponde; el CRM no lo adivina.",
+    franja: "border-l-amber-400",
+    pastilla: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200",
+  },
   ok: {
-    etiqueta: "Código correcto",
-    ayuda: "El código que ya tenía en el Excel está bien.",
+    etiqueta: "Código de Lesly",
+    ayuda: "El código que viene en el Excel y ya existe en el sistema. Manda el Excel: el CRM no lo cambia.",
     franja: "border-l-emerald-300",
     pastilla: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
   },
 };
-const ORDEN: EstadoFila[] = ["revisar", "elegir", "nuevo", "sugerido", "ok"];
+const ORDEN: EstadoFila[] = ["revisar", "falta", "elegir", "nuevo", "sugerido", "ok"];
 
 interface Grupo {
   clave: string;
@@ -106,38 +117,58 @@ function agrupar(filas: FilaCarga[]): Grupo[] {
   return [...mapa.values()].sort((a, b) => ORDEN.indexOf(a.estado) - ORDEN.indexOf(b.estado) || a.filas[0].fila - b.filas[0].fila);
 }
 
-/** «Revisar» dice CUÁL es el problema (Santos 21-10: «pones revisar pero no dices qué problema es»). */
-function problemaCorto(motivo: string): string {
-  if (/ya está en el CRM con/.test(motivo)) return "Serie ya vendida o reservada";
-  if (/tipo de equipo: Excel lavadora/.test(motivo)) return "Es lavadora con código de secadora";
-  if (/tipo de equipo: Excel secadora/.test(motivo)) return "Es secadora con código de lavadora";
-  if (/MODELO dice/.test(motivo)) return "Modelo y descripción no coinciden";
-  const mal = motivo.match(/SÍ está, con el código (\S+?):/);
-  if (mal) return `Código mal escrito (la máquina está como ${mal[1]})`;
-  if (/no existe en el (CRM|catálogo)/.test(motivo)) return "Ese código no existe";
-  if (/calentamiento:/.test(motivo)) return "El tipo de gas no coincide";
-  if (/voltaje:/.test(motivo)) return "El voltaje no coincide";
-  if (/control:/.test(motivo)) return "El control no coincide";
-  if (/retirado/.test(motivo)) return "Código retirado";
-  return "Revisar";
+
+/**
+ * La configuración como chips: tipo, panel, calentamiento, cilindro, voltaje.
+ * Lesly (21-10): el mismo modelo (UCT060, UCT080) tiene un código por PANEL
+ * (M9 / M30) y «faltaría poner si es lavadora, secadora o rodillo».
+ */
+function ChipsRasgos({ tipo, rasgos, destacar }: { tipo?: string; rasgos: Rasgos; destacar?: boolean }) {
+  const chips = [
+    tipo,
+    rasgos.control && `panel ${rasgos.control}`,
+    rasgos.calentamiento,
+    rasgos.cilindro,
+    rasgos.voltaje,
+    rasgos.sistemaLg,
+    rasgos.apilable === "sí" ? "apilable" : rasgos.apilable === "no" ? "no apilable" : null,
+    rasgos.dosificador?.startsWith("sin") ? null : rasgos.dosificador,
+  ].filter(Boolean) as string[];
+  if (chips.length === 0) return null;
+  return (
+    <span className="inline-flex flex-wrap gap-1">
+      {chips.map((c, i) => (
+        <span
+          key={c}
+          className={cn(
+            "rounded-md px-1.5 py-px text-[11px]",
+            i === 0 && destacar ? "bg-foreground/[0.08] font-medium" : "bg-muted text-muted-foreground",
+          )}
+        >
+          {c}
+        </span>
+      ))}
+    </span>
+  );
 }
 
 /** Los códigos del catálogo: si existe y si está activo. */
 export type CodigosExistentes = Record<string, { activo: boolean }>;
 
 /** La señal tenue: código que ya existe (sobrio) o que se va a crear (punteado ámbar). */
-function SenalCodigo({ codigo, existentes }: { codigo: string; existentes: CodigosExistentes }) {
+function SenalCodigo({ codigo, existentes, deLesly }: { codigo: string; existentes: CodigosExistentes; deLesly?: boolean }) {
   if (!codigo) return <span className="text-[11px] text-muted-foreground">Elija uno de los parecidos o escriba el código</span>;
   const e = existentes[codigo];
   if (e)
     return (
       <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-        <CheckCircle2 className="size-3" /> Ya existe en el catálogo{!e.activo && " (retirado: actívelo después)"}
+        <CheckCircle2 className="size-3" /> Ya existe en el sistema{!e.activo && " (retirado: actívelo después)"}
       </span>
     );
   return (
     <span className="inline-flex items-center gap-1 text-[11px] text-orange-700 dark:text-orange-300">
-      <Sparkles className="size-3" /> Código nuevo · se crea en preparación al subir
+      <Sparkles className="size-3" />{" "}
+      {deLesly ? "Código de Lesly · aún no está en el sistema, se da de alta al subir" : "Código nuevo · se da de alta al subir"}
     </span>
   );
 }
@@ -264,8 +295,12 @@ export function RevisarStock({ carga, existentes }: { carga: CargaStock; existen
             <span className="font-medium">{carga.archivo}</span>
             <span className="text-muted-foreground"> · {total} máquinas</span>
           </p>
-          <p className="text-sm text-muted-foreground">
-            {cuenta.pendiente === 0 ? "Todo decidido" : `${decididas} de ${total} decididas`}
+          <BotonResumenPdf cargaId={carga.id} />
+          <p className="w-full text-sm text-muted-foreground sm:w-auto">
+            {/* Lesly (21-10): «257 de 273» le sonó a que faltaban máquinas. Se dice lo que falta. */}
+            {cuenta.pendiente === 0
+              ? "Todo decidido · listo para subir"
+              : `Falta decidir ${cuenta.pendiente} de ${total} · las otras ${decididas} ya están listas`}
           </p>
         </div>
         <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-muted">
@@ -311,7 +346,7 @@ export function RevisarStock({ carga, existentes }: { carga: CargaStock; existen
         <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
           <span>Cómo leer el código:</span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="rounded border border-border bg-background px-1.5 font-mono">LAVW23</span> ya existe en el catálogo
+            <span className="rounded border border-border bg-background px-1.5 font-mono">LAVW23</span> ya existe en el sistema
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="rounded border border-dashed border-orange-300 bg-orange-50/60 px-1.5 font-mono text-orange-800 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-200">
@@ -413,6 +448,7 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
   const f0 = grupo.filas[0];
   const [codigo, setCodigo] = useState(f0.codigoFinal ?? "");
   const [verSeries, setVerSeries] = useState(false);
+  const [confirmarSubir, setConfirmarSubir] = useState(false);
   const [pendiente, iniciar] = useTransition();
   const decisiones = new Set(grupo.filas.map((f) => f.decision));
   const decision = decisiones.size === 1 ? f0.decision : "mixta";
@@ -426,7 +462,10 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
     iniciar(async () => {
       const r = await decidirStock(cargaId, grupo.indices, d, codigo || null);
       if (r.error) toast.error(r.error);
-      else router.refresh();
+      else {
+        setConfirmarSubir(false);
+        router.refresh();
+      }
     });
   }
 
@@ -442,7 +481,13 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <span className={cn("rounded px-1.5 py-0.5 text-[11px] font-medium", estilo.pastilla)}>
-              {grupo.estado === "revisar" ? `Revisar · ${problemaCorto(f0.motivo)}` : estilo.etiqueta}
+              {grupo.estado === "revisar"
+                ? `Revisar · ${problemaCorto(f0.motivo)}`
+                : grupo.estado === "nuevo" && f0.crear === false
+                  ? "Código retirado · se reactiva"
+                  : grupo.estado === "nuevo"
+                    ? "Código nuevo · se da de alta"
+                    : estilo.etiqueta}
             </span>
             <span className="text-sm font-semibold">
               {cantidad} {cantidad === 1 ? "máquina" : "máquinas"} · {f0.modelo}
@@ -452,6 +497,7 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
               {f0.codigoExcel ? ` · en el Excel: ${f0.codigoExcel}` : " · sin código en el Excel"}
             </span>
           </div>
+          <ChipsRasgos tipo={f0.tipo} rasgos={f0.rasgos} destacar />
           <p className="line-clamp-1 text-xs text-muted-foreground" title={f0.descripcion}>
             {f0.descripcion}
           </p>
@@ -459,26 +505,47 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
             {grupo.estado === "revisar" && <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-500" />}
             <span>{f0.motivo}</span>
           </p>
+          {f0.ocupada && (
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+              <span className="font-medium">{f0.ocupada.cliente ?? "Cliente sin nombre"}</span>
+              {f0.ocupada.pedido && <span className="text-muted-foreground">pedido {f0.ocupada.pedido}</span>}
+              {f0.ocupada.cuentaId && (
+                <Link href={`/gerencia/clientes/${f0.ocupada.cuentaId}`} prefetch={false} className="underline underline-offset-2" target="_blank">
+                  Ver ficha del cliente
+                </Link>
+              )}
+              {f0.ocupada.pedidoId && (
+                <Link href={`/postventa/pedidos/${f0.ocupada.pedidoId}`} prefetch={false} className="underline underline-offset-2" target="_blank">
+                  Ver el pedido
+                </Link>
+              )}
+            </p>
+          )}
           {f0.candidatos.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-              <span className="text-[11px] text-muted-foreground">Parecidos en el catálogo:</span>
-              {f0.candidatos.map((c) => (
-                <button
-                  key={c.sku}
-                  type="button"
-                  onClick={() => setCodigo(c.sku)}
-                  title={c.choques.length ? `Difiere en ${c.choques.join("; ")}` : "Misma configuración"}
-                  className={cn(
-                    "rounded border px-1.5 py-0.5 font-mono text-[11px] hover:bg-muted",
-                    codigo === c.sku ? "border-foreground/60 bg-foreground/[0.06]" : "border-border",
-                    c.choques.length > 0 && "text-muted-foreground",
-                  )}
-                >
-                  {c.sku}
-                  {!c.activo && " · retirado"}
-                  {c.choques.length > 0 && <span className="ml-1">≠ {c.choques.map((x) => x.split(":")[0]).join(", ")}</span>}
-                </button>
-              ))}
+            <div className="space-y-1 pt-0.5">
+              <span className="text-[11px] text-muted-foreground">Códigos de este modelo en el sistema (toque uno para usarlo):</span>
+              <div className="flex flex-wrap gap-1.5">
+                {f0.candidatos.map((c) => (
+                  <button
+                    key={c.sku}
+                    type="button"
+                    onClick={() => setCodigo(c.sku)}
+                    title={c.choques.length ? `Difiere en ${c.choques.join("; ")}` : "Misma configuración"}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] hover:bg-muted",
+                      codigo === c.sku ? "border-foreground/60 bg-foreground/[0.06]" : "border-border",
+                      c.choques.length > 0 && "text-muted-foreground",
+                    )}
+                  >
+                    <span className="font-mono font-medium">{c.sku}</span>
+                    {c.resumen && <span className="text-muted-foreground">{c.resumen}</span>}
+                    {!c.activo && <span className="text-muted-foreground">· retirado</span>}
+                    {c.choques.length > 0 && (
+                      <span className="text-orange-700 dark:text-orange-300">≠ {c.choques.map((x) => x.split(":")[0]).join(", ")}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           <button type="button" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground" onClick={() => setVerSeries((v) => !v)}>
@@ -516,30 +583,105 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
               <option key={c.sku} value={c.sku} />
             ))}
           </datalist>
-          <SenalCodigo codigo={codigo} existentes={existentes} />
-          <div className="mt-1 flex gap-2">
-            <Button
-              size="sm"
-              className="flex-1"
-              variant={decision === "subir" && !cambiado ? "secondary" : "default"}
-              disabled={pendiente || !codigo || (decision === "subir" && !cambiado)}
-              onClick={() => decidir("subir")}
-            >
-              <CheckCircle2 className="size-4" /> {codigo ? `Subir con ${codigo}` : "Subir"}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={pendiente || decision === "no_subir"}
-              onClick={() => decidir("no_subir")}
-              title="No se sube como stock libre"
-            >
-              <CircleSlash className="size-4" /> No subir
-            </Button>
-          </div>
+          <SenalCodigo codigo={codigo} existentes={existentes} deLesly={!!f0.codigoExcel && codigo === f0.codigoExcel} />
+
+          {/* Lesly (21-10): un botón gris deshabilitado no le decía nada ni le dejaba
+              cambiar de idea. Cada estado dice qué pasa y siempre hay cómo revertirlo. */}
+          {decision === "no_subir" && !cambiado ? (
+            <div className="mt-1 space-y-2 rounded-lg border border-border bg-muted/50 p-2.5">
+              <p className="flex items-start gap-1.5 text-xs">
+                <CircleSlash className="mt-0.5 size-3.5 shrink-0" />
+                <span>
+                  <b>No se sube.</b>{" "}
+                  {f0.ocupada
+                    ? `Ya está con ${f0.ocupada.cliente ?? "un cliente"}${f0.ocupada.pedido ? ` (pedido ${f0.ocupada.pedido})` : ""}: pásela a vendido o reserva en el Excel de Importaciones.`
+                    : "Queda fuera del almacén."}
+                </span>
+              </p>
+              {confirmarSubir ? (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] text-red-700 dark:text-red-300">
+                    ¿Seguro que esta máquina sigue en planta y libre? Si ya se vendió, las comerciales la verían como stock.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="destructive" className="flex-1" disabled={pendiente || !codigo} onClick={() => decidir("subir")}>
+                      Sí, sigue en planta: subir
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setConfirmarSubir(false)}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={pendiente || !codigo}
+                    onClick={() => (f0.ocupada ? setConfirmarSubir(true) : decidir("subir"))}
+                  >
+                    <Upload className="size-3.5" /> Subir de todos modos
+                  </Button>
+                  <Button size="sm" variant="ghost" disabled={pendiente} onClick={() => decidir("pendiente")}>
+                    Deshacer
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : decision === "subir" && !cambiado ? (
+            <div className="mt-1 space-y-2 rounded-lg border border-emerald-200 bg-emerald-50/60 p-2.5 dark:border-emerald-900 dark:bg-emerald-950/20">
+              <p className="flex items-center gap-1.5 text-xs">
+                <CheckCircle2 className="size-3.5 text-emerald-600" />
+                <span>
+                  <b>Va a subir</b> con <span className="font-mono">{codigo}</span>.
+                </span>
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" disabled={pendiente} onClick={() => decidir("no_subir")}>
+                  <CircleSlash className="size-3.5" /> No subir
+                </Button>
+                <Button size="sm" variant="ghost" disabled={pendiente} onClick={() => decidir("pendiente")}>
+                  Deshacer
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-1 flex gap-2">
+              <Button
+                size="sm"
+                className="flex-1"
+                variant={f0.ocupada && confirmarSubir ? "destructive" : "default"}
+                disabled={pendiente || !codigo}
+                onClick={() => (f0.ocupada && !confirmarSubir ? setConfirmarSubir(true) : decidir("subir"))}
+                title={f0.ocupada ? "Esta serie ya está con un cliente: se pide confirmar" : undefined}
+              >
+                <CheckCircle2 className="size-4" />{" "}
+                {f0.ocupada && confirmarSubir ? "¿Sigue en planta? Sí, subir" : codigo ? `Subir con ${codigo}` : "Subir"}
+              </Button>
+              <Button size="sm" variant="outline" disabled={pendiente} onClick={() => decidir("no_subir")} title="No se sube como stock libre">
+                <CircleSlash className="size-4" /> No subir
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * «Resumen general de stock» en PDF (Santos 21-10, con la hoja impresa de
+ * Sailstar como modelo): lo que Lesly ve en esta pantalla, para imprimir,
+ * marcar a mano o mandar.
+ */
+export function BotonResumenPdf({ cargaId }: { cargaId: string }) {
+  return (
+    <a
+      href={`/api/operaciones/stock/resumen?carga=${cargaId}`}
+      className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-medium hover:bg-muted"
+    >
+      <FileDown className="size-4" /> Descargar resumen (PDF)
+    </a>
   );
 }
 
@@ -599,7 +741,10 @@ export function ListaCodigos({ codigos }: { codigos: CodigoCatalogo[] }) {
     .sort((a, b) => Number(b.enPreparacion) - Number(a.enPreparacion) || a.sku.localeCompare(b.sku));
   return (
     <div className="space-y-4">
-      <GeneradorCodigo />
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <GeneradorCodigo />
+        <BuscadorSerie />
+      </div>
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
@@ -664,6 +809,72 @@ export function ListaCodigos({ codigos }: { codigos: CodigoCatalogo[] }) {
   );
 }
 
+/**
+ * «¿Dónde está esta serie?» (Lesly, 21-10): antes verificaba con la serie para
+ * quién era la máquina; ahora que el código lo da el almacén, no tenía dónde.
+ */
+export function BuscadorSerie() {
+  const [serie, setSerie] = useState("");
+  const [r, setR] = useState<DondeEstaSerie | null>(null);
+  const [pendiente, iniciar] = useTransition();
+  const ESTADO: Record<string, string> = { disponible: "disponible", reservado: "reservada", despachado: "despachada" };
+  return (
+    <div className="space-y-3 rounded-xl border border-border p-4">
+      <div className="flex items-center gap-2">
+        <Search className="size-4 text-[#8B1510]" />
+        <p className="text-sm font-medium">¿Dónde está esta serie?</p>
+      </div>
+      <p className="text-xs text-muted-foreground">Dice si está en el almacén, en un pedido o ya con un cliente.</p>
+      <form
+        className="flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          iniciar(async () => {
+            const res = await buscarSerie(serie);
+            if (res.error) toast.error(res.error);
+            setR(res.resultado ?? null);
+          });
+        }}
+      >
+        <Input value={serie} onChange={(e) => setSerie(e.target.value.toUpperCase())} placeholder="2607009967" className="font-mono" />
+        <Button type="submit" variant="outline" disabled={pendiente || serie.trim().length < 3}>
+          {pendiente ? "Buscando…" : "Buscar"}
+        </Button>
+      </form>
+      {r && (
+        <div className="space-y-1.5 text-sm">
+          {r.almacen && (
+            <p>
+              En el almacén: <b>{ESTADO[r.almacen.estado] ?? r.almacen.estado}</b>
+              {r.almacen.sku && <span className="font-mono"> · {r.almacen.sku}</span>}
+              {r.almacen.ubicacion && <span className="text-muted-foreground"> · {r.almacen.ubicacion}</span>}
+            </p>
+          )}
+          {r.cliente && (
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span>
+                Con el cliente <b>{r.cliente.cliente ?? "sin nombre"}</b>
+                {r.cliente.pedido && <span className="text-muted-foreground"> · pedido {r.cliente.pedido}</span>}
+              </span>
+              {r.cliente.cuentaId && (
+                <Link href={`/gerencia/clientes/${r.cliente.cuentaId}`} prefetch={false} className="text-xs underline underline-offset-2" target="_blank">
+                  Ver ficha
+                </Link>
+              )}
+              {r.cliente.pedidoId && (
+                <Link href={`/postventa/pedidos/${r.cliente.pedidoId}`} prefetch={false} className="text-xs underline underline-offset-2" target="_blank">
+                  Ver el pedido
+                </Link>
+              )}
+            </p>
+          )}
+          {!r.almacen && !r.cliente && <p className="text-muted-foreground">La serie {r.serie} no está en el CRM: ni en el almacén ni en ningún pedido.</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function GeneradorCodigo() {
   const [modelo, setModelo] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -679,6 +890,11 @@ function GeneradorCodigo() {
       <p className="text-xs text-muted-foreground">
         Pegue la descripción como viene de Importaciones. Si ya hay un código con esa misma configuración se lo digo (para no duplicar); si no,
         le propongo el siguiente libre.
+      </p>
+      <p className="rounded-md bg-muted/60 px-3 py-2 text-[11px] text-muted-foreground">
+        <b className="text-foreground">Cómo se arma un código</b> (Lesly, 21-10): empieza por el tipo (LAV, SEC, CAL, ME, PR, CO), lleva algo del
+        modelo para distinguirlo (LAVG50 = GP50, LAVW23 = WET 23) y una variante del mismo modelo —otro panel, otro voltaje, dosificador— suma un
+        número al final (LAVW105 → LAVW1051). Nunca se repite uno que exista, ni retirado.
       </p>
       <div className="grid gap-2 sm:grid-cols-[12rem_1fr_auto]">
         <Input value={modelo} onChange={(e) => setModelo(e.target.value)} placeholder="Modelo (UT075)" />
