@@ -364,7 +364,7 @@ function Proyectado({ proyeccion, puedeEditar }: { proyeccion: Proyeccion[]; pue
       titulo="Lo que está por llegar (proyección)"
       resumen={enCamino.length === 0 ? "nada anotado" : `${total} ${total === 1 ? "equipo" : "equipos"} en ${enCamino.length} ${enCamino.length === 1 ? "llegada" : "llegadas"} · no suman al stock`}
       icono={<Ship className="size-4 text-muted-foreground" />}
-      abiertoAlInicio={enCamino.length > 0}
+      abiertoAlInicio={enCamino.length > 0 || puedeEditar}
     >
       <p className="mb-2 max-w-prose text-xs text-muted-foreground">
         Lo que Importaciones ya compró y está en camino, con la fecha estimada. El comercial lo ve en «Stock» y en el catálogo como «en camino» para
