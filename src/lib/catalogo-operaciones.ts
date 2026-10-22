@@ -60,6 +60,8 @@ export interface EquipoCatalogo {
   fichaTexto: string;
   /** Si la ida y vuelta de esa ficha es exacta; si no, se mira pero no se edita. */
   fichaEditable: boolean;
+  /** Lo que Importaciones tiene por llegar de este código (0586): no suma al stock, pero se vende. */
+  enCamino: { cantidad: number; fecha: string | null } | null;
 }
 
 export interface SaludCatalogo {
@@ -90,17 +92,26 @@ export async function cargarCatalogo(
   // Se piden TODOS, incluidos los inactivos: un equipo apagado por error es
   // invisible para el comercial y hasta hoy también lo era para quien podría
   // volver a prenderlo.
-  const [{ data }, { data: stock }] = await Promise.all([
+  const [{ data }, { data: stock }, { data: proyectado }] = await Promise.all([
     supabase
     .from("productos")
     .select("id, sku, marca, modelo, nombre, categoria, segmento, capacidad, activo, foto_path, logo_path, panel_path, ficha, precios_producto(tier, precio, vigente_hasta)")
     .order("marca")
     .order("modelo"),
     supabase.rpc("stock_por_producto"),
+    supabase.from("stock_proyectado").select("producto_id, cantidad, fecha_estimada").eq("estado", "en_camino").not("producto_id", "is", null),
   ]);
   const enAlmacen = new Map<string, number>(
     ((stock ?? []) as { producto_id: string; disponibles: number }[]).map((x) => [x.producto_id, x.disponibles]),
   );
+  // Lo que viene (0586): por código, cuántas y la fecha más próxima.
+  const enCamino = new Map<string, { cantidad: number; fecha: string | null }>();
+  for (const p of (proyectado ?? []) as { producto_id: string; cantidad: number; fecha_estimada: string | null }[]) {
+    const x = enCamino.get(p.producto_id) ?? { cantidad: 0, fecha: null };
+    x.cantidad += p.cantidad;
+    if (p.fecha_estimada && (!x.fecha || p.fecha_estimada < x.fecha)) x.fecha = p.fecha_estimada;
+    enCamino.set(p.producto_id, x);
+  }
 
   const equipos: EquipoCatalogo[] = (data ?? []).map((p) => {
     const ficha = (p.ficha ?? null) as Record<string, unknown> | null;
@@ -139,6 +150,7 @@ export async function cargarCatalogo(
       ubicacionMaestro: texto(ficha, "ubicacion_maestro"),
       fichaTexto: bloques.length ? bloquesATexto(bloques) : "",
       fichaEditable: bloques.length > 0 && fichaEsEditable(bloques),
+      enCamino: enCamino.get(p.id as string) ?? null,
     };
   });
 

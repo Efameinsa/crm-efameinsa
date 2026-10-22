@@ -107,6 +107,8 @@ const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icon
   ],
   gerencia: [
     { href: "/gerencia", etiqueta: "Panel comercial", icono: BarChart3 },
+    // El stock por serie y los resúmenes (Carlos 22-10: «ese módulo todavía no lo puedo ver yo»).
+    { href: "/operaciones/stock?ver=almacen", etiqueta: "Stock y códigos", icono: Package },
     { href: "/whatsapp", etiqueta: "WhatsApp", icono: MessageCircle },
     // Arriba de todo a propósito: es lo que se abre en medio de una reunión,
     // cuando alguien dice un número y hay que saber qué es y de quién es.

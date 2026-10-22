@@ -12,7 +12,8 @@ import { useEffect, useState, useTransition } from "react";
 import Link from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, Loader2, PackageX, ScanBarcode, X } from "lucide-react";
+import { Boxes, Check, Loader2, PackageX, ScanBarcode, X } from "lucide-react";
+import { seriesDisponibles, type SerieDisponible } from "@/lib/acciones/inventario";
 import { createClient } from "@/lib/supabase/client";
 import { abrirOtroCircuito, agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarProcedencia, marcarSinStock, quitarLineaQueNoCorresponde, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
 import { probarEquipoDelPedido, probarKitDelPedido, tecnicoYFechaDeLaPrueba } from "@/lib/acciones/almacen";
@@ -503,6 +504,19 @@ function Fila({
   const [pendiente, startTransition] = useTransition();
   const [serie, setSerie] = useState("");
   const [abrirSerie, setAbrirSerie] = useState(false);
+  // ELEGIR LA MÁQUINA DEL ALMACÉN (Carlos 22-10: «en lugar de sube, le pone un check
+  // para que le dé esta serie al pedido»): la lista de series disponibles, filtrada por
+  // el código o el modelo; al tocar una se registra y queda reservada para el pedido.
+  const [elegirAlmacen, setElegirAlmacen] = useState(false);
+  const [disponibles, setDisponibles] = useState<SerieDisponible[] | null>(null);
+  const [filtroAlmacen, setFiltroAlmacen] = useState(
+    () => e.sku ?? e.descripcion.match(/\b(RX|FX|UCT|UCG|UWT|UW|UT|UY|SS|WET|GIANT|TITAN|G\d{2}|E2|HM)[\w.-]*/i)?.[0] ?? "",
+  );
+  function abrirAlmacen() {
+    setElegirAlmacen(true);
+    setAbrirSerie(false);
+    if (disponibles === null) seriesDisponibles().then((r) => setDisponibles(r.series ?? []));
+  }
   // «No lleva serie»: un código de modelo para todas las unidades iguales (0302).
   const [modoCodigo, setModoCodigo] = useState(false);
   // Corregir una serie ya puesta (0290): queda fija; cambiarla pide el código
@@ -1062,6 +1076,49 @@ function Fila({
               {!serie.trim() && <p className="text-[11px] leading-snug text-muted-foreground">Escriba el código del modelo para poder ponerlo.</p>}
               <p className="text-[11px] text-muted-foreground">Un solo código para todas las unidades de este artículo que no tienen serie. No entran al registro de máquinas.</p>
             </div>
+          ) : elegirAlmacen ? (
+            <div className="space-y-1.5 rounded-md border border-border p-2">
+              <div className="flex items-center gap-1.5">
+                <Boxes className="size-4 shrink-0 text-muted-foreground" />
+                <Input value={filtroAlmacen} onChange={(x) => setFiltroAlmacen(x.target.value)} placeholder="Código, modelo o serie" className="h-8 text-sm" autoFocus />
+                <button type="button" className="text-[11px] text-muted-foreground hover:underline" onClick={() => setElegirAlmacen(false)}>Cancelar</button>
+              </div>
+              {disponibles === null ? (
+                <p className="text-[11px] text-muted-foreground">Buscando en el almacén…</p>
+              ) : disponibles.length === 0 ? (
+                <p className="text-[11px] leading-snug text-muted-foreground">El almacén no tiene máquinas disponibles registradas. Escriba la serie a mano con «Registrar la serie».</p>
+              ) : (
+                (() => {
+                  const tokens = filtroAlmacen.toUpperCase().split(/\s+/).filter(Boolean);
+                  const lista = disponibles
+                    .filter((d) => tokens.every((t) => `${d.codigo ?? ""} ${d.marca ?? ""} ${d.modelo} ${d.descripcion} ${d.serie}`.toUpperCase().includes(t)))
+                    .slice(0, 25);
+                  if (lista.length === 0) {
+                    return <p className="text-[11px] leading-snug text-muted-foreground">Ninguna máquina disponible coincide con «{filtroAlmacen}». Pruebe con otra palabra o escriba la serie a mano.</p>;
+                  }
+                  return (
+                    <ul className="max-h-56 divide-y divide-border overflow-y-auto rounded-md border border-border">
+                      {lista.map((d) => (
+                        <li key={d.id}>
+                          <button
+                            type="button"
+                            disabled={pendiente}
+                            onClick={() => correr(() => registrarSerieDelEquipo(e.id, servicioId, d.serie), `Serie ${d.serie} registrada: la máquina quedó reservada para este pedido`)}
+                            className="flex w-full flex-wrap items-center gap-x-3 gap-y-0.5 px-2 py-1 text-left text-xs hover:bg-accent"
+                          >
+                            <span className="font-mono font-semibold text-foreground">{d.serie}</span>
+                            <span className="font-medium">{d.codigo ?? "—"}</span>
+                            <span className="text-muted-foreground">{[d.marca, d.modelo].filter(Boolean).join(" ")}</span>
+                            <span className="ml-auto text-[10px] text-muted-foreground">{(d.ubicacion ?? "PLANTA").toUpperCase()}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                })()
+              )}
+              <p className="text-[11px] text-muted-foreground">Al tocar una, se registra su serie en esta unidad y la máquina queda reservada para el pedido en el almacén.</p>
+            </div>
           ) : abrirSerie ? (
             <div className="space-y-1">
               <div className="flex items-center gap-1.5">
@@ -1081,6 +1138,9 @@ function Fila({
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <button type="button" className="text-[11px] font-medium text-primary hover:underline" onClick={abrirAlmacen}>
+                <Boxes className="mr-0.5 inline size-3" /> Elegir del almacén
+              </button>
               <button type="button" className="text-[11px] font-medium text-primary hover:underline" onClick={() => setAbrirSerie(true)}>
                 + Registrar la serie (llegó el stock)
               </button>

@@ -24,6 +24,7 @@ import { OfrecerMantenimientoBoton } from "@/components/crm/ofrecer-mantenimient
 import { veTodoPostventa } from "@/lib/postventa";
 import { MandadoACentral } from "@/components/crm/mandado-a-central";
 import { listarMandadoACentral } from "@/lib/mandado-a-central";
+import { cargarFichasDeOtraCartera, nombreEnLista } from "@/lib/fichas-de-otra-cartera";
 
 interface FilaMiDia {
   id: string;
@@ -505,6 +506,15 @@ export default async function ComercialPage({
       .eq("etapa", "historico"),
   ]);
 
+  // Las que vienen sin ficha a la vista: la ficha está en otra cartera (0583).
+  const sinFicha = (filas: { id: string; cuentas: unknown }[] | null | undefined) =>
+    (filas ?? []).filter((f) => !f.cuentas).map((f) => f.id);
+  const ajenasMiDia = await cargarFichasDeOtraCartera(supabase, [
+    ...sinFicha(hoyData),
+    ...sinFicha(vencidasData),
+    ...sinFicha(nuevasData),
+  ]);
+
   const aFila = (op: NonNullable<typeof hoyData>[number]): FilaMiDia => ({
     id: op.id,
     etapa: op.etapa,
@@ -515,7 +525,8 @@ export default async function ComercialPage({
     creada_at: op.created_at ?? null,
     cuenta_id: (op.cuentas as unknown as { id: string } | null)?.id ?? null,
     recibido_at: (op.leads as unknown as { recibido_at: string | null } | null)?.recibido_at ?? null,
-    razon_social: (op.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? "Cuenta sin nombre",
+    razon_social:
+      (op.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? nombreEnLista(ajenasMiDia.get(op.id)),
   });
 
   const paraHoy = (hoyData ?? []).map(aFila);
@@ -629,7 +640,7 @@ export default async function ComercialPage({
     supabase
       .from("ventas")
       .select(
-        "id, fecha_venta, monto_total, moneda, origen, oportunidades!inner(comercial_id, cuenta_id, cuentas(razon_social)), informes_cierre(id)",
+        "id, fecha_venta, monto_total, moneda, origen, oportunidades!inner(id, comercial_id, cuenta_id, cuentas(razon_social)), informes_cierre(id)",
       )
       .eq("oportunidades.comercial_id", perfil.id)
       .eq("origen", "crm")
@@ -655,22 +666,31 @@ export default async function ComercialPage({
   const metaGestiones =
     Number((perfil as unknown as { meta_gestiones_diarias?: number | null }).meta_gestiones_diarias) || Number(metaGlobal?.valor) || 30;
 
+  const ajenasAbajo = await cargarFichasDeOtraCartera(supabase, [
+    ...sinFicha(inactivasData),
+    ...(ventasData ?? [])
+      .map((v) => v.oportunidades as unknown as { id: string; cuentas: unknown })
+      .filter((o) => o && !o.cuentas)
+      .map((o) => o.id),
+  ]);
+
   const inactivas: FilaInactiva[] = (inactivasData ?? []).map((op) => ({
     id: op.id,
     etapa: op.etapa,
     intencion: op.intencion,
     motivo_inactividad: op.motivo_inactividad,
-    razon_social: (op.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? "Cuenta sin nombre",
+    razon_social:
+      (op.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? nombreEnLista(ajenasAbajo.get(op.id)),
   }));
 
   const sinInforme: VentaSinInformeFila[] = (ventasData ?? [])
     .filter((v) => ((v.informes_cierre as unknown as unknown[]) ?? []).length === 0)
     .map((v) => {
-      const op = v.oportunidades as unknown as { cuenta_id: string; cuentas: { razon_social: string } | null };
+      const op = v.oportunidades as unknown as { id: string; cuenta_id: string; cuentas: { razon_social: string } | null };
       return {
         id: v.id,
         cuentaId: op.cuenta_id,
-        razonSocial: op.cuentas?.razon_social ?? "Cuenta sin nombre",
+        razonSocial: op.cuentas?.razon_social ?? nombreEnLista(ajenasAbajo.get(op.id)),
         fecha: v.fecha_venta,
         monto: v.monto_total,
         moneda: v.moneda,

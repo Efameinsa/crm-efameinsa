@@ -13,6 +13,10 @@ import {
   type CodigoCatalogo,
   type CodigosExistentes,
 } from "@/components/crm/stock-importaciones";
+import { ResumenGeneralStock } from "@/components/crm/resumen-general-stock";
+import { AlmacenPorSerie } from "@/components/crm/almacen-por-serie";
+import { cargarAlmacenPorSerie, cargarContraste, cargarProyeccion } from "@/lib/almacen-datos";
+import type { FilaCarga } from "@/lib/acciones/stock-importaciones";
 import { productosParaComparar, type CargaStock } from "@/lib/acciones/stock-importaciones";
 import { rasgos } from "@/lib/stock-importaciones";
 import { cn } from "@/lib/utils";
@@ -31,18 +35,21 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
   const perfil = await requerirPerfil();
   if (!(["operaciones", "gerencia", "admin"].includes(perfil.rol) || perfil.es_operaciones)) redirect("/comercial/stock");
   const { ver } = await searchParams;
-  const pestana = ver === "codigos" ? "codigos" : "subir";
+  const pestana = ver === "codigos" ? "codigos" : ver === "almacen" ? "almacen" : "subir";
   const supabase = await createClient();
 
   let contenido: React.ReactNode;
   if (pestana === "subir") {
-    const { data } = await supabase
-      .from("stock_cargas")
-      .select("id, archivo, hojas, filas, ausentes, estado, resultado, created_at, subida_at")
-      .in("estado", ["revisando", "subida"])
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const [{ data }, { count: enAlmacen }] = await Promise.all([
+      supabase
+        .from("stock_cargas")
+        .select("id, archivo, hojas, filas, ausentes, estado, resultado, created_at, subida_at")
+        .in("estado", ["revisando", "subida"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase.from("inventario_equipos").select("id", { count: "exact", head: true }).eq("estado", "disponible"),
+    ]);
     const carga: CargaStock | null = data
       ? {
           id: data.id,
@@ -74,8 +81,23 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
             <BotonResumenPdf cargaId={carga.id} />
           </div>
         )}
+        {/* El informe de los lunes de Importaciones, ahora armado por el CRM (reunión Santos–Lesly 22-10). */}
+        {/* Desde la 0588 lo claro entra al leer el Excel: el resumen del almacén ya es el real; la vista previa de la carga sobra. */}
+        <ResumenGeneralStock enAlmacen={enAlmacen ?? 0} />
       </div>
     );
+  } else if (pestana === "almacen") {
+    // El almacén por serie (Carlos 22-10): máquinas con su pedido, totales como en la hoja de
+    // Importaciones, lo que está por llegar y el cotejo con el catálogo. Gerencia mira; operaciones edita.
+    const { data: revisando } = await supabase.from("stock_cargas").select("filas").eq("estado", "revisando").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    const [{ filas, totales }, proyeccion, contraste] = await Promise.all([
+      cargarAlmacenPorSerie(supabase),
+      cargarProyeccion(supabase),
+      cargarContraste(supabase, (revisando?.filas ?? null) as FilaCarga[] | null),
+    ]);
+    // Santos (22-10): «el gerente también debe poder editar todo».
+    const puedeEditar = ["operaciones", "gerencia", "admin"].includes(perfil.rol) || !!perfil.es_operaciones;
+    contenido = <AlmacenPorSerie filas={filas} totales={totales} contraste={contraste} proyeccion={proyeccion} puedeEditar={puedeEditar} />;
   } else {
     const [productos, { data: stock }] = await Promise.all([productosParaComparar(), supabase.rpc("stock_por_producto")]);
     const enAlmacen = new Map(((stock ?? []) as { producto_id: string; disponibles: number }[]).map((s) => [s.producto_id, s.disponibles]));
@@ -109,14 +131,15 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
         <div>
           <h1 className="text-lg font-semibold text-foreground">Stock y códigos</h1>
           <p className="mt-0.5 max-w-3xl text-sm text-muted-foreground">
-            Suba el Excel de stock de Importaciones: el CRM le dice qué máquinas ya tienen bien su código, cuáles no y propone uno para las
-            que faltan. Usted decide y sube al almacén. Los costos no se suben.
+            Suba el Excel de stock de Importaciones y las máquinas entran al almacén en el acto. El CRM solo le señala las observaciones: las que
+            no tienen código, las que hay que revisar y las series que ya están con un cliente. Los costos no se suben.
           </p>
         </div>
       </div>
       <div className="flex gap-1 border-b border-border">
         {[
           { clave: "subir", etiqueta: "Subir el Excel de stock", href: "/operaciones/stock" },
+          { clave: "almacen", etiqueta: "Almacén por serie", href: "/operaciones/stock?ver=almacen" },
           { clave: "codigos", etiqueta: "Códigos y series", href: "/operaciones/stock?ver=codigos" },
         ].map((t) => (
           <Link
@@ -132,7 +155,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
           </Link>
         ))}
       </div>
-      <SeccionPanel titulo={pestana === "subir" ? "Subir el Excel de stock" : "Códigos y series"}>{contenido}</SeccionPanel>
+      <SeccionPanel titulo={pestana === "subir" ? "Subir el Excel de stock" : pestana === "almacen" ? "Almacén por serie" : "Códigos y series"}>{contenido}</SeccionPanel>
     </div>
   );
 }

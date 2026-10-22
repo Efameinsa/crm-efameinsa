@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { cargarFichasDeOtraCartera } from "@/lib/fichas-de-otra-cartera";
 import { cargarPotenciales, resumirSemana, type ProyeccionSemana } from "@/lib/potenciales-semana";
 import { SEMANAS_POR_MES } from "@/lib/periodo";
 import { resumirAtenciones, type Atencion } from "@/lib/atenciones";
@@ -185,7 +186,7 @@ export async function cargarCierreSemanal(
         .maybeSingle(),
       supabase
         .from("ventas")
-        .select("fecha_venta, monto_total, moneda, oportunidades!inner(comercial_id, cuentas(razon_social))")
+        .select("fecha_venta, monto_total, moneda, oportunidades!inner(id, comercial_id, cuentas(razon_social))")
         .eq("oportunidades.comercial_id", comercialId)
         .is("anulada_at", null)
         .gte("fecha_venta", lunes)
@@ -227,12 +228,22 @@ export async function cargarCierreSemanal(
 
   const enUsd = (monto: number, moneda: string) => (moneda === "PEN" ? monto / tc : monto);
 
+  // Venta en un expediente cuya ficha está en otra cartera (0583): el nombre igual.
+  const ajenas = await cargarFichasDeOtraCartera(
+    supabase,
+    (ventasData ?? [])
+      .map((v) => v.oportunidades as unknown as { id: string; cuentas: unknown } | null)
+      .filter((o) => o && !o.cuentas)
+      .map((o) => o!.id),
+  );
+
   const ventas: VentaSemana[] = (ventasData ?? []).map((v) => {
-    const cuenta = (v.oportunidades as unknown as { cuentas: { razon_social: string } | null } | null)?.cuentas;
+    const op = v.oportunidades as unknown as { id: string; cuentas: { razon_social: string } | null } | null;
+    const cuenta = op?.cuentas;
     const monto = Number(v.monto_total);
     return {
       fecha: String(v.fecha_venta).slice(0, 10),
-      cliente: cuenta?.razon_social ?? "Cuenta sin nombre",
+      cliente: cuenta?.razon_social ?? (op ? ajenas.get(op.id)?.razonSocial : undefined) ?? "Cliente sin ficha",
       monto,
       moneda: v.moneda,
       montoUsd: enUsd(monto, v.moneda),

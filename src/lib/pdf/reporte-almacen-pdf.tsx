@@ -122,14 +122,14 @@ export function ReporteAlmacenPdf({ logoBuffer, fecha, fechaCorta, quien, indica
         )}
 
         {/* 3. Lo anotado a mano (texto libre hasta mapearlo, Santos 21-10). */}
-        <Seccion titulo="2. OTRAS GESTIONES DEL DÍA" total={anotados.length}>
+        <Seccion titulo="2. ACTIVIDADES REGISTRADAS A MANO (SIN PEDIDO EN EL CRM)" total={anotados.length}>
           {anotados.length === 0 ? (
-            <Text style={e.vacio}>Sin otras gestiones anotadas.</Text>
+            <Text style={e.vacio}>Sin actividades registradas a mano.</Text>
           ) : (
             anotados.map((h, i) => (
               <View key={h.id} wrap={false} style={fila(i)}>
-                <Text style={{ width: "5%" }}>{i + 1}.</Text>
-                <Text style={{ width: "75%" }}>{h.que}</Text>
+                <Text style={{ width: "8%" }}>{h.hora ?? `${i + 1}.`}</Text>
+                <Text style={{ width: "72%" }}>{h.que}</Text>
                 <Text style={{ width: "20%", color: GRIS }}>{corta(h.quien, 24)}</Text>
               </View>
             ))

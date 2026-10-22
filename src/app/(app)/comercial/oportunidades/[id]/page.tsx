@@ -1,4 +1,4 @@
-import { Phone, Mail, MapPin, FileText, CalendarClock, Building2, MessageCircle, ArrowLeft } from "lucide-react";
+import { Phone, Mail, MapPin, FileText, CalendarClock, Building2, MessageCircle, ArrowLeft, Lock } from "lucide-react";
 import { etiquetaTipoExpediente } from "@/lib/tipo-expediente";
 import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
 import { CarpetaPostventa } from "@/components/crm/carpeta-postventa";
@@ -28,6 +28,8 @@ import { DocumentosDelServidor } from "@/components/crm/documentos-del-servidor"
 import { firmarAdjuntosDeCierres } from "@/lib/adjuntos-cierre";
 import { ContactosEditables, type ContactoEditable } from "@/components/crm/contactos-editables";
 import { IdentidadCuenta } from "@/components/crm/identidad-cuenta";
+import { PedirCarteraBoton } from "@/components/crm/pedir-cartera-boton";
+import { cargarFichasDeOtraCartera, carteraDe } from "@/lib/fichas-de-otra-cartera";
 import { FichasRelacionadas } from "@/components/crm/fichas-relacionadas";
 import { UnirConOtraFicha } from "@/components/crm/unir-con-otra-ficha";
 import { MoverGestionesBoton } from "@/components/crm/mover-gestiones-boton";
@@ -163,6 +165,10 @@ export default async function OportunidadDetallePage({
   // ver que Ruiz Pangalima no traía ningún relacionado a la vista, aunque
   // hubiera otras dos fichas de la misma empresa escritas distinto.
   const candidatasRelacionadas = cuenta?.id ? await candidatosMismoCliente(cuenta.id) : [];
+  // Sin ficha a la vista = la ficha está en otra cartera (0583, Santos 22-10):
+  // se dice de quién es el cliente y de quién es la ficha, en vez de «Cuenta
+  // sin nombre».
+  const fichaAjena = cuenta ? undefined : (await cargarFichasDeOtraCartera(supabase, [id])).get(id);
   // 0558: «Unir con otra ficha» está siempre, así que los supervisores del
   // código también (una consulta chica).
   const supervisoresFusion = cuenta?.id ? await cargarSupervisores(supabase) : [];
@@ -609,7 +615,40 @@ export default async function OportunidadDetallePage({
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-lg font-bold text-foreground">{cuenta?.razon_social ?? "Cuenta sin nombre"}</h1>
+            <h1 className="text-lg font-bold text-foreground">
+              {cuenta?.razon_social ?? fichaAjena?.razonSocial ?? "Expediente sin ficha de cliente"}
+            </h1>
+            {fichaAjena && (
+              <div className="mt-2 max-w-2xl space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs leading-snug">
+                {fichaAjena.tipoDoc !== "SIN_DOC" && fichaAjena.numDoc && (
+                  <p className="inline-flex items-center gap-1 text-muted-foreground">
+                    <FileText className="size-3.5" />
+                    {fichaAjena.tipoDoc}: {fichaAjena.numDoc}
+                  </p>
+                )}
+                <p className="flex items-start gap-1.5 text-foreground">
+                  <Lock className="mt-0.5 size-3.5 shrink-0 text-amber-600" />
+                  <span>
+                    {fichaAjena.carteraNombre ? (
+                      <>
+                        La ficha de este cliente está en la cartera de <b>{carteraDe(fichaAjena)}</b>.
+                      </>
+                    ) : (
+                      <>La ficha de este cliente no está en ninguna cartera.</>
+                    )}{" "}
+                    Usted ve este expediente porque es suyo; los contactos y el historial del cliente los ve quien
+                    tiene la ficha.
+                  </span>
+                </p>
+                {fichaAjena.tipoDoc !== "SIN_DOC" && fichaAjena.numDoc ? (
+                  <PedirCarteraBoton numDoc={fichaAjena.numDoc} quien={carteraDe(fichaAjena)} />
+                ) : (
+                  <p className="text-muted-foreground">
+                    La ficha no tiene RUC ni DNI: para pasarla a su cartera, pídaselo a gerencia.
+                  </p>
+                )}
+              </div>
+            )}
             {/* La vuelta a la ficha principal (gerencia, 28-09: «ahí no te lleva
                 a la ficha principal») subió a la miga de arriba (17-10). */}
             {/* Gestiones en el expediente equivocado (0514): las mueve quien puede arreglarlo. */}
@@ -625,7 +664,7 @@ export default async function OportunidadDetallePage({
               </p>
             )}
             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              {cuenta?.tipo_doc !== "SIN_DOC" && (
+              {cuenta && cuenta.tipo_doc !== "SIN_DOC" && (
                 <span className="inline-flex items-center gap-1">
                   <FileText className="size-3.5" />
                   {cuenta?.tipo_doc}: {cuenta?.num_doc}

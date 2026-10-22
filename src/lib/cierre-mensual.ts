@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { cargarFichasDeOtraCartera } from "@/lib/fichas-de-otra-cartera";
 import { ETIQUETA_ACTIVIDAD } from "@/components/crm/etiquetas-actividad";
 import { lunesDe, sumarDias, MESES } from "@/lib/calendario";
 import { PREFIJO_MARCA_WHATSAPP, WHATSAPP_CUENTA_PARA_META } from "@/lib/gestion-whatsapp";
@@ -259,7 +260,7 @@ export async function cargarCierreMensual(mes: string, comercialId: string): Pro
     // de contar.
     supabase
       .from("ventas")
-      .select("fecha_venta, monto_total, moneda, oportunidades!inner(comercial_id, cuentas(razon_social))")
+      .select("fecha_venta, monto_total, moneda, oportunidades!inner(id, comercial_id, cuentas(razon_social))")
       .eq("oportunidades.comercial_id", comercialId)
       .is("anulada_at", null)
       .gte("fecha_venta", desde)
@@ -349,12 +350,21 @@ export async function cargarCierreMensual(mes: string, comercialId: string): Pro
   }
 
   /* ── Ventas ───────────────────────────────────────────────────── */
+  // Venta en un expediente cuya ficha está en otra cartera (0583): el nombre igual.
+  const ventasAjenas = await cargarFichasDeOtraCartera(
+    supabase,
+    (ventasData ?? [])
+      .map((v) => v.oportunidades as unknown as { id: string; cuentas: unknown } | null)
+      .filter((o) => o && !o.cuentas)
+      .map((o) => o!.id),
+  );
   const detalleVentas: VentaMes[] = (ventasData ?? []).map((v) => {
-    const cuenta = (v.oportunidades as unknown as { cuentas: { razon_social: string } | null } | null)?.cuentas;
+    const op = v.oportunidades as unknown as { id: string; cuentas: { razon_social: string } | null } | null;
+    const cuenta = op?.cuentas;
     const monto = Number(v.monto_total);
     return {
       fecha: String(v.fecha_venta).slice(0, 10),
-      cliente: cuenta?.razon_social ?? "Cuenta sin nombre",
+      cliente: cuenta?.razon_social ?? (op ? ventasAjenas.get(op.id)?.razonSocial : undefined) ?? "Cliente sin ficha",
       monto,
       moneda: v.moneda,
       montoUsd: enUsd(monto, v.moneda),
@@ -487,6 +497,11 @@ async function cargarAbiertas(
 
   const enUsd = (monto: number, moneda: string) => (moneda === "PEN" ? monto / tc : monto);
   const porOportunidad = new Map<string, AbiertaMes>();
+  // Sin ficha a la vista = ficha en otra cartera (0583): el nombre igual.
+  const abiertasAjenas = await cargarFichasDeOtraCartera(supabase, [
+    ...(cots ?? []).filter((c) => !(c.oportunidades as unknown as { cuentas: unknown } | null)?.cuentas).map((c) => c.oportunidad_id),
+    ...(potenciales ?? []).filter((o) => !o.cuentas).map((o) => o.id),
+  ]);
 
   // Vienen de la más reciente a la más vieja: la primera que aparece de cada
   // oportunidad es su última cotización enviada.
@@ -498,7 +513,7 @@ async function cargarAbiertas(
       cuentas: { razon_social: string } | null;
     } | null;
     porOportunidad.set(c.oportunidad_id, {
-      cliente: o?.cuentas?.razon_social ?? "Cuenta sin nombre",
+      cliente: o?.cuentas?.razon_social ?? abiertasAjenas.get(c.oportunidad_id)?.razonSocial ?? "Cliente sin ficha",
       presupuesto: c.codigo ?? null,
       etapa: o?.etapa ?? "—",
       cierreProyectado: o?.cierre_proyectado ?? null,
@@ -510,7 +525,7 @@ async function cargarAbiertas(
     if (porOportunidad.has(o.id)) continue;
     const cuenta = o.cuentas as unknown as { razon_social: string } | null;
     porOportunidad.set(o.id, {
-      cliente: cuenta?.razon_social ?? "Cuenta sin nombre",
+      cliente: cuenta?.razon_social ?? abiertasAjenas.get(o.id)?.razonSocial ?? "Cliente sin ficha",
       presupuesto: null,
       etapa: o.etapa as string,
       cierreProyectado: (o.cierre_proyectado as string | null) ?? null,

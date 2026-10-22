@@ -43,6 +43,18 @@ export interface FilaStock {
   ubicacion: string | null;
   ingreso: string | null;
   marca: string | null;
+  /** Proveedor según Importaciones (ALLIANCES LAUNDRY, GMP, SIDI MONDIAL…): el resumen general se agrupa por él (22-10). */
+  proveedor?: string | null;
+  /** De qué empresa es la máquina, OPEN o EFAMEINSA (Carlos 22-10), si la hoja trae la columna. */
+  empresa?: string | null;
+}
+
+/** OPEN / EFAMEINSA, como lo escriba el Excel («Open », «EFAMEINSA», «Efameinsa S.A.»). */
+export function empresaDe(texto: string | null | undefined): string | null {
+  const t = (texto ?? "").toUpperCase();
+  if (/OPEN/.test(t)) return "OPEN";
+  if (/EFAME/.test(t)) return "EFAMEINSA";
+  return null;
 }
 
 export interface ProductoCatalogo {
@@ -200,6 +212,13 @@ function normCabecera(t: unknown) {
   return sinTildes(t).replace(/[^A-Z]/g, "");
 }
 
+/** PLANTA, EXHIBICIÓN… Una fórmula o un número en esa celda no es una ubicación. */
+export function ubicacionDe(texto: string | null | undefined): string | null {
+  const t = (texto ?? "").replace(/^=.*/, "").trim();
+  if (!t || /^[\d.,\s-]+$/.test(t)) return null;
+  return t;
+}
+
 /** La hoja es de stock libre. Reserva y vendidos no se suben. */
 export function esHojaDeStock(nombre: string): boolean {
   const n = normCabecera(nombre);
@@ -245,6 +264,10 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
     const cUbic = col("UBICACION");
     const cIngreso = col("INGRESO");
     const cMarca = col("MARCA");
+    const cProveedor = col("PROVEEDOR");
+    // Carlos (22-10): cada máquina dice si es de Open o de Efameinsa. En las hojas de
+    // reserva y vendidos Importaciones lo llama «C. INICIAL» o «SOLICITADO».
+    const cEmpresa = col("EMPRESA", "PERTENECE", "CINICIAL", "SOLICITADO", "PROPIETARIO");
 
     const celda = (r: unknown[], i: number) => (i >= 0 ? r[i] : null);
     const textoDe = (v: unknown) => {
@@ -271,9 +294,13 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
         serie: serieTxt && /\d/.test(serieTxt) && serieTxt.length >= 3 ? serieTxt.toUpperCase() : null,
         capacidad: textoDe(celda(r, cCap)),
         cantidad: Math.max(0, Math.round(Number(celda(r, cStock)) || 0)),
-        ubicacion: textoDe(celda(r, cUbic))?.replace(/^=.*/, "") || null,
+        // En dos filas del Excel del 22-10 la celda UBICACIÓN traía un número (un costo
+        // corrido de columna): una ubicación es una palabra (PLANTA, EXHIBICIÓN), nunca un número.
+        ubicacion: ubicacionDe(textoDe(celda(r, cUbic))),
         ingreso: ingreso instanceof Date ? ingreso.toISOString().slice(0, 10) : null,
         marca: textoDe(celda(r, cMarca)) ?? (/LG/i.test(nombre) ? "LG" : null),
+        proveedor: textoDe(celda(r, cProveedor)) ?? (/LG/i.test(nombre) ? "LG" : null),
+        empresa: empresaDe(textoDe(celda(r, cEmpresa))),
       });
     });
   }

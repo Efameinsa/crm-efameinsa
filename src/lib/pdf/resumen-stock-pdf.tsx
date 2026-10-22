@@ -300,7 +300,7 @@ export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarg
                     <Text>{f.serie ? cortable(f.serie) : "sin serie de placa"}</Text>
                   </View>
                   <View style={[s.celda, { width: COL.disp }]}>
-                    <Text>{(f.ubicacion ?? "PLANTA").toUpperCase()}</Text>
+                    <Text>{/^[\d.,\s-]*$/.test(f.ubicacion ?? "") ? "PLANTA" : f.ubicacion!.toUpperCase()}</Text>
                   </View>
                   <View style={[s.celda, { width: COL.estado }]}>
                     <Text style={{ color: TINTA[f.estado], fontFamily: f.estado === "ok" ? "Helvetica" : "Helvetica-Bold" }}>{etiquetaEstado(f)}</Text>
