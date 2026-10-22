@@ -1,6 +1,6 @@
 # Bitácora de Finanzas y Contabilidad: lo que se decidió alrededor del dinero
 
-Vigente al 21-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md, en especial 1.7 a 1.12, 2.6, 2.7 y 3.6) y la «Bitácora del CRM» (asistente-bitacora-general.md). Aquí no se repite cómo se usa cada pantalla: se cuenta **qué se decidió, cuándo, quién lo pidió y qué quedó en el aire**, para que pueda retomar el trabajo sin depender de la memoria de una reunión.
+Vigente al 22-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md, en especial 1.7 a 1.12, 2.6, 2.7 y 3.6) y la «Bitácora del CRM» (asistente-bitacora-general.md). Aquí no se repite cómo se usa cada pantalla: se cuenta **qué se decidió, cuándo, quién lo pidió y qué quedó en el aire**, para que pueda retomar el trabajo sin depender de la memoria de una reunión.
 
 ## Cómo leer esto
 
@@ -11,6 +11,10 @@ Vigente al 21-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 ---
 
 ## Cronología de decisiones que tocan su trabajo
+
+### 21-10 (noche) · Buzón de Jhon: el pedido toma el total del cierre corregido
+- **Qué pasó (PED-0039-2026, cierre 013-2026):** el comercial corrigió el cierre (los precios pasaron a ser sin IGV), pero el pedido se quedó con el total anterior, US$ 811.00, y la liquidación salía con IGV 0.00.
+- **Qué se hizo (21-10):** el pedido quedó con Subtotal US$ 811.00, IGV US$ 145.98 y Total US$ 956.98, igual que el cierre. Desde ese día, cuando se corrige un cierre y cambia el total, el pedido abierto toma el nuevo total solo (si Central no lo había ajustado a mano) y queda anotado en las observaciones del pedido. Si la liquidación estaba abierta, hay que actualizar la página.
 
 ### 21-10 · Las letras entregadas las confirma Finanzas; Central deriva casos a Finanzas y Facturación (Santos)
 - **Quién confirma las letras (Santos, 21-10):** «subir las letras le corresponde a Finanzas… luego postventa pulsa verificar despacho». Desde el 21-10, «Letras entregadas al cliente» (con fotos y quién las recibió) solo lo registra Finanzas, desde su pedido (también gerencia). **Antes era:** almacén, postventa o Finanzas. En postventa y en el almacén el paso dice «Falta que Finanzas confirme…». Después de eso postventa da el «Despacho verificado» y ordena facturar.
@@ -80,22 +84,14 @@ Vigente al 21-10-2026. Para Finanzas (Jhon) y Contabilidad/Facturación. Complem
 ### 15-10 12:51 · Pagos parciales que se leían como pagados (Carlos, Ariana, Santos) (resumido)
 - Carlos: sin el 100 % (o el adelanto acordado) no se despacha. Desde ese día el pago parcial se ve en ámbar con cuánto falta (casos Abachi y Wong Lu Vega); Finanzas sigue confirmando cada abono como siempre.
 
-### 15-10 09:53 · Reunión de Carlos con Santos
-- **Sin pago confirmado o validado por Finanzas no hay apertura.** La apertura es la orden de despacho: el almacén despacha lo que dice, sin mirar pagos. Postventa confirma antes con Finanzas («¿ya tienes las letras?») y avisa al almacén. El CRM ya lo frena desde el 14-10.
-- **Lo que Carlos vio en COFACO:** el comercial avisó por correo que las letras viajaban con el transportista; Finanzas recién las estaba haciendo y luego tuvo que perseguir el equipo para entregarlas. «La letra es dinero»: en condiciones normales se firma la letra y recién se despacha. Con un cliente grande, gerencia puede acordar que viajen con el chofer, coordinado con postventa.
-- **Alcance del visto bueno:** Carlos dijo que no se hace la apertura «si y solo si está pagado o validado por Finanzas». Coincide con la regla vigente (todo lo que no está pagado al 100 % pide visto bueno).
-- **Orden de servicio y orden de compra:** los clientes grandes que trabajan con plataforma no se pueden facturar sin su orden de servicio. Central lo revisa antes de pasar el cierre; si falta, se le pide al comercial. Caso: NEWREST (OPEN 057-2026), corregido el 15-10 para agregarla.
-- **Moneda:** todo se vende en dólares. Si el cliente paga en soles con el tipo de cambio de la empresa, el cierre sigue en dólares (consorcio del Portal Marqués).
-- **Correcciones de cierre:** desde el 15-10 las autoriza Central, no Lesly. Si el pedido ya existe, Finanzas recibe el aviso cuando cambia algo de facturación o pago.
+### 15-10 09:53 · Reunión de Carlos con Santos (resumido)
+- Resumen: sin pago confirmado o validado por Finanzas no hay apertura (la apertura es la orden de despacho; postventa confirma antes con Finanzas); en COFACO las letras viajaron con el transportista cuando Finanzas recién las hacía: «la letra es dinero», se firma y recién se despacha, salvo acuerdo de gerencia con un cliente grande; los clientes con plataforma no se facturan sin su orden de servicio (Central lo revisa; caso NEWREST, OPEN 057-2026); todo se vende en dólares aunque paguen en soles; las correcciones de cierre las autoriza Central desde el 15-10 y Finanzas recibe aviso si cambia algo de facturación o pago.
 
 ### 14-10 (tarde) · Nuevo anticipo por facturar y cierre anulado de AGROCASAGRANDE (resumido)
 - Un pedido puede facturarse otra vez por anticipo: una liquidación con «factura pendiente» posterior a la última factura lo devuelve a «Por facturar» con el aviso «Nuevo anticipo por facturar» (caso PRODECO; antes solo salían pedidos sin ninguna factura). El cierre del servicio de AGROCASAGRANDE se anuló el 14-10 y no se factura; quien emitió un cierre puede anularlo con código.
 
-### 14-10 15:05 · AGROCASAGRANDE: facturar el servicio de puesta en marcha (llamada con el ingeniero)
-- Se vendió aparte el servicio de instalación, puesta en marcha y capacitación de sus 2 secadoras: cotización Presu_2345-26, US$ 450 + IGV (US$ 531), crédito 30 días, aprobada por gerencia.
-- Postventa (Ariana) emitió el cierre **EFAMEINSA 010-2026** a las 15:12, con factura y transferencia a 30 días. El cliente necesita la factura para poder pagar: **primero se factura, después cobra** (vale igual si fuera contado).
-- Un cierre a crédito no debe pedir voucher. Ariana reportó que se lo pedía; el ingeniero pidió verificarlo.
-- ~~Pendiente: Central genera el pedido y Finanzas emite la factura.~~ El cierre se anuló esa misma tarde (ver arriba).
+### 14-10 15:05 · AGROCASAGRANDE: facturar el servicio de puesta en marcha (llamada con el ingeniero) (resumido)
+- Resumen: servicio de instalación y puesta en marcha de 2 secadoras (Presu_2345-26, US$ 450 + IGV, crédito 30 días) con cierre EFAMEINSA 010-2026; regla: primero se factura, después se cobra; un cierre a crédito no pide voucher. El cierre se anuló esa tarde.
 
 ### 14-10 · Crédito con letras, visto bueno de Finanzas y motivo de la guía
 - **Ninguna venta a crédito o con letras sale sin el visto bueno de Finanzas.**
