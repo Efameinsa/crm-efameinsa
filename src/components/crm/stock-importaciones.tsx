@@ -191,7 +191,12 @@ export function SubirExcelStock({ hayCarga }: { hayCarga: boolean }) {
           const r = await analizarExcelStock(fd);
           if (r.error) toast.error(r.error);
           else {
-            toast.success("Excel leído. Revise la propuesta");
+            toast.success(
+              `${r.entraron ?? 0} máquinas entraron al almacén` +
+                (r.observaciones ? ` · ${r.observaciones} con observaciones por resolver` : "") +
+                (r.noEntran ? ` · ${r.noEntran} no entran (ya están con un cliente)` : ""),
+              { duration: 8000 },
+            );
             router.refresh();
           }
         })
@@ -256,7 +261,8 @@ export function RevisarStock({ carga, existentes }: { carga: CargaStock; existen
   );
 
   const total = carga.filas.length;
-  const decididas = total - cuenta.pendiente;
+  // Lo claro ya entró al leer el Excel (0588); la carga sigue abierta solo por las observaciones.
+  const entraron = carga.filas.filter((f) => f.subida).length;
   const visibles = grupos.filter((g) => {
     if (filtro === "pendientes" && !g.filas.some((f) => f.decision === "pendiente")) return false;
     if (filtro !== "todos" && filtro !== "pendientes" && g.estado !== filtro) return false;
@@ -274,14 +280,14 @@ export function RevisarStock({ carga, existentes }: { carga: CargaStock; existen
       }
       setConfirmar(false);
       setResultado(r.resultado ?? null);
-      toast.success(`Listo: ${r.resultado?.cargadas ?? 0} máquinas entraron al almacén`);
+      toast.success(r.resultado?.sacadas ? `${r.resultado.sacadas} máquinas marcadas como salidas` : "Revisión cerrada");
       router.refresh();
     });
   }
 
   const ayudaFiltro =
     filtro === "pendientes"
-      ? `Solo lo que todavía no decidió. Las ${cuenta.subir} marcadas para subir no se muestran aquí (véalas en «Todos»); ninguna está en el almacén hasta que pulse «Subir al almacén».`
+      ? `Lo que el CRM no pudo resolver solo: falta el código, hay dudas o la serie ya está con un cliente. Lo demás (${entraron} máquinas) ya entró al almacén al leer el Excel; se ve en «Todos».`
       : filtro === "todos"
         ? "Todas las máquinas del Excel, agrupadas."
         : ESTADOS[filtro].ayuda;
@@ -298,23 +304,23 @@ export function RevisarStock({ carga, existentes }: { carga: CargaStock; existen
           <BotonResumenPdf cargaId={carga.id} />
           <p className="w-full text-sm text-muted-foreground sm:w-auto">
             {/* Lesly (21-10): «257 de 273» le sonó a que faltaban máquinas. Se dice lo que falta. */}
-            {/* Santos (22-10) leyó «ya están listas» como «ya subieron»: se dice que nada entró aún. */}
+            {/* Santos (22-10): «que todas suban en automático y solo señale las observaciones». */}
             {cuenta.pendiente === 0
-              ? "Todo decidido · listo para subir (todavía nada está en el almacén)"
-              : `Falta decidir ${cuenta.pendiente} de ${total} · las otras ${decididas} están marcadas, pero todavía nada está en el almacén`}
+              ? `Las ${entraron} máquinas ya están en el almacén`
+              : `${entraron} máquinas ya están en el almacén · ${cuenta.pendiente} con observaciones por resolver`}
           </p>
         </div>
         <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-muted">
-          <div className="bg-emerald-400" style={{ width: `${(cuenta.subir / total) * 100}%` }} title={`${cuenta.subir} van a subir`} />
+          <div className="bg-emerald-400" style={{ width: `${(entraron / total) * 100}%` }} title={`${entraron} ya están en el almacén`} />
           <div className="bg-zinc-300 dark:bg-zinc-600" style={{ width: `${(cuenta.no_subir / total) * 100}%` }} title={`${cuenta.no_subir} no se suben`} />
         </div>
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-emerald-400" /> {cuenta.subir} van a subir</span>
-          <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-muted-foreground/30" /> {cuenta.pendiente} sin decidir</span>
-          <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-zinc-300 dark:bg-zinc-600" /> {cuenta.no_subir} no se suben</span>
+          <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-emerald-400" /> {entraron} en el almacén</span>
+          <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-amber-400" /> {cuenta.pendiente} con observaciones (no entran hasta resolverlas)</span>
+          <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-zinc-300 dark:bg-zinc-600" /> {cuenta.no_subir} no entran</span>
           {codigosNuevos.length > 0 && (
             <span className="inline-flex items-center gap-1 text-orange-700 dark:text-orange-300">
-              <Sparkles className="size-3" /> {codigosNuevos.length} códigos nuevos se van a crear
+              <Sparkles className="size-3" /> {codigosNuevos.length} códigos nuevos creados (en preparación: falta la ficha)
             </span>
           )}
         </div>
@@ -324,7 +330,7 @@ export function RevisarStock({ carga, existentes }: { carga: CargaStock; existen
       <div className="space-y-2">
         <div className="flex flex-wrap gap-2">
           <Pastilla activo={filtro === "pendientes"} onClick={() => setFiltro("pendientes")}>
-            <ListChecks className="size-3.5" /> Por decidir <b>{cuenta.pendiente}</b>
+            <ListChecks className="size-3.5" /> Observaciones <b>{cuenta.pendiente}</b>
           </Pastilla>
           {ORDEN.map((e) =>
             porEstado[e] ? (
@@ -361,8 +367,8 @@ export function RevisarStock({ carga, existentes }: { carga: CargaStock; existen
       {visibles.length === 0 ? (
         <div className="rounded-xl border border-border p-8 text-center">
           <CheckCircle2 className="mx-auto mb-2 size-6 text-emerald-500" />
-          <p className="text-sm">{filtro === "pendientes" ? "No queda nada por decidir." : "Nada con ese filtro."}</p>
-          {filtro === "pendientes" && <p className="text-xs text-muted-foreground">Revise el resumen de abajo y pulse «Subir al almacén».</p>}
+          <p className="text-sm">{filtro === "pendientes" ? "No queda ninguna observación." : "Nada con ese filtro."}</p>
+          {filtro === "pendientes" && <p className="text-xs text-muted-foreground">Todo lo del Excel ya está en el almacén.</p>}
         </div>
       ) : (
         <div className="space-y-2">
@@ -374,24 +380,30 @@ export function RevisarStock({ carga, existentes }: { carga: CargaStock; existen
 
       <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-background/95 p-3 shadow-sm backdrop-blur">
         <p className="text-sm">
-          <b>{cuenta.subir}</b> van a subir{cuenta.pendiente > 0 && <> · <b>{cuenta.pendiente}</b> sin decidir</>}
-          {codigosNuevos.length > 0 && <span className="text-orange-700 dark:text-orange-300"> · {codigosNuevos.length} códigos nuevos</span>}
+          <b>{entraron}</b> en el almacén{cuenta.pendiente > 0 && <> · <b>{cuenta.pendiente}</b> con observaciones</>}
         </p>
         <p className="text-xs text-muted-foreground">
-          Nada entra al almacén hasta pulsar el botón.{cuenta.pendiente > 0 && " Lo que quede sin decidir no se sube; puede volver cuando quiera."}
+          {cuenta.pendiente > 0 ? "Cada observación entra al almacén apenas la resuelve. Puede volver cuando quiera." : "Puede cerrar esta revisión."}
         </p>
-        <Button className="ml-auto" disabled={cuenta.subir === 0 || pendiente} onClick={() => setConfirmar(true)}>
-          <Upload className="size-4" /> Subir al almacén
-        </Button>
+        {carga.ausentes.length > 0 && (
+          <Button variant="outline" className="ml-auto" disabled={pendiente} onClick={() => setConfirmar(true)}>
+            <Upload className="size-4" /> {carga.ausentes.length} del almacén no vinieron en el Excel…
+          </Button>
+        )}
+        {carga.ausentes.length === 0 && cuenta.pendiente === 0 && (
+          <Button variant="outline" className="ml-auto" disabled={pendiente} onClick={subir}>
+            Cerrar la revisión
+          </Button>
+        )}
       </div>
 
       <Dialog open={confirmar} onOpenChange={setConfirmar}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Subir {cuenta.subir} máquinas al almacén</DialogTitle>
+            <DialogTitle>Máquinas del almacén que no vinieron en este Excel</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 text-sm">
-            <p>Cada máquina entra con su serie como disponible. Desde ese momento es el stock que ven las comerciales y el cotizador. Sin costos.</p>
+            <p>Si ya no están en planta (se vendieron o salieron sin pasar por un pedido del CRM), márquelas como salidas. Si cree que es un olvido del Excel, déjelas: siguen contando como stock.</p>
             {codigosNuevos.length > 0 && (
               <div className="rounded-lg border border-dashed border-orange-300 bg-orange-50/50 p-3 dark:border-orange-800 dark:bg-orange-950/20">
                 <p className="flex items-center gap-1.5 font-medium text-orange-800 dark:text-orange-200">
@@ -403,7 +415,7 @@ export function RevisarStock({ carga, existentes }: { carga: CargaStock; existen
                 </p>
               </div>
             )}
-            {cuenta.pendiente > 0 && <p className="text-muted-foreground">{cuenta.pendiente} máquinas sin decidir no se suben.</p>}
+            {cuenta.pendiente > 0 && <p className="text-muted-foreground">Las {cuenta.pendiente} observaciones siguen abiertas: esto no las cierra.</p>}
             {carga.ausentes.length > 0 && (
               <label className="flex items-start gap-2 rounded-lg border border-border p-3">
                 <input type="checkbox" checked={sacarAusentes} onChange={(e) => setSacarAusentes(e.target.checked)} className="mt-1" />
@@ -419,8 +431,8 @@ export function RevisarStock({ carga, existentes }: { carga: CargaStock; existen
             <Button variant="outline" onClick={() => setConfirmar(false)}>
               Volver
             </Button>
-            <Button onClick={subir} disabled={pendiente}>
-              {pendiente ? "Subiendo…" : "Sí, subir"}
+            <Button onClick={subir} disabled={pendiente || !sacarAusentes}>
+              {pendiente ? "Marcando…" : "Marcar como salidas"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -467,6 +479,8 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
       if (r.error) toast.error(r.error);
       else {
         setConfirmarSubir(false);
+        if (d === "subir") toast.success(`${cantidad} ${cantidad === 1 ? "máquina entró" : "máquinas entraron"} al almacén con ${codigo}`);
+        else if (r.bajas) toast.success(`${r.bajas} ${r.bajas === 1 ? "máquina salió" : "máquinas salieron"} del almacén`);
         router.refresh();
       }
     });
@@ -567,11 +581,11 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
             <span className="text-xs text-muted-foreground">Código a usar</span>
             {decision === "subir" && !cambiado && (
               <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300">
-                <CheckCircle2 className="size-3" /> Va a subir
+                <CheckCircle2 className="size-3" /> En el almacén
               </span>
             )}
-            {decision === "no_subir" && <span className="text-[11px] text-muted-foreground">No se sube</span>}
-            {decision === "pendiente" && <span className="text-[11px] text-amber-700 dark:text-amber-300">Sin decidir</span>}
+            {decision === "no_subir" && <span className="text-[11px] text-muted-foreground">No entra</span>}
+            {decision === "pendiente" && <span className="text-[11px] text-amber-700 dark:text-amber-300">Observación: no entra hasta resolverla</span>}
             {decision === "mixta" && <span className="text-[11px] text-muted-foreground">Decisiones distintas</span>}
           </div>
           <Input
@@ -595,7 +609,7 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
               <p className="flex items-start gap-1.5 text-xs">
                 <CircleSlash className="mt-0.5 size-3.5 shrink-0" />
                 <span>
-                  <b>No se sube.</b>{" "}
+                  <b>No entra al almacén.</b>{" "}
                   {f0.ocupada
                     ? `Ya está con ${f0.ocupada.cliente ?? "un cliente"}${f0.ocupada.pedido ? ` (pedido ${f0.ocupada.pedido})` : ""}: pásela a vendido o reserva en el Excel de Importaciones.`
                     : "Queda fuera del almacén."}
@@ -608,7 +622,7 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
                   </p>
                   <div className="flex gap-2">
                     <Button size="sm" variant="destructive" className="flex-1" disabled={pendiente || !codigo} onClick={() => decidir("subir")}>
-                      Sí, sigue en planta: subir
+                      Sí, sigue en planta: que entre
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => setConfirmarSubir(false)}>
                       Cancelar
@@ -623,7 +637,7 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
                     disabled={pendiente || !codigo}
                     onClick={() => (f0.ocupada ? setConfirmarSubir(true) : decidir("subir"))}
                   >
-                    <Upload className="size-3.5" /> Subir de todos modos
+                    <Upload className="size-3.5" /> Que entre de todos modos
                   </Button>
                   <Button size="sm" variant="ghost" disabled={pendiente} onClick={() => decidir("pendiente")}>
                     Deshacer
@@ -636,12 +650,12 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
               <p className="flex items-center gap-1.5 text-xs">
                 <CheckCircle2 className="size-3.5 text-emerald-600" />
                 <span>
-                  <b>Va a subir</b> con <span className="font-mono">{codigo}</span>.
+                  <b>En el almacén</b> con <span className="font-mono">{codigo}</span>.
                 </span>
               </p>
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" disabled={pendiente} onClick={() => decidir("no_subir")}>
-                  <CircleSlash className="size-3.5" /> No subir
+                <Button size="sm" variant="outline" disabled={pendiente} onClick={() => decidir("no_subir")} title="La saca del almacén (queda de baja; se puede volver a cargar)">
+                  <CircleSlash className="size-3.5" /> Sacar del almacén
                 </Button>
                 <Button size="sm" variant="ghost" disabled={pendiente} onClick={() => decidir("pendiente")}>
                   Deshacer
@@ -659,10 +673,10 @@ function TarjetaGrupo({ cargaId, grupo, existentes }: { cargaId: string; grupo: 
                 title={f0.ocupada ? "Esta serie ya está con un cliente: se pide confirmar" : undefined}
               >
                 <CheckCircle2 className="size-4" />{" "}
-                {f0.ocupada && confirmarSubir ? "¿Sigue en planta? Sí, subir" : codigo ? `Subir con ${codigo}` : "Subir"}
+                {f0.ocupada && confirmarSubir ? "¿Sigue en planta? Sí, que entre" : codigo ? `Entra al almacén con ${codigo}` : "Entra al almacén"}
               </Button>
-              <Button size="sm" variant="outline" disabled={pendiente} onClick={() => decidir("no_subir")} title="No se sube como stock libre">
-                <CircleSlash className="size-4" /> No subir
+              <Button size="sm" variant="outline" disabled={pendiente} onClick={() => decidir("no_subir")} title="No entra como stock libre">
+                <CircleSlash className="size-4" /> No entra
               </Button>
             </div>
           )}

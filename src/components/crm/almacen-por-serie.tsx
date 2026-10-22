@@ -135,8 +135,8 @@ export function AlmacenPorSerie({
           <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
             <p className="font-medium text-foreground">El almacén todavía no tiene máquinas.</p>
             <p className="mt-1 max-w-prose">
-              Se llena desde la pestaña «Subir el Excel de stock»: suba el Excel de Importaciones, revise y pulse «Subir al almacén». Desde ahí cada máquina
-              aparece aquí con su serie, y el catálogo y el cotizador cuentan el stock por serie.
+              Se llena desde la pestaña «Subir el Excel de stock»: al leer el Excel de Importaciones, las máquinas entran aquí con su serie en el acto, y el
+              catálogo y el cotizador cuentan el stock por serie. Solo quedan fuera las que tienen observaciones, hasta resolverlas.
             </p>
           </div>
         ) : (

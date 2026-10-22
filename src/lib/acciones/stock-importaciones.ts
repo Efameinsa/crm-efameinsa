@@ -21,6 +21,8 @@ import {
 export interface FilaCarga extends Propuesta {
   decision: "pendiente" | "subir" | "no_subir";
   codigoFinal: string | null;
+  /** Ya entró al almacén (0588): lo claro entra al leer el Excel; una observación, al resolverla. */
+  subida?: boolean;
 }
 
 export interface CargaStock {
@@ -45,6 +47,7 @@ export interface ResultadoSubida {
   sinDecidir: number;
   referencia: number;
   sacadas: number;
+  ultimaSubidaAt?: string;
 }
 
 async function soloOperaciones(): Promise<string | null> {
@@ -165,7 +168,7 @@ export async function buscarSerie(serie: string): Promise<{ error: string | null
 }
 
 /** Lee el Excel, propone un código por máquina y guarda la propuesta para revisarla. */
-export async function analizarExcelStock(formData: FormData): Promise<{ error: string | null; id?: string }> {
+export async function analizarExcelStock(formData: FormData): Promise<{ error: string | null; id?: string; entraron?: number; observaciones?: number; noEntran?: number }> {
   const sinPermiso = await soloOperaciones();
   if (sinPermiso) return { error: sinPermiso };
   const archivo = formData.get("archivo");
@@ -224,8 +227,27 @@ export async function analizarExcelStock(formData: FormData): Promise<{ error: s
     p_ausentes: ausentes,
   });
   if (error) return { error: limpiarError(error.message) };
+
+  // Lo claro ENTRA al almacén en el acto (0588; Santos 22-10: «que todas suban en automático y
+  // solo señale las observaciones»). La carga queda abierta solo por las observaciones.
+  const { data: res, error: errorSubir } = await supabase.rpc("stock_carga_subir", { p_carga: id, p_sacar_ausentes: false, p_indices: null, p_cerrar: false });
+  if (errorSubir) return { error: `El Excel se leyó, pero no pudo entrar al almacén: ${limpiarError(errorSubir.message)}` };
+  await supabase.rpc("catalogo_cotejar_con_almacen");
+  const r = (res ?? {}) as ResultadoSubida;
+  revalidarTodo();
+  return {
+    error: null,
+    id: id as string,
+    entraron: (r.cargadas ?? 0) + (r.iguales ?? 0) + (r.movidas ?? 0),
+    observaciones: r.sinDecidir ?? 0,
+    noEntran: filas.filter((f) => f.decision === "no_subir").length,
+  };
+}
+
+function revalidarTodo() {
   revalidatePath("/operaciones/stock");
-  return { error: null, id: id as string };
+  revalidatePath("/operaciones/catalogo");
+  revalidatePath("/comercial/stock");
 }
 
 export async function decidirStock(
@@ -233,26 +255,29 @@ export async function decidirStock(
   indices: number[],
   decision: "pendiente" | "subir" | "no_subir",
   codigo: string | null,
-): Promise<{ error: string | null }> {
+): Promise<{ error: string | null; entraron?: number; bajas?: number }> {
   const sinPermiso = await soloOperaciones();
   if (sinPermiso) return { error: sinPermiso };
   const supabase = await createClient();
-  const { error } = await supabase.rpc("stock_carga_decidir", {
+  // Decidir «entra» mete esas máquinas al almacén en el acto (0588); «no entra» después de entrar las da de baja.
+  const { data, error } = await supabase.rpc("stock_carga_decidir", {
     p_carga: cargaId,
     p_indices: indices,
     p_decision: decision,
     p_codigo: codigo,
   });
   if (error) return { error: limpiarError(error.message) };
-  revalidatePath("/operaciones/stock");
-  return { error: null };
+  if (decision === "subir") await supabase.rpc("catalogo_cotejar_con_almacen");
+  const r = (data ?? {}) as { cargadas?: number; iguales?: number; movidas?: number; bajas?: number };
+  revalidarTodo();
+  return { error: null, entraron: decision === "subir" ? indices.length : 0, bajas: r.bajas ?? 0 };
 }
 
 export async function subirStock(cargaId: string, sacarAusentes: boolean): Promise<{ error: string | null; resultado?: ResultadoSubida }> {
   const sinPermiso = await soloOperaciones();
   if (sinPermiso) return { error: sinPermiso };
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("stock_carga_subir", { p_carga: cargaId, p_sacar_ausentes: sacarAusentes });
+  const { data, error } = await supabase.rpc("stock_carga_subir", { p_carga: cargaId, p_sacar_ausentes: sacarAusentes, p_indices: null, p_cerrar: true });
   if (error) return { error: limpiarError(error.message) };
   // Cotejo con el catálogo (0586, Carlos 22-10): la cifra vieja «(ref.)» de los equipos
   // que no vinieron en el Excel deja de mostrarse. Si falla, la subida ya está hecha.
