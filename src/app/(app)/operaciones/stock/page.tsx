@@ -94,7 +94,8 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
       cargarProyeccion(supabase),
       cargarContraste(supabase, (revisando?.filas ?? null) as FilaCarga[] | null),
     ]);
-    const puedeEditar = perfil.rol === "operaciones" || perfil.rol === "admin" || !!perfil.es_operaciones;
+    // Santos (22-10): «el gerente también debe poder editar todo».
+    const puedeEditar = ["operaciones", "gerencia", "admin"].includes(perfil.rol) || !!perfil.es_operaciones;
     contenido = <AlmacenPorSerie filas={filas} totales={totales} contraste={contraste} proyeccion={proyeccion} puedeEditar={puedeEditar} />;
   } else {
     const [productos, { data: stock }] = await Promise.all([productosParaComparar(), supabase.rpc("stock_por_producto")]);
