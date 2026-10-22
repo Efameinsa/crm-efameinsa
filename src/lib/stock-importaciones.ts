@@ -45,6 +45,16 @@ export interface FilaStock {
   marca: string | null;
   /** Proveedor según Importaciones (ALLIANCES LAUNDRY, GMP, SIDI MONDIAL…): el resumen general se agrupa por él (22-10). */
   proveedor?: string | null;
+  /** De qué empresa es la máquina, OPEN o EFAMEINSA (Carlos 22-10), si la hoja trae la columna. */
+  empresa?: string | null;
+}
+
+/** OPEN / EFAMEINSA, como lo escriba el Excel («Open », «EFAMEINSA», «Efameinsa S.A.»). */
+export function empresaDe(texto: string | null | undefined): string | null {
+  const t = (texto ?? "").toUpperCase();
+  if (/OPEN/.test(t)) return "OPEN";
+  if (/EFAME/.test(t)) return "EFAMEINSA";
+  return null;
 }
 
 export interface ProductoCatalogo {
@@ -255,6 +265,9 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
     const cIngreso = col("INGRESO");
     const cMarca = col("MARCA");
     const cProveedor = col("PROVEEDOR");
+    // Carlos (22-10): cada máquina dice si es de Open o de Efameinsa. En las hojas de
+    // reserva y vendidos Importaciones lo llama «C. INICIAL» o «SOLICITADO».
+    const cEmpresa = col("EMPRESA", "PERTENECE", "CINICIAL", "SOLICITADO", "PROPIETARIO");
 
     const celda = (r: unknown[], i: number) => (i >= 0 ? r[i] : null);
     const textoDe = (v: unknown) => {
@@ -287,6 +300,7 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
         ingreso: ingreso instanceof Date ? ingreso.toISOString().slice(0, 10) : null,
         marca: textoDe(celda(r, cMarca)) ?? (/LG/i.test(nombre) ? "LG" : null),
         proveedor: textoDe(celda(r, cProveedor)) ?? (/LG/i.test(nombre) ? "LG" : null),
+        empresa: empresaDe(textoDe(celda(r, cEmpresa))),
       });
     });
   }

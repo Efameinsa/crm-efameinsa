@@ -50,7 +50,8 @@ const s = StyleSheet.create({
 });
 
 // A4 vertical: ~543 pt útiles.
-const COL = { codigo: 46, modelo: 64, equipo: 232, stock: 32, marca: 50, serie: 72, disp: 47 };
+// Carlos (22-10): «que se numere, de todas maneras».
+const COL = { n: 20, codigo: 46, modelo: 64, equipo: 212, stock: 32, marca: 50, serie: 72, disp: 47 };
 const COL_LG = { n: 18, modelo: 96, equipo: 329, stock: 40, marca: 60 };
 
 /** Importaciones escribe sin espacios («SECADORA.APIL.ELECT.MOD…»): se dan puntos de corte. */
@@ -132,6 +133,7 @@ function Industriales({ filas }: { filas: FilaStockGeneral[] }) {
               <View wrap={false}>
                 <Text style={s.seccion}>{sec.titulo}</Text>
                 <View style={s.th}>
+                  <Text style={[s.thTxt, { width: COL.n }]}>N.º</Text>
                   <Text style={[s.thTxt, { width: COL.codigo }]}>CÓDIGO</Text>
                   <Text style={[s.thTxt, { width: COL.modelo }]}>MOD.</Text>
                   <Text style={[s.thTxt, { width: COL.equipo }]}>EQUIPO</Text>
@@ -143,6 +145,9 @@ function Industriales({ filas }: { filas: FilaStockGeneral[] }) {
               </View>
               {sec.filas.map((f, i) => (
                 <View key={`${f.serie ?? f.codigo}-${i}`} style={s.fila} wrap={false}>
+                  <View style={[s.celda, { width: COL.n }]}>
+                    <Text style={[s.centrado, s.chico]}>{i + 1}</Text>
+                  </View>
                   <View style={[s.celda, { width: COL.codigo }]}>
                     <Text style={s.centrado}>{f.item ?? "—"}</Text>
                   </View>
