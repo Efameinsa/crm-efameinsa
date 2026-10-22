@@ -10,6 +10,7 @@ import { SemanaPotenciales } from "@/components/crm/semana-potenciales";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { cargarPotenciales, lunesSemana } from "@/lib/potenciales-semana";
 import { contactoRapido, type ContactoFila } from "@/lib/contacto-rapido";
+import { cargarFichasDeOtraCartera, nombreEnLista } from "@/lib/fichas-de-otra-cartera";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +68,11 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   ]);
 
   type FilaOportunidad = NonNullable<typeof delMes>[number];
+  // Sin ficha a la vista = la ficha está en otra cartera (0583, Santos 22-10).
+  const ajenas = await cargarFichasDeOtraCartera(
+    supabase,
+    [...(delMes ?? []), ...(vencidasData ?? []), ...(sinFechaData ?? [])].filter((o) => !o.cuentas).map((o) => o.id),
+  );
   const aAccion = (o: FilaOportunidad): AccionAgenda => ({
     id: o.id,
     etapa: o.etapa,
@@ -77,7 +83,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
     fecha: o.proxima_accion_at,
     hora: o.proxima_accion_hora ? String(o.proxima_accion_hora).slice(0, 5) : null,
     cuentaId: o.cuenta_id,
-    razonSocial: (o.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? "Cuenta sin nombre",
+    razonSocial: (o.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? nombreEnLista(ajenas.get(o.id)),
     contacto: contactoRapido((o.cuentas as unknown as { contactos: ContactoFila[] } | null)?.contactos),
   });
 
@@ -134,6 +140,14 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
       .limit(500),
   ]);
 
+  const sinFichaHechas = [
+    ...(hechasData ?? []).map((a) => ({ id: a.oportunidad_id, o: a.oportunidades })),
+    ...(ventasData ?? []).map((v) => ({ id: v.oportunidad_id, o: v.oportunidades })),
+  ]
+    .filter((x) => !(x.o as unknown as { cuentas: unknown } | null)?.cuentas)
+    .map((x) => x.id);
+  const ajenasHechas = await cargarFichasDeOtraCartera(supabase, sinFichaHechas);
+
   const hechas: HechaAgenda[] = (hechasData ?? []).map((a) => ({
     id: a.id,
     tipo: a.tipo,
@@ -141,7 +155,8 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
     oportunidadId: a.oportunidad_id,
     fecha: String(a.realizada_at).slice(0, 10),
     razonSocial:
-      ((a.oportunidades as unknown as { cuentas: { razon_social: string } | null } | null)?.cuentas?.razon_social) ?? "Cuenta sin nombre",
+      ((a.oportunidades as unknown as { cuentas: { razon_social: string } | null } | null)?.cuentas?.razon_social) ??
+      nombreEnLista(ajenasHechas.get(a.oportunidad_id)),
     contacto: contactoRapido((a.oportunidades as unknown as { cuentas: { contactos: ContactoFila[] } | null } | null)?.cuentas?.contactos),
   }));
 
@@ -152,7 +167,8 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
     monto: v.monto_total,
     moneda: v.moneda,
     razonSocial:
-      ((v.oportunidades as unknown as { cuentas: { razon_social: string } | null } | null)?.cuentas?.razon_social) ?? "Cuenta sin nombre",
+      ((v.oportunidades as unknown as { cuentas: { razon_social: string } | null } | null)?.cuentas?.razon_social) ??
+      nombreEnLista(ajenasHechas.get(v.oportunidad_id)),
     contacto: contactoRapido((v.oportunidades as unknown as { cuentas: { contactos: ContactoFila[] } | null } | null)?.cuentas?.contactos),
   }));
 
