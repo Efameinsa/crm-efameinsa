@@ -294,7 +294,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 ### 2.1 Comercial (C1–C10)
 
-- **Ve:** su cartera (sus fichas y sus expedientes). En la ficha de cada cliente de su cartera ve todo el historial, incluidas las cotizaciones históricas, aunque las haya firmado otro comercial. Por qué: así no cotiza por debajo de lo que otro ya ofreció al mismo cliente (regla del 20-08).
+- **Ve:** su cartera (sus fichas y sus expedientes). En la ficha de cada cliente de su cartera ve todo el historial, incluidas las cotizaciones históricas, aunque las haya firmado otro comercial. Desde el 22-10 también las ve en «Cotizaciones y ventas», con la etiqueta «hecha por Cx» cuando las hizo otra persona («Mis cotizaciones» sigue mostrando solo las suyas). Por qué: así no cotiza por debajo de lo que otro ya ofreció al mismo cliente (regla del 20-08).
 - **No ve:**
   - fichas, cotizaciones ni cierres de otra cartera (el buscador no las encuentra; el PDF de una cotización ajena da «no encontrado»);
   - datos o metas de otros comerciales (gerencia, 24-08);
@@ -613,6 +613,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **Etapas:** Asignada → Filtrada → Cotizada → Seguimiento → Potencial → Venta / Rechazada.
   - «Cotizada» la pone el cotizador.
   - «Venta» solo nace de «Registrar venta» o «Venta ejecutada», nunca a mano. Así se protegen las cifras y la última venta del cliente, que alimenta la regla de cartera.
+  - **«Registrar venta» no tiene botón para deshacerse** (22-10, caso de Brenda). Si se pulsó por error, avise de inmediato a Santos o a gerencia: la venta se anula (queda en gris como «Venta anulada») y la cotización vuelve a quedar lista. No registre otra venta encima.
   - **«Potencial» significa «lo que voy a cerrar esta semana».**
 - **Rechazar exige motivo.** «Busca lavadora doméstica (no industrial)» es un motivo propio: no es spam, porque el motivo se informa a Google y Meta y sirve para afinar los anuncios. «Compra a futuro» va antes que el rechazo.
 - **Salidas que no son pérdida:** «Ya no es mío — pasó a otra área» y «Duplicado o ya no corresponde — archivar».
@@ -888,6 +889,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - «Parecidas» muestra parejas de fichas que podrían ser el mismo cliente, con su porcentaje de coincidencia y el porqué: nombre parecido, un nombre dentro del otro, mismo teléfono o mismo correo.
 - Las dos fichas salen lado a lado: documento, cartera, contactos, dirección, lo que tiene cada una y su última gestión. El CRM propone cuál se queda (la que tiene RUC o más movimiento).
 - Si son el mismo cliente, «Unir» (pide el motivo y, si mueve carteras, el código de operaciones). Si no, «No son el mismo cliente» y la pareja no vuelve a salir.
+- Cómo decidir (respuesta a Central, 22-10): abrir las dos fichas y comparar teléfonos, contactos y dirección; si hay RUC, consultarlo en SUNAT; si los nombres son muy distintos, confirmarlo antes con el comercial de la cartera. **Ante la duda, no unir.**
 - Dos fichas con documentos distintos no se proponen: son clientes distintos. La búsqueda se hace cada noche. La lista abre en 60 % y se puede ver desde 80 % o desde 45 %.
 - La usan Central, operaciones y gerencia.
 
