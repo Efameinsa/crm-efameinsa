@@ -337,12 +337,12 @@ function PanelDelPaso({ r, i, apuros, ruta }: { r: RutaMapa; i: number; apuros: 
   function apurar() {
     if (!area || !e) return;
     empezar(async () => {
-      const res = await apurarDesdeElMapa({ tipo: r.tipo, id: r.id, area, paso: e.clave, etiqueta: e.etiqueta, ruta });
+      const res = await apurarDesdeElMapa({ tipo: r.tipo, id: r.id, area, paso: e.clave, etiqueta: e.etiqueta, ruta, desde: r.desde });
       if (res.error) {
         toast.error(res.error);
         return;
       }
-      toast.success(`Listo: ${nombreApurado} recibió el aviso con sirena${(res.avisoNumero ?? 1) > 1 ? ` (aviso n.º ${res.avisoNumero}; gerencia también se entera)` : ""}.`);
+      toast.success(`Listo: ${nombreApurado} recibió el aviso${(res.avisoNumero ?? 1) <= 2 ? " con zumbido" : " con sirena"}, sin que se le cierre lo que estaba haciendo${(res.avisoNumero ?? 1) > 1 ? ` (aviso n.º ${res.avisoNumero}; gerencia también se entera)` : ""}.`);
       router.refresh();
     });
   }

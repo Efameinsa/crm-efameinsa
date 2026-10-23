@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Map as MapaIcono, Maximize2 } from "lucide-react";
 import { MapaLienzo } from "@/components/crm/mapa-lienzo";
 import { resumenDeRuta, type RutaMapa } from "@/lib/mapa-recorrido";
@@ -14,6 +14,19 @@ import type { ApurosMapa } from "@/lib/mapa-recorrido-datos";
  */
 export function MapaRecorrido({ rutas, apuros, ruta, abierto = false }: { rutas: RutaMapa[]; apuros: ApurosMapa; ruta: string; abierto?: boolean }) {
   const [ver, setVer] = useState<number | null>(abierto ? 0 : null);
+  // Llegar desde un aviso de «Apurar» («#mapa=tipo:id») abre el mapa en ese recorrido.
+  useEffect(() => {
+    const abrirDesdeEnlace = () => {
+      const m = /^#mapa(?:=(\w+):([\w-]+))?/.exec(window.location.hash);
+      if (!m) return;
+      const i = m[1] ? rutas.findIndex((r) => r.tipo === m[1] && r.id === m[2]) : 0;
+      setVer(Math.max(0, i));
+      history.replaceState(null, "", window.location.pathname + window.location.search);
+    };
+    abrirDesdeEnlace();
+    window.addEventListener("hashchange", abrirDesdeEnlace);
+    return () => window.removeEventListener("hashchange", abrirDesdeEnlace);
+  }, [rutas]);
   if (rutas.length === 0) return null;
   return (
     <div id="mapa" className="scroll-mt-4 rounded-xl border border-border bg-card shadow-sm">

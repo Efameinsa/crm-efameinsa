@@ -31,6 +31,7 @@ import {
   sonarZumbido,
 } from "@/lib/sonido-alerta";
 import { pideZumbido, sacudirPantalla } from "@/lib/zumbido";
+import { MapaFlotante, abrirMapaFlotante } from "@/components/crm/mapa-flotante";
 import { tituloDePestanaWhatsapp } from "@/lib/aviso-whatsapp";
 import { anunciarPendientesWhatsapp } from "@/lib/pendientes-whatsapp";
 import type { RolUsuario } from "@/types/database";
@@ -179,6 +180,13 @@ const ESTILO_AVISO: Record<
   },
   // Central apura al almacén por las series de un pedido (0358, 30-09):
   // «alarma, notificación y todo». Igual que la de Finanzas.
+  // El «Apurar» del mapa (Santos 23-10): sin decir quién apura y qué falta, el zumbido solo frustra.
+  apuro_mapa: {
+    encabezado: "📳 Le están apurando: un recorrido está atascado en su área",
+    accion: "Ver en el mapa",
+    duracion: Infinity,
+    tono: "error",
+  },
   urgencia_almacen: {
     encabezado: "🚨 Urgente — Central pide las series",
     accion: "Ver el pedido",
@@ -491,6 +499,7 @@ export function CampanaNotificaciones({
       // Casos de Central (0573): el área tiene que tomarlo.
       "caso_central",
       "caso_central_urgente",
+      "apuro_mapa",
       // Files: pedir y «Terminé» (Central, 30-09) mueven a alguien a caminar.
       "file_pedido",
       "file_recoger",
@@ -514,7 +523,11 @@ export function CampanaNotificaciones({
       action: n.url
         ? {
             label: info.accion,
-            onClick: () => router.push(n.url!),
+            // El «Apurar» abre el mapa ENCIMA de lo que estaba haciendo, sin sacarlo de su pantalla (23-10).
+            onClick: () => {
+              if (n.tipo === "apuro_mapa") void alClickearNotificacion(n);
+              else router.push(n.url!);
+            },
           }
         : undefined,
     });
@@ -748,7 +761,8 @@ export function CampanaNotificaciones({
   // si en esta ruta no hay nada pendiente, no hay nada que apagar. Es fiable
   // porque `refrescar` ya trae TODAS las pendientes, no solo las 15 últimas.
   const pendientesDeEstaRuta = notificaciones
-    .filter((n) => !n.leida_at && n.url === ruta)
+    // «#mapa…» solo abre el mapa al llegar: la ruta es la misma (apuro del mapa, 23-10).
+    .filter((n) => !n.leida_at && (n.url ?? "").split("#")[0] === ruta)
     .map((n) => n.id)
     .join(",");
 
@@ -893,6 +907,8 @@ export function CampanaNotificaciones({
       await marcarNotificacionLeida(n.id);
     }
     setAbierto(false);
+    // El «Apurar» del mapa se abre encima de la pantalla actual, sin sacarlo de lo que hacía (23-10).
+    if (n.url && abrirMapaFlotante(n.url)) return;
     if (tieneDestinoConcreto(n.url)) {
       router.push(n.url!);
       return;
@@ -924,6 +940,8 @@ export function CampanaNotificaciones({
 
   return (
     <div className="relative" ref={contenedorRef}>
+      {/* El mapa que abre el aviso del «Apurar», encima de lo que esté haciendo. */}
+      <MapaFlotante />
       <button
         type="button"
         onClick={() => {

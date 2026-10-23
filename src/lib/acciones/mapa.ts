@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requerirPerfil } from "@/lib/auth";
 import { notificar, notificarAlmacen, notificarCentral, notificarFinanzas } from "@/lib/notificaciones";
-import type { TipoRuta } from "@/lib/mapa-recorrido";
+import { haceCuanto, rutaDeRecepcion, type RutaMapa, type TipoRuta } from "@/lib/mapa-recorrido";
+import { apurosDeRutas, rutasDePedidos, rutasDelCaso, type ApurosMapa } from "@/lib/mapa-recorrido-datos";
 import { conZumbido } from "@/lib/zumbido";
 
 const limpiar = (m: string) => m.replace(/^[A-Z0-9]{5}:\s*/, "");
@@ -19,18 +20,23 @@ const NOMBRE_AREA: Record<AreaApurable, string> = {
   postventa: "postventa",
 };
 
-/** Dónde trabaja ese recorrido cada área: el aviso lleva directo a su pantalla. */
+/**
+ * Dónde trabaja ese recorrido cada área, en una pantalla que TIENE el mapa;
+ * «#mapa=tipo:id» lo abre al llegar, con la etapa atascada a la vista.
+ * Contabilidad y Central lo ven en «Pagos y facturas» del pedido. Un caso que
+ * espera a Central (solicitud) va a su bandeja: ahí no hay mapa.
+ */
 function urlPara(area: AreaApurable, tipo: TipoRuta, id: string): string {
+  const abrir = `#mapa=${tipo}:${id}`;
   if (tipo === "recepcion") return `/recepciones/${id}`;
-  if (tipo === "caso") return area === "central" ? "/central" : `/postventa/atenciones/${id}`;
-  if (area === "almacen") return `/almacen/pedidos/${id}`;
-  if (area === "finanzas") return `/finanzas/pedidos/${id}`;
-  if (area === "contabilidad") return "/facturacion";
-  if (area === "central") return "/central/pedidos";
-  return `/postventa/pedidos/${id}`;
+  if (tipo === "caso") return area === "central" ? "/central" : `/postventa/atenciones/${id}${abrir}`;
+  if (area === "almacen") return `/almacen/pedidos/${id}${abrir}`;
+  if (area === "finanzas") return `/finanzas/pedidos/${id}${abrir}`;
+  if (area === "contabilidad" || area === "central") return `/pedidos/${id}/pagos${abrir}`;
+  return `/postventa/pedidos/${id}${abrir}`;
 }
 
-/** A postventa: quien lleva el caso; si nadie, el área. Con sirena («urgencia»). */
+/** A postventa: quien lleva el caso; si nadie, el área. Con sirena («apuro_mapa»). */
 async function avisarPostventa(tipo: TipoRuta, id: string, titulo: string, cuerpo: string, url: string, esPrueba: boolean) {
   const admin = createAdminClient();
   let ids: string[] = [];
@@ -42,15 +48,15 @@ async function avisarPostventa(tipo: TipoRuta, id: string, titulo: string, cuerp
     const { data } = await admin.from("perfiles").select("id").eq("es_postventa", true).eq("activo", true).eq("es_prueba", esPrueba).is("espejo_de", null);
     ids = (data ?? []).map((p) => p.id as string);
   }
-  await Promise.all(ids.map((userId) => notificar({ userId, tipo: "urgencia", titulo, cuerpo, url })));
+  await Promise.all(ids.map((userId) => notificar({ userId, tipo: "apuro_mapa", titulo, cuerpo, url })));
 }
 
 /** A Contabilidad / Facturación; si no hay nadie activo, a Finanzas (P3: «si Contabilidad no está, autoriza Finanzas»). */
 async function avisarContabilidad(titulo: string, cuerpo: string, url: string, esPrueba: boolean) {
   const admin = createAdminClient();
   const { data } = await admin.from("perfiles").select("id").eq("rol", "facturacion").eq("activo", true).eq("es_prueba", esPrueba).is("espejo_de", null);
-  if (!(data ?? []).length) return notificarFinanzas({ tipo: "urgencia_finanzas", titulo, cuerpo, url, esPrueba });
-  await Promise.all((data ?? []).map((p) => notificar({ userId: p.id as string, tipo: "urgencia_finanzas", titulo, cuerpo, url })));
+  if (!(data ?? []).length) return notificarFinanzas({ tipo: "apuro_mapa", titulo, cuerpo, url, esPrueba });
+  await Promise.all((data ?? []).map((p) => notificar({ userId: p.id as string, tipo: "apuro_mapa", titulo, cuerpo, url })));
 }
 
 /**
@@ -60,7 +66,7 @@ async function avisarContabilidad(titulo: string, cuerpo: string, url: string, e
  * que quien apura lo pueda ver y deja uno cada 15 minutos por área; del
  * segundo apuro en adelante gerencia también se entera.
  */
-export async function apurarDesdeElMapa(datos: { tipo: TipoRuta; id: string; area: AreaApurable; paso: string; etiqueta: string; ruta: string }): Promise<{ error: string | null; avisoNumero?: number }> {
+export async function apurarDesdeElMapa(datos: { tipo: TipoRuta; id: string; area: AreaApurable; paso: string; etiqueta: string; ruta: string; desde?: string | null }): Promise<{ error: string | null; avisoNumero?: number }> {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("apurar_desde_el_mapa", {
@@ -76,14 +82,18 @@ export async function apurarDesdeElMapa(datos: { tipo: TipoRuta; id: string; are
   const de = r.codigo ? ` (${r.codigo})` : "";
   const vez = r.aviso_numero > 1 ? ` Es el aviso n.º ${r.aviso_numero}.` : "";
   // El 1.º y el 2.º apuro llevan el zumbido de Messenger en la pantalla del área (Santos 23-10).
-  const titulo = conZumbido(`${cliente}${de}: ${perfil.nombre} apura a ${NOMBRE_AREA[datos.area]}`, r.aviso_numero);
-  const cuerpo = `Está atascado en «${datos.etiqueta}».${vez}`;
+  const titulo = conZumbido(`${cliente}${de}: ${perfil.nombre} pide mover «${datos.etiqueta}»`, r.aviso_numero);
+  const hace = haceCuanto(datos.desde ?? null);
+  const cuerpo =
+    `El recorrido está detenido en un paso de ${NOMBRE_AREA[datos.area]}${hace ? ` (${hace})` : ""}: «${datos.etiqueta}». ` +
+    (datos.area === "postventa" && datos.tipo === "caso" ? "Es un caso de postventa. " : "") +
+    `Ábralo en el mapa: la etapa en rojo es la que falta; haga ese paso en su pantalla de siempre.${vez}`;
   const url = urlPara(datos.area, datos.tipo, datos.id);
   const esPrueba = r.es_prueba === true;
 
-  if (datos.area === "almacen") await notificarAlmacen({ tipo: "urgencia_almacen", titulo, cuerpo, url, esPrueba });
-  else if (datos.area === "finanzas") await notificarFinanzas({ tipo: "urgencia_finanzas", titulo, cuerpo, url, esPrueba });
-  else if (datos.area === "central") await notificarCentral({ tipo: "urgencia", titulo, cuerpo, url, esPrueba });
+  if (datos.area === "almacen") await notificarAlmacen({ tipo: "apuro_mapa", titulo, cuerpo, url, esPrueba });
+  else if (datos.area === "finanzas") await notificarFinanzas({ tipo: "apuro_mapa", titulo, cuerpo, url, esPrueba });
+  else if (datos.area === "central") await notificarCentral({ tipo: "apuro_mapa", titulo, cuerpo, url, esPrueba });
   else if (datos.area === "contabilidad") await avisarContabilidad(titulo, cuerpo, url, esPrueba);
   else await avisarPostventa(datos.tipo, datos.id, titulo, cuerpo, url, esPrueba);
 
@@ -100,4 +110,25 @@ export async function apurarDesdeElMapa(datos: { tipo: TipoRuta; id: string; are
 
   revalidatePath(datos.ruta);
   return { error: null, avisoNumero: r.aviso_numero };
+}
+
+/**
+ * EL MAPA SIN SALIR DE LO QUE ESTABA HACIENDO (Santos, 23-10: «no debe sacar al
+ * usuario de lo que ya estaba haciendo, pero que quede enterado de qué le
+ * necesitan y le dé una ruta para resolverlo»). El aviso del «Apurar» abre el
+ * mapa en una ventana encima de la pantalla actual: lo lee con la sesión de
+ * quien mira (RLS), sin navegar.
+ */
+export async function cargarMapa(tipo: TipoRuta, id: string): Promise<{ rutas: RutaMapa[]; apuros: ApurosMapa } | null> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  let rutas: RutaMapa[] = [];
+  if (tipo === "caso") rutas = await rutasDelCaso(supabase, id);
+  else if (tipo === "pedido") rutas = await rutasDePedidos(supabase, [id], (x) => `/postventa/pedidos/${x}`);
+  else {
+    const { data } = await supabase.from("recepciones_equipo").select("id, codigo, equipo_texto, created_at, recibido_at, revisado_at, listo_at, resultado").eq("id", id).maybeSingle();
+    if (data) rutas = [rutaDeRecepcion(data as Parameters<typeof rutaDeRecepcion>[0])];
+  }
+  if (!rutas.length) return null;
+  return { rutas, apuros: await apurosDeRutas(supabase, rutas) };
 }
