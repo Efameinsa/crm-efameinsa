@@ -3,6 +3,7 @@ import { fechaLima } from "@/lib/fechas";
 import type { CoincidenciaBandeja } from "@/lib/central/coincidencias-bandeja";
 import { YaEstaEnElSistemaBoton } from "@/components/crm/ya-esta-en-el-sistema-boton";
 import { AvisarYCerrarBoton } from "@/components/crm/avisar-y-cerrar-boton";
+import type { DatosDeQuienEscribe } from "@/lib/central/quien-escribe";
 
 // Cómo se dice cada etapa fuera del CRM. Central no habla en etapas: necesita
 // saber si eso ya se atendió y en qué quedó.
@@ -38,11 +39,13 @@ export function AvisoCoincidencia({
   c,
   mensaje,
   recibidoAt,
+  contacto,
 }: {
   leadId: string;
   c: CoincidenciaBandeja;
   mensaje?: string | null;
   recibidoAt?: string | null;
+  contacto?: DatosDeQuienEscribe | null;
 }) {
   const gestion = c.ultimaEtapa
     ? `${ETIQUETA_ETAPA[c.ultimaEtapa] ?? c.ultimaEtapa}${c.ultimaFecha ? ` el ${fechaLima(c.ultimaFecha)}` : ""}`
@@ -103,6 +106,7 @@ export function AvisoCoincidencia({
             duenio={c.codigoComercial ?? c.comercialNombre ?? "su comercial"}
             mensaje={mensaje}
             recibidoAt={recibidoAt}
+            contacto={contacto}
           />
           {/* Cuando no hay nada nuevo que contar —el mismo mensaje entrado dos
               veces por dos vías— cerrarlo callado sigue siendo lo correcto. */}

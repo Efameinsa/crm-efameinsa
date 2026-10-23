@@ -590,6 +590,7 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
                       c={coincidencias.get(lead.id)!}
                       mensaje={lead.mensaje}
                       recibidoAt={lead.recibido_at}
+                      contacto={lead}
                     />
                     {/* Y el triangulito con la historia: el aviso dice de quién
                         es la ficha; esto dice si esa cartera se está trabajando
