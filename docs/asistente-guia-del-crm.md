@@ -1138,7 +1138,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - quien lo tiene no se lo pide a sí mismo;
   - los intentos fallidos quedan registrados;
   - dos correcciones seguidas necesitan supervisores distintos.
-- **Código de operaciones (Lesly):** para correcciones operativas (aperturas emitidas, protocolos, informes, series, fichas, destino). Ya no sirve para corregir cierres (desde el 15-10).
+- **Código de operaciones (Lesly):** para correcciones operativas (aperturas emitidas, protocolos, informes, series, fichas, destino). Ya no sirve para corregir cierres (desde el 15-10). Desde el 23-10, al corregir un informe de soporte técnico con el código, el texto que muestra la apertura de llamada también se actualiza solo (antes la apertura seguía mostrando los subtítulos viejos aunque el informe numerado ya estuviera corregido; le pasó a Diana con el informe 43-2026).
 - **Código de Central** (desde el 15-10): solo para corregir un cierre emitido o agregarle documentos. Lo dicta Central coordinando con Carlos. Al personal se le indica solo Central.
 - **Código de gerencia:** para lo que tiene impacto económico (devolver un cierre con el proceso avanzado, liberar un pedido sin liquidación, una salida con saldo o sin visto bueno).
 - **Por orden directa de Santos (gerencia)** se puede hacer una operación sin el código de operaciones, dejando rastro: «por orden de Santos (gerencia)». No aplica a pedidos que lleguen por otra vía.
