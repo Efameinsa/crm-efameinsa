@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePendientesWhatsapp } from "@/lib/pendientes-whatsapp";
+import { ChatsEnElMenu } from "@/components/crm/chats-en-el-menu";
 import type { RolUsuario } from "@/types/database";
 
 const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icono: LucideIcon }[]> = {
@@ -574,6 +575,8 @@ export function NavLateral({
           })}
         </div>
       ))}
+      {/* Los chats de cada caso y pedido donde está (0599, Santos 23-10). */}
+      <ChatsEnElMenu estilo="sidebar" plegada={plegada} />
     </nav>
   );
 }

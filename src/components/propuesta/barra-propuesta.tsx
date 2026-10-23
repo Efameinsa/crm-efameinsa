@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PinSupervisor } from "@/components/crm/pin-supervisor";
+import { ChatsEnElMenu } from "@/components/crm/chats-en-el-menu";
 import type { Icono, OpcionMenu } from "@/lib/propuesta/menu";
 
 export const ICONOS: Record<Icono, LucideIcon> = {
@@ -161,6 +162,8 @@ export function BarraPropuesta({
             </Link>
           );
         })}
+        {/* Los chats de cada caso y pedido donde está (0599, Santos 23-10). */}
+        {!demo && <ChatsEnElMenu estilo="carbon" movil={movil} alNavegar={alNavegar} />}
       </nav>
       {verComo && verComo.length > 0 && (
         <div className="mt-3 border-t border-sidebar-border px-3 pt-3">
