@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 23-10 (15:30) · La apertura de servicio interno con lo que pide Brenda (Brenda, Santos)
+- Brenda (PV2) escribió por WhatsApp lo que la apertura de servicio interno «tiene que tener»: fecha de compra, fecha del primer mantenimiento, fecha del mantenimiento correctivo, si se le vendió repuesto, fecha de puesta en marcha, el problema (motivo por el cual viene a planta) y marcar la opción de servicio: mantenimiento preventivo, correctivo o revisión. Santos recordó que la apertura interna/externa se había pedido en la reunión del 20-10 y preguntó si estaba hecha.
+- Sí estaba desde el 20-10 (noche) y en producción; lo que faltaba eran esos campos. Hecho y desplegado el mismo 23-10: la apertura interna pide el servicio en planta (obligatorio), el problema por el que viene a planta, y las tres fechas nuevas, que el CRM propone desde la ficha del equipo y sus informes de servicio emitidos. Todo sale en la hoja de la apertura, en el pedido y en la recepción del almacén.
+
 ### 23-10 · Central deriva solo a Postventa (área) y el aviso al comercial dice quién escribió (Santos, Central, Katerine)
 - **Postventa es un área, no una persona (Santos, 23-10; ya lo había dicho gerencia el 29-09):** «Central solo debe derivar a postventa y postventa es un área; cada integrante solito toma el caso como si fuera suyo, pero entre comillas suyo porque es del área; si lo asigna a un personal ya sería un problema». Se midió que en 30 días Central mandó 153 de 158 casos a una persona con nombre. Desde el 23-10 la bandeja de Central ofrece de postventa solo «Postventa (área)»; si por otra vía se elige a una persona de postventa, el CRM lo manda igual al área. El caso queda a nombre de la primera persona de postventa que lo gestiona. Una carpeta que ya tiene quién la lleva no se mueve al derivar al área.
 - **El aviso de Central al comercial dice quién escribió (Central por el buzón, caso de Katerine):** un formulario de la web de un cliente de Katerine (HILMOT) entró como prospecto; Central pulsó «Avisarle a C5» y a Katerine le llegó solo la ciudad y la campaña, sin el nombre ni el número de quien escribió. Desde el 23-10 la nota empieza con «Escribió: nombre · teléfono · correo» y así llega al historial del cliente y a la campana del comercial; si Central cambia el texto, esos datos se agregan solos. Se completaron los 4 avisos de ese día. Lo mismo vale al derivar un aviso.
@@ -70,49 +74,63 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 - **Hecho el mismo día (ver la guía, «Almacén por serie», «El almacén sigue al pedido», «Elegir del almacén», «Lo que está por llegar», «Cotejo con el catálogo» y «El inventario que ve el comercial»):** el almacén por serie numerado con totales en pantalla y filtros por proveedor, marca y empresa; la reserva y la salida automáticas desde el pedido; la proyección de lo que viene de Importaciones (se ve, no suma); el cotejo con el catálogo al subir el Excel; el inventario para el comercial con columnas ocultas y marca de agua; y gerencia ve «Stock y códigos» en su menú (Carlos: «ese módulo todavía no lo puedo ver yo»). Tu Excel «ya debería estar en la historia» (Carlos a Lesly).
 - **Pendientes.** (1) Lesly: terminar la revisión y pulsar «Subir al almacén» (hasta entonces el catálogo sigue con la cifra vieja), poner los códigos que faltan (UCT060), abrir las Bimap para la serie real, hacer las fichas de los códigos nuevos (medidas del catálogo de EE. UU., no de Internet) y anotar lo que Importaciones tiene en camino. (2) Santos: aclarar con Carlos la serie por defecto (Open en todo, o Efameinsa para equipos como está desde el 21-10); el correo W0 de visita a la web nueva sale primero; los demás correos y los artículos, después y con doble revisión. (3) Brenda: el ingreso de una máquina a planta y pedir stock a Importaciones o al almacén al cotizar quedaron como «siguiente etapa».
 
-### 22-10 (10:08) · El «Resumen general de stock» de los lunes lo arma el CRM (Santos, Lesly) (resumido)
+### 22-10 (10:08) · El «Resumen general de stock» de los lunes lo arma el CRM (Santos, Lesly)
+ (resumido)
 - Resumen: Lesly pidió que el «Resumen general de stock» que Importaciones entrega los lunes a las comerciales salga del CRM en dos documentos (industriales por proveedor y tipo; LG consolidado por modelo, con totales). Ese mismo día quedaron los botones «Industriales (PDF)» y «LG (PDF)» en «Stock y códigos» y en «Stock» del comercial; al subir el Excel el almacén guarda código de Importaciones, descripción, modelo, capacidad y proveedor. Una celda UBICACIÓN con un número (costo corrido) se lee como PLANTA; una serie que estaba a la vez en stock y vendida viene como «No subir».
 
-### 22-10 · Lo que llegó de postventa, Central y Katerine (Brenda, Central, Katerine, Santos) (resumido)
+### 22-10 · Lo que llegó de postventa, Central y Katerine (Brenda, Central, Katerine, Santos)
+ (resumido)
 - Resumen: **El historial del caso no se edita** (Brenda, CASO-00026): cada línea dice de dónde viene y «Ver ›» lleva a ese lugar; para corregir se registra una gestión nueva (permitir editar sería decisión de gerencia). **Venta registrada por error** (Brenda, Granja Rinconada del Sur): Santos la anuló (queda en gris como «Venta anulada»); si le pasa, avise de inmediato a Santos o a gerencia y no registre otra encima; el botón «Anular venta» está por confirmar. **Cotizaciones de los clientes de su cartera** (Katerine, Clínica Jesús del Norte): desde el 22-10 el comercial ve también las del archivo hechas por otra persona («hecha por Cx»). **«Fichas repetidas»** (Central): si es el mismo cliente, «Unir a la primera» con una frase de por qué; si no, «No son el mismo cliente»; comparar teléfonos, contactos, dirección y RUC en SUNAT, y **ante la duda, no unir**. **Más clientes movidos a C1** (Katerine): VITALIAN y otros cuatro, todos soporte técnico derivado por Central a la cuenta comercial C1; se deshicieron los seis.
 
-### 22-10 · «Cuenta sin nombre» ahora dice de quién es la ficha (Santos, Katerine) (resumido)
+### 22-10 · «Cuenta sin nombre» ahora dice de quién es la ficha (Santos, Katerine)
+ (resumido)
 - Resumen: a Katerine no le aparecía la Clínica Jesús del Norte porque la ficha con RUC era de otra cartera y ella solo tenía fichas sin RUC; su expediente decía «Cuenta sin nombre». Se unieron las tres fichas y el cliente pasó a Katerine (las ventas antiguas siguen contadas a quien las hizo). Desde el 22-10 el expediente muestra nombre, RUC, en qué cartera está la ficha y «pedirlo para mi cartera» (también en Hoy, agenda y cierres). Pendiente (gerencia, por confirmar): una lista para decidir en bloque unos 220 expedientes en esta situación.
 
-### 21-10 (noche) · La serie de facturación sale sola y lo que resolvió el buzón (gerencia, Lesly, almacén, Diana, Jhon) (resumido)
+### 21-10 (noche) · La serie de facturación sale sola y lo que resolvió el buzón (gerencia, Lesly, almacén, Diana, Jhon)
+ (resumido)
 - Resumen: desde el 21-10 la serie sale sola: equipos con EFAMEINSA, repuestos y servicios con OPEN, sin motivo, en cotizador y cierre (antes «Open primero» con justificación; ver la entrada del 22-10 10:29, por confirmar con Carlos). La serie de la secadora de la torre se corrige o quita con código y queda escrita en el pedido con aviso a Central, postventa y almacén (Lesly). Un accesorio que acompaña a la máquina principal del pedido solo pide fotos (almacén, VITALIAN). «Todo N/A» por energía en las hojas de calderín, prensa y rodillo (Diana). Cuando se corrige un cierre y cambia el total, el pedido abierto toma el nuevo total solo (Jhon; detalle en Finanzas).
 
-### 21-10 · El stock de Importaciones se sube codificado al CRM (Lesly, el ingeniero, Santos) (resumido)
+### 21-10 · El stock de Importaciones se sube codificado al CRM (Lesly, el ingeniero, Santos)
+ (resumido)
 - Resumen: Lesly codificaba a mano el Excel de stock de Importaciones y se le duplicaban códigos; desde el 21-10 lo sube a «Stock y códigos» y el CRM propone el código de cada máquina. Reglas del ingeniero ese día: solo hojas de stock (industriales y LG), sin reserva ni vendidos, y sin costos (antes era; desde el 23-10 gerencia decidió que el costo sí figure, visible solo para operaciones y gerencia). La primera comparación (282 máquinas) encontró lavadoras Giant C Max con código de secadora, códigos inexistentes, series en planta que ya tenían cliente y fichas cruzadas en el catálogo; Lesly las revisó con Santos el mismo día (código por panel M9/M30, código nuevo para las Sailstar con aire FRL).
 
 ### 20-10 (tarde y noche) · Brenda corrige los datos de cualquier cliente, antecedentes del equipo y fichas unidas (Santos, Brenda, almacén) (resumido)
 - Resumen: Brenda corrige desde PV2 y C1 nombre, RUC o DNI, rubro, dirección de la empresa y contactos de cualquier cliente (el dueño recibe aviso; caso Family Farms); ese poder es sobre los datos, no sobre lo comercial (Santos revirtió que PV2 viera cotizaciones de otras carteras); «Antecedentes del equipo» en la ficha del equipo y el caso; se unieron LAVIPRONTO, Operador Nacional de Hoteles y Family Farms; «Salieron, sin guía» cuenta igual en el Panorama y en la lista.
 
-### 21-10 · Imágenes que completan una gestión, sin registrar otra (Santos) (resumido)
+### 21-10 · Imágenes que completan una gestión, sin registrar otra (Santos)
+ (resumido)
 - Resumen: en el historial del expediente cada gestión tiene un «+» para agregar imágenes sin registrar una gestión nueva (Santos: inventar una gestión para colgar una foto ensuciaba la historia). Lo agregado queda con nombre y hora; la nota no se toca.
 
-### 21-10 (tarde) · Letras, fichas unidas, una cartera que se movió por error y fotos en la gestión (Santos) (resumido)
+### 21-10 (tarde) · Letras, fichas unidas, una cartera que se movió por error y fotos en la gestión (Santos)
+ (resumido)
 - Resumen: las letras entregadas las confirma Finanzas (antes también almacén y postventa). Se unieron unas 640 parejas de fichas parecidas al 100 % (menos las de WhatsApp con solo un nombre). Caso Servicios Alimenticios y Afines: el cliente «desapareció» de la cartera de Katerine porque Central derivó un reclamo a la cuenta comercial C1 en vez de a postventa; se deshizo. **Lección:** un reclamo de postventa va a Postventa (área); ante «el cliente desapareció de mi cartera», mirar primero quién lo derivó. El afiche del almuerzo del 22-10 se publicó como comunicado interno.
 
-### 21-10 · Agenda del almacén y su cierre del día (Santos) (resumido)
+### 21-10 · Agenda del almacén y su cierre del día (Santos)
+ (resumido)
 - Resumen: Santos pidió la agenda del almacén enfocada en sus actividades. Las tareas son del área; la meta es cero colgados (ninguna prueba esperando más de 2 días, ningún despacho atrasado, ninguna salida sin cerrar); gerencia ve su cierre del día. Antes se midió que en 18 de 25 salidas no quedaba quién las hizo: ahora todo deja rastro. Pendiente: mapear las «otras gestiones» recurrentes cuando Lesly y Diana las enumeren.
 
-### 21-10 · El protocolo ya no pide Word (Lesly) (resumido)
+### 21-10 · El protocolo ya no pide Word (Lesly)
+ (resumido)
 - Resumen: ninguna máquina exige PDF ni Word para «Probada y embalada» ni para terminar un protocolo de stock (Lesly); se piden fotos, modelo de la placa, serie, técnico y, si hay hoja, una casilla. Lo que se cambia en almacén para Lesly vale para todas las cuentas de almacén.
 
-### 21-10 · Central deriva casos a Finanzas y Facturación (Santos) (resumido)
+### 21-10 · Central deriva casos a Finanzas y Facturación (Santos)
+ (resumido)
 - Resumen: a pedido de Santos, Central deriva casos a Finanzas y Facturación («Derivar a un área»; cada área tiene «Casos de Central»), porque antes solo tenía la urgencia sobre un pedido liberado y lo demás iba por WhatsApp. Urgente = 2 horas; si nadie lo toma vuelve a sonar y se enteran Central y gerencia. RR. HH. queda para cuando tenga cuenta.
 
-### 21-10 · El pedido de servicio no pasa por el almacén (Santos) (resumido)
+### 21-10 · El pedido de servicio no pasa por el almacén (Santos)
+ (resumido)
 - Resumen: Santos: al almacén se le pide código solo cuando es producto. En el paso 1 del pedido Central elige Producto o Servicio; con servicio el pedido nace sin avisar al almacén y trae un «Detalle del servicio» editable (descripción, cantidad, serie, precio opcional).
 
-### 21-10 · Central edita «Equipos y series» del pedido (Santos, por Central) (resumido)
+### 21-10 · Central edita «Equipos y series» del pedido (Santos, por Central)
+ (resumido)
 - Resumen: el pedido de FAMILY FARMS (dos preventivos) salió sin detalle porque las líneas de servicio no arman fila. Desde el 21-10 Central puede traer las líneas del cierre, agregar equipo o trabajo, corregir el texto y quitar filas hasta que el pedido salga; cada cambio queda en las observaciones.
 
-### 21-10 · Fichas parecidas para revisar a mano (Santos) (resumido)
+### 21-10 · Fichas parecidas para revisar a mano (Santos)
+ (resumido)
 - Resumen: «Fichas repetidas» tiene la pestaña «Parecidas» con cada pareja lado a lado y su porcentaje para unir o descartar a mano (Santos).
 
-### 21-10 · «El macro» del almacén y operaciones (Lesly, por Santos) (resumido)
+### 21-10 · «El macro» del almacén y operaciones (Lesly, por Santos)
+ (resumido)
 - Resumen: «El macro» de almacén y operaciones, como el de postventa, con cada número enlazado (Lesly).
 
 ### 20-10 (tarde, 15:45) · Casos que se terminan, fichas gemelas, torre y stock (gerencia con Lesly, Brenda y Santos) (resumido)
