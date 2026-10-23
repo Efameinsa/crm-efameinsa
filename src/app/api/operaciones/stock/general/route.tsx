@@ -97,7 +97,11 @@ export async function GET(request: Request) {
     const { data: ultima } = await admin
       .from("stock_cargas")
       .select("archivo, filas, subida_at")
-      .eq("estado", "subida")
+      // Desde 0588 lo claro entra al leer el Excel y la carga sigue «revisando» mientras
+      // queden observaciones: también cuenta como Excel subido (Santos 23-10: el PDF decía
+      // «todavía no se subió ningún Excel» con 35 máquinas ya en el almacén).
+      .in("estado", ["subida", "revisando"])
+      .not("subida_at", "is", null)
       .eq("es_prueba", false)
       .eq("empresa", empresa)
       .order("subida_at", { ascending: false })
