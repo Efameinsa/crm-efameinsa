@@ -87,3 +87,29 @@ export async function apurosDeRutas(supabase: SupabaseClient, rutas: RutaMapa[])
   }
   return out;
 }
+
+/**
+ * Mensajes sin leer del chat de cada ruta (0592): lo que escribieron otros
+ * después de la última vez que esta persona abrió el chat.
+ */
+export async function noLeidosDeChats(supabase: SupabaseClient, rutas: RutaMapa[], userId: string): Promise<Record<string, number>> {
+  const conChat = rutas.filter((r) => r.tipo !== "recepcion");
+  if (!conChat.length) return {};
+  const { data: lecturas } = await supabase.from("chat_lecturas").select("tipo, objeto_id, leido_hasta").eq("user_id", userId).in("objeto_id", conChat.map((r) => r.id));
+  const hasta = new Map(((lecturas ?? []) as { tipo: string; objeto_id: string; leido_hasta: string }[]).map((l) => [`${l.tipo}:${l.objeto_id}`, l.leido_hasta]));
+  const out: Record<string, number> = {};
+  await Promise.all(
+    conChat.map(async (r) => {
+      let q = supabase
+        .from("chat_mensajes")
+        .select("id", { count: "exact", head: true })
+        .eq(r.tipo === "caso" ? "atencion_id" : "servicio_id", r.id)
+        .neq("autor_id", userId);
+      const h = hasta.get(`${r.tipo}:${r.id}`);
+      if (h) q = q.gt("created_at", h);
+      const { count } = await q;
+      out[`${r.tipo}:${r.id}`] = count ?? 0;
+    }),
+  );
+  return out;
+}

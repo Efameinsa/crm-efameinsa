@@ -32,6 +32,7 @@ import {
 } from "@/lib/sonido-alerta";
 import { pideZumbido, sacudirPantalla } from "@/lib/zumbido";
 import { MapaFlotante, abrirMapaFlotante } from "@/components/crm/mapa-flotante";
+import { ChatFlotante, abrirChatDelEnlace, chatEstaAbierto } from "@/components/crm/chat-flotante";
 import { tituloDePestanaWhatsapp } from "@/lib/aviso-whatsapp";
 import { anunciarPendientesWhatsapp } from "@/lib/pendientes-whatsapp";
 import type { RolUsuario } from "@/types/database";
@@ -180,6 +181,13 @@ const ESTILO_AVISO: Record<
   },
   // Central apura al almacén por las series de un pedido (0358, 30-09):
   // «alarma, notificación y todo». Igual que la de Finanzas.
+  // El chat del caso (0592): discreto, no saca a nadie de lo que hace; «Responder» abre el chat encima.
+  chat_caso: {
+    encabezado: "💬 Le escribieron en el chat de un caso",
+    accion: "Responder",
+    duracion: 12000,
+    tono: "info",
+  },
   // El «Apurar» del mapa (Santos 23-10): sin decir quién apura y qué falta, el zumbido solo frustra.
   apuro_mapa: {
     encabezado: "📳 Le están apurando: un recorrido está atascado en su área",
@@ -468,6 +476,8 @@ export function CampanaNotificaciones({
     window.dispatchEvent(
       new CustomEvent("crm:aviso", { detail: { tipo: n.tipo, url: n.url } }),
     );
+    // Un mensaje del chat que la persona ya tiene abierto no interrumpe: aparece en la conversación.
+    if (n.tipo === "chat_caso" && n.url && chatEstaAbierto(n.url)) return;
     if (n.tipo === "whatsapp_mensaje") {
       avisarWhatsapp(n);
       return;
@@ -525,7 +535,7 @@ export function CampanaNotificaciones({
             label: info.accion,
             // El «Apurar» abre el mapa ENCIMA de lo que estaba haciendo, sin sacarlo de su pantalla (23-10).
             onClick: () => {
-              if (n.tipo === "apuro_mapa") void alClickearNotificacion(n);
+              if (n.tipo === "apuro_mapa" || n.tipo === "chat_caso") void alClickearNotificacion(n);
               else router.push(n.url!);
             },
           }
@@ -711,7 +721,7 @@ export function CampanaNotificaciones({
               // El aviso de WhatsApp REEMPLAZA al pendiente del mismo chat (el
               // servidor ya borró el anterior): no suma uno más al número.
               const reemplaza = (n: Notificacion) =>
-                nueva.tipo === "whatsapp_mensaje" && n.tipo === "whatsapp_mensaje" && n.url === nueva.url && !n.leida_at;
+                (nueva.tipo === "whatsapp_mensaje" || nueva.tipo === "chat_caso") && n.tipo === nueva.tipo && n.url === nueva.url && !n.leida_at;
               let reemplazadas = 0;
               setNotificaciones((prev) => {
                 reemplazadas = prev.filter(reemplaza).length;
@@ -908,7 +918,7 @@ export function CampanaNotificaciones({
     }
     setAbierto(false);
     // El «Apurar» del mapa se abre encima de la pantalla actual, sin sacarlo de lo que hacía (23-10).
-    if (n.url && abrirMapaFlotante(n.url)) return;
+    if (n.url && (abrirMapaFlotante(n.url) || abrirChatDelEnlace(n.url))) return;
     if (tieneDestinoConcreto(n.url)) {
       router.push(n.url!);
       return;
@@ -942,6 +952,8 @@ export function CampanaNotificaciones({
     <div className="relative" ref={contenedorRef}>
       {/* El mapa que abre el aviso del «Apurar», encima de lo que esté haciendo. */}
       <MapaFlotante />
+      {/* El chat de cada caso, flotando abajo a la derecha sobre cualquier pantalla (0592). */}
+      <ChatFlotante />
       <button
         type="button"
         onClick={() => {

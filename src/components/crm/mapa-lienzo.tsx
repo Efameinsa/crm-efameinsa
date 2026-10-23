@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "@/components/enlace";
 import { toast } from "sonner";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { BellRing, Check, Loader2, Maximize2, Minus, Plus, X } from "lucide-react";
+import { BellRing, Check, Loader2, Maximize2, MessageCircle, Minus, Plus, X } from "lucide-react";
+import { abrirChat } from "@/components/crm/chat-flotante";
+import type { AreaChat } from "@/lib/chat";
 import { Button } from "@/components/ui/button";
 import { apurarDesdeElMapa } from "@/lib/acciones/mapa";
 import { ETIQUETA_AREA, areaQueSeApura, haceCuanto, resumenDeRuta, type AreaMapa, type RutaMapa } from "@/lib/mapa-recorrido";
@@ -118,14 +120,14 @@ export function MapaLienzo({
               <X className="size-4" />
             </DialogPrimitive.Close>
           </header>
-          <Lienzo key={`${r.tipo}:${r.id}`} r={r} apuros={apuros} ruta={ruta} />
+          <Lienzo key={`${r.tipo}:${r.id}`} r={r} apuros={apuros} ruta={ruta} alCerrar={() => alCambiar(false)} />
         </DialogPrimitive.Popup>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
   );
 }
 
-function Lienzo({ r, apuros, ruta }: { r: RutaMapa; apuros: ApurosMapa; ruta: string }) {
+function Lienzo({ r, apuros, ruta, alCerrar }: { r: RutaMapa; apuros: ApurosMapa; ruta: string; alCerrar: () => void }) {
   const { usados, nodos, W, H } = useMemo(() => disponer(r), [r]);
   const [elegida, setElegida] = useState(r.actual >= 0 ? r.actual : r.etapas.length - 1);
   const caja = useRef<HTMLDivElement>(null);
@@ -319,16 +321,30 @@ function Lienzo({ r, apuros, ruta }: { r: RutaMapa; apuros: ApurosMapa; ruta: st
         </div>
       </div>
       </div>
-      <PanelDelPaso r={r} i={elegida} apuros={apuros} ruta={ruta} />
+      <PanelDelPaso r={r} i={elegida} apuros={apuros} ruta={ruta} alCerrar={alCerrar} />
     </div>
   );
 }
 
-function PanelDelPaso({ r, i, apuros, ruta }: { r: RutaMapa; i: number; apuros: ApurosMapa; ruta: string }) {
+/** El área del chat que corresponde a la etapa (el técnico lo programa postventa; al cliente no se le escribe aquí). */
+const AREA_CHAT_DE: Partial<Record<AreaMapa, AreaChat>> = {
+  central: "central",
+  almacen: "almacen",
+  finanzas: "finanzas",
+  contabilidad: "contabilidad",
+  postventa: "postventa",
+  tecnico: "postventa",
+  comercial: "comercial",
+};
+
+function PanelDelPaso({ r, i, apuros, ruta, alCerrar }: { r: RutaMapa; i: number; apuros: ApurosMapa; ruta: string; alCerrar: () => void }) {
   const e = r.etapas[i];
   const router = useRouter();
   const [pendiente, empezar] = useTransition();
+  const [nota, setNota] = useState("");
   if (!e) return null;
+  const conChat = r.tipo !== "recepcion";
+  const areaChat = AREA_CHAT_DE[e.area] ?? null;
   const est = estadoDe(r, i);
   const area = areaQueSeApura(e.area);
   const apuro = area ? apuros[`${r.tipo}:${r.id}:${area}`] : undefined;
@@ -337,12 +353,13 @@ function PanelDelPaso({ r, i, apuros, ruta }: { r: RutaMapa; i: number; apuros: 
   function apurar() {
     if (!area || !e) return;
     empezar(async () => {
-      const res = await apurarDesdeElMapa({ tipo: r.tipo, id: r.id, area, paso: e.clave, etiqueta: e.etiqueta, ruta, desde: r.desde });
+      const res = await apurarDesdeElMapa({ tipo: r.tipo, id: r.id, area, paso: e.clave, etiqueta: e.etiqueta, ruta, desde: r.desde, nota });
       if (res.error) {
         toast.error(res.error);
         return;
       }
       toast.success(`Listo: ${nombreApurado} recibió el aviso${(res.avisoNumero ?? 1) <= 2 ? " con zumbido" : " con sirena"}, sin que se le cierre lo que estaba haciendo${(res.avisoNumero ?? 1) > 1 ? ` (aviso n.º ${res.avisoNumero}; gerencia también se entera)` : ""}.`);
+      setNota("");
       router.refresh();
     });
   }
@@ -373,6 +390,16 @@ function PanelDelPaso({ r, i, apuros, ruta }: { r: RutaMapa; i: number; apuros: 
       {est === "actual" && e.area === "cliente" && <p className="mt-2 text-xs text-muted-foreground">Le toca al cliente: llámelo o escríbale desde la ficha.</p>}
       {est === "actual" && area && (
         <div className="mt-4 space-y-1.5">
+          {conChat && (
+            <textarea
+              value={nota}
+              onChange={(ev) => setNota(ev.target.value)}
+              maxLength={500}
+              rows={2}
+              placeholder="¿Qué necesita? (opcional: va en el aviso y queda en el chat del caso)"
+              className="w-full resize-none rounded-md border border-border bg-background px-2.5 py-1.5 text-xs outline-none focus:border-primary"
+            />
+          )}
           <Button type="button" variant="destructive" onClick={apurar} disabled={pendiente} className="w-full">
             {pendiente ? <Loader2 className="size-4 animate-spin" /> : <BellRing className="size-4" />}
             Apurar a {nombreApurado}
@@ -383,6 +410,21 @@ function PanelDelPaso({ r, i, apuros, ruta }: { r: RutaMapa; i: number; apuros: 
               : "Le llega un aviso con sirena. Una vez cada 15 minutos; desde el segundo, también a gerencia."}
           </p>
         </div>
+      )}
+      {conChat && (
+        <Button
+          type="button"
+          variant="outline"
+          className="mt-3 w-full"
+          onClick={() => {
+            // El mapa se cierra para que el chat (que flota abajo a la derecha) quede libre para escribir.
+            alCerrar();
+            abrirChat(r.tipo as "caso" | "pedido", r.id, est === "actual" ? areaChat : null);
+          }}
+        >
+          <MessageCircle className="size-4" />
+          {est === "actual" && areaChat ? `Escribir a ${nombreApurado} en el chat` : "Abrir el chat de este recorrido"}
+        </Button>
       )}
       {r.enlace && !ruta.startsWith(r.enlace) && (
         <Link href={r.enlace} className="mt-4 inline-block text-xs font-medium text-primary hover:underline">

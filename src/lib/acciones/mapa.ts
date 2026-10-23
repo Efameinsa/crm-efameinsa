@@ -66,7 +66,7 @@ async function avisarContabilidad(titulo: string, cuerpo: string, url: string, e
  * que quien apura lo pueda ver y deja uno cada 15 minutos por área; del
  * segundo apuro en adelante gerencia también se entera.
  */
-export async function apurarDesdeElMapa(datos: { tipo: TipoRuta; id: string; area: AreaApurable; paso: string; etiqueta: string; ruta: string; desde?: string | null }): Promise<{ error: string | null; avisoNumero?: number }> {
+export async function apurarDesdeElMapa(datos: { tipo: TipoRuta; id: string; area: AreaApurable; paso: string; etiqueta: string; ruta: string; desde?: string | null; nota?: string | null }): Promise<{ error: string | null; avisoNumero?: number }> {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("apurar_desde_el_mapa", {
@@ -84,10 +84,23 @@ export async function apurarDesdeElMapa(datos: { tipo: TipoRuta; id: string; are
   // El 1.º y el 2.º apuro llevan el zumbido de Messenger en la pantalla del área (Santos 23-10).
   const titulo = conZumbido(`${cliente}${de}: ${perfil.nombre} pide mover «${datos.etiqueta}»`, r.aviso_numero);
   const hace = haceCuanto(datos.desde ?? null);
+  const nota = (datos.nota ?? "").trim().slice(0, 500);
   const cuerpo =
     `El recorrido está detenido en un paso de ${NOMBRE_AREA[datos.area]}${hace ? ` (${hace})` : ""}: «${datos.etiqueta}». ` +
     (datos.area === "postventa" && datos.tipo === "caso" ? "Es un caso de postventa. " : "") +
+    (nota ? `Le piden: «${nota}». ` : "") +
     `Ábralo en el mapa: la etapa en rojo es la que falta; haga ese paso en su pantalla de siempre.${vez}`;
+
+  // EL APURO QUEDA EN EL CHAT DEL CASO (0592): quién apuró, a qué área, en qué paso y qué pidió.
+  if (datos.tipo !== "recepcion") {
+    await supabase.rpc("enviar_mensaje_chat", {
+      p_tipo: datos.tipo,
+      p_id: datos.id,
+      p_texto: `«${datos.etiqueta}»${nota ? ` — ${nota}` : ""}`,
+      p_para: datos.area,
+      p_clase: "apuro",
+    });
+  }
   const url = urlPara(datos.area, datos.tipo, datos.id);
   const esPrueba = r.es_prueba === true;
 

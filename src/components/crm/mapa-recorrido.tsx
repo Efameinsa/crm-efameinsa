@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Map as MapaIcono, Maximize2 } from "lucide-react";
+import { Check, Map as MapaIcono, Maximize2, MessageCircle } from "lucide-react";
+import { abrirChat } from "@/components/crm/chat-flotante";
 import { MapaLienzo } from "@/components/crm/mapa-lienzo";
 import { resumenDeRuta, type RutaMapa } from "@/lib/mapa-recorrido";
 import type { ApurosMapa } from "@/lib/mapa-recorrido-datos";
@@ -12,7 +13,20 @@ import type { ApurosMapa } from "@/lib/mapa-recorrido-datos";
  * abre el mapa en pantalla completa, con un carril por área como
  * mapa.efameinsa.com (`MapaLienzo`), y ahí está «Apurar a <área>».
  */
-export function MapaRecorrido({ rutas, apuros, ruta, abierto = false }: { rutas: RutaMapa[]; apuros: ApurosMapa; ruta: string; abierto?: boolean }) {
+export function MapaRecorrido({
+  rutas,
+  apuros,
+  ruta,
+  abierto = false,
+  noLeidos = {},
+}: {
+  rutas: RutaMapa[];
+  apuros: ApurosMapa;
+  ruta: string;
+  abierto?: boolean;
+  /** Mensajes sin leer del chat de cada ruta («tipo:id»). */
+  noLeidos?: Record<string, number>;
+}) {
   const [ver, setVer] = useState<number | null>(abierto ? 0 : null);
   // Llegar desde un aviso de «Apurar» («#mapa=tipo:id») abre el mapa en ese recorrido.
   useEffect(() => {
@@ -53,13 +67,33 @@ export function MapaRecorrido({ rutas, apuros, ruta, abierto = false }: { rutas:
             </button>
           ))}
         </span>
-        <button
-          type="button"
-          onClick={() => setVer(0)}
-          className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/5 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/10"
-        >
-          <Maximize2 className="size-3.5" /> Abrir el mapa
-        </button>
+        <span className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setVer(0)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/5 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/10"
+          >
+            <Maximize2 className="size-3.5" /> Abrir el mapa
+          </button>
+          {/* EL CHAT DEL CASO (0592): un canal por caso o pedido con las áreas involucradas. */}
+          {rutas
+            .filter((r) => r.tipo !== "recepcion")
+            .map((r) => {
+              const n = noLeidos[`${r.tipo}:${r.id}`] ?? 0;
+              return (
+                <button
+                  key={`chat-${r.tipo}:${r.id}`}
+                  type="button"
+                  onClick={() => abrirChat(r.tipo as "caso" | "pedido", r.id)}
+                  className="relative inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-xs font-semibold text-foreground hover:bg-accent"
+                >
+                  <MessageCircle className="size-3.5 text-primary" />
+                  {r.tipo === "caso" ? "Chat del caso" : rutas.length > 1 ? "Chat de la apertura" : "Chat del pedido"}
+                  {n > 0 && <span className="rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white">{n}</span>}
+                </button>
+              );
+            })}
+        </span>
       </div>
       {/* Se monta al abrir: cada vez arranca en el recorrido que se tocó. */}
       {ver !== null && <MapaLienzo key={ver} rutas={rutas} apuros={apuros} ruta={ruta} abierto alCambiar={(v) => !v && setVer(null)} inicial={ver} />}

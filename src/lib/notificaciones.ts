@@ -89,7 +89,9 @@ export type TipoNotificacion =
   | "caso_central_urgente"
   | "caso_central_respuesta"
   // «Apurar» desde el mapa del recorrido (0591, Santos 23-10): dice quién apura, qué paso falta y abre el mapa.
-  | "apuro_mapa";
+  | "apuro_mapa"
+  // Mensaje en el chat de un caso o pedido (0592): uno pendiente por chat, el nuevo reemplaza al anterior.
+  | "chat_caso";
 
 interface Destinatario {
   userId?: string;

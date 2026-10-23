@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { apurosDeRutas, rutasDePedidos, rutasDelCaso } from "@/lib/mapa-recorrido-datos";
+import { apurosDeRutas, noLeidosDeChats, rutasDePedidos, rutasDelCaso } from "@/lib/mapa-recorrido-datos";
+import { requerirPerfil } from "@/lib/auth";
 import { MapaRecorrido } from "@/components/crm/mapa-recorrido";
 
 /**
@@ -37,6 +38,7 @@ export async function MapaRecorridoSeccion({
     ? await rutasDelCaso(supabase, atencionId)
     : await rutasDePedidos(supabase, ids, (id) => (enlace ? enlace.replace("{id}", id) : null));
   if (rutas.length === 0) return null;
-  const apuros = await apurosDeRutas(supabase, rutas);
-  return <MapaRecorrido rutas={rutas} apuros={apuros} ruta={ruta} abierto={abierto} />;
+  const perfil = await requerirPerfil();
+  const [apuros, noLeidos] = await Promise.all([apurosDeRutas(supabase, rutas), noLeidosDeChats(supabase, rutas, perfil.id)]);
+  return <MapaRecorrido rutas={rutas} apuros={apuros} ruta={ruta} abierto={abierto} noLeidos={noLeidos} />;
 }
