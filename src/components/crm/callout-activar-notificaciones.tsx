@@ -90,7 +90,7 @@ export function CalloutActivarNotificaciones() {
   return (
     // En el teléfono (26-09) se parte en dos filas y la explicación larga se
     // calla: en 440 px la frase quedaba en una columna de mil píxeles de alto.
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm sm:px-4">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1 text-xs sm:px-3">
       <span aria-hidden className="text-base">🔔</span>
       <p className="min-w-0 flex-1 basis-40 text-foreground">
         <strong>Active los avisos en este equipo.</strong>{" "}

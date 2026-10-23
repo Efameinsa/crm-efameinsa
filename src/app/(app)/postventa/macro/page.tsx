@@ -218,7 +218,13 @@ export default async function MacroPostventaPage() {
         </div>
       </SeccionPanel>
 
-      <SeccionPanel titulo="Clientes con equipo pendiente de despacho, para llamar">
+      {/* REDISEÑO 23-10: el Panorama es el tablero; la lista de 60 clientes se
+          pliega (los mismos pedidos están en Agenda › Lo que falta). */}
+      <details className="group rounded-xl border border-border bg-card shadow-sm">
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-foreground [&::-webkit-details-marker]:hidden">
+          Clientes con equipo pendiente de despacho, para llamar ({porLlamar.length}) <span className="ml-1 text-xs font-normal text-muted-foreground">· tocar para ver la lista</span>
+        </summary>
+      <SeccionPanel titulo="Lista para llamar">
         <p className="mb-2 text-xs text-muted-foreground">
           Pedidos vivos sin fecha de despacho, del más antiguo al más nuevo, con el teléfono de la ficha. Carlos,
           15-09: «llamemos a los clientes antiguos que están pendientes por despacharle para poder comenzar la
@@ -260,6 +266,7 @@ export default async function MacroPostventaPage() {
         )}
         {!verPrecios && <p className="mt-2 text-[11px] text-muted-foreground">Sin montos: el área no ve precios.</p>}
       </SeccionPanel>
+      </details>
     </div>
   );
 }

@@ -16,7 +16,6 @@ import { requerirPerfil } from "@/lib/auth";
 import { ETIQUETA_TIPO_ATENCION } from "@/lib/atenciones";
 import { NombreAFicha } from "@/components/crm/nombre-a-ficha";
 import { BotonReporteDiario } from "@/components/crm/boton-reporte-diario";
-import { LoQueFaltaPorPaso } from "@/components/crm/lo-que-falta-por-paso";
 
 export const dynamic = "force-dynamic";
 
@@ -153,9 +152,14 @@ export default async function AgendaPostventaPage({
           despachos programados, despachos pendientes, puesta en marcha
           pendiente, entregas pendientes». Y el porqué: «siguen trabajando en el
           board… llenando información repetida que ya está acá». */}
-      {/* LOS PEDIDOS ABIERTOS, PRIMERO (Santos, 13-10: «dice 81 abiertos… eso debe aparecer
-          en su agenda»). La lista «Lo que falta» vivía solo en el menú de la propuesta. */}
-      <LoQueFaltaPorPaso />
+      {/* LOS PEDIDOS ABIERTOS (Santos, 13-10: «dice 81 abiertos… eso debe aparecer
+          en su agenda») viven en la primera pestaña de Agenda, «Lo que falta».
+          REDISEÑO 23-10: acá ya no se repite entera —era la misma lista dos
+          veces, una encima del calendario—; queda el enlace. */}
+      <p className="text-xs text-muted-foreground">
+        Lo que falta en cada pedido, paso por paso, está en la pestaña{" "}
+        <Link href="/nuevo/agenda" className="font-medium text-primary hover:underline">Lo que falta</Link>.
+      </p>
 
       <SeccionPanel titulo="El día del área">
         <ElDiaDelArea />
@@ -263,7 +267,7 @@ function BotonesAgendar() {
       href="/postventa/casos/nuevo"
       className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground hover:brightness-110"
     >
-      <Plus className="size-3.5" /> Nueva atención
+      <Plus className="size-3.5" /> Registrar caso
     </Link>
   );
 }

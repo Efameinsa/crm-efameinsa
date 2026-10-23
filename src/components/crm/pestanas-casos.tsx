@@ -25,7 +25,7 @@ const PESTANAS: { clave: PestanaCasos; etiqueta: string; href: string }[] = [
   // Primero lo que exige una decisión hoy: lo que llegó y nadie tomó.
   { clave: "bandeja", etiqueta: "Por tomar", href: "/postventa" },
   { clave: "", etiqueta: "Abiertas", href: "/postventa/atenciones" },
-  { clave: "casos", etiqueta: "Casos anteriores", href: "/postventa/atenciones?ver=casos" },
+  { clave: "casos", etiqueta: "Carpetas anteriores", href: "/postventa/atenciones?ver=casos" },
   { clave: "cerradas", etiqueta: "Cerradas", href: "/postventa/atenciones?ver=cerradas" },
   { clave: "historico", etiqueta: "Histórico", href: "/postventa/atenciones?ver=historico" },
 ];

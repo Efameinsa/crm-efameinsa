@@ -50,7 +50,7 @@ export default async function HoyPage({ searchParams }: { searchParams: Promise<
       comercial: { etiqueta: "Ver mi tablero", href: "/comercial" },
       preventivo: { etiqueta: "Ver mi tablero", href: "/comercial" },
     };
-    return <ColaDelDia nombre={perfil.nombre} tareas={tareas} agenda={agenda} ver={sp.ver ?? null} todo={sp.todo ?? null} enNumeros={numeros[tipo]} />;
+    return <ColaDelDia nombre={perfil.nombre} tareas={tareas} agenda={agenda} ver={sp.ver ?? null} todo={sp.todo ?? null} abrir={sp.abrir ?? null} enNumeros={numeros[tipo]} />;
   }
 
   const claves: Record<string, string[]> = {

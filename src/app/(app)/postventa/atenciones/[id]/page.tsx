@@ -467,7 +467,7 @@ export default async function AtencionPage({
                   cuentaId={a.cuenta_id}
                   atencionId={a.id}
                   tipo="soporte_videollamada"
-                  etiqueta="Derivación de llamada al almacén"
+                  etiqueta="Derivar llamada al almacén"
                   equipos={equiposParaLlamada}
                   // Con los antecedentes (reunión 28-09): «en esa derivación
                   // de llamada pones todos los antecedentes».

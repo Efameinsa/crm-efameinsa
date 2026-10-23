@@ -25,7 +25,7 @@ const ICONO: Record<TipoTarea, typeof Package> = {
 const FILTRO: Record<TipoTarea, string> = {
   pedido: "Pedidos",
   despacho: "Despachos",
-  apertura: "Llamadas derivadas",
+  apertura: "Llamadas al almacén",
   atencion: "Casos técnicos",
   caso: "Seguimientos",
   cliente: "Clientes",
@@ -48,6 +48,7 @@ export function ColaDelDia({
   agenda,
   ver,
   todo,
+  abrir = null,
   base = "/nuevo",
   enNumeros,
 }: {
@@ -56,6 +57,8 @@ export function ColaDelDia({
   agenda: EventoAgenda[];
   ver: string | null;
   todo: string | null;
+  /** Un grupo de tareas iguales abierto fila por fila (ver `agrupar`). */
+  abrir?: string | null;
   base?: string;
   enNumeros?: { etiqueta: string; href: string };
 }) {
@@ -68,12 +71,39 @@ export function ColaDelDia({
   const tipos = [...new Set(tareas.map(clave))];
   const visibles = ver ? tareas.filter((t) => clave(t) === ver) : tareas;
   const cuenta = (u: Urgencia) => visibles.filter((t) => t.urgencia === u).length;
-  const url = (p: { ver?: string | null; todo?: string | null }) => {
+  const url = (p: { ver?: string | null; todo?: string | null; abrir?: string | null }) => {
     const q = new URLSearchParams();
     if (p.ver) q.set("ver", p.ver);
     if (p.todo) q.set("todo", p.todo);
+    if (p.abrir) q.set("abrir", p.abrir);
     const s = q.toString();
     return s ? `${base}?${s}` : base;
+  };
+  // LO REPETIDO SE JUNTA (rediseño de postventa, 23-10). Brenda abría «Hoy» y
+  // veía 193 filas de «Caso nuevo sin tomar», una por cliente, y recién después
+  // lo de hoy: la lista no decía nada que un solo renglón no diga. Las tareas
+  // con el mismo encabezado (lo que va antes del « · ») se muestran como UNA
+  // fila con cuántas son y los primeros clientes; «Ver las N» las abre una por
+  // una. Lo que es distinto sigue saliendo solo.
+  const DESDE = 4;
+  type Entrada = { tipo: "una"; t: Tarea } | { tipo: "varias"; clave: string; tareas: Tarea[] };
+  const agrupar = (lista: Tarea[]): Entrada[] => {
+    const encabezado = (t: Tarea) => t.que.split(" · ")[0];
+    const porClave = new Map<string, Tarea[]>();
+    for (const t of lista) porClave.set(encabezado(t), [...(porClave.get(encabezado(t)) ?? []), t]);
+    const salida: Entrada[] = [];
+    const puestas = new Set<string>();
+    for (const t of lista) {
+      const k = encabezado(t);
+      const g = porClave.get(k)!;
+      if (g.length >= DESDE && abrir !== k) {
+        if (!puestas.has(k)) {
+          puestas.add(k);
+          salida.push({ tipo: "varias", clave: k, tareas: g });
+        }
+      } else salida.push({ tipo: "una", t });
+    }
+    return salida;
   };
   const fecha = new Date().toLocaleDateString("es-PE", { timeZone: "America/Lima", weekday: "long", day: "numeric", month: "long" });
 
@@ -136,7 +166,8 @@ export function ColaDelDia({
         {GRUPOS.map((g) => {
           const lista = visibles.filter((t) => t.urgencia === g.clave);
           if (lista.length === 0) return null;
-          const mostrar = todo === g.clave ? lista : lista.slice(0, POR_GRUPO);
+          const entradas = agrupar(lista);
+          const mostrar = todo === g.clave ? entradas : entradas.slice(0, POR_GRUPO);
           return (
             <section key={g.clave} id={g.clave} className="scroll-mt-4">
               <div className="mb-2 flex items-baseline justify-between gap-2">
@@ -147,7 +178,35 @@ export function ColaDelDia({
                 <span className="text-[11px] text-muted-foreground">{g.ayuda}</span>
               </div>
               <ul className="space-y-2">
-                {mostrar.map((t) => {
+                {mostrar.map((e) => {
+                  if (e.tipo === "varias") {
+                    const Icono = ICONO[e.tareas[0].tipo];
+                    const clientes = [...new Set(e.tareas.map((x) => x.cliente))];
+                    return (
+                      <li key={`grupo-${e.clave}`} className={cn("flex items-center gap-3 p-3 transition-colors hover:border-primary/30", TARJETA)}>
+                        <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", g.clave === "atrasado" ? "bg-destructive/10 text-destructive" : "bg-secondary text-foreground")}>
+                          <Icono className="size-4" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-foreground">
+                            <span className="mr-1.5 rounded-full bg-secondary px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-foreground">{e.tareas.length}</span>
+                            {e.clave}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {clientes.slice(0, 3).join(" · ")}
+                            {clientes.length > 3 ? ` y ${clientes.length - 3} más` : ""}
+                          </p>
+                        </div>
+                        <Link
+                          href={url({ ver, todo: g.clave, abrir: e.clave })}
+                          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-colors hover:bg-accent"
+                        >
+                          Ver las {e.tareas.length} <ArrowRight className="size-3.5" />
+                        </Link>
+                      </li>
+                    );
+                  }
+                  const t = e.t;
                   const Icono = ICONO[t.tipo];
                   return (
                     <li key={t.id} className={cn("flex items-center gap-3 p-3 transition-colors hover:border-primary/30", TARJETA)}>
@@ -182,8 +241,8 @@ export function ColaDelDia({
                   );
                 })}
               </ul>
-              {lista.length > mostrar.length && (
-                <Link href={url({ ver, todo: g.clave })} className="mt-2 inline-block text-xs font-medium text-primary hover:underline">
+              {entradas.length > mostrar.length && (
+                <Link href={url({ ver, todo: g.clave, abrir })} className="mt-2 inline-block text-xs font-medium text-primary hover:underline">
                   Ver las {lista.length} de «{g.titulo}»
                 </Link>
               )}

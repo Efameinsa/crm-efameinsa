@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { avanzarCasoAlEjecutar } from "@/lib/caso-avanza";
 import { requerirPerfil } from "@/lib/auth";
 import { notificar, notificarAlmacen } from "@/lib/notificaciones";
 import { sumarContactoOperativo } from "@/lib/contacto-operativo-servidor";
@@ -53,6 +54,17 @@ export async function enviarAperturaLlamada(datos: {
   // Lesly (03-10): llegaban sin técnico al almacén.
   if (!datos.tecnico?.trim()) return falla("Escriba el técnico a cargo");
   const supabase = await createClient();
+  // CADA LLAMADA CUELGA DE UN CASO (rediseño de postventa, 23-10). Brenda derivó
+  // la videollamada de INVERSIONES TURÍSTICAS CENTENARIO desde la ficha del
+  // cliente: quedó en el historial, pero no en el caso CASO-00019 ni en Casos.
+  // 31 de 48 llamadas vivas estaban así. Si no viene con caso ni pedido y el
+  // cliente tiene exactamente un caso abierto, se cuelga de ese; con varios, la
+  // ficha ofrece el botón en cada caso.
+  let atencionId = datos.atencionId ?? null;
+  if (!atencionId && !datos.servicioId) {
+    const { data: abiertos } = await supabase.from("atenciones").select("id").eq("cuenta_id", datos.cuentaId).is("cerrado_at", null).limit(2);
+    if ((abiertos ?? []).length === 1) atencionId = (abiertos as { id: string }[])[0].id;
+  }
   const { data: id, error } = await supabase.rpc("enviar_apertura_llamada", {
     p_cuenta: datos.cuentaId,
     p_tipo: datos.tipo,
@@ -61,7 +73,7 @@ export async function enviarAperturaLlamada(datos: {
     p_indicaciones: datos.indicaciones ?? null,
     p_contacto: datos.contacto ?? null,
     p_servicio: datos.servicioId ?? null,
-    p_atencion: datos.atencionId ?? null,
+    p_atencion: atencionId,
     p_pin_urgente: datos.pinUrgente?.trim() || null,
     p_tecnico: datos.tecnico?.trim() || null,
     // Un solo contacto (Gabriela, 30-09: puso a LUCERO y al almacén le llegaba
@@ -69,6 +81,8 @@ export async function enviarAperturaLlamada(datos: {
     p_formato: datos.formato ? { ...datos.formato, contacto: datos.contacto?.trim() || datos.formato.contacto || null } : null,
   });
   if (error) return falla(error.message.replace(/^[A-Z0-9]{5}:\s*/, ""));
+  // El caso avanza con lo que se ejecuta (23-10): derivar la llamada es planificarla.
+  await avanzarCasoAlEjecutar(supabase, atencionId, "planificacion", "Se derivó una llamada al almacén", datos.programadaPara);
   // Si no estaba en la ficha, se suma como contacto operativo (0352; Carlos, 30-09:
   // «tú hoy día ingresas algo manual, tiene que sumar al contacto»).
   await sumarContactoOperativo(datos.cuentaId, datos.contacto, "apertura");
@@ -201,9 +215,11 @@ export async function subirInformeApertura(datos: {
   // modifica» (reunión 23-09).
   const { data: a } = await supabase
     .from("aperturas_llamada")
-    .select("solicitada_por, tipo, servicio_id, cuenta_id, faltantes, cuentas(razon_social)")
+    .select("solicitada_por, tipo, servicio_id, cuenta_id, faltantes, atencion_id, cuentas(razon_social)")
     .eq("id", datos.id)
     .maybeSingle();
+  // El informe del almacén es la atención hecha (23-10): el caso pasa a «Atención».
+  await avanzarCasoAlEjecutar(supabase, a?.atencion_id as string | null | undefined, "atencion", "El almacén hizo la llamada y subió su informe");
   if (a?.solicitada_por) {
     const razon = (a.cuentas as unknown as { razon_social: string } | null)?.razon_social;
     await notificar({

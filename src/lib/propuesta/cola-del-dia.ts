@@ -209,6 +209,12 @@ async function colaPostventa(supabase: Cliente) {
     if (t.etapa === "registro" && !t.tomada_at) {
       const dias = diasEntre(diaLima(t.solicitado_at), hoy);
       tareas.push({ id: `at-${t.id}`, urgencia: dias >= 1 ? "atrasado" : "hoy", tipo: "atencion", cliente, que: "Tomar el caso técnico", porque: dias >= 1 ? `Central lo devolvió hace ${dias} día${dias === 1 ? "" : "s"} y nadie lo tomó.` : "Central lo devolvió hoy.", accion: { etiqueta: "Tomarlo", href: `/postventa/atenciones/${t.id}` } });
+    } else if ((t.etapa === "registro" || t.etapa === "diagnostico") && t.tomada_at && diasEntre(diaLima(t.tomada_at), hoy) >= 7) {
+      // CASO ESTANCADO (rediseño 23-10): tomado hace una semana o más y sigue
+      // sin planificar. Antes no salía en ningún lado; el CASO-00019 de
+      // Centenario llevaba 46 días así.
+      const dias = diasEntre(diaLima(t.tomada_at), hoy);
+      tareas.push({ id: `est-${t.id}`, urgencia: "atrasado", tipo: "atencion", cliente, que: "Caso sin avance", porque: `Tomado hace ${dias} días y sigue en ${t.etapa === "registro" ? "Registro" : "Antecedentes"}: programe la atención, derive la llamada al almacén o ciérrelo.`, accion: { etiqueta: "Abrir el caso", href: `/postventa/atenciones/${t.id}` } });
     }
     if (t.programada_at && diaLima(t.programada_at) === hoy) {
       agenda.push({ id: `atg-${t.id}`, hora: horaLima(t.programada_at), titulo: `Atención técnica · ${cliente}`, detalle: "Programada", href: `/postventa/atenciones/${t.id}` });

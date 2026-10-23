@@ -121,13 +121,16 @@ function relojHumano(estado: EstadoUrgencia, horas: number, limite: number): str
   return `llegó hace ${horasLegibles(horas)}`;
 }
 
-export default async function PostventaPage() {
+export default async function PostventaPage({ searchParams }: { searchParams?: Promise<{ compacta?: string }> } = {}) {
+  // REDISEÑO 23-10: dentro de la sección «Casos» la tira de pestañas y los
+  // botones de reportes ya están en la sección (pestañas y «Reportes y archivo»).
+  const compacta = (await searchParams)?.compacta === "1";
   const perfil = await requerirPerfil();
   const supabase = await createClient();
   // WhatsApp de campañas, fase 1 sin API (14-09-2026).
   const campaniasWhatsapp = await campaniasWhatsappActivas();
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
-  const fin7 = new Date(Date.now() + 7 * 864e5).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+  const fin7 = new Date(new Date().getTime() + 7 * 864e5).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
   const hoyIso = hoyLima();
   const lunes = lunesSemana();
 
@@ -415,6 +418,7 @@ export default async function PostventaPage() {
 
           A la derecha, los tres botones por los que «Mi agenda» seguía abierta
           hasta el plan 23, etapa 2. */}
+      {!compacta && (
       <div className="flex flex-wrap items-center justify-between gap-2">
         <PestanasCasos activa="bandeja" porTomar={bandeja.length} />
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -431,9 +435,10 @@ export default async function PostventaPage() {
           <BotonReporteDiario fecha={hoyIso} compacto elegirFecha />
         </div>
       </div>
+      )}
 
       {/* 0530: «Hoy cubro a…», para cuando falta una compañera. */}
-      <CoberturaPostventa />
+      {!compacta && <CoberturaPostventa />}
 
       <SeccionPanel
         titulo="Sin atender todavía"

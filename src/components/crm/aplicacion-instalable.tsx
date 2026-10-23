@@ -136,7 +136,7 @@ export function AplicacionInstalable() {
   if (!evento && !safari) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-border bg-secondary px-3 py-2 text-sm sm:px-4">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-border bg-secondary px-3 py-1 text-xs sm:px-4">
       <MonitorDown aria-hidden className="size-5 shrink-0 text-primary" />
       <p className="min-w-0 flex-1 basis-40 text-foreground">
         <strong>Instale el CRM como aplicación.</strong>{" "}

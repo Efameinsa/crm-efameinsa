@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { avanzarCasoAlEjecutar } from "@/lib/caso-avanza";
 import { anioLima } from "@/lib/periodo";
 import { requerirPerfil } from "@/lib/auth";
 import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/lib/expediente-ajeno";
@@ -1881,6 +1882,8 @@ export async function abrirAperturaDesdeCaso(
     p_repuestos: repuestos,
   });
   if (error) return falla(error.message.replace(/^[A-Z0-9]{5}:\s*/, ""));
+  // El caso avanza con lo que se ejecuta (23-10): la apertura de servicio es planificar la atención.
+  await avanzarCasoAlEjecutar(supabase, atencionId, "planificacion", "Se emitió la apertura de servicio");
   const id = servicioId as string;
   // Las filas que apertura_desde_caso no recibe se completan en el pedido recién creado, antes de
   // los avisos: la hoja que abren Contabilidad y el almacén ya sale completa (buzón Rubí 12-10).
