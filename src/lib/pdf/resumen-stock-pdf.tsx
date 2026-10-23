@@ -137,11 +137,11 @@ function marcaDe(f: FilaResumen): string {
  * una palabra más ancha que la columna rompe el armado del PDF. Se le dan puntos
  * de corte después de cada punto, coma o barra, y los trozos larguísimos se parten.
  */
-function cortable(t: string | null | undefined): string {
+function cortable(t: string | null | undefined, max = 24): string {
   return String(t ?? "")
     .split(" ")
-    .map((w) => (w.length > 22 ? w.replace(/([.,/])(?=\S)/g, "$1 ") : w))
-    .map((w) => w.split(" ").map((x) => (x.length > 26 ? x.match(/.{1,24}/g)!.join(" ") : x)).join(" "))
+    .map((w) => (w.length > max - 2 ? w.replace(/([.,/])(?=\S)/g, "$1 ") : w))
+    .map((w) => w.split(" ").map((x) => (x.length > max ? x.match(new RegExp(`.{1,${max}}`, "g"))!.join(" ") : x)).join(" "))
     .join(" ");
 }
 
@@ -284,7 +284,7 @@ export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarg
                     {cambio && <Text style={s.chico}>Excel: {f.codigoExcel}</Text>}
                   </View>
                   <View style={[s.celda, { width: COL.modelo }]}>
-                    <Text>{cortable(f.modelo)}</Text>
+                    <Text>{cortable(f.modelo, 12)}</Text>
                   </View>
                   <View style={[s.celda, { width: COL.equipo }]}>
                     <Text>{cortable(f.descripcion)}</Text>

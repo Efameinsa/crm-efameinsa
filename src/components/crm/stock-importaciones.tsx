@@ -208,7 +208,7 @@ export function SubirExcelStock({ hayCarga }: { hayCarga: boolean }) {
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">{hayCarga ? "¿Llegó un Excel más nuevo? Súbalo aquí (reemplaza el anterior de esa misma empresa)" : "Suba el Excel de stock de Importaciones"}</p>
         <p className="text-xs text-muted-foreground">
-          Tal como viene. Se leen solo las hojas de STOCK (industriales y LG); reserva y vendidos no. Los costos no se leen ni se suben.
+          Tal como viene. Se leen solo las hojas de STOCK (industriales y LG); reserva y vendidos no. El costo se guarda y solo lo ven operaciones y gerencia; las comerciales no.
         </p>
       </div>
       <label className="cursor-pointer">
