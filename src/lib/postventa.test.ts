@@ -775,4 +775,14 @@ describe("faltaParaEmitirApertura", () => {
   it("ya emitida, no falta nada", () => {
     expect(faltaParaEmitirApertura(pedido({ apertura_despacho_at: "2026-10-20T15:00:00Z" } as Partial<ServicioPostventa>))).toEqual([]);
   });
+  // SERVICIO INTERNO (Brenda 23-10): el equipo viene a planta; no hay dirección, embalaje ni plano que exigir.
+  it("si el servicio es interno, no pide dirección, embalaje ni plano (Finanzas sí)", () => {
+    const trabadoDe = (campos: Partial<ServicioPostventa>) =>
+      bloquesPedido(pedido(campos)).flatMap((b) => b.pasos).find((p) => p.clave === "apertura")?.trabado ?? "";
+    expect(trabadoDe({})).toMatch(/dirección|embalad|plano/i);
+    expect(trabadoDe({ apertura_modalidad: "interna" } as Partial<ServicioPostventa>)).not.toMatch(/dirección|embalad|plano/i);
+    const pasos = bloquesPedido(pedido({ apertura_modalidad: "interna" } as Partial<ServicioPostventa>)).flatMap((b) => b.pasos);
+    expect(pasos.find((p) => p.clave === "direccion")?.hecho).toBe(true);
+    expect(pasos.find((p) => p.clave === "apertura")?.etiqueta).toMatch(/interno/);
+  });
 });

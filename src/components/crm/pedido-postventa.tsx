@@ -377,11 +377,22 @@ export function PedidoPostventa({
         );
       case "apertura":
         // La emite el servidor solo si las cuatro condiciones están; si
-        // faltan, el paso ya lo dice y el botón no aparece.
+        // faltan, el paso ya lo dice y el botón de emitir no aparece.
         // Se confirma antes: Rubí (30-09) la emitió de un clic queriendo
         // retroceder, y el aviso le llegó al almacén.
-        return paso.trabado ? null : (
-          <BotonPaso onClick={() => setForm({ tipo: "apertura" })}>Emitir apertura</BotonPaso>
+        // PREPARARLA se puede siempre (Brenda 23-10: «aquí se tiene que agregar
+        // la apertura»): la mesa de trabajo elige el formato, Externo o Interno
+        // (el equipo viene a planta, con sus antecedentes), el técnico y el día.
+        return (
+          <span className="flex flex-wrap items-center gap-1.5">
+            <Link
+              href={`/postventa/pedidos/${servicio.id}/apertura`}
+              className="inline-flex h-7 items-center rounded-md border border-border bg-background px-2.5 text-xs font-medium text-foreground hover:bg-accent"
+            >
+              {servicio.apertura_modalidad === "interna" ? "Preparar la apertura (interna)" : "Preparar la apertura · externa o interna"}
+            </Link>
+            {!paso.trabado && <BotonPaso onClick={() => setForm({ tipo: "apertura" })}>Emitir apertura</BotonPaso>}
+          </span>
         );
       case "despacho":
         return (
