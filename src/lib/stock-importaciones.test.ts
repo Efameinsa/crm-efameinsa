@@ -204,12 +204,45 @@ describe("leerExcelStock con la hoja unida (Lesly 23-10)", () => {
       ]),
       "STOCK LG",
     );
-    const { filas, hojas, ignoradas } = leerExcelStock(XLSX.write(libro, { type: "array", bookType: "xlsx" }));
+    const { filas, hojas, ignoradas, soloEnSueltas } = leerExcelStock(XLSX.write(libro, { type: "array", bookType: "xlsx" }));
     expect(hojas).toEqual(["STOCK PARA SANTOS IDUS", "STOCK LG"]);
     expect(ignoradas).toContain("STOCK INDUSTRIALES PROV. OPEN");
     expect(filas).toHaveLength(2);
-    expect(filas[0]).toMatchObject({ codigoExcel: "LAVUS030", modelo: "UST030", descripcion: "LAVADORA UST030", ubicacion: "PLANTA", costo: 11500, empresa: "EFAMEINSA" });
+    // La 2409600366 viene de la hoja «PROV. OPEN»: es de Open aunque RAZÓN SOCIAL diga EFAMEINSA (Santos 23-10 16:20).
+    expect(filas[0]).toMatchObject({ codigoExcel: "LAVUS030", modelo: "UST030", descripcion: "LAVADORA UST030", ubicacion: "PLANTA", costo: 11500, empresa: "OPEN" });
     expect(filas[1]).toMatchObject({ costo: 812.09, empresa: "EFAMEINSA" });
+    expect(soloEnSueltas).toEqual([]);
+  });
+
+  it("la empresa sale de la hoja suelta de origen y avisa lo que no pasó a la unida", () => {
+    const libro = XLSX.utils.book_new();
+    const cab = ["CODIGO", "MOD", "EQUIPO", "STOCK", "MARCA", "SERIE", "UBICACION"];
+    XLSX.utils.book_append_sheet(libro, XLSX.utils.aoa_to_sheet([cab, ["I22894", "UST030", "LAVADORA UST030", 1, "UNIMAC", 2409600366, "PLANTA"]]), "STOCK INDUSTRIALES PROV. OPEN");
+    XLSX.utils.book_append_sheet(
+      libro,
+      XLSX.utils.aoa_to_sheet([
+        cab,
+        ["I21383", "FX280", "LAVADORA FX280", 1, "PRIMUS", "280FX004020QU", "PLANTA"],
+        ["I25001", null, "CALDERIN SIDI MONDIAL", 1, "SIDI MONDIAL", 51005, "PLANTA"],
+      ]),
+      "STOCK INDUSTRIALES EFAMEINSA",
+    );
+    XLSX.utils.book_append_sheet(
+      libro,
+      XLSX.utils.aoa_to_sheet([
+        ["ITEM", "CODIFICACION", "CODIGO", "MOD", "EQUIPO", "SERIE", "STOCK", "UBICAICION", "RAZON SOCIAL"],
+        [1, "LAVUS030", "I22894", "UST030", "LAVADORA UST030", 2409600366, 1, "PLANTA", "EFAMEINSA"],
+        [2, "LAVF280", "I21383", "FX280", "LAVADORA FX280", "280FX004020QU", 1, "PLANTA", "EFAMEINSA"],
+      ]),
+      "STOCK PARA SANTOS IDUS",
+    );
+    const { filas, soloEnSueltas } = leerExcelStock(XLSX.write(libro, { type: "array", bookType: "xlsx" }));
+    expect(filas.map((f) => [f.serie, f.empresa])).toEqual([
+      ["2409600366", "OPEN"],
+      ["280FX004020QU", "EFAMEINSA"],
+    ]);
+    // El calderín está solo en la hoja de Efameinsa: no entra y se avisa.
+    expect(soloEnSueltas).toEqual([{ hoja: "STOCK INDUSTRIALES EFAMEINSA", serie: "51005", descripcion: "CALDERIN SIDI MONDIAL", empresa: "EFAMEINSA" }]);
   });
 
   it("la misma serie en dos filas va a revisar (rodillos 16002)", () => {

@@ -232,32 +232,28 @@ export function esHojaDeStock(nombre: string): boolean {
  * DESCRIPCION…). En la hoja LG la columna del código no tiene título: es la
  * primera columna cuando su cabecera está vacía. COSTO se lee (0596).
  */
-export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaStock[]; hojas: string[]; ignoradas: string[] } {
+export interface LecturaStock {
+  filas: FilaStock[];
+  hojas: string[];
+  ignoradas: string[];
+  /** Máquinas que están en una hoja suelta (Open / Efameinsa) y Lesly no pasó a la hoja unida: no entran. */
+  soloEnSueltas: { hoja: string; serie: string; descripcion: string; empresa: string }[];
+}
+
+export function leerExcelStock(datos: ArrayBuffer | Uint8Array): LecturaStock {
   const libro = XLSX.read(datos, { type: "array", cellDates: true });
   const filas: FilaStock[] = [];
   const hojas: string[] = [];
   const ignoradas: string[] = [];
 
-  // Lesly (23-10 14:24): «STOCK PARA SANTOS» es la hoja que ella une con las industriales de
-  // Open y de Efameinsa. Si el libro la trae, las hojas sueltas no se leen (serían las mismas
-  // máquinas dos veces); LG va aparte y se lee siempre.
-  const hayUnida = libro.SheetNames.some((n) => esHojaDeStock(n) && normCabecera(n).includes("SANTOS"));
-  for (const nombre of libro.SheetNames) {
-    const sueltaDeLaUnida = hayUnida && !normCabecera(nombre).includes("SANTOS") && !/LG/i.test(nombre);
-    if (!esHojaDeStock(nombre) || sueltaDeLaUnida) {
-      ignoradas.push(nombre.trim());
-      continue;
-    }
+  /** Las máquinas de una hoja, o null si la hoja no tiene cabecera de stock (SERIE + MODELO). */
+  const leerHoja = (nombre: string): FilaStock[] | null => {
     const matriz = XLSX.utils.sheet_to_json<unknown[]>(libro.Sheets[nombre], { header: 1, raw: true, defval: null });
     const iCab = matriz.findIndex((r) => {
       const c = (r ?? []).map(normCabecera);
       return c.includes("SERIE") && (c.includes("MODELO") || c.includes("MOD"));
     });
-    if (iCab < 0) {
-      ignoradas.push(nombre.trim());
-      continue;
-    }
-    hojas.push(nombre.trim());
+    if (iCab < 0) return null;
     const cab = matriz[iCab].map(normCabecera);
     const col = (...nombres: string[]) => cab.findIndex((c) => nombres.includes(c));
     const cCodigo = col("CODIFICACION") >= 0 ? col("CODIFICACION") : cab[0] === "" ? 0 : -1;
@@ -286,6 +282,7 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
       return s && !s.startsWith("=") ? s : null;
     };
 
+    const deLaHoja: FilaStock[] = [];
     matriz.slice(iCab + 1).forEach((r, k) => {
       const item = textoDe(celda(r, cItem));
       // Las filas de subtítulo («SECADORA 15 KG - LG») y de totales no tienen ítem.
@@ -293,7 +290,7 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
       const modelo = [textoDe(celda(r, cModelo)), textoDe(celda(r, cSistema))].filter(Boolean).join(" ");
       const ingreso = celda(r, cIngreso);
       const serieTxt = textoDe(celda(r, cSerie));
-      filas.push({
+      deLaHoja.push({
         hoja: nombre.trim(),
         fila: iCab + 2 + k,
         item,
@@ -319,8 +316,45 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
         })(),
       });
     });
+    return deLaHoja;
+  };
+
+  // Lesly (23-10 14:24): «STOCK PARA SANTOS» es la hoja que ella une con las industriales de
+  // Open y de Efameinsa. Si el libro la trae, las hojas sueltas no se leen (serían las mismas
+  // máquinas dos veces); LG va aparte y se lee siempre.
+  const hayUnida = libro.SheetNames.some((n) => esHojaDeStock(n) && normCabecera(n).includes("SANTOS"));
+  const esSuelta = (n: string) => hayUnida && esHojaDeStock(n) && !normCabecera(n).includes("SANTOS") && !/LG/i.test(n);
+  for (const nombre of libro.SheetNames) {
+    const deLaHoja = !esHojaDeStock(nombre) || esSuelta(nombre) ? null : leerHoja(nombre);
+    if (!deLaHoja) {
+      ignoradas.push(nombre.trim());
+      continue;
+    }
+    hojas.push(nombre.trim());
+    filas.push(...deLaHoja);
   }
-  return { filas, hojas, ignoradas };
+
+  // Santos (23-10 16:20): «ahí hay Efameinsa y Open». En la hoja unida Lesly dejó RAZÓN SOCIAL
+  // en «EFAMEINSA» para todas las filas, también para las 19 que vienen de «STOCK INDUSTRIALES
+  // PROV. OPEN». La hoja suelta de la que sale cada máquina dice de quién es: manda sobre la
+  // columna. Y lo que está en una suelta y no pasó a la unida se avisa, porque no entra.
+  const soloEnSueltas: LecturaStock["soloEnSueltas"] = [];
+  const empresaPorSerie = new Map<string, string>();
+  const enLaUnida = new Set(filas.filter((f) => f.serie).map((f) => f.serie!));
+  for (const nombre of libro.SheetNames) {
+    const empresa = empresaDe(nombre);
+    if (!esSuelta(nombre) || !empresa) continue;
+    for (const f of leerHoja(nombre) ?? []) {
+      if (!f.serie) continue;
+      empresaPorSerie.set(f.serie, empresa);
+      if (!enLaUnida.has(f.serie)) soloEnSueltas.push({ hoja: nombre.trim(), serie: f.serie, descripcion: f.descripcion || f.modelo, empresa });
+    }
+  }
+  for (const f of filas) {
+    const deSuelta = f.serie ? empresaPorSerie.get(f.serie) : undefined;
+    if (deSuelta) f.empresa = deSuelta;
+  }
+  return { filas, hojas, ignoradas, soloEnSueltas };
 }
 
 // ------------------------------------------------------------------ comparar
