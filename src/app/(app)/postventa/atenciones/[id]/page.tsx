@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AvisoMismoCliente } from "@/components/crm/aviso-mismo-cliente";
 import { RegistroNoDisponible } from "@/components/crm/registro-no-disponible";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { MapaRecorridoSeccion } from "@/components/crm/mapa-recorrido-seccion";
 import { LineaAtencion } from "@/components/crm/linea-atencion";
 import { AperturaLlamadaBoton } from "@/components/crm/apertura-llamada-boton";
 import { AperturaServicioCaso } from "@/components/crm/apertura-servicio-caso";
@@ -435,6 +436,9 @@ export default async function AtencionPage({
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-4">
+          {/* EL MAPA DEL CASO (Santos 23-10): el caso, su apertura de servicio y el equipo en
+              planta, con lo hecho en verde, lo que falta en rojo y «Apurar» donde está atascado. */}
+          <MapaRecorridoSeccion atencionId={a.id} ruta={`/postventa/atenciones/${a.id}`} />
           <SeccionPanel
             titulo="El circuito"
             accion={

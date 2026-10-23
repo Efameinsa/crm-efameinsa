@@ -217,6 +217,8 @@ function FilaPorFacturar({
               </div>
             </ExpedienteCierre>
           )}
+          {/* El mapa del recorrido de este pedido (Santos 23-10). */}
+          <a href={`/pedidos/${p.id}/pagos#mapa`} className="inline-flex items-center rounded-md border border-border px-2.5 py-1 text-xs font-medium text-primary hover:bg-accent">Ver el mapa</a>
           <RegistrarFactura servicioId={p.id} cliente={p.cliente} />
           <RegistrarNotaCredito servicioId={p.id} cliente={p.cliente} facturas={facturas} />
           {!p.facturacionObservadaAt && <ObservarExpediente servicioId={p.id} cliente={p.cliente} />}

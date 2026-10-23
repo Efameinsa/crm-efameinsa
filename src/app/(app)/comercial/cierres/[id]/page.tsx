@@ -1,4 +1,5 @@
 import Link from "@/components/enlace";
+import { MapaRecorridoSeccion } from "@/components/crm/mapa-recorrido-seccion";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -160,6 +161,8 @@ export default async function CierrePage({
           puedeReenviar={informe.creado_por === perfil.id || ["gerencia", "admin", "operaciones"].includes(perfil.rol)}
         />
       )}
+      {/* EL MAPA DEL PEDIDO DE ESTA VENTA (Santos 23-10): el comercial sigue su venta hasta el cierre. */}
+      {informe.emitido_at != null && <MapaRecorridoSeccion cierreId={informe.id} ruta={`/comercial/cierres/${informe.id}`} enlace="/pedidos/{id}/pagos" />}
       <VistaCierre
         informe={vista}
         adjuntos={adjuntosPorInforme.get(informe.id) ?? []}

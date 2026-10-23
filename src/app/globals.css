@@ -500,3 +500,13 @@ body {
   50% { opacity: .55; transform: scale(.85); }
 }
 .tk-punto-vivo { animation: tk-pulso 1.4s ease-in-out infinite; }
+
+/* MAPA DEL RECORRIDO (Santos 23-10): la etapa donde está atascado palpita en rojo. */
+@keyframes mapa-latir {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(220 38 38 / 0.5); }
+  60% { box-shadow: 0 0 0 9px rgb(220 38 38 / 0); }
+}
+.mapa-latir { animation: mapa-latir 1.6s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .mapa-latir { animation: none; box-shadow: 0 0 0 3px rgb(220 38 38 / 0.35); }
+}
