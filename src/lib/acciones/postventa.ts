@@ -16,6 +16,7 @@ import { limpiarObsFilas, lineasGuia, type GuiaApertura } from "@/lib/apertura-s
 import { aAntecedentesDelEquipo, antecedentesInternaVacios, normalizarAntecedentesInterna, type AntecedentesInterna, type ModalidadApertura } from "@/lib/apertura-interna";
 import { errorDocRecibe, tipoDocRecibe } from "@/lib/documento";
 import { enlaceCierreDelPedido } from "@/lib/enlace-cierre-central";
+import { avisarQueLlegoLaMaquina } from "@/lib/avisar-llegada";
 
 /**
  * Las acciones del circuito de postventa (migración 0087).
@@ -1039,8 +1040,14 @@ export async function equiposDelPedido(servicioId: string): Promise<EquipoDelPed
 export async function registrarSerieDelEquipo(itemId: string, servicioId: string, serie: string): Promise<{ error: string | null }> {
   if (!serie.trim()) return { error: "Escriba la serie como se lee en la placa" };
   const supabase = await createClient();
+  // Si la línea esperaba stock (sin stock o por importar), ponerle la serie es «ya llegó»:
+  // Central y quien lleva el pedido se enteran (Lesly 23-10, Sonesta).
+  const { data: antes } = await supabase.from("pedido_equipos").select("descripcion, sin_stock_motivo, procedencia").eq("id", itemId).maybeSingle();
   const { error } = await supabase.rpc("registrar_serie_del_equipo", { p_item: itemId, p_serie: serie.trim().toUpperCase(), p_garantia_meses: 24 });
   if (error) return falla(enCastellano(error.message));
+  if (antes?.sin_stock_motivo || antes?.procedencia) {
+    await avisarQueLlegoLaMaquina(supabase, { servicioId, descripcion: antes.descripcion, serie: serie.trim().toUpperCase() });
+  }
   return avisarSiYaEstanTodas(supabase, servicioId);
 }
 
@@ -1161,8 +1168,11 @@ export async function marcarProcedencia(itemId: string, servicioId: string, proc
 
 export async function marcarSinStock(itemId: string, motivo: string | null): Promise<{ error: string | null }> {
   const supabase = await createClient();
+  const { data: antes } = motivo ? { data: null } : await supabase.from("pedido_equipos").select("servicio_id, descripcion, sin_stock_motivo").eq("id", itemId).maybeSingle();
   const { error } = await supabase.rpc("marcar_sin_stock", { p_item: itemId, p_motivo: motivo || null });
   if (error) return falla(enCastellano(error.message));
+  // «Ya llegó · hay stock» (0464) también avisa a Central y a quien lleva el pedido (23-10).
+  if (antes?.sin_stock_motivo) await avisarQueLlegoLaMaquina(supabase, { servicioId: antes.servicio_id, descripcion: antes.descripcion, serie: null });
   revalidatePath("/postventa/control");
   revalidatePath("/postventa/macro");
   return { error: null };
