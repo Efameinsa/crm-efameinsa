@@ -1,4 +1,5 @@
 import Link from "@/components/enlace";
+import { MapaRecorridoSeccion } from "@/components/crm/mapa-recorrido-seccion";
 import { notFound } from "next/navigation";
 import { AlertTriangle, ArrowLeft, BadgeCheck, Siren } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -80,6 +81,9 @@ export default async function FinanzasPedidoPage({ params }: { params: Promise<{
           </span>
         </p>
       )}
+
+      {/* EL MAPA DEL RECORRIDO (Santos 23-10): dónde está, a quién le toca y «Apurar». */}
+      <MapaRecorridoSeccion pedidos={[p.id]} ruta={`/finanzas/pedidos/${p.id}`} />
 
       {/* La orden de postventa para facturar y cobrar (0460, reunión 13-10). */}
       {p.ordenFacturarAt && (

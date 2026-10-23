@@ -1,4 +1,5 @@
 import Link from "@/components/enlace";
+import { MapaRecorridoSeccion } from "@/components/crm/mapa-recorrido-seccion";
 import { nombresDelPedido } from "@/lib/nombres-del-pedido";
 import { ArrowLeft, MapPin, Printer } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -178,6 +179,9 @@ export default async function PedidoAlmacenPage({ params }: { params: Promise<{ 
           )}
         </div>
       )}
+
+      {/* EL MAPA DEL RECORRIDO (Santos 23-10): dónde está, a quién le toca y «Apurar». */}
+      <MapaRecorridoSeccion pedidos={[servicio.id]} ruta={`/almacen/pedidos/${servicio.id}`} />
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-4">

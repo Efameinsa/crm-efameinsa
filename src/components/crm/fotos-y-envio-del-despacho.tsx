@@ -197,7 +197,7 @@ export function EnviarGuiaAlCliente({
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-400/50 bg-amber-500/5 px-3 py-2 text-xs">
+      <div id="enviar-guia-cliente" className="flex scroll-mt-24 flex-wrap items-center gap-2 rounded-md border border-amber-400/50 bg-amber-500/5 px-3 py-2 text-xs target:ring-2 target:ring-primary/60">
         <span className="flex-1 text-amber-900">La guía y las fotos del despacho todavía no figuran como enviadas al cliente.</span>
         <Button size="sm" onClick={() => setAbierto(true)}>
           <MessageCircle className="size-3.5" /> Enviar guía y fotos al cliente

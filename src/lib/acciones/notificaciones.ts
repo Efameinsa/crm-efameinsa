@@ -107,7 +107,8 @@ export async function marcarLeidasDelDestino(ruta: string): Promise<void> {
     .update({ leida_at: new Date().toISOString() })
     .eq("user_id", user.id)
     .is("leida_at", null)
-    .eq("url", ruta);
+    // El aviso del mapa lleva «#mapa…» para abrirlo al llegar: es la misma ruta (23-10).
+    .or(`url.eq.${ruta},url.like.${ruta}#*`);
 }
 
 /**

@@ -13,7 +13,7 @@ function Pestanas({ base, activa }: { base: string; activa: PestanaAperturas }) 
   return (
     <nav className="inline-flex gap-1 rounded-lg border border-border bg-card p-1" aria-label="Qué ver">
       <Link href={base} className={clase(activa === "llamadas")} aria-current={activa === "llamadas" ? "page" : undefined}>
-        Derivación de llamadas
+        Llamadas al almacén
       </Link>
       <Link href={`${base}?ver=urgentes`} className={clase(activa === "urgentes")} aria-current={activa === "urgentes" ? "page" : undefined}>
         Aperturas urgentes
@@ -30,9 +30,11 @@ function Pestanas({ base, activa }: { base: string; activa: PestanaAperturas }) 
  * técnico. Se llama así ahora, y lo urgente (la apertura directa, sin pedido,
  * con código de gerencia) va en su propia pestaña.
  */
-export default async function AperturasPostventaPage({ searchParams }: { searchParams: Promise<{ ver?: string } & FiltrosAperturas> }) {
+export default async function AperturasPostventaPage({ searchParams }: { searchParams: Promise<{ ver?: string; compacta?: string } & FiltrosAperturas> }) {
   await requerirPerfil();
   const sp = await searchParams;
+  // REDISEÑO 23-10: dentro de «Casos › Llamadas al almacén» el título lo pone la sección.
+  const compacta = sp.compacta === "1";
   const pestana: PestanaAperturas = sp.ver === "urgentes" ? "urgentes" : "llamadas";
   // El buscador por cliente (reunión 28-09): cliente, tipo, estado y página.
   const filtros: FiltrosAperturas = { q: sp.q, tipo: sp.tipo, estado: sp.estado, pagina: sp.pagina };
@@ -40,13 +42,15 @@ export default async function AperturasPostventaPage({ searchParams }: { searchP
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
+          {!compacta && (
           <h1 className="text-xl font-bold text-foreground">
-            {pestana === "urgentes" ? "Aperturas urgentes" : "Derivación de llamadas"}
+            {pestana === "urgentes" ? "Aperturas urgentes" : "Llamadas al almacén"}
           </h1>
+          )}
           <p className="text-sm text-muted-foreground">
             {pestana === "urgentes"
               ? "Lo que tiene que salir del almacén de inmediato, sin pedido ni cierre: se manda con el código de gerencia y el almacén la toma primero."
-              : "Videollamadas y atenciones técnicas derivadas al almacén, por el día que se le dio al cliente. Acá se ve si la tomó, su informe y lo que falta revisar."}
+              : "Las videollamadas y visitas técnicas que postventa le pasó al almacén (la «derivación de llamada»), por el día que se le dio al cliente. Acá se ve si el almacén la tomó, su informe y lo que falta revisar. Cada llamada cuelga de un caso: ábrala desde el caso para que quede en su historial."}
           </p>
         </div>
         {/* Carlos, 23-09 17:24: la apertura directa, sin cotización ni cierre (0295). */}

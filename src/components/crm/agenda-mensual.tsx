@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { ChevronLeft, ChevronRight, X, CalendarDays, Clock, Check, Trash2, Plus, Copy, Phone, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { celebrar } from "@/lib/celebrar";
 import { reprogramarAccion, consultaResueltaAlLado } from "@/lib/acciones/oportunidades";
 import { AvisoGemelaCerrada } from "@/components/crm/aviso-gemela-cerrada";
 import type { GemelaResuelta } from "@/lib/gemela-cerrada";
@@ -512,6 +513,7 @@ export function AgendaMensual({
                     startTransition(async () => {
                       const r = await actualizarTarea({ id: tareaAbierta.id, completada: nuevo });
                       if (r.error) toast.error(r.error);
+                      else if (nuevo) celebrar("paso");
                     });
                   }}
                   className={cn(

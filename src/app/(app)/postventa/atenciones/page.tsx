@@ -38,9 +38,11 @@ type Pestana = (typeof PESTANAS)[number];
 export default async function AtencionesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ver?: string; filtro?: string; etapa?: string; q?: string; estado?: string }>;
+  searchParams: Promise<{ ver?: string; filtro?: string; etapa?: string; q?: string; estado?: string; compacta?: string }>;
 }) {
   const sp = await searchParams;
+  // REDISEÑO 23-10: embebida en la sección «Casos», las pestañas las pone la sección.
+  const compacta = sp.compacta === "1";
   const pestana: Pestana = PESTANAS.find((p) => p === (sp.ver ?? "")) ?? PESTANAS[0];
   const filtro = sp.filtro ?? "";
   const perfil = await requerirPerfil();
@@ -83,28 +85,30 @@ export default async function AtencionesPage({
           el ing. Carlos pidió que el área pueda contestar sin buscar —«has
           recibido 20 problemas, cuántos atendidos, cuántos en proceso, cuántos
           cerrados»—. */}
+      {!compacta && (
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Tarjeta etiqueta="Recibidas" valor={resumen.recibidas} />
         <Tarjeta etiqueta="Atendidas" valor={resumen.atendidas} />
         <Tarjeta etiqueta="En proceso" valor={resumen.enProceso} alerta={enRojo > 0} />
         <Tarjeta etiqueta="Cerradas" valor={resumen.cerradas} bien />
       </div>
+      )}
 
       {/* Solo en la pestaña de trabajo: es la que se abre al registrar, y en el
           archivo (cerradas, histórico) esta lista no viene a cuento. */}
       {pestana === "" && <MandadoACentral filas={mandadoACentral} contexto="postventa" />}
 
       <SeccionPanel
-        titulo="Atenciones del área"
+        titulo={compacta ? (pestana === "cerradas" ? "Casos cerrados" : `Casos en curso (${abiertas.length})${enRojo > 0 ? ` · ${enRojo} vencidos` : ""}`) : "Atenciones del área"}
         accion={
           <div className="flex flex-wrap items-center gap-1.5">
             <Link
               href="/postventa/casos/nuevo"
               className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground hover:brightness-110"
             >
-              <Plus className="size-3.5" /> Registrar atención
+              <Plus className="size-3.5" /> Registrar caso
             </Link>
-            <PestanasCasos activa={pestana} abiertas={abiertas.length} enRojo={enRojo} />
+            {!compacta && <PestanasCasos activa={pestana} abiertas={abiertas.length} enRojo={enRojo} />}
           </div>
         }
       >

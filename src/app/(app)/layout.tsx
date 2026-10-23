@@ -129,8 +129,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* 20-10: modo setter (llamar a cada lead nuevo); solo dentro de la app, con el plugin nuevo y para la cuenta marcada.
           La tarjeta de aceptación de la grabación (LlamadasNativo) queda sin montar: la grabación está en pausa. */}
       {enApp && !ranuraAuditoria ? <SetterNativo /> : null}
-      <CalloutActivarNotificaciones />
-      <AplicacionInstalable />
+      {/* REDISEÑO 23-10: los dos avisos comparten una fila y van delgados;
+          antes eran dos franjas de 55 px una debajo de la otra. */}
+      <div className="flex flex-wrap gap-2 empty:hidden [&>*]:min-w-0 [&>*]:flex-1 [&>*]:basis-80">
+        <CalloutActivarNotificaciones />
+        <AplicacionInstalable />
+      </div>
       <AvisoGestionesSinSubir />
     </div>
   ) : null;

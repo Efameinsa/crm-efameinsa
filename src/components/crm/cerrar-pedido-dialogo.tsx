@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { celebrar } from "@/lib/celebrar";
 import { Lock, OctagonAlert } from "lucide-react";
 import { cerrarPedido } from "@/lib/acciones/postventa";
 import { Button } from "@/components/ui/button";
@@ -100,6 +101,7 @@ export function CerrarPedidoDialogo({
         return;
       }
       toast.success(series.length ? "Pedido cerrado. Las máquinas ya están en el registro con su garantía." : "Pedido cerrado.");
+      celebrar("cierre");
       cerrar();
       router.refresh();
     });

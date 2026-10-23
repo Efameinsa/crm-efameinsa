@@ -6,6 +6,7 @@ import { requerirPerfil } from "@/lib/auth";
 import { CONTACTO_FINANZAS, CORREO_FINANZAS, NUMERO_WHATSAPP_FINANZAS } from "@/lib/tesoreria";
 import { avisarFinanzasN8n } from "@/lib/avisos-n8n";
 import { notificar, notificarFinanzas } from "@/lib/notificaciones";
+import { conQuienEscribe, type DatosDeQuienEscribe } from "@/lib/central/quien-escribe";
 
 /**
  * Un mismo aviso, a las tres áreas que lo necesitan.
@@ -34,6 +35,19 @@ export interface ResultadoAviso {
   texto?: string;
 }
 
+/** Nombre, teléfono y correo del contacto, para que el aviso diga quién escribió (buzón cd7ed2a1). */
+async function datosDelContacto(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  leadId: string,
+): Promise<DatosDeQuienEscribe | null> {
+  const { data } = await supabase
+    .from("leads")
+    .select("nombre_contacto, razon_social, telefono, email, num_doc")
+    .eq("id", leadId)
+    .maybeSingle();
+  return data;
+}
+
 export async function derivarAviso(datos: {
   leadId: string;
   finanzas: boolean;
@@ -41,8 +55,8 @@ export async function derivarAviso(datos: {
   comercial: boolean;
   detalle: string;
 }): Promise<ResultadoAviso> {
-  const detalle = datos.detalle.trim();
-  if (detalle.length < 10) {
+  const escrito = datos.detalle.trim();
+  if (escrito.length < 10) {
     return { error: "Escriba qué avisó el cliente: es lo único que van a leer las áreas" };
   }
   if (!datos.finanzas && !datos.postventa && !datos.comercial) {
@@ -51,6 +65,7 @@ export async function derivarAviso(datos: {
 
   const perfil = await requerirPerfil();
   const supabase = await createClient();
+  const detalle = conQuienEscribe(escrito, await datosDelContacto(supabase, datos.leadId));
 
   const { data, error } = await supabase.rpc("derivar_aviso", {
     p_lead: datos.leadId,
@@ -220,13 +235,14 @@ export async function avisarAlComercialYCerrar(datos: {
   cuentaId: string;
   detalle: string;
 }): Promise<{ error: string | null; comercial?: string; cliente?: string }> {
-  const detalle = datos.detalle.trim();
-  if (detalle.length < 10) {
+  const escrito = datos.detalle.trim();
+  if (escrito.length < 10) {
     return { error: "Escriba qué dijo el cliente: es lo único que va a leer el comercial" };
   }
 
   await requerirPerfil();
   const supabase = await createClient();
+  const detalle = conQuienEscribe(escrito, await datosDelContacto(supabase, datos.leadId));
 
   const { data, error } = await supabase.rpc("avisar_al_comercial_y_cerrar", {
     p_lead: datos.leadId,

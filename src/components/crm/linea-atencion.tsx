@@ -3,6 +3,7 @@
 import { useState, useTransition, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { celebrar, type Celebracion } from "@/lib/celebrar";
 import {
   Check,
   Minus,
@@ -229,7 +230,8 @@ export function LineaAtencion({
     };
     buscar();
   };
-  const correr = (fn: () => Promise<{ error: string | null }>, exito: string) =>
+  // Cada paso de la atención celebra como «paso»; cerrarla, como «cierre» (Santos, 23-10).
+  const correr = (fn: () => Promise<{ error: string | null }>, exito: string, fiesta: Celebracion = "paso") =>
     empezar(async () => {
       setProblema(null);
       const r = await fn();
@@ -238,6 +240,7 @@ export function LineaAtencion({
         return;
       }
       toast.success(exito);
+      celebrar(fiesta);
       router.refresh();
     });
 
@@ -613,7 +616,7 @@ function SaltearEtapa({
   atencion: Atencion;
   siguiente: EtapaAtencion;
   enviando: boolean;
-  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string, fiesta?: Celebracion) => void;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [motivo, setMotivo] = useState(
@@ -682,7 +685,7 @@ function CerrarAntesDeTiempo({
 }: {
   atencion: Atencion;
   enviando: boolean;
-  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string, fiesta?: Celebracion) => void;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [resultado, setResultado] = useState<"resuelto" | "no_procede" | "derivado" | null>(null);
@@ -758,7 +761,7 @@ function CerrarAntesDeTiempo({
             disabled={enviando || !resultado || motivo.trim().length < 10}
           porQue={faltaParaCerrar(resultado, motivo)}
             onClick={() =>
-              resultado && correr(() => cerrarAtencion({ atencionId: a.id, resultado, motivo, noFacturado }), "Atención cerrada.")
+              resultado && correr(() => cerrarAtencion({ atencionId: a.id, resultado, motivo, noFacturado }), "Atención cerrada.", "cierre")
             }
           >
             Cerrar la atención
@@ -786,7 +789,7 @@ function PasoCerrada({
 }: {
   atencion: Atencion;
   enviando: boolean;
-  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string, fiesta?: Celebracion) => void;
 }) {
   const [abrir, setAbrir] = useState(false);
   const [nota, setNota] = useState("");
@@ -803,7 +806,7 @@ function PasoCerrada({
             size="sm"
             variant="outline"
             disabled={enviando}
-            onClick={() => correr(() => terminarSeguimiento({ atencionId: a.id }), "Seguimiento terminado: la atención queda cerrada.")}
+            onClick={() => correr(() => terminarSeguimiento({ atencionId: a.id }), "Seguimiento terminado: la atención queda cerrada.", "cierre")}
           >
             Terminar seguimiento
           </Button>
@@ -1034,7 +1037,7 @@ function PasoRegistro({
   cuenta?: { id: string; razonSocial: string } | null;
   pedidoSinSeries?: { id: string; equipo: string | null; despachado_at: string | null; guia: string | null } | null;
   enviando: boolean;
-  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string, fiesta?: Celebracion) => void;
 }) {
   const [clasificacion, setClasificacion] = useState<ClasificacionAtencion | "">(
     garantia?.en_garantia ? "garantia" : "",
@@ -1225,7 +1228,7 @@ function PasoPlanificar({
   serie: string | null;
   tecnicos: string[];
   enviando: boolean;
-  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string, fiesta?: Celebracion) => void;
   /** Es una puesta en marcha: se programa la llamada o la visita de arranque. */
   puestaEnMarcha?: boolean;
 }) {
@@ -1342,7 +1345,7 @@ function PasoSimple({
   atencion: Atencion;
   siguiente: string;
   enviando: boolean;
-  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string, fiesta?: Celebracion) => void;
 }) {
   const [nombre, setNombre] = useState("");
   const [doc, setDoc] = useState("");
@@ -1416,7 +1419,7 @@ function PasoTrabajo({
   nombrePrincipal: string;
   puedeCotizar?: boolean;
   enviando: boolean;
-  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string, fiesta?: Celebracion) => void;
 }) {
   const [trabajo, setTrabajo] = useState("");
   const [repuestos, setRepuestos] = useState("");
@@ -1523,7 +1526,7 @@ function VisitaSinSolucion({
 }: {
   atencionId: string;
   enviando: boolean;
-  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string, fiesta?: Celebracion) => void;
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
@@ -1653,7 +1656,7 @@ function PasoPruebas({
 }: {
   atencion: Atencion;
   enviando: boolean;
-  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string, fiesta?: Celebracion) => void;
 }) {
   const [detalle, setDetalle] = useState("");
   const [conforme, setConforme] = useState(true);
@@ -1765,7 +1768,7 @@ function AvisarQueHayVenta({
   oportunidadId?: string | null;
   puedeCotizar?: boolean;
   enviando: boolean;
-  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string, fiesta?: Celebracion) => void;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [tipo, setTipo] = useState<"solicitud_repuesto" | "solicitud_mantenimiento">("solicitud_repuesto");
@@ -1871,7 +1874,7 @@ function SeguirSinIdentificar({
 }: {
   atencionId: string;
   enviando: boolean;
-  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string, fiesta?: Celebracion) => void;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [motivo, setMotivo] = useState("");
@@ -1926,7 +1929,7 @@ function PasoCerrar({
 }: {
   atencion: Atencion;
   enviando: boolean;
-  correr: (fn: () => Promise<{ error: string | null }>, exito: string) => void;
+  correr: (fn: () => Promise<{ error: string | null }>, exito: string, fiesta?: Celebracion) => void;
 }) {
   const [resultado, setResultado] = useState<"resuelto" | "no_procede" | "derivado" | null>(null);
   const [motivo, setMotivo] = useState("");
@@ -1993,7 +1996,7 @@ function PasoCerrar({
           disabled={enviando || !resultado || motivo.trim().length < 10}
           porQue={faltaParaCerrar(resultado, motivo)}
           onClick={() =>
-            resultado && correr(() => cerrarAtencion({ atencionId: a.id, resultado, motivo, noFacturado }), "Atención cerrada.")
+            resultado && correr(() => cerrarAtencion({ atencionId: a.id, resultado, motivo, noFacturado }), "Atención cerrada.", "cierre")
           }
         >
           Cerrar la atención

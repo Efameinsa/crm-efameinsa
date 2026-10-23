@@ -28,7 +28,11 @@ import {
   sonarCampanada,
   sonarPrueba,
   sonarWhatsapp,
+  sonarZumbido,
 } from "@/lib/sonido-alerta";
+import { pideZumbido, sacudirPantalla } from "@/lib/zumbido";
+import { MapaFlotante, abrirMapaFlotante } from "@/components/crm/mapa-flotante";
+import { ChatFlotante, abrirChatDelEnlace, chatEstaAbierto } from "@/components/crm/chat-flotante";
 import { tituloDePestanaWhatsapp } from "@/lib/aviso-whatsapp";
 import { anunciarPendientesWhatsapp } from "@/lib/pendientes-whatsapp";
 import type { RolUsuario } from "@/types/database";
@@ -177,6 +181,20 @@ const ESTILO_AVISO: Record<
   },
   // Central apura al almacén por las series de un pedido (0358, 30-09):
   // «alarma, notificación y todo». Igual que la de Finanzas.
+  // El chat del caso (0592): discreto, no saca a nadie de lo que hace; «Responder» abre el chat encima.
+  chat_caso: {
+    encabezado: "💬 Le escribieron en el chat de un caso",
+    accion: "Responder",
+    duracion: 12000,
+    tono: "info",
+  },
+  // El «Apurar» del mapa (Santos 23-10): sin decir quién apura y qué falta, el zumbido solo frustra.
+  apuro_mapa: {
+    encabezado: "📳 Le están apurando: un recorrido está atascado en su área",
+    accion: "Ver en el mapa",
+    duracion: Infinity,
+    tono: "error",
+  },
   urgencia_almacen: {
     encabezado: "🚨 Urgente — Central pide las series",
     accion: "Ver el pedido",
@@ -458,6 +476,8 @@ export function CampanaNotificaciones({
     window.dispatchEvent(
       new CustomEvent("crm:aviso", { detail: { tipo: n.tipo, url: n.url } }),
     );
+    // Un mensaje del chat que la persona ya tiene abierto no interrumpe: aparece en la conversación.
+    if (n.tipo === "chat_caso" && n.url && chatEstaAbierto(n.url)) return;
     if (n.tipo === "whatsapp_mensaje") {
       avisarWhatsapp(n);
       return;
@@ -489,11 +509,16 @@ export function CampanaNotificaciones({
       // Casos de Central (0573): el área tiene que tomarlo.
       "caso_central",
       "caso_central_urgente",
+      "apuro_mapa",
       // Files: pedir y «Terminé» (Central, 30-09) mueven a alguien a caminar.
       "file_pedido",
       "file_recoger",
     ].includes(n.tipo);
-    if (exigeAccion) sonarCampanada(n.id);
+    // El «Apurar» del mapa: zumbido de Messenger en vez de campanada, solo el 1.º y el 2.º (Santos 23-10).
+    if (pideZumbido(n)) {
+      sonarZumbido(n.id);
+      sacudirPantalla();
+    } else if (exigeAccion) sonarCampanada(n.id);
     else sonarAlerta(n.id);
     // Para Central, el prospecto nuevo además se queda en pantalla hasta que
     // lo toque (la miden por la entrega rápida).
@@ -508,7 +533,11 @@ export function CampanaNotificaciones({
       action: n.url
         ? {
             label: info.accion,
-            onClick: () => router.push(n.url!),
+            // El «Apurar» abre el mapa ENCIMA de lo que estaba haciendo, sin sacarlo de su pantalla (23-10).
+            onClick: () => {
+              if (n.tipo === "apuro_mapa" || n.tipo === "chat_caso") void alClickearNotificacion(n);
+              else router.push(n.url!);
+            },
           }
         : undefined,
     });
@@ -692,7 +721,7 @@ export function CampanaNotificaciones({
               // El aviso de WhatsApp REEMPLAZA al pendiente del mismo chat (el
               // servidor ya borró el anterior): no suma uno más al número.
               const reemplaza = (n: Notificacion) =>
-                nueva.tipo === "whatsapp_mensaje" && n.tipo === "whatsapp_mensaje" && n.url === nueva.url && !n.leida_at;
+                (nueva.tipo === "whatsapp_mensaje" || nueva.tipo === "chat_caso") && n.tipo === nueva.tipo && n.url === nueva.url && !n.leida_at;
               let reemplazadas = 0;
               setNotificaciones((prev) => {
                 reemplazadas = prev.filter(reemplaza).length;
@@ -742,7 +771,8 @@ export function CampanaNotificaciones({
   // si en esta ruta no hay nada pendiente, no hay nada que apagar. Es fiable
   // porque `refrescar` ya trae TODAS las pendientes, no solo las 15 últimas.
   const pendientesDeEstaRuta = notificaciones
-    .filter((n) => !n.leida_at && n.url === ruta)
+    // «#mapa…» solo abre el mapa al llegar: la ruta es la misma (apuro del mapa, 23-10).
+    .filter((n) => !n.leida_at && (n.url ?? "").split("#")[0] === ruta)
     .map((n) => n.id)
     .join(",");
 
@@ -887,6 +917,8 @@ export function CampanaNotificaciones({
       await marcarNotificacionLeida(n.id);
     }
     setAbierto(false);
+    // El «Apurar» del mapa se abre encima de la pantalla actual, sin sacarlo de lo que hacía (23-10).
+    if (n.url && (abrirMapaFlotante(n.url) || abrirChatDelEnlace(n.url))) return;
     if (tieneDestinoConcreto(n.url)) {
       router.push(n.url!);
       return;
@@ -918,6 +950,10 @@ export function CampanaNotificaciones({
 
   return (
     <div className="relative" ref={contenedorRef}>
+      {/* El mapa que abre el aviso del «Apurar», encima de lo que esté haciendo. */}
+      <MapaFlotante />
+      {/* El chat de cada caso, flotando abajo a la derecha sobre cualquier pantalla (0592). */}
+      <ChatFlotante />
       <button
         type="button"
         onClick={() => {

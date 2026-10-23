@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { celebrar } from "@/lib/celebrar";
 import { createClient } from "@/lib/supabase/client";
 import { Check, CircleDashed, OctagonAlert, Loader2, ImagePlus, Paperclip, Lock, X, FileText, Pencil } from "lucide-react";
 import Link from "@/components/enlace";
@@ -185,6 +186,7 @@ export function PedidoPostventa({
       // vez, no cuando el almacén reclame que lo ve en rojo.
       if (r.aviso) toast.warning(exito, { description: r.aviso, duration: 12000 });
       else toast.success(exito);
+      celebrar("paso");
       setForm(null);
       router.refresh();
     });
@@ -364,7 +366,7 @@ export function PedidoPostventa({
                 servicioId={servicio.id}
                 equipos={equiposDeLaApertura}
                 tipo="videollamada_preinstalacion"
-                etiqueta="Derivación de llamada"
+                etiqueta="Derivar llamada al almacén"
                 compacto
               />
             )}
@@ -420,7 +422,7 @@ export function PedidoPostventa({
                 servicioId={servicio.id}
                 equipos={equiposDeLaApertura}
                 tipo="videollamada_puesta_marcha"
-                etiqueta="Derivación de llamada"
+                etiqueta="Derivar llamada al almacén"
                 compacto
               />
             )}
@@ -439,6 +441,19 @@ export function PedidoPostventa({
         return <OrdenFacturar servicioId={servicio.id} sinPuesta={cierreExigePuesta(servicio) && !servicio.puesta_en_marcha} />;
       case "cerrado":
         return <BotonPaso onClick={() => setForm({ tipo: "cerrar" })}>Cerrar pedido</BotonPaso>;
+      case "guia_cliente":
+        // El envío se marca en el bloque «Enviar guía y fotos al cliente» de la
+        // columna derecha (tiene el WhatsApp armado). Desde el paso se llega
+        // con un clic; antes el paso decía «pendiente» y no ofrecía nada
+        // (Choquehuanca, 23-10).
+        return (
+          <a
+            href="#enviar-guia-cliente"
+            className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+          >
+            Enviar guía y fotos al cliente ↓
+          </a>
+        );
       default:
         return null;
     }

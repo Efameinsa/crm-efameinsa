@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { celebrar } from "@/lib/celebrar";
 import { Check, Loader2 } from "lucide-react";
 import { aprobarPedido } from "@/lib/acciones/postventa";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ export function AprobarPedidoBoton({ servicioId }: { servicioId: string }) {
             return;
           }
           toast.success("Pedido aprobado. Central ya lo ve en ejecución.");
+          celebrar("paso");
           router.refresh();
         })
       }

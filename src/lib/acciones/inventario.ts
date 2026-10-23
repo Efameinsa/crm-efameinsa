@@ -85,6 +85,17 @@ export async function ponerEmpresa(ids: string[], empresa: "OPEN" | "EFAMEINSA" 
   return { error: null };
 }
 
+/** La observación del almacén sobre una máquina (Santos 23-10: «un espacio para observación… desde el CRM»). */
+export async function guardarObservacion(id: string, texto: string): Promise<{ error: string | null }> {
+  const perfil = await requerirPerfil();
+  if (!(["operaciones", "gerencia", "admin"].includes(perfil.rol) || perfil.es_operaciones)) return { error: "La observación la pone operaciones o gerencia" };
+  const supabase = await createClient();
+  const { error } = await supabase.from("inventario_equipos").update({ observacion: texto.trim().slice(0, 300) || null }).eq("id", id);
+  if (error) return { error: limpiar(error.message) };
+  revalidarAlmacen();
+  return { error: null };
+}
+
 export interface SerieDisponible {
   id: string;
   serie: string;

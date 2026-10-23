@@ -80,6 +80,8 @@ export interface ResultadoGestion {
   accion_sugerida?: string | null;
   dias_sugeridos?: number | null;
   efecto?: "cotizar" | "venta" | "rechazo" | "derivar" | null;
+  /** 0594 (Brenda, 23-10): «Atendido», «Llamada derivada al almacén», «Informe enviado al cliente». El comercial no los ve. */
+  solo_postventa?: boolean;
 }
 export interface MotivoRechazo {
   id: number;
@@ -481,7 +483,7 @@ export function RegistroRapido({
                 <div className="space-y-1.5">
                   <p className="text-[11px] text-muted-foreground">¿En qué quedó?</p>
                   <div className="flex flex-wrap gap-2">
-                    {resultados.map((r) => (
+                    {resultados.filter((r) => !r.solo_postventa || esPostventa).map((r) => (
                       <Chip key={r.id} activo={resultadoId === r.id} onClick={() => elegirResultado(r)}>
                         {r.nombre}
                       </Chip>

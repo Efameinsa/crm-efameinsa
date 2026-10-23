@@ -25,7 +25,7 @@ import { ChevronRight } from "lucide-react";
  */
 export async function HistorialDelCaso({ atencionId, creadoAt }: { atencionId: string; creadoAt: string | null }) {
   const admin = createAdminClient();
-  const [{ data }, { data: caso }, { data: llamadas }] = await Promise.all([
+  const [{ data }, { data: caso }, { data: llamadas }, { data: chat }] = await Promise.all([
     admin
       .from("registro_acciones")
       .select("id, operacion, campos, antes, despues, quien, cuando, deshecha_at")
@@ -38,6 +38,8 @@ export async function HistorialDelCaso({ atencionId, creadoAt }: { atencionId: s
       .from("aperturas_llamada")
       .select("id, tipo, solicitada_at, solicitada_por, programada_para, tecnico, informe_at, informe_por, enviada_cliente_at, anulada_at, anulada_motivo")
       .eq("atencion_id", atencionId),
+    // El chat del caso (0592, Santos 23-10): lo conversado entre áreas también es historia del caso.
+    admin.from("chat_mensajes").select("id, autor_id, texto, para_area, clase, created_at").eq("atencion_id", atencionId).order("created_at").limit(300),
   ]);
   const desde = caso?.created_at ?? creadoAt;
   const oportunidadId = (caso?.oportunidad_id as string | null | undefined) ?? null;
@@ -100,6 +102,7 @@ export async function HistorialDelCaso({ atencionId, creadoAt }: { atencionId: s
       [
         ...filas.flatMap((f) => [f.quien, f.despues?.asignado_a as string | undefined, f.despues?.tomada_por as string | undefined]),
         ...acts.map((g) => g.realizada_por),
+        ...((chat ?? []) as { autor_id: string }[]).map((m) => m.autor_id),
         ...derivadas.flatMap((l) => [l.solicitada_por, l.informe_por]),
         ped?.apertura_despacho_por,
         ped?.tecnico_salio_por,
@@ -115,7 +118,10 @@ export async function HistorialDelCaso({ atencionId, creadoAt }: { atencionId: s
   // DE DÓNDE VIENE CADA FILA (Brenda, 22-10: «veo gestiones acá y no las puedo
   // editar, ¿o está jalando de otra parte?»). El historial junta tres sitios y
   // no se escribe aquí: cada fila dice dónde vive y «Ver» lleva a ese lugar.
-  const lineas: { cuando: string; quien: string | null; que: string; tipo: "caso" | "gestion" | "derivacion" | "apertura"; href: string | null }[] = [];
+  const lineas: { cuando: string; quien: string | null; que: string; tipo: "caso" | "gestion" | "derivacion" | "apertura" | "chat"; href: string | null }[] = [];
+  for (const m of (chat ?? []) as { autor_id: string; texto: string; para_area: string | null; clase: string; created_at: string }[]) {
+    lineas.push({ cuando: m.created_at, quien: de(m.autor_id), que: `${m.clase === "apuro" ? "📳 " : "💬 "}${m.texto.slice(0, 280)}`, tipo: "chat", href: null });
+  }
   for (const f of filas) {
     if (f.deshecha_at) continue;
     const d = f.despues ?? {};
@@ -186,6 +192,11 @@ export async function HistorialDelCaso({ atencionId, creadoAt }: { atencionId: s
       rotulo: "Derivación al almacén",
       ver: "Ver la derivación",
       color: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200",
+    },
+    chat: {
+      rotulo: "Chat del caso",
+      ver: null,
+      color: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200",
     },
     apertura: {
       rotulo: "Apertura de servicio",

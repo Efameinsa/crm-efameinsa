@@ -1,4 +1,5 @@
 import Link from "@/components/enlace";
+import { MapaRecorridoSeccion } from "@/components/crm/mapa-recorrido-seccion";
 import { notFound, redirect } from "next/navigation";
 import { enVistaNueva } from "@/lib/propuesta/vista";
 import { ArrowLeft, FileSpreadsheet, FileText, MessageCircle, Paperclip } from "lucide-react";
@@ -447,6 +448,8 @@ export default async function PedidoPage({ params, searchParams }: { params: Pro
           una encomienda—, a la derecha los papeles y los datos de entrega,
           que se consultan pero no se recorren. */}
       {/* Las letras de crédito que viajan con el equipo (0470). */}
+      {/* EL MAPA DEL RECORRIDO (Santos 23-10): dónde está, a quién le toca y «Apurar». */}
+      <MapaRecorridoSeccion pedidos={[servicio.id]} ruta={`/postventa/pedidos/${servicio.id}`} />
       <AvisoPagoParcial servicio={servicio} />
       <LetrasDelPedido s={servicio} cliente={(servicio.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "")} />
 

@@ -143,6 +143,20 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
   });
   // Quien pidió menos movimiento al sistema: se mueve igual, sin resorte ni estiro.
   const quieto = useRef(false);
+  // EL CHAT DEL CASO LA APARTA (Santos 23-10: «ese chat se estorba con Efamein,
+  // cuando se active el chat bota a Efamein a la izquierda»). Guarda de dónde
+  // venía (null = la esquina de siempre) para volver cuando el chat se cierra.
+  const apartada = useRef<{ desde: Punto | null } | null>(null);
+  const volverAEsquina = useRef(false);
+  /** De vuelta a la esquina de siempre: sin desplazamiento propio (si no, se sumaría al de las clases y quedaría afuera). */
+  const quedarEnLaEsquina = useCallback(() => {
+    const f = fis.current;
+    f.pos = { x: 0, y: 0 };
+    f.meta = { x: 0, y: 0 };
+    f.vel = { x: 0, y: 0 };
+    if (boton.current) boton.current.style.transform = "";
+    setLugar(null);
+  }, []);
 
   const pintar = useCallback(() => {
     const el = boton.current;
@@ -194,14 +208,21 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
         f.pos = { ...f.meta };
         f.vel = { x: 0, y: 0 };
         pintar();
+        if (volverAEsquina.current) {
+          // Volvió de apartarse y nunca la habían movido: queda otra vez con las clases de la esquina.
+          volverAEsquina.current = false;
+          quedarEnLaEsquina();
+          return;
+        }
         setLugar({ ...f.meta });
-        guardar(f.meta);
+        // Apartada por el chat del caso: es un lugar de paso, no se recuerda.
+        if (!apartada.current) guardar(f.meta);
         return;
       }
       f.cuadro = requestAnimationFrame(paso);
     };
     f.cuadro = requestAnimationFrame(paso);
-  }, [guardar, pintar]);
+  }, [guardar, pintar, quedarEnLaEsquina]);
 
   // Al entrar: el tamaño de la pantalla y, si la movieron antes, su lugar.
   useEffect(() => {
@@ -245,6 +266,70 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
     };
   }, [nombre, pintar]);
 
+  // El chat del caso (abajo a la derecha; en el celular, todo el ancho de abajo) la aparta y, al cerrarse, la devuelve.
+  useEffect(() => {
+    const f = fis.current;
+    const esquina = (): Punto => {
+      const md = window.matchMedia("(min-width: 768px)").matches;
+      return { x: window.innerWidth - LADO - (md ? 20 : 16), y: window.innerHeight - LADO - (md ? 20 : 80) };
+    };
+    const mover = (meta: Punto) => {
+      f.meta = dentroDeLaPantalla(meta);
+      if (quieto.current) {
+        f.pos = { ...f.meta };
+        pintar();
+        if (volverAEsquina.current) {
+          volverAEsquina.current = false;
+          quedarEnLaEsquina();
+        } else setLugar({ ...f.meta });
+      } else animar();
+    };
+    const alChat = (ev: Event) => {
+      const visible = (ev as CustomEvent<{ visible: boolean }>).detail?.visible === true;
+      if (f.arrastrando) return;
+      const ahora: Punto | null = f.meta.x || f.meta.y ? { ...f.meta } : null;
+      const actual = ahora ?? esquina();
+      if (visible && !apartada.current) {
+        const escritorio = window.matchMedia("(min-width: 640px)").matches;
+        if (escritorio) {
+          // Solo si está en la mitad derecha (donde flota el chat): pasa al costado izquierdo, a la misma altura.
+          if (actual.x + LADO / 2 < window.innerWidth / 2) return;
+          apartada.current = { desde: ahora };
+          if (!ahora) {
+            f.pos = { ...actual };
+            f.meta = { ...actual };
+            setLugar({ ...actual });
+          }
+          mover({ x: MARGEN, y: actual.y });
+        } else {
+          // En el celular el chat ocupa el ancho de abajo: sube por encima de él, a la izquierda.
+          const altoChat = Math.min(544, window.innerHeight - 80);
+          apartada.current = { desde: ahora };
+          if (!ahora) {
+            f.pos = { ...actual };
+            f.meta = { ...actual };
+            setLugar({ ...actual });
+          }
+          mover({ x: MARGEN, y: window.innerHeight - altoChat - LADO - 24 });
+        }
+      } else if (!visible && apartada.current) {
+        const { desde } = apartada.current;
+        apartada.current = null;
+        if (desde) mover(desde);
+        else {
+          volverAEsquina.current = true;
+          mover(esquina());
+        }
+      }
+    };
+    window.addEventListener("crm:chat-visible", alChat);
+    // Si el chat ya estaba abierto cuando apareció la bolita (cambio de pantalla).
+    if ((window as unknown as { __crmChatVisible?: boolean }).__crmChatVisible) {
+      alChat(new CustomEvent("crm:chat-visible", { detail: { visible: true } }));
+    }
+    return () => window.removeEventListener("crm:chat-visible", alChat);
+  }, [animar, pintar, quedarEnLaEsquina]);
+
   // Al pasar a posición libre, el primer cuadro se pinta ahí mismo (antes de que se vea, para que no parpadee en la esquina).
   useLayoutEffect(() => {
     if (lugar && !fis.current.arrastrando) pintar();
@@ -253,6 +338,9 @@ export function AsistenteFlotante({ nombre, sugerencias }: { nombre: string; sug
   function alBajar(e: EventoPuntero<HTMLButtonElement>) {
     if (e.button !== 0) return;
     const f = fis.current;
+    // La movió a mano mientras el chat estaba abierto: ese es su lugar ahora, ya no vuelve sola.
+    apartada.current = null;
+    volverAEsquina.current = false;
     if (!lugar) {
       // Primera vez: arranca desde donde la dejaron las clases.
       const r = e.currentTarget.getBoundingClientRect();

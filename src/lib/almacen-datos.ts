@@ -18,14 +18,14 @@ const sinRuc = (s: string | null | undefined) => (s ?? "").replace(/^\d{8,11}\s*
 interface InvFila {
   id: string; serie: string; estado: FilaAlmacen["estado"]; ubicacion: string | null; ingreso_at: string; salida_at: string | null; modelo: string | null;
   descripcion: string | null; empresa: string | null; item_importaciones: string | null; proveedor: string | null; servicio_id: string | null;
-  pedido_equipo_id: string | null; reservado_para: string | null;
+  pedido_equipo_id: string | null; reservado_para: string | null; observacion: string | null;
   productos: Uno<{ id: string; sku: string | null; marca: string | null; modelo: string | null; nombre: string; segmento: string | null }>;
 }
 
 async function maquinas(supabase: SupabaseClient): Promise<InvFila[]> {
   const { data } = await supabase
     .from("inventario_equipos")
-    .select("id, serie, estado, ubicacion, ingreso_at, salida_at, modelo, descripcion, empresa, item_importaciones, proveedor, servicio_id, pedido_equipo_id, reservado_para, productos(id, sku, marca, modelo, nombre, segmento)")
+    .select("id, serie, estado, ubicacion, ingreso_at, salida_at, modelo, descripcion, empresa, item_importaciones, proveedor, servicio_id, pedido_equipo_id, reservado_para, observacion, productos(id, sku, marca, modelo, nombre, segmento)")
     .neq("estado", "baja")
     .order("ingreso_at", { ascending: true })
     .limit(3000);
@@ -40,10 +40,13 @@ export async function cargarAlmacenPorSerie(supabase: SupabaseClient): Promise<{
   const admin = createAdminClient();
   const idsServicio = [...new Set(lista.map((m) => m.servicio_id).filter(Boolean))] as string[];
   const idsCuenta = [...new Set(lista.filter((m) => !m.servicio_id && m.reservado_para).map((m) => m.reservado_para))] as string[];
-  const [servicios, cuentas] = await Promise.all([
+  const [servicios, cuentas, costos] = await Promise.all([
     idsServicio.length ? admin.from("servicios_postventa").select("id, cliente_texto, numero_pedido_erp").in("id", idsServicio) : Promise.resolve({ data: [] }),
     idsCuenta.length ? admin.from("cuentas").select("id, razon_social").in("id", idsCuenta) : Promise.resolve({ data: [] }),
+    // Con la sesión de quien mira: la tabla de costos solo la leen operaciones y gerencia (0596).
+    supabase.from("inventario_costos").select("inventario_id, costo").limit(5000),
   ]);
+  const porCosto = new Map(((costos.data ?? []) as { inventario_id: string; costo: number }[]).map((c) => [c.inventario_id, Number(c.costo)]));
   const porServicio = new Map(((servicios.data ?? []) as { id: string; cliente_texto: string | null; numero_pedido_erp: string | null }[]).map((s) => [s.id, s]));
   const porCuenta = new Map(((cuentas.data ?? []) as { id: string; razon_social: string }[]).map((c) => [c.id, c.razon_social]));
 
@@ -68,6 +71,8 @@ export async function cargarAlmacenPorSerie(supabase: SupabaseClient): Promise<{
       pedido: s?.numero_pedido_erp ?? null,
       servicioId: m.servicio_id,
       porPedido: !!m.pedido_equipo_id,
+      costo: porCosto.get(m.id) ?? null,
+      observacion: m.observacion,
     };
   });
 

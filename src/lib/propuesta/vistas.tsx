@@ -28,4 +28,6 @@ export const VISTAS: Record<string, () => Promise<ModuloVista>> = {
   "almacen-series": () => import("@/components/propuesta/vistas/almacen-series"),
   "almacen-pedidos": () => import("@/components/propuesta/vistas/almacen-pedidos"),
   "postventa-esperando": () => import("@/components/propuesta/vistas/postventa-esperando"),
+  "postventa-reportes": () => import("@/components/propuesta/vistas/postventa-reportes"),
+  "postventa-cotizaciones": () => import("@/components/propuesta/vistas/postventa-cotizaciones"),
 };

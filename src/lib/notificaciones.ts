@@ -87,7 +87,11 @@ export type TipoNotificacion =
   // nuevo al área (urgente = la sirena) y lo que el área hace, a Central.
   | "caso_central"
   | "caso_central_urgente"
-  | "caso_central_respuesta";
+  | "caso_central_respuesta"
+  // «Apurar» desde el mapa del recorrido (0591, Santos 23-10): dice quién apura, qué paso falta y abre el mapa.
+  | "apuro_mapa"
+  // Mensaje en el chat de un caso o pedido (0592): uno pendiente por chat, el nuevo reemplaza al anterior.
+  | "chat_caso";
 
 interface Destinatario {
   userId?: string;
@@ -210,7 +214,7 @@ export async function notificarAlmacen(datos: {
   url?: string;
   esPrueba?: boolean;
   /** «urgencia_almacen» (0358) es la sirena de Central: no se cierra sola y suena la campanada. */
-  tipo?: "almacen" | "urgencia_almacen" | "visita_nueva";
+  tipo?: "almacen" | "urgencia_almacen" | "visita_nueva" | "apuro_mapa";
 }): Promise<void> {
   const admin = createAdminClient();
   const { data } = await admin
@@ -237,7 +241,7 @@ export async function notificarFinanzas(datos: {
   url?: string;
   esPrueba?: boolean;
   /** «urgencia_finanzas» (0298) es la sirena de Central: no se cierra sola y suena la campanada. */
-  tipo?: "finanzas" | "urgencia_finanzas";
+  tipo?: "finanzas" | "urgencia_finanzas" | "apuro_mapa";
 }): Promise<void> {
   const admin = createAdminClient();
   const { data } = await admin

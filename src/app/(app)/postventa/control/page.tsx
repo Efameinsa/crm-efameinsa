@@ -49,7 +49,7 @@ function faseActual(bloques: ReturnType<typeof bloquesPedido>): 1 | 2 | 3 {
 export default async function ControlPedidosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vista?: string; falta?: string; q?: string; estado?: string; ver?: string }>;
+  searchParams: Promise<{ vista?: string; falta?: string; q?: string; estado?: string; ver?: string; compacta?: string }>;
 }) {
   // Dos vistas del mismo control (Carlos, 02-09): el tablero de fases —lo que
   // diseñó Santos— y la tabla POR PASO, para «¿a quiénes no les he enviado el
@@ -68,6 +68,9 @@ export default async function ControlPedidosPage({
             ? "regularizar"
             : "paso";
   const falta = /^[a-z_]+$/.test(sp.falta ?? "") ? (sp.falta as string) : null;
+  // REDISEÑO 23-10: dentro de la sección «Pedidos» cada vista es una pestaña de
+  // la sección; el interruptor interno sobraba (dos navegaciones para lo mismo).
+  const compacta = sp.compacta === "1";
   const perfil = await requerirPerfil();
   const supabase = await createClient();
 
@@ -218,7 +221,7 @@ export default async function ControlPedidosPage({
 
   return (
     <SeccionPanel
-      titulo="Control de pedidos"
+      titulo={compacta ? ({ paso: "Pedidos por paso", tablero: "Tablero de pedidos", despachos: "Cola del Excel", regularizar: "Pedidos por regularizar", cerrados: "Pedidos cerrados" } as const)[vista] : "Control de pedidos"}
       accion={
         // flex-wrap: en el celular (412 px) las pestañas «Tablero · Por paso · Cola del Excel» se
         // salían por la derecha y quedaban cortadas (hallazgo de la prueba de la app, 01-10-2026).
@@ -239,6 +242,7 @@ export default async function ControlPedidosPage({
             <FileText className="size-3.5" aria-hidden />
             Reporte de pendientes (PDF)
           </a>
+          {!compacta && (
           <span className="inline-flex overflow-hidden rounded-md border border-border text-xs font-medium">
             <Link
               href={`/postventa/control?vista=tablero${ver === "todos" ? "&ver=todos" : ""}`}
@@ -276,6 +280,7 @@ export default async function ControlPedidosPage({
               Cerrados
             </Link>
           </span>
+          )}
         </span>
       }
     >

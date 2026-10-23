@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { celebrar } from "@/lib/celebrar";
 import { Check, Loader2, PackageCheck, Pencil, Truck, FileCheck2, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { marcarProbado, confirmarListo, registrarSalida, registrarAgencia, corregirAgencia, autorizarSalidaConSaldo } from "@/lib/acciones/almacen";
@@ -177,6 +178,7 @@ export function PedidoAlmacen({
         return;
       }
       toast.success(exito);
+      celebrar("paso");
       router.refresh();
     });
   }

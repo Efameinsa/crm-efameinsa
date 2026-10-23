@@ -81,6 +81,24 @@ function llevaDemasiadoSinGestion(asignadoAt: string | null): boolean {
   return Date.now() - new Date(asignadoAt).getTime() > 864e5;
 }
 
+/**
+ * LA CARPETA DE POSTVENTA, CORTA (rediseño 23-10). El formulario «Registrar
+ * gestión» es el del comercial, largo, y la ficha ya tiene «Anotar gestión»:
+ * en una carpeta de postventa va plegado, a un toque; en un expediente
+ * comercial se queda abierto como siempre.
+ */
+function PlegableSiPostventa({ esPostventa, children }: { esPostventa: boolean; children: React.ReactNode }) {
+  if (!esPostventa) return <>{children}</>;
+  return (
+    <details className="group rounded-xl border border-border bg-card shadow-sm">
+      <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-foreground [&::-webkit-details-marker]:hidden">
+        Registrar gestión <span className="ml-1 text-xs font-normal text-muted-foreground">· tocar para abrir (desde la ficha es «Anotar gestión»)</span>
+      </summary>
+      <div className="border-t border-border p-2">{children}</div>
+    </details>
+  );
+}
+
 export default async function OportunidadDetallePage({
   params,
   searchParams,
@@ -121,7 +139,7 @@ export default async function OportunidadDetallePage({
         )
         .eq("oportunidad_id", id)
         .order("created_at", { ascending: false }),
-      supabase.from("catalogo_resultados_gestion").select("id, codigo, nombre, accion_sugerida, dias_sugeridos, efecto").eq("activo", true).order("orden"),
+      supabase.from("catalogo_resultados_gestion").select("id, codigo, nombre, accion_sugerida, dias_sugeridos, efecto, solo_postventa").eq("activo", true).order("orden"),
     ]);
 
   if (!oportunidad) {
@@ -607,7 +625,7 @@ export default async function OportunidadDetallePage({
           </Link>
           <span className="truncate">
             {cuenta.razon_social ?? "Cliente"} <span className="text-muted-foreground/60">›</span>{" "}
-            <span className="font-medium text-foreground">Expediente · {etiquetaTipoExpediente(oportunidad.tipo_postventa)}</span>
+            <span className="font-medium text-foreground">{oportunidad.tipo_postventa ? "Carpeta de postventa" : "Expediente"} · {etiquetaTipoExpediente(oportunidad.tipo_postventa)}</span>
           </span>
         </nav>
       )}
@@ -925,6 +943,7 @@ export default async function OportunidadDetallePage({
             </SeccionPanel>
           )}
 
+          <PlegableSiPostventa esPostventa={oportunidad.tipo_postventa != null}>
           <SeccionPanel titulo="Registrar gestión">
             {chatWa && (
               <p className="mb-3 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
@@ -981,6 +1000,7 @@ export default async function OportunidadDetallePage({
               />
             )}
           </SeccionPanel>
+          </PlegableSiPostventa>
 
           {/* EL PARQUE INSTALADO, ANTES DEL HISTORIAL DE GESTIÓN. Cuando el
               caso es de postventa, la primera pregunta no es qué se habló sino
@@ -1101,7 +1121,9 @@ export default async function OportunidadDetallePage({
           </SeccionPanel>
           )}
 
-          {cuenta?.id && (
+          {/* Infocorp es de la venta de equipos (crédito): en una carpeta de
+              postventa no se consulta (rediseño 23-10). */}
+          {cuenta?.id && oportunidad.tipo_postventa == null && (
             <SeccionPanel titulo="Infocorp" id="infocorp">
               <InfocorpExpediente
                 cuentaId={cuenta.id}

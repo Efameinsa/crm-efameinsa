@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { celebrar } from "@/lib/celebrar";
 import { Check, FileSignature, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { entregarLetras, recibiLetras } from "@/lib/acciones/almacen";
@@ -72,6 +73,7 @@ export function LetrasDelPedido({ s, cliente, puedeRecibir = false, puedeEntrega
       const r = await fn();
       if (r.error) return void setProblema(r.error);
       toast.success(exito);
+      celebrar("paso");
       router.refresh();
     });
   }
@@ -153,6 +155,7 @@ export function LetrasDelPedido({ s, cliente, puedeRecibir = false, puedeEntrega
                 const r = await entregarLetras(s.id, { recibio, fotos, nota, cliente });
                 if (r.error) return void setProblema(r.error);
                 toast.success("Letras entregadas: postventa ya recibió el aviso para verificar el despacho");
+                celebrar("paso");
                 router.refresh();
               });
             }}

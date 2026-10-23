@@ -40,49 +40,62 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
 
   let contenido: React.ReactNode;
   if (pestana === "subir") {
-    const [{ data }, { count: enAlmacen }] = await Promise.all([
+    // Una carga viva por empresa (Santos 23-10): el Excel de Efameinsa no tapa ni reemplaza el de Open.
+    const [{ data: lista }, { count: enAlmacen }] = await Promise.all([
       supabase
         .from("stock_cargas")
-        .select("id, archivo, hojas, filas, ausentes, estado, resultado, created_at, subida_at")
+        .select("id, archivo, hojas, filas, ausentes, estado, resultado, empresa, created_at, subida_at")
         .in("estado", ["revisando", "subida"])
         .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+        .limit(10),
       supabase.from("inventario_equipos").select("id", { count: "exact", head: true }).eq("estado", "disponible"),
     ]);
-    const carga: CargaStock | null = data
-      ? {
-          id: data.id,
-          archivo: data.archivo,
-          hojas: data.hojas ?? [],
-          filas: data.filas ?? [],
-          ausentes: data.ausentes ?? [],
-          estado: data.estado,
-          resultado: data.resultado,
-          createdAt: data.created_at,
-          subidaAt: data.subida_at,
-        }
-      : null;
-    const revisando = carga?.estado === "revisando";
+    const vistas = new Set<string>();
+    const cargas: CargaStock[] = [];
+    for (const d of lista ?? []) {
+      const emp = (d.empresa ?? "OPEN") as CargaStock["empresa"];
+      if (vistas.has(emp)) continue;
+      vistas.add(emp);
+      cargas.push({
+        id: d.id,
+        archivo: d.archivo,
+        hojas: d.hojas ?? [],
+        filas: d.filas ?? [],
+        ausentes: d.ausentes ?? [],
+        estado: d.estado,
+        resultado: d.resultado,
+        empresa: emp,
+        createdAt: d.created_at,
+        subidaAt: d.subida_at,
+      });
+    }
+    const hayRevision = cargas.some((c) => c.estado === "revisando");
     // Para la señal tenue de cada casilla: ¿ese código ya existe o se va a crear?
     const existentes: CodigosExistentes = {};
-    if (revisando) for (const p of await productosParaComparar()) existentes[p.sku] = { activo: p.activo };
+    if (hayRevision) for (const p of await productosParaComparar()) existentes[p.sku] = { activo: p.activo };
     contenido = (
       <div className="space-y-4">
-        <SubirExcelStock hayCarga={revisando} />
-        {revisando && carga && <RevisarStock carga={carga} existentes={existentes} />}
-        {carga?.estado === "subida" && carga.resultado && (
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">
-              Última subida: {carga.archivo} ·{" "}
-              {new Date(carga.subidaAt ?? carga.createdAt).toLocaleString("es-PE", { timeZone: "America/Lima", dateStyle: "short", timeStyle: "short" })}
-            </p>
-            <ResumenSubida resultado={carga.resultado} />
-            <BotonResumenPdf cargaId={carga.id} />
-          </div>
-        )}
+        <SubirExcelStock hayCarga={cargas.length > 0} />
+        {cargas.map((carga) => (
+          <section key={carga.id} className="space-y-2">
+            <h3 className="text-sm font-semibold text-foreground">
+              Stock de {carga.empresa}
+              <span className="ml-2 text-xs font-normal text-muted-foreground">{carga.archivo}</span>
+            </h3>
+            {carga.estado === "revisando" && <RevisarStock carga={carga} existentes={existentes} />}
+            {carga.estado === "subida" && carga.resultado && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  Última subida:{" "}
+                  {new Date(carga.subidaAt ?? carga.createdAt).toLocaleString("es-PE", { timeZone: "America/Lima", dateStyle: "short", timeStyle: "short" })}
+                </p>
+                <ResumenSubida resultado={carga.resultado} />
+                <BotonResumenPdf cargaId={carga.id} />
+              </div>
+            )}
+          </section>
+        ))}
         {/* El informe de los lunes de Importaciones, ahora armado por el CRM (reunión Santos–Lesly 22-10). */}
-        {/* Desde la 0588 lo claro entra al leer el Excel: el resumen del almacén ya es el real; la vista previa de la carga sobra. */}
         <ResumenGeneralStock enAlmacen={enAlmacen ?? 0} />
       </div>
     );
@@ -132,7 +145,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
           <h1 className="text-lg font-semibold text-foreground">Stock y códigos</h1>
           <p className="mt-0.5 max-w-3xl text-sm text-muted-foreground">
             Suba el Excel de stock de Importaciones y las máquinas entran al almacén en el acto. El CRM solo le señala las observaciones: las que
-            no tienen código, las que hay que revisar y las series que ya están con un cliente. Los costos no se suben.
+            no tienen código, las que hay que revisar y las series que ya están con un cliente. Cada Excel es de una empresa (Open o Efameinsa) y no se mezclan. El costo solo lo ven operaciones y gerencia.
           </p>
         </div>
       </div>

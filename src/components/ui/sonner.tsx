@@ -11,6 +11,13 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
+      closeButton
+      // En el celular el menú de abajo mide 3.5rem (h-14) + zona segura: los avisos
+      // se apoyan encima de él en vez de taparlo.
+      // En escritorio la bolita de Efamein vive en la esquina (bottom-5 right-5,
+      // 52 px): los avisos arrancan por encima de ella para no taparla.
+      offset={{ bottom: 88 }}
+      mobileOffset={{ bottom: "calc(3.5rem + env(safe-area-inset-bottom) + 12px)" }}
       icons={{
         success: (
           <CircleCheckIcon className="size-4" />
@@ -37,8 +44,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
         } as React.CSSProperties
       }
       toastOptions={{
+        closeButtonAriaLabel: "Cerrar aviso",
         classNames: {
           toast: "cn-toast",
+          closeButton: "cn-toast-cerrar",
         },
       }}
       {...props}

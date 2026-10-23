@@ -500,3 +500,69 @@ body {
   50% { opacity: .55; transform: scale(.85); }
 }
 .tk-punto-vivo { animation: tk-pulso 1.4s ease-in-out infinite; }
+
+/* MAPA DEL RECORRIDO (Santos 23-10): la etapa donde está atascado palpita en rojo. */
+@keyframes mapa-latir {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(220 38 38 / 0.5); }
+  60% { box-shadow: 0 0 0 9px rgb(220 38 38 / 0); }
+}
+.mapa-latir { animation: mapa-latir 1.6s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .mapa-latir { animation: none; box-shadow: 0 0 0 3px rgb(220 38 38 / 0.35); }
+}
+/* El tramo recorrido avanza como el trazo animado de mapa.efameinsa.com. */
+@keyframes mapa-trazo { to { stroke-dashoffset: -32; } }
+.mapa-trazo { animation: mapa-trazo 1.2s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .mapa-trazo { animation: none; } }
+/* EL ZUMBIDO del «Apurar» (Santos 23-10): la pantalla tiembla como el de Messenger, medio segundo. */
+@keyframes crm-zumbido {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-7px, 2px); }
+  20% { transform: translate(6px, -3px); }
+  30% { transform: translate(-6px, -2px); }
+  40% { transform: translate(7px, 3px); }
+  50% { transform: translate(-5px, 2px); }
+  60% { transform: translate(5px, -2px); }
+  70% { transform: translate(-4px, 1px); }
+  80% { transform: translate(3px, -1px); }
+  90% { transform: translate(-2px, 0); }
+}
+html.crm-zumbido body { animation: crm-zumbido 0.6s linear 1; }
+
+/* Avisos pequeños (toasts de sonner, abajo a la derecha): botón «×» para
+   cerrarlos, siempre visible, arriba a la derecha DENTRO del aviso. Pedido
+   de Santos el 23-10: llegaban sin forma de cerrarlos. El texto deja sitio
+   al botón con el padding derecho. */
+[data-sonner-toast][data-styled="true"] {
+  padding-right: 2.75rem;
+}
+[data-sonner-toast][data-styled="true"] [data-close-button].cn-toast-cerrar {
+  position: absolute;
+  left: auto;
+  right: 0.5rem;
+  top: 0.5rem;
+  transform: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted-foreground);
+  opacity: 1;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+[data-sonner-toast][data-styled="true"] [data-close-button].cn-toast-cerrar svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+[data-sonner-toast][data-styled="true"] [data-close-button].cn-toast-cerrar:hover,
+[data-sonner-toast][data-styled="true"]:hover [data-close-button].cn-toast-cerrar:hover {
+  background: var(--accent);
+  border-color: var(--border);
+  color: var(--primary);
+}
+[data-sonner-toast][data-styled="true"] [data-close-button].cn-toast-cerrar:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--primary);
+}

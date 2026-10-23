@@ -1,4 +1,5 @@
 import Link from "@/components/enlace";
+import { MapaRecorridoSeccion } from "@/components/crm/mapa-recorrido-seccion";
 import { notFound } from "next/navigation";
 import { AlertTriangle, ArrowDown, Building2, Check, MapPin, Truck, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -202,6 +203,8 @@ export default async function PedidoNuevoPage({ params }: { params: Promise<{ id
         </div>
       </div>
 
+      {/* EL MAPA DEL RECORRIDO (Santos 23-10): dónde está, a quién le toca y «Apurar». */}
+      <MapaRecorridoSeccion pedidos={[servicio.id]} ruta={`/nuevo/pedido/${servicio.id}`} />
       {/* El abono que no cubre lo acordado se anuncia ANTES de «qué sigue» (15-10). */}
       <AvisoPagoParcial servicio={servicio} />
       {/* LO ÚNICO QUE IMPORTA AHORA. */}

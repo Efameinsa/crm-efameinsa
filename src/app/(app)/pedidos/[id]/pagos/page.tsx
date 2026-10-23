@@ -1,4 +1,5 @@
 import Link from "@/components/enlace";
+import { MapaRecorridoSeccion } from "@/components/crm/mapa-recorrido-seccion";
 import { notFound } from "next/navigation";
 import { AlertTriangle, ArrowLeft, BadgeCheck, Paperclip } from "lucide-react";
 import { requerirPerfil } from "@/lib/auth";
@@ -58,7 +59,7 @@ export default async function PagosDelPedidoPage({ params }: { params: Promise<{
   const cliente = (s.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, "");
   // Las consultas al pago (0520) son del comercial: postventa no las ve (sin cifras).
   const consultas = conCifras ? await consultasDelPedido(id, (s.moneda as string | null) ?? "PEN") : [];
-  const volver = perfil.es_postventa ? `/postventa/pedidos/${id}` : "/comercial/cierres";
+  const volver = perfil.es_postventa ? `/postventa/pedidos/${id}` : perfil.rol === "facturacion" ? "/facturacion" : perfil.rol === "finanzas" ? `/finanzas/pedidos/${id}` : "/comercial/cierres";
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
@@ -74,6 +75,9 @@ export default async function PagosDelPedidoPage({ params }: { params: Promise<{
           {conCifras ? "" : " · Postventa ve lo que Finanzas informó, sin montos."}
         </p>
       </div>
+
+      {/* EL MAPA DEL RECORRIDO (Santos 23-10): dónde está, a quién le toca y «Apurar». */}
+      <MapaRecorridoSeccion pedidos={[id]} ruta={`/pedidos/${id}/pagos`} />
 
       {s.pago_observado_at && (
         <div className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">

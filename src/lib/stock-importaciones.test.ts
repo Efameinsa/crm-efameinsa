@@ -149,7 +149,8 @@ describe("emparejar", () => {
 });
 
 describe("leerExcelStock", () => {
-  it("lee solo las hojas de stock y nunca la columna COSTO", () => {
+  // Gerencia 23-10: el costo SÍ se lee (antes no); va a una tabla que solo leen operaciones y gerencia (0596).
+  it("lee solo las hojas de stock y también la columna COSTO", () => {
     const libro = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(
       libro,
@@ -175,8 +176,10 @@ describe("leerExcelStock", () => {
     expect(filas).toHaveLength(2);
     expect(ignoradas).toContain("RESERVA");
     expect(filas[1]).toMatchObject({ codigoExcel: "SECMAX152", item: "I25158", modelo: "TITAN LIGHT CDT29MSCPS", serie: "601KWRE2N078" });
-    expect(JSON.stringify(filas)).not.toContain("7311");
-    expect(JSON.stringify(filas)).not.toContain("1088");
+    expect(filas[0].costo).toBe(7311.62);
+    expect(filas[1].costo).toBe(1088);
+    // El costo nunca se cuela como ubicación.
+    expect(filas.map((f) => f.ubicacion)).toEqual(["PLANTA", "PLANTA"]);
   });
 });
 

@@ -12,6 +12,7 @@ import { useEffect, useState, useTransition } from "react";
 import Link from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { celebrar } from "@/lib/celebrar";
 import { Boxes, Check, Loader2, PackageX, ScanBarcode, X } from "lucide-react";
 import { seriesDisponibles, type SerieDisponible } from "@/lib/acciones/inventario";
 import { createClient } from "@/lib/supabase/client";
@@ -350,6 +351,7 @@ function EditarLinea({ e, servicioId }: { e: EquipoDelPedido; servicioId: string
       const r = await accion();
       if (r.error) return setProblema(r.error);
       toast.success(exito);
+      celebrar("paso");
       setPaso("nada");
       router.refresh();
     });
@@ -580,6 +582,7 @@ function Fila({
         return;
       }
       toast.success(r.pedidoListo ? "Con esta ya están todas: el pedido queda probado y embalado. Postventa ya lo sabe." : exito);
+      celebrar("paso");
       setSubiendo(null);
       router.refresh();
     });
@@ -1477,6 +1480,7 @@ function ProtocoloDelKit({ servicioId, piezas, cliente }: { servicioId: string; 
         return;
       }
       toast.success(r.pedidoListo ? "Kit completo probado y embalado. Postventa ya lo sabe." : exito);
+      celebrar("paso");
       setSubiendo(null);
       router.refresh();
     });

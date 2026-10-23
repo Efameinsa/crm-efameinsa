@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { fechaHoraLima } from "@/lib/fechas";
+import { conQuienEscribe, type DatosDeQuienEscribe } from "@/lib/central/quien-escribe";
 
 /**
  * La salida que le faltaba a Central cuando el cliente ya lo está atendiendo
@@ -41,6 +42,7 @@ export function AvisarYCerrarBoton({
   duenio,
   mensaje,
   recibidoAt,
+  contacto,
 }: {
   leadId: string;
   cuentaId: string;
@@ -48,11 +50,15 @@ export function AvisarYCerrarBoton({
   duenio: string;
   mensaje?: string | null;
   recibidoAt?: string | null;
+  /** Quién escribió: sin esto al comercial le llegaba el mensaje sin nombre ni teléfono (buzón cd7ed2a1). */
+  contacto?: DatosDeQuienEscribe | null;
 }) {
   const hora = recibidoAt ? fechaHoraLima(recibidoAt) : null;
-  const porDefecto =
+  const porDefecto = conQuienEscribe(
     `El cliente volvió a escribir${hora ? ` el ${hora}` : ""}` +
-    (mensaje?.trim() ? `: «${mensaje.trim()}»` : ". Pidió lo mismo otra vez.");
+      (mensaje?.trim() ? `: «${mensaje.trim()}»` : ". Pidió lo mismo otra vez."),
+    contacto,
+  );
 
   const [abierto, setAbierto] = useState(false);
   const [detalle, setDetalle] = useState(porDefecto);

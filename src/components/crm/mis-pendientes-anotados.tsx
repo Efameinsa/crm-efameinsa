@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { celebrar } from "@/lib/celebrar";
 import { Check, Plus, Trash2 } from "lucide-react";
 import { crearPendienteAnotado, actualizarTarea, eliminarTarea } from "@/lib/acciones/tareas";
 import { SelectorHora } from "@/components/crm/selector-hora";
@@ -51,7 +52,10 @@ export function MisPendientesAnotados({ hoy, lista }: { hoy: string; lista: Pend
     empezar(async () => {
       const r = await actualizarTarea({ id, completada: true });
       if (r.error) toast.error(r.error);
-      else router.refresh();
+      else {
+        celebrar("paso");
+        router.refresh();
+      }
     });
   }
 

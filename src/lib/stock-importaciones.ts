@@ -13,10 +13,10 @@ import * as XLSX from "xlsx";
  * EQUIPOS LG»). RESERVA y VENDIDO no se suben: «la reserva no la vamos a
  * subir… ya está para un cliente».
  *
- * LOS COSTOS NO SE LEEN. «No se tiene que subir… si subimos esto nos va a
- * cargar el precio y las comerciales van a decir: ah, ya puedo vender sobre
- * esto». La columna COSTO no se mapea a ningún campo: no viaja ni al servidor
- * ni a la base.
+ * LOS COSTOS. El 21-10 no se leían («las comerciales van a decir: ah, ya puedo
+ * vender sobre esto»). El 23-10 gerencia decidió que sí deben figurar: la columna
+ * COSTO se lee y se guarda en inventario_costos, que solo leen operaciones y
+ * gerencia (0596). Las comerciales siguen sin verlo.
  *
  * POR QUÉ NO BASTA EL MODELO. La UT075 tiene una decena de códigos: cambia el
  * control (Dual Digital / Unilinc), el calentamiento (GLP, gas natural,
@@ -47,6 +47,8 @@ export interface FilaStock {
   proveedor?: string | null;
   /** De qué empresa es la máquina, OPEN o EFAMEINSA (Carlos 22-10), si la hoja trae la columna. */
   empresa?: string | null;
+  /** Costo de Importaciones (0596): solo lo ven operaciones y gerencia. */
+  costo?: number | null;
 }
 
 /** OPEN / EFAMEINSA, como lo escriba el Excel («Open », «EFAMEINSA», «Efameinsa S.A.»). */
@@ -228,7 +230,7 @@ export function esHojaDeStock(nombre: string): boolean {
 /**
  * Lee las hojas de stock. Cabeceras tolerantes (MODELO / MODELO␠, NOMBRE o
  * DESCRIPCION…). En la hoja LG la columna del código no tiene título: es la
- * primera columna cuando su cabecera está vacía. COSTO no se lee.
+ * primera columna cuando su cabecera está vacía. COSTO se lee (0596).
  */
 export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaStock[]; hojas: string[]; ignoradas: string[] } {
   const libro = XLSX.read(datos, { type: "array", cellDates: true });
@@ -265,6 +267,7 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
     const cIngreso = col("INGRESO");
     const cMarca = col("MARCA");
     const cProveedor = col("PROVEEDOR");
+    const cCosto = col("COSTO");
     // Carlos (22-10): cada máquina dice si es de Open o de Efameinsa. En las hojas de
     // reserva y vendidos Importaciones lo llama «C. INICIAL» o «SOLICITADO».
     const cEmpresa = col("EMPRESA", "PERTENECE", "CINICIAL", "SOLICITADO", "PROPIETARIO");
@@ -290,8 +293,9 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
         codigoExcel: textoDe(celda(r, cCodigo))?.toUpperCase() ?? null,
         modelo,
         descripcion: textoDe(celda(r, cDesc)) ?? "",
-        // Una «serie» sin dígitos (1, 2, 3 en las mesas BIMAP sí tienen) o vacía no es serie.
-        serie: serieTxt && /\d/.test(serieTxt) && serieTxt.length >= 3 ? serieTxt.toUpperCase() : null,
+        // Una «serie» sin dígitos o vacía no es serie. El 1, 2, 3… de las mesas BIMAP es su
+        // correlativo de caja y queda como serie (Santos 23-10, 0595): vale dentro de su código.
+        serie: serieTxt && (esCorrelativo(serieTxt) || (/\d/.test(serieTxt) && serieTxt.length >= 3)) ? serieTxt.toUpperCase() : null,
         capacidad: textoDe(celda(r, cCap)),
         cantidad: Math.max(0, Math.round(Number(celda(r, cStock)) || 0)),
         // En dos filas del Excel del 22-10 la celda UBICACIÓN traía un número (un costo
@@ -301,6 +305,11 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
         marca: textoDe(celda(r, cMarca)) ?? (/LG/i.test(nombre) ? "LG" : null),
         proveedor: textoDe(celda(r, cProveedor)) ?? (/LG/i.test(nombre) ? "LG" : null),
         empresa: empresaDe(textoDe(celda(r, cEmpresa))),
+        costo: (() => {
+          const v = celda(r, cCosto);
+          const n = typeof v === "number" ? v : Number(String(v ?? "").replace(/[^\d.]/g, ""));
+          return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
+        })(),
       });
     });
   }
@@ -526,7 +535,7 @@ export function emparejar(
 
     const avisos: string[] = [];
     if (avisoModelo) avisos.push(avisoModelo);
-    const ocupada = f.serie ? ocupadas.get(f.serie) : undefined;
+    const ocupada = f.serie && !esCorrelativo(f.serie) ? ocupadas.get(f.serie) : undefined;
     if (f.serie && ocupada !== undefined) {
       // Lesly (21-10): «Importaciones me ha dado la liquidación después que ya hemos vendido la máquina».
       avisos.push(
@@ -588,7 +597,7 @@ export function revisarSegunExcel(filas: FilaStock[], productos: ProductoCatalog
   return filas.map((f) => {
     const r = rasgos(`${f.descripcion} ${f.modelo}`);
     const tipo = tipoEquipo(`${f.descripcion} ${f.modelo}`);
-    const ocupada = f.serie ? ocupadas.get(f.serie) : undefined;
+    const ocupada = f.serie && !esCorrelativo(f.serie) ? ocupadas.get(f.serie) : undefined;
     let estado: EstadoFila;
     let motivo: string;
     let codigo: string | null = f.codigoExcel;
@@ -641,3 +650,10 @@ export function revisarSegunExcel(filas: FilaStock[], productos: ProductoCatalog
     };
   });
 }
+
+/**
+ * Un número de 1 a 3 cifras en SERIE es el correlativo de caja que Importaciones pone
+ * a lo que no trae serie de placa (mesas BIMAP: 1, 2, 3…). Es serie, pero solo dentro
+ * de su código: otra marca puede numerar sus cajas igual (0595).
+ */
+export const esCorrelativo = (serie: string | null | undefined) => /^\d{1,3}$/.test(String(serie ?? "").trim());

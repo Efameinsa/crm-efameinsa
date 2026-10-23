@@ -132,16 +132,19 @@ export function BarraPropuesta({
         </span>
       </div>
       <nav className="flex flex-col gap-0.5 overflow-y-auto px-3 pt-2" aria-label="Menú">
-        {opciones.map((o) => {
+        {opciones.map((o, i) => {
           const Icono = ICONOS[o.icono];
           const es = activaEntre(o, opciones, ruta);
+          // El rótulo del grupo, una vez, donde empieza (rediseño 23-10).
+          const rotulo = o.grupo && opciones[i - 1]?.grupo !== o.grupo ? o.grupo : null;
           return (
             <Link
               key={o.href + o.etiqueta}
+              data-grupo={rotulo ?? undefined}
               href={o.href}
               aria-current={es ? "page" : undefined}
               onClick={alNavegar}
-              className={cn("nav-item flex items-center gap-3 rounded-lg px-3 text-[13.5px]", movil ? "py-3" : "py-2")}
+              className={cn("nav-item flex items-center gap-3 rounded-lg px-3 text-[13.5px]", movil ? "py-3" : "py-2", rotulo && "mt-3 before:pointer-events-none before:absolute before:-top-3 before:left-3 before:text-[10px] before:font-bold before:uppercase before:tracking-wider before:text-white/40 before:content-[attr(data-grupo)] relative")}
             >
               <Icono className="size-[18px] shrink-0" strokeWidth={es ? 2.3 : 1.9} />
               <span className="flex-1">{o.etiqueta}</span>

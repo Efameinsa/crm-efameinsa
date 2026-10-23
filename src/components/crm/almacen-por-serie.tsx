@@ -193,9 +193,9 @@ export function AlmacenPorSerie({
             {lista.length === 0 ? (
               <p className="text-sm text-muted-foreground">Ninguna máquina coincide con ese filtro.</p>
             ) : modo === "codigo" ? (
-              <TablaPorCodigo filas={lista} opciones={{ puedeEditar, verIngreso: true, verCliente: true }} />
+              <TablaPorCodigo filas={lista} opciones={{ puedeEditar, verIngreso: true, verCliente: true, verCosto: true }} />
             ) : (
-              <TablaPorSerie filas={lista} opciones={{ puedeEditar, verIngreso: true, verCliente: true }} />
+              <TablaPorSerie filas={lista} opciones={{ puedeEditar, verIngreso: true, verCliente: true, verCosto: true }} />
             )}
           </>
         )}

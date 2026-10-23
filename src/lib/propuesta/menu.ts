@@ -44,6 +44,12 @@ export interface OpcionMenu {
   href: string;
   icono: Icono;
   coincide: string[];
+  /**
+   * Rótulo del grupo en la barra (rediseño de postventa, 23-10). Las opciones
+   * con el mismo `grupo` van juntas bajo ese rótulo, separadas del trabajo
+   * diario; las de arriba, sin grupo, son las de todos los días.
+   */
+  grupo?: string;
 }
 
 export interface Pestana {
@@ -131,22 +137,25 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
   ],
   postventa: [
     hoy,
-    // El macro, como en la barra de siempre (auditoría 25-09: Carlos, 16-09:
-    // «primero es el macro»).
-    { etiqueta: "Panorama", href: "/postventa/macro", icono: "numeros", coincide: ["/postventa/macro"] },
-    { etiqueta: "Pedidos", href: "/nuevo/pedidos", icono: "pedidos", coincide: ["/nuevo/pedidos", "/postventa/control", "/postventa/pedidos"] },
-    { etiqueta: "Atenciones", href: "/nuevo/atenciones", icono: "atenciones", coincide: ["/nuevo/atenciones", "/postventa/atenciones", "/postventa/casos", "/postventa/informes"] },
-    // Reunión 23-09: la orden al almacén que iba por correo (0281).
-    { etiqueta: "Derivación de llamadas", href: "/postventa/aperturas", icono: "aperturas", coincide: ["/postventa/aperturas", "/aperturas"] },
-    { etiqueta: "Clientes", href: "/nuevo/clientes", icono: "clientes", coincide: ["/nuevo/clientes", "/comercial/cartera", "/postventa/equipos", "/comercial/parque"] },
-    { etiqueta: "Vender", href: "/nuevo/vender", icono: "vender", coincide: ["/nuevo/vender", "/comercial/ruta", "/comercial/cotizaciones", "/comercial/cierres", "/comercial/mi-gestion", "/comercial/oportunidades"] },
+    // REDISEÑO DE POSTVENTA (Santos, 23-10: «son muchas opciones y se pierde
+    // la señorita»). De once opciones a seis de trabajo diario, en el orden en
+    // que se usan, más tres de apoyo bajo su propio rótulo. «Atenciones» pasa
+    // a llamarse «Casos» —la palabra que usa el área— y se lleva adentro las
+    // llamadas al almacén (antes «Derivación de llamadas», una opción aparte).
+    { etiqueta: "Casos", href: "/nuevo/atenciones", icono: "atenciones", coincide: ["/nuevo/atenciones", "/postventa/atenciones", "/postventa/casos", "/postventa/informes", "/postventa/aperturas", "/aperturas", "/postventa/soporte"] },
+    { etiqueta: "Pedidos", href: "/nuevo/pedidos", icono: "pedidos", coincide: ["/nuevo/pedidos", "/postventa/control", "/postventa/pedidos", "/nuevo/pedido"] },
+    { etiqueta: "Clientes", href: "/nuevo/clientes", icono: "clientes", coincide: ["/nuevo/clientes", "/comercial/cartera", "/postventa/equipos", "/comercial/parque", "/nuevo/cliente"] },
     { etiqueta: "Agenda", href: "/nuevo/agenda", icono: "agenda", coincide: ["/nuevo/agenda", "/postventa/agenda", "/postventa/visitas"] },
-      // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
-    { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"] },
+    { etiqueta: "Vender", href: "/nuevo/vender", icono: "vender", coincide: ["/nuevo/vender", "/comercial/ruta", "/comercial/cotizaciones", "/comercial/cierres", "/comercial/mi-gestion", "/comercial/oportunidades"] },
+    // El macro, como en la barra de siempre (auditoría 25-09: Carlos, 16-09:
+    // «primero es el macro»). Va después del trabajo diario: se consulta, no se trabaja.
+    { etiqueta: "Panorama", href: "/postventa/macro", icono: "numeros", coincide: ["/postventa/macro"] },
+    // FILES (0334, pedido de Carlos del 24-09): pedir el archivador físico a Central.
+    { etiqueta: "Files", href: "/files", icono: "files", coincide: ["/files"], grupo: "Apoyo" },
     // DIRECTORIO (0410, Lesly 06-10): correos EFAMEINSA y OPEN, teléfonos y técnicos.
-    { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"] },
+    { etiqueta: "Directorio", href: "/directorio", icono: "directorio", coincide: ["/directorio"], grupo: "Apoyo" },
     // PROCESOS (16-10, Santos): los diagramas de postventa para repasar cómo se mueve un pedido.
-    { etiqueta: "Procesos", href: "/procesos", icono: "procesos", coincide: ["/procesos"] },
+    { etiqueta: "Procesos", href: "/procesos", icono: "procesos", coincide: ["/procesos"], grupo: "Apoyo" },
   ],
   preventivo: [
     hoy,
@@ -361,12 +370,21 @@ export const SECCIONES: Record<string, Seccion> = {
       { clave: "todos", etiqueta: "Todos los cierres", pagina: "central/cierres" },
     ],
   },
+  // REDISEÑO 23-10: las cinco vistas que vivían en un interruptor DENTRO de
+  // la pestaña «Por paso» (Tablero · Por paso · Cola del Excel · Regularizar ·
+  // Cerrados) suben a pestañas de la sección: una sola fila de navegación,
+  // sin un menú dentro de otro. `compacta` le dice a la pantalla que no dibuje
+  // su interruptor interno.
   "postventa/pedidos": {
     titulo: "Pedidos",
     ayuda: "Cada pedido por el paso en que está, y lo que usted pidió a otras áreas y todavía no contestan.",
     pestanas: [
-      { clave: "", etiqueta: "Por paso", pagina: "postventa/control" },
+      { clave: "", etiqueta: "Por paso", pagina: "postventa/control", fijos: { vista: "paso", compacta: "1" } },
       { clave: "esperando", etiqueta: "Esperando a otras áreas", pagina: "vista:postventa-esperando" },
+      { clave: "tablero", etiqueta: "Tablero", pagina: "postventa/control", fijos: { vista: "tablero", compacta: "1" } },
+      { clave: "excel", etiqueta: "Cola del Excel", pagina: "postventa/control", fijos: { vista: "despachos", compacta: "1" } },
+      { clave: "regularizar", etiqueta: "Regularizar", pagina: "postventa/control", fijos: { vista: "regularizar", compacta: "1" } },
+      { clave: "cerrados", etiqueta: "Cerrados", pagina: "postventa/control", fijos: { vista: "cerrados", compacta: "1" } },
     ],
   },
   "almacen/pedidos": {
@@ -424,12 +442,22 @@ export const SECCIONES: Record<string, Seccion> = {
   // LA BANDEJA Y LOS CASOS (auditoría 25-09): la bandeja de siempre —casos
   // nuevos, lo atendido hoy y los reportes diario, semanal y mensual— como
   // primera pestaña de Atenciones.
+  // REDISEÑO 23-10: «Casos». Antes la sección tenía dos pestañas (Bandeja del
+  // día · Casos técnicos) y CADA UNA dibujaba adentro otra tira con cinco
+  // (Por tomar · Abiertas · Casos anteriores · Cerradas · Histórico), más una
+  // opción aparte del menú para las llamadas al almacén. Ahora la navegación
+  // es una sola fila: lo que hay que tomar, lo que está en curso, lo que se
+  // pasó al almacén, lo cerrado, y los reportes del área. `compacta` apaga
+  // la tira interna y los botones repetidos.
   "postventa/atenciones": {
-    titulo: "Atenciones",
-    ayuda: "Lo que va llegando al área, los casos técnicos en curso y sus informes.",
+    titulo: "Casos",
+    ayuda: "Lo que llega al área y nadie tomó, los casos en curso, las llamadas que pasó al almacén, y los reportes.",
     pestanas: [
-      { clave: "", etiqueta: "Bandeja del día", pagina: "postventa" },
-      { clave: "casos", etiqueta: "Casos técnicos", pagina: "postventa/atenciones" },
+      { clave: "", etiqueta: "Por tomar", pagina: "postventa", fijos: { compacta: "1" } },
+      { clave: "en-curso", etiqueta: "En curso", pagina: "postventa/atenciones", fijos: { ver: "", compacta: "1" } },
+      { clave: "llamadas", etiqueta: "Llamadas al almacén", pagina: "postventa/aperturas", fijos: { compacta: "1" } },
+      { clave: "cerrados", etiqueta: "Cerrados", pagina: "postventa/atenciones", fijos: { ver: "cerradas", compacta: "1" } },
+      { clave: "reportes", etiqueta: "Reportes y archivo", pagina: "vista:postventa-reportes" },
     ],
   },
   "postventa/clientes": {
@@ -446,7 +474,8 @@ export const SECCIONES: Record<string, Seccion> = {
     ayuda: "La campaña de preventivos, las cotizaciones, las ventas emitidas y sus números.",
     pestanas: [
       { clave: "", etiqueta: "Campaña de preventivos", pagina: "comercial/ruta" },
-      { clave: "cotizaciones", etiqueta: "Cotizaciones", pagina: "comercial/cotizaciones" },
+      // Brenda, 23-10: la pestaña dice cuántas del área esperan a gerencia.
+      { clave: "cotizaciones", etiqueta: "Cotizaciones", pagina: "vista:postventa-cotizaciones" },
       { clave: "cierres", etiqueta: "Ventas emitidas", pagina: "comercial/cierres" },
       { clave: "numeros", etiqueta: "Mis números", pagina: "comercial/mi-gestion" },
     ],
