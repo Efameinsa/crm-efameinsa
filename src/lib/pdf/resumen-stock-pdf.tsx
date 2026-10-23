@@ -150,7 +150,11 @@ function cortable(t: string | null | undefined): string {
 
 const TEXTO_DECISION = { subir: "Sube", no_subir: "No sube", pendiente: "Por decidir" } as const;
 
-export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarga, filas, existentes }: ResumenStockPdfProps) {
+export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarga, filas: filasLeidas, existentes }: ResumenStockPdfProps) {
+  // El PDF muestra cómo QUEDÓ cada máquina, no cómo vino el Excel (Santos 23-10: las mesas BIMAP
+  // salían en naranja «Código retirado · se reactiva» y SECU302 con «Falta código» aunque ya
+  // habían entrado con su código; «asusta y todo está bien»). Lo que entra con código es «Código de Lesly».
+  const filas = filasLeidas.map((f) => (f.decision === "subir" && (f.codigoFinal ?? f.codigo) ? { ...f, estado: "ok" as EstadoStock, motivo: "" } : f));
   const total = filas.length;
   const unidades = filas.reduce((a, f) => a + (f.serie ? 1 : f.cantidad), 0);
   const cuenta = { subir: 0, no_subir: 0, pendiente: 0 };
@@ -282,7 +286,6 @@ export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarg
                     {cod ? <Text style={[s.codigo, esNuevo ? { color: TINTA.nuevo } : {}]}>{cod}</Text> : <Text style={{ color: TINTA.revisar }}>Falta código</Text>}
                     {esNuevo && <Text style={[s.chico, { color: TINTA.nuevo }]}>nuevo</Text>}
                     {cambio && <Text style={s.chico}>Excel: {f.codigoExcel}</Text>}
-                    {!f.codigoExcel && cod && !esNuevo && <Text style={s.chico}>sin código en el Excel</Text>}
                   </View>
                   <View style={[s.celda, { width: COL.modelo }]}>
                     <Text>{cortable(f.modelo)}</Text>
