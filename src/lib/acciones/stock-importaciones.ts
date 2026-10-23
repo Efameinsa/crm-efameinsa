@@ -179,8 +179,7 @@ export async function analizarExcelStock(formData: FormData): Promise<{ error: s
   if (!/\.xlsx?$/i.test(archivo.name)) return { error: "Tiene que ser un Excel (.xlsx)" };
   if (archivo.size > 15 * 1024 * 1024) return { error: "El Excel pesa demasiado (más de 15 MB)" };
   // Cada Excel es de una empresa (Santos 23-10: «vamos a subir Efameinsa, que no se vaya a unir»).
-  const empresa = String(formData.get("empresa") ?? "").toUpperCase();
-  if (empresa !== "OPEN" && empresa !== "EFAMEINSA") return { error: "Elija de qué empresa es el Excel: Open o Efameinsa" };
+  const elegida = String(formData.get("empresa") ?? "").toUpperCase();
 
   let lectura: ReturnType<typeof leerExcelStock>;
   try {
@@ -199,6 +198,14 @@ export async function analizarExcelStock(formData: FormData): Promise<{ error: s
         : `En «${archivo.name}» no encontré máquinas. Este Excel trae las hojas ${hojas.map((h) => `«${h}»`).join(", ") || "sin nombre"}; hace falta el Excel de stock de Importaciones, con las hojas «STOCK DE EQUIPOS INDUSTRIALES» y «STOCK DE EQUIPOS LG» (columnas CODIGO, MODELO, SERIE…).`,
     };
   }
+
+  // Si el Excel trae RAZÓN SOCIAL (Lesly 23-10), la empresa sale de ahí; lo elegido a mano tiene que coincidir.
+  const delExcel = [...new Set(lectura.filas.map((f) => f.empresa).filter(Boolean))] as string[];
+  if (delExcel.length > 1) return { error: "Este Excel trae máquinas de Open y de Efameinsa en RAZÓN SOCIAL. Suba un Excel por empresa." };
+  if (delExcel.length === 1 && elegida && elegida !== delExcel[0])
+    return { error: `Eligió ${elegida}, pero la RAZÓN SOCIAL del Excel dice ${delExcel[0]}. Revise cuál es.` };
+  const empresa = delExcel[0] ?? elegida;
+  if (empresa !== "OPEN" && empresa !== "EFAMEINSA") return { error: "Elija de qué empresa es el Excel: Open o Efameinsa" };
 
   const [productos, ocupadas] = await Promise.all([productosParaComparar(), seriesOcupadas()]);
   // Manda el Excel de Lesly (Santos 21-10): el CRM no corrige sus códigos.

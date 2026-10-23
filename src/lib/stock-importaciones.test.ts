@@ -183,6 +183,42 @@ describe("leerExcelStock", () => {
   });
 });
 
+describe("leerExcelStock con la hoja unida (Lesly 23-10)", () => {
+  it("lee STOCK PARA SANTOS y LG, no las hojas sueltas; MOD, EQUIPO, UBICAICION y RAZÓN SOCIAL", () => {
+    const libro = XLSX.utils.book_new();
+    const cab = ["CODIGO", "MOD", "EQUIPO", "STOCK", "MARCA", "AÑO", "SERIE", "UBICAICION", "COSTO"];
+    XLSX.utils.book_append_sheet(libro, XLSX.utils.aoa_to_sheet([cab, ["I22894", "UST030", "LAVADORA UST030", 1, "UNIMAC", null, 2409600366, "PLANTA", 11500]]), "STOCK INDUSTRIALES PROV. OPEN");
+    XLSX.utils.book_append_sheet(
+      libro,
+      XLSX.utils.aoa_to_sheet([
+        ["ITEM", "CODIFICACION", "CODIGO", "MOD", "EQUIPO", "SERIE", "CAPACIDAD", "STOCK", "UBICAICION", "COSTO", "PROVEEDOR", "MARCA", "RAZON SOCIAL"],
+        [1, "LAVUS030", "I22894", "UST030", "LAVADORA UST030", 2409600366, "15 KG", 1, "PLANTA", 11500, "ALLIANCES LAUNDRY", "UNIMAC", "EFAMEINSA"],
+      ]),
+      "STOCK PARA SANTOS IDUS",
+    );
+    XLSX.utils.book_append_sheet(
+      libro,
+      XLSX.utils.aoa_to_sheet([
+        ["IETEM", "CODIFICACION", "CODIGO", "MODELO", "DESCRIPCION ", "SERIE", "CAPACIDAD ", "STOCK", "UBICACIÓN", "INGRESO", "COSTO", "RAZON SOCIAL"],
+        [1, null, "I21002", "GIANT-C+", "SECADORA LG", "905KWMK4A731", "10.2 KG", 1, "PLANTA", null, "$812.09", "EFAMEINSA"],
+      ]),
+      "STOCK LG",
+    );
+    const { filas, hojas, ignoradas } = leerExcelStock(XLSX.write(libro, { type: "array", bookType: "xlsx" }));
+    expect(hojas).toEqual(["STOCK PARA SANTOS IDUS", "STOCK LG"]);
+    expect(ignoradas).toContain("STOCK INDUSTRIALES PROV. OPEN");
+    expect(filas).toHaveLength(2);
+    expect(filas[0]).toMatchObject({ codigoExcel: "LAVUS030", modelo: "UST030", descripcion: "LAVADORA UST030", ubicacion: "PLANTA", costo: 11500, empresa: "EFAMEINSA" });
+    expect(filas[1]).toMatchObject({ costo: 812.09, empresa: "EFAMEINSA" });
+  });
+
+  it("la misma serie en dos filas va a revisar (rodillos 16002)", () => {
+    const fila = (item: string, cod: string) => ({ hoja: "STOCK PARA SANTOS", fila: 1, item, codigoExcel: cod, modelo: "", descripcion: "RODILLO", serie: "16002", capacidad: null, cantidad: 1, ubicacion: null, ingreso: null, marca: null });
+    const r = revisarSegunExcel([fila("I20250", "ROD1"), fila("I20251", "ROD2")], [], []);
+    expect(r.map((x) => x.estado)).toEqual(["revisar", "revisar"]);
+  });
+});
+
 describe("revisarSegunExcel (manda el Excel de Lesly)", () => {
   const catalogo = [
     prod("SECGIA10", "", { modelo: "GIANT C MAX (CDG27MUCPS)", nombre: "SECADORA C. APILABLE", marca: "LG" }),
