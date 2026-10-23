@@ -3,6 +3,7 @@ import { Search, FileText, ExternalLink } from "lucide-react";
 import { requerirRol } from "@/lib/auth";
 import { buscarEnTodo, type TipoResultado } from "@/lib/buscar-en-todo";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
+import { UltimasBusquedas } from "@/components/crm/ultimas-busquedas";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -67,6 +68,9 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
           Buscar
         </Button>
       </form>
+
+      {/* Lo último que buscó, primero (reunión con el ingeniero y Lesly, 23-10 15:59). */}
+      <UltimasBusquedas actual={consulta} />
 
       {!hallazgos && (
         <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
