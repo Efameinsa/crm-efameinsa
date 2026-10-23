@@ -1018,7 +1018,8 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 **El chat de cada caso (desde el 23-10)**
 - Cada **caso** y cada **pedido** tiene su propio chat entre las áreas involucradas (postventa, almacén, Central, Finanzas, Contabilidad / Facturación, operaciones y gerencia; el comercial, solo en los pedidos de sus ventas). Se abre con **«Chat del caso»** (o «Chat del pedido») en la sección Mapa, que muestra en rojo los mensajes sin leer, o desde el mapa con **«Escribir a <área>»**.
 - El chat es una ventana flotante abajo a la derecha, como Messenger: no saca a nadie de su pantalla, se minimiza y se cierra. Enter envía; Mayús + Enter salta de línea.
-- **«Para»:** elija el área que tiene que moverlo y le llega un aviso discreto con «Responder», que abre el chat encima de lo que esté haciendo. Sin «Para», el aviso llega a quien lleva el caso y a quienes ya conversaron.
+- **Es un canal de todos con todos los involucrados:** quien lleva el caso, quien movió algún paso del caso o de su pedido / apertura, quien apuró o escribió y, en un pedido, el comercial de la venta. Cada mensaje les llega a todos con un aviso discreto («Responder» abre el chat encima de lo que esté haciendo). Tocando la línea de la cabecera se ve la lista completa. **«Para»** suma a un área entera (por ejemplo, todo el almacén) y la deja destacada en el mensaje.
+- Mientras el chat está abierto, la bolita de Efamein se pasa al lado izquierdo (en el celular, por encima del chat) y vuelve sola al cerrarlo.
 - El **«Apurar»** deja su línea en el chat (📳), con lo que se escriba en «¿Qué necesita?».
 - Se puede escribir **hasta que el caso o el pedido se cierra**; después queda como constancia, de solo lectura. Los mensajes no se editan ni se borran, y salen en el historial del caso («Chat del caso»).
 - No es para hablar con el cliente: eso sigue por WhatsApp y Mi cuenta.
