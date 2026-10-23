@@ -18,6 +18,11 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 23-10 · La celebración al cerrar un pedido o un caso y al pasar de un estado a otro (Santos)
+- **Qué pidió Santos.** Como en Asana, donde al terminar una tarea sale un unicornio o confeti, que el CRM celebre el avance, pero con la marca y en tono corporativo: «al cerrar un caso o un pedido debe salir Efamein celebrando, y cuando se termina un estadio o se pasa de un estado a otro, la animación del sello».
+- **Cómo quedó (ver la guía, «La celebración»).** Dos animaciones cortas, hechas con el isotipo y con Efamein: al **cerrar un pedido o una atención (o dar por cerrado un caso de Central)**, Efamein sale al centro de la pantalla con confeti granate y carbón (dos segundos); al **pasar de un estado a otro** (aprobar el pedido, marcar un paso, despachar, confirmar un abono, dar el visto bueno, ordenar facturar, cerrar una etapa de la atención, marcar una tarea como hecha…), la «e» del isotipo cruza por arriba de la pantalla y estampa un sello. No bloquea nada ni hay que cerrarla; quien tiene «reducir movimiento» en su equipo no la ve.
+- **Por qué.** Es la misma idea de Asana: que el avance del trabajo se note y se celebre, para que cerrar y avanzar se sienta como un logro y no solo como un clic.
+
 ### 23-10 · El «Mapa» del recorrido con «Apurar» (Santos)
 - **Qué pidió Santos.** Que en el caso de postventa haya una sección «Mapa» donde se vea en qué etapa está: lo avanzado en verde suave, lo que falta en rojo, la etapa atascada palpitando y un botón para apurar al área que lo tiene parado. Que lo vean también el comercial (si nace de una venta suya), Finanzas, Facturación / Contabilidad, el almacén y Lesly (operaciones).
 - **Cómo quedó (ver la guía, «El mapa del recorrido y Apurar»).** El mapa lee los pasos que ya existen (los mismos que «qué sigue» en el pedido y la tira del circuito en el caso); no guarda nada aparte. «Apurar» manda un aviso con sirena al área; uno cada 15 minutos por área y, desde el segundo, también a gerencia.
