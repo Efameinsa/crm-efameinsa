@@ -13,10 +13,10 @@ import * as XLSX from "xlsx";
  * EQUIPOS LG»). RESERVA y VENDIDO no se suben: «la reserva no la vamos a
  * subir… ya está para un cliente».
  *
- * LOS COSTOS NO SE LEEN. «No se tiene que subir… si subimos esto nos va a
- * cargar el precio y las comerciales van a decir: ah, ya puedo vender sobre
- * esto». La columna COSTO no se mapea a ningún campo: no viaja ni al servidor
- * ni a la base.
+ * LOS COSTOS. El 21-10 no se leían («las comerciales van a decir: ah, ya puedo
+ * vender sobre esto»). El 23-10 gerencia decidió que sí deben figurar: la columna
+ * COSTO se lee y se guarda en inventario_costos, que solo leen operaciones y
+ * gerencia (0596). Las comerciales siguen sin verlo.
  *
  * POR QUÉ NO BASTA EL MODELO. La UT075 tiene una decena de códigos: cambia el
  * control (Dual Digital / Unilinc), el calentamiento (GLP, gas natural,
@@ -47,6 +47,8 @@ export interface FilaStock {
   proveedor?: string | null;
   /** De qué empresa es la máquina, OPEN o EFAMEINSA (Carlos 22-10), si la hoja trae la columna. */
   empresa?: string | null;
+  /** Costo de Importaciones (0596): solo lo ven operaciones y gerencia. */
+  costo?: number | null;
 }
 
 /** OPEN / EFAMEINSA, como lo escriba el Excel («Open », «EFAMEINSA», «Efameinsa S.A.»). */
@@ -228,7 +230,7 @@ export function esHojaDeStock(nombre: string): boolean {
 /**
  * Lee las hojas de stock. Cabeceras tolerantes (MODELO / MODELO␠, NOMBRE o
  * DESCRIPCION…). En la hoja LG la columna del código no tiene título: es la
- * primera columna cuando su cabecera está vacía. COSTO no se lee.
+ * primera columna cuando su cabecera está vacía. COSTO se lee (0596).
  */
 export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaStock[]; hojas: string[]; ignoradas: string[] } {
   const libro = XLSX.read(datos, { type: "array", cellDates: true });
@@ -265,6 +267,7 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
     const cIngreso = col("INGRESO");
     const cMarca = col("MARCA");
     const cProveedor = col("PROVEEDOR");
+    const cCosto = col("COSTO");
     // Carlos (22-10): cada máquina dice si es de Open o de Efameinsa. En las hojas de
     // reserva y vendidos Importaciones lo llama «C. INICIAL» o «SOLICITADO».
     const cEmpresa = col("EMPRESA", "PERTENECE", "CINICIAL", "SOLICITADO", "PROPIETARIO");
@@ -302,6 +305,11 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
         marca: textoDe(celda(r, cMarca)) ?? (/LG/i.test(nombre) ? "LG" : null),
         proveedor: textoDe(celda(r, cProveedor)) ?? (/LG/i.test(nombre) ? "LG" : null),
         empresa: empresaDe(textoDe(celda(r, cEmpresa))),
+        costo: (() => {
+          const v = celda(r, cCosto);
+          const n = typeof v === "number" ? v : Number(String(v ?? "").replace(/[^\d.]/g, ""));
+          return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
+        })(),
       });
     });
   }

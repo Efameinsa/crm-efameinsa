@@ -51,6 +51,10 @@ export interface FilaResumen {
   decision: "pendiente" | "subir" | "no_subir";
   /** Fecha de ingreso al almacén (la del almacén; si no, la del Excel), AAAA-MM-DD. */
   ingreso?: string | null;
+  /** Costo de Importaciones (0596; el PDF solo lo bajan operaciones y gerencia). */
+  costo?: number | null;
+  /** Observación del almacén escrita en el CRM. */
+  observacion?: string | null;
   ocupada?: { cliente: string | null; pedido: string | null } | null;
 }
 
@@ -60,6 +64,7 @@ export interface ResumenStockPdfProps {
   generado: string;
   por: string;
   estadoCarga: "revisando" | "subida" | "reemplazada";
+  empresa: string;
   filas: FilaResumen[];
   existentes: Set<string>;
 }
@@ -94,7 +99,7 @@ const s = StyleSheet.create({
 });
 
 // Anchos de columna (A4 apaisado, ~790 pt útiles).
-const COL = { codigo: 78, modelo: 62, equipo: 262, stock: 30, marca: 56, serie: 76, disp: 46, estado: 118, ingreso: 58 };
+const COL = { codigo: 70, modelo: 62, equipo: 230, stock: 30, marca: 56, serie: 76, disp: 46, ingreso: 52, costo: 56, obs: 108 };
 
 const TIPO_PLURAL: Record<string, string> = {
   lavadora: "LAVADORAS",
@@ -140,7 +145,7 @@ function cortable(t: string | null | undefined): string {
     .join(" ");
 }
 
-export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarga, filas: filasLeidas, existentes }: ResumenStockPdfProps) {
+export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarga, empresa, filas: filasLeidas, existentes }: ResumenStockPdfProps) {
   // El PDF muestra cómo QUEDÓ cada máquina, no cómo vino el Excel (Santos 23-10: las mesas BIMAP
   // salían en naranja «Código retirado · se reactiva» y SECU302 con «Falta código» aunque ya
   // habían entrado con su código; «asusta y todo está bien»). Lo que entra con código es «Código de Lesly».
@@ -181,7 +186,7 @@ export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarg
           <Image src={logoBuffer} style={s.logo} />
           <View>
             <Text style={s.titulo}>RESUMEN GENERAL DE STOCK</Text>
-            <Text style={s.sub}>Revisión de codificación · {archivo}</Text>
+            <Text style={s.sub}>Stock de {empresa} · {archivo}</Text>
           </View>
           <View style={s.derecha}>
             <Text>{generado}</Text>
@@ -263,7 +268,8 @@ export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarg
                 <Text style={[s.thTxt, { width: COL.serie }]}>SERIE</Text>
                 <Text style={[s.thTxt, { width: COL.disp }]}>DISPONIBLE</Text>
                 <Text style={[s.thTxt, { width: COL.ingreso }]}>INGRESO</Text>
-                <Text style={[s.thTxt, { width: COL.estado, borderRightWidth: 0 }]}>ESTADO</Text>
+                <Text style={[s.thTxt, { width: COL.costo }]}>COSTO</Text>
+                <Text style={[s.thTxt, { width: COL.obs, borderRightWidth: 0 }]}>OBSERVACIÓN</Text>
               </View>
             </View>
             {fs.map((f, i) => {
@@ -298,14 +304,21 @@ export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarg
                   <View style={[s.celda, { width: COL.ingreso, alignItems: "center" }]}>
                     <Text>{f.ingreso ? f.ingreso.slice(0, 10).split("-").reverse().join("/") : "—"}</Text>
                   </View>
-                  <View style={[s.celda, { width: COL.estado, borderRightWidth: 0 }]}>
-                    <Text style={{ color: TINTA[f.estado], fontFamily: f.estado === "ok" ? "Helvetica" : "Helvetica-Bold" }}>{etiquetaEstado(f)}</Text>
-                    {f.ocupada && (
-                      <Text style={s.chico}>
-                        {f.ocupada.cliente ?? "cliente"}
-                        {f.ocupada.pedido ? ` · ${f.ocupada.pedido}` : ""}
+                  <View style={[s.celda, { width: COL.costo, alignItems: "flex-end" }]}>
+                    <Text>{f.costo != null ? f.costo.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</Text>
+                  </View>
+                  <View style={[s.celda, { width: COL.obs, borderRightWidth: 0 }]}>
+                    {/* Sin columna ESTADO (Santos 23-10: «es un reporte de cómo está todo»): lo que no
+                        entró lo dice aquí, junto a la observación que el almacén escribe en el CRM. */}
+                    {f.ocupada ? (
+                      <Text style={{ color: TINTA.revisar }}>
+                        No entra: ya está con {f.ocupada.cliente ?? "un cliente"}
+                        {f.ocupada.pedido ? ` (${f.ocupada.pedido})` : ""}
                       </Text>
-                    )}
+                    ) : f.decision !== "subir" ? (
+                      <Text style={{ color: TINTA[f.estado] }}>Por resolver: {etiquetaEstado(f)}</Text>
+                    ) : null}
+                    {f.observacion ? <Text>{f.observacion}</Text> : null}
                   </View>
                 </View>
               );

@@ -34,6 +34,8 @@ export interface CargaStock {
   ausentes: { serie: string; codigo: string | null }[];
   estado: "revisando" | "subida" | "reemplazada";
   resultado: ResultadoSubida | null;
+  /** OPEN o EFAMEINSA: cada Excel es de una empresa y no se mezcla con el de la otra (0596). */
+  empresa: "OPEN" | "EFAMEINSA";
   createdAt: string;
   subidaAt: string | null;
 }
@@ -176,6 +178,9 @@ export async function analizarExcelStock(formData: FormData): Promise<{ error: s
   if (!(archivo instanceof File) || archivo.size === 0) return { error: "Elija el Excel de stock" };
   if (!/\.xlsx?$/i.test(archivo.name)) return { error: "Tiene que ser un Excel (.xlsx)" };
   if (archivo.size > 15 * 1024 * 1024) return { error: "El Excel pesa demasiado (más de 15 MB)" };
+  // Cada Excel es de una empresa (Santos 23-10: «vamos a subir Efameinsa, que no se vaya a unir»).
+  const empresa = String(formData.get("empresa") ?? "").toUpperCase();
+  if (empresa !== "OPEN" && empresa !== "EFAMEINSA") return { error: "Elija de qué empresa es el Excel: Open o Efameinsa" };
 
   let lectura: ReturnType<typeof leerExcelStock>;
   try {
@@ -210,6 +215,8 @@ export async function analizarExcelStock(formData: FormData): Promise<{ error: s
         ? "subir"
         : "pendiente",
     codigoFinal: p.codigo,
+    // La empresa de la máquina: la que diga su fila (si el Excel trae la columna) o la del Excel.
+    empresa: p.empresa ?? empresa,
   }));
 
   // Las que están disponibles en el almacén y no vinieron en este Excel.
@@ -217,7 +224,8 @@ export async function analizarExcelStock(formData: FormData): Promise<{ error: s
   // Un correlativo de caja (1, 2, 3…) solo es la misma máquina dentro de su código (0595).
   const clave = (serie: string, codigo: string | null | undefined) => (esCorrelativo(serie) ? `${codigo ?? ""}|${serie.toUpperCase()}` : serie.toUpperCase());
   const enExcel = new Set(filas.filter((f) => f.serie).map((f) => clave(f.serie!, f.codigoFinal)));
-  const { data: almacen } = await supabase.from("inventario_equipos").select("serie, productos(sku)").eq("estado", "disponible");
+  // Solo las de ESTA empresa: el Excel de Efameinsa nunca da por salidas las máquinas de Open.
+  const { data: almacen } = await supabase.from("inventario_equipos").select("serie, productos(sku)").eq("estado", "disponible").eq("empresa", empresa);
   type Alm = { serie: string; productos: { sku: string | null } | { sku: string | null }[] | null };
   const ausentes = ((almacen ?? []) as unknown as Alm[])
     .filter((a) => !enExcel.has(clave(a.serie, (Array.isArray(a.productos) ? a.productos[0] : a.productos)?.sku)))
@@ -228,6 +236,7 @@ export async function analizarExcelStock(formData: FormData): Promise<{ error: s
     p_hojas: lectura.hojas,
     p_filas: filas,
     p_ausentes: ausentes,
+    p_empresa: empresa,
   });
   if (error) return { error: limpiarError(error.message) };
 

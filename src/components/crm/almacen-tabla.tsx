@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import Link from "@/components/enlace";
-import { moverEquipo, ponerEmpresa } from "@/lib/acciones/inventario";
+import { guardarObservacion, moverEquipo, ponerEmpresa } from "@/lib/acciones/inventario";
 import { cn } from "@/lib/utils";
 
 /**
@@ -38,6 +38,10 @@ export interface MaquinaTabla {
   pedido: string | null;
   servicioId: string | null;
   porPedido: boolean;
+  /** Costo de Importaciones (0596): solo operaciones y gerencia; al comercial no le viaja. */
+  costo?: number | null;
+  /** Observación del almacén, escrita desde el CRM (Santos 23-10). */
+  observacion?: string | null;
 }
 
 export const ESTADO_MAQUINA: Record<MaquinaTabla["estado"], { texto: string; clase: string }> = {
@@ -56,6 +60,8 @@ export interface OpcionesTabla {
   /** El comercial no ve la fecha de ingreso ni para quién está reservada (Carlos 22-10). */
   verIngreso: boolean;
   verCliente: boolean;
+  /** Costo y observación del almacén: operaciones y gerencia (gerencia 23-10: «sí deben figurar los costos»). */
+  verCosto?: boolean;
 }
 
 interface Grupo {
@@ -167,7 +173,9 @@ export function TablaPorSerie({ filas, opciones, compacta = false }: { filas: Ma
             <th className="px-2 py-1 text-left">Ubicación</th>
             {opciones.verIngreso && <th className="px-2 py-1 text-left">Ingreso</th>}
             <th className="px-2 py-1 text-left">Empresa</th>
+            {opciones.verCosto && <th className="px-2 py-1 text-right">Costo</th>}
             <th className="px-2 py-1 text-left">Estado</th>
+            {opciones.verCosto && <th className="px-2 py-1 text-left">Observación</th>}
           </tr>
         </thead>
         <tbody>
@@ -251,6 +259,9 @@ function FilaSerie({ f, n, opciones, compacta }: { f: MaquinaTabla; n: number; o
           <span>{f.empresa ?? "—"}</span>
         )}
       </td>
+      {opciones.verCosto && (
+        <td className="px-2 py-1 text-right tabular-nums">{f.costo != null ? f.costo.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</td>
+      )}
       <td className="px-2 py-1">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", est.clase)}>{est.texto}</span>
@@ -278,6 +289,39 @@ function FilaSerie({ f, n, opciones, compacta }: { f: MaquinaTabla; n: number; o
         </span>
         {problema && <span role="alert" className="mt-0.5 block max-w-xs text-[11px] leading-snug text-destructive">{problema}</span>}
       </td>
+      {opciones.verCosto && (
+        <td className="min-w-[180px] px-2 py-1">
+          {opciones.puedeEditar ? <Observacion f={f} /> : <span className="text-muted-foreground">{f.observacion ?? ""}</span>}
+        </td>
+      )}
     </tr>
+  );
+}
+
+/** La observación del almacén: se escribe y se guarda al salir de la casilla. */
+function Observacion({ f }: { f: MaquinaTabla }) {
+  const router = useRouter();
+  const [texto, setTexto] = useState(f.observacion ?? "");
+  const [pendiente, empezar] = useTransition();
+  function guardar() {
+    if (texto.trim() === (f.observacion ?? "").trim()) return;
+    empezar(async () => {
+      const r = await guardarObservacion(f.id, texto);
+      if (r.error) return void toast.error(r.error);
+      toast.success(`Observación guardada en la ${f.serie}.`);
+      router.refresh();
+    });
+  }
+  return (
+    <input
+      value={texto}
+      disabled={pendiente}
+      onChange={(e) => setTexto(e.target.value)}
+      onBlur={guardar}
+      onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
+      placeholder="Escribir observación…"
+      maxLength={300}
+      className="h-7 w-full rounded-md border border-border bg-background px-2 text-xs placeholder:text-muted-foreground/60"
+    />
   );
 }

@@ -179,6 +179,8 @@ export function SubirExcelStock({ hayCarga }: { hayCarga: boolean }) {
   const router = useRouter();
   const [pendiente, iniciar] = useTransition();
   const [nombre, setNombre] = useState<string | null>(null);
+  // De qué empresa es el Excel (Santos 23-10): se propone por el nombre del archivo y se confirma.
+  const [empresa, setEmpresa] = useState<"" | "OPEN" | "EFAMEINSA">("");
 
   return (
     <form
@@ -204,7 +206,7 @@ export function SubirExcelStock({ hayCarga }: { hayCarga: boolean }) {
     >
       <FileSpreadsheet className={cn("text-muted-foreground", hayCarga ? "size-6" : "size-9")} />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">{hayCarga ? "¿Llegó un Excel más nuevo? Súbalo aquí (reemplaza la revisión de abajo)" : "Suba el Excel de stock de Importaciones"}</p>
+        <p className="text-sm font-medium">{hayCarga ? "¿Llegó un Excel más nuevo? Súbalo aquí (reemplaza el anterior de esa misma empresa)" : "Suba el Excel de stock de Importaciones"}</p>
         <p className="text-xs text-muted-foreground">
           Tal como viene. Se leen solo las hojas de STOCK (industriales y LG); reserva y vendidos no. Los costos no se leen ni se suben.
         </p>
@@ -215,14 +217,31 @@ export function SubirExcelStock({ hayCarga }: { hayCarga: boolean }) {
           name="archivo"
           accept=".xlsx,.xls"
           className="sr-only"
-          onChange={(e) => setNombre(e.target.files?.[0]?.name ?? null)}
+          onChange={(e) => {
+            const n = e.target.files?.[0]?.name ?? null;
+            setNombre(n);
+            if (n && /EFAME/i.test(n)) setEmpresa("EFAMEINSA");
+            else if (n && /OPEN/i.test(n)) setEmpresa("OPEN");
+          }}
           required
         />
         <span className="inline-flex h-9 max-w-64 items-center truncate rounded-md border border-border bg-background px-3 text-sm hover:bg-muted">
           {nombre ?? "Elegir archivo…"}
         </span>
       </label>
-      <Button type="submit" disabled={pendiente || !nombre}>
+      <select
+        name="empresa"
+        value={empresa}
+        onChange={(e) => setEmpresa(e.target.value as "" | "OPEN" | "EFAMEINSA")}
+        required
+        className={cn("h-9 rounded-md border border-border bg-background px-2 text-sm", !empresa && "text-muted-foreground")}
+        title="Cada Excel es de una empresa: sus máquinas no se mezclan con las de la otra"
+      >
+        <option value="">¿De qué empresa?</option>
+        <option value="OPEN">Stock de OPEN</option>
+        <option value="EFAMEINSA">Stock de EFAMEINSA</option>
+      </select>
+      <Button type="submit" disabled={pendiente || !nombre || !empresa}>
         <Upload className="size-4" />
         {pendiente ? "Leyendo y comparando…" : "Leer y comparar"}
       </Button>
