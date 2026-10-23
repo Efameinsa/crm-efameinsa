@@ -1013,6 +1013,15 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - Toque cualquier etapa para ver quién la hizo y cuándo, o qué la traba. En la etapa atascada está el botón **«Apurar a <área>»**: le llega a esa área un aviso con sirena. Se puede apurar una vez cada 15 minutos por área; desde el segundo apuro también se entera gerencia. El **primer y el segundo apuro** llegan con **zumbido** (📳 en el aviso): la pantalla de quien lo recibe tiembla medio segundo y suena un «bzzz», como el zumbido de Messenger; desde el tercero llega solo la sirena. Al cliente no se le apura: se le llama. Lo que debe el técnico se le apura a postventa, que lo programa.
 - **Quién lo ve:** postventa y operaciones (caso y pedido), el almacén (su ficha del pedido), Finanzas (su ficha del pedido), Contabilidad / Facturación («Ver el mapa» en su bandeja, abre «Pagos y facturas») y el **comercial**, solo en los pedidos de sus ventas: en su cierre y en «Pagos y facturas». El comercial no apura casos de postventa.
 - El mapa no se edita: muestra los pasos reales. Para que avance, se hace el paso en su pantalla de siempre.
+- **El aviso del «Apurar» no saca a nadie de lo que hace:** llega abajo, dice quién apura, qué paso falta y desde cuándo, y se queda hasta que lo toquen. «Ver en el mapa» abre el mapa encima de la pantalla actual, sin cambiar de página.
+
+**El chat de cada caso (desde el 23-10)**
+- Cada **caso** y cada **pedido** tiene su propio chat entre las áreas involucradas (postventa, almacén, Central, Finanzas, Contabilidad / Facturación, operaciones y gerencia; el comercial, solo en los pedidos de sus ventas). Se abre con **«Chat del caso»** (o «Chat del pedido») en la sección Mapa, que muestra en rojo los mensajes sin leer, o desde el mapa con **«Escribir a <área>»**.
+- El chat es una ventana flotante abajo a la derecha, como Messenger: no saca a nadie de su pantalla, se minimiza y se cierra. Enter envía; Mayús + Enter salta de línea.
+- **«Para»:** elija el área que tiene que moverlo y le llega un aviso discreto con «Responder», que abre el chat encima de lo que esté haciendo. Sin «Para», el aviso llega a quien lleva el caso y a quienes ya conversaron.
+- El **«Apurar»** deja su línea en el chat (📳), con lo que se escriba en «¿Qué necesita?».
+- Se puede escribir **hasta que el caso o el pedido se cierra**; después queda como constancia, de solo lectura. Los mensajes no se editan ni se borran, y salen en el historial del caso («Chat del caso»).
+- No es para hablar con el cliente: eso sigue por WhatsApp y Mi cuenta.
 
 **Preventivos y Ruta de mantenimiento**
 - Alerta de preventivo a los 3 meses («Preventivos por ofrecer»).
@@ -1358,6 +1367,9 @@ No: Central abre un caso con «Derivar a un área», en la ficha del cliente o e
 
 **54. ¿Dónde veo en qué etapa está un caso o un pedido, y cómo apuro al área que lo tiene parado?**
 En la sección «Mapa» (en el caso, en la ficha del pedido y, para el comercial, en su cierre o en «Pagos y facturas»). Ábrala con un clic: lo hecho está en verde, lo que falta en rojo y la etapa atascada palpita. En esa etapa toque «Apurar a <área>»: le llega un aviso con sirena. Una vez cada 15 minutos; desde el segundo apuro se entera gerencia. (3.8)
+
+**55. ¿Cómo le pregunto algo al almacén (o a Finanzas) sobre un caso sin llamar ni escribir por WhatsApp?**
+Abra «Chat del caso» en la sección Mapa del caso o del pedido, elija «Para» el área y escriba. Le llega un aviso que no la saca de lo que hace; responde desde la misma ventanita y todo queda en el caso. Cuando el caso se cierra, el chat queda de solo lectura. (3.8)
 
 **53. Entró un contacto que es para Finanzas (un pago, una factura, unas letras). En «Asignar» no aparece Finanzas.**
 Es correcto: «Asignar» es para comerciales y postventa. Use el botón «A Finanzas o Facturación» de ese contacto, en la bandeja. El caso le llega al área con el mensaje del cliente, y el contacto sale de la bandeja. (3.10)
