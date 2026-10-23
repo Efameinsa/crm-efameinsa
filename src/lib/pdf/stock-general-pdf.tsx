@@ -65,6 +65,8 @@ function cortable(t: string | null | undefined, max = 24): string {
 
 export interface StockGeneralPdfProps {
   logoBuffer: Buffer;
+  /** El logo de Open es más alto que el de Efameinsa: cada uno con su ancho. */
+  logoAncho?: number;
   doc: "industriales" | "lg";
   filas: FilaStockGeneral[];
   /** «al 22/10/2026» */
@@ -76,10 +78,10 @@ export interface StockGeneralPdfProps {
   avisos: string[];
 }
 
-function Cabecera({ logoBuffer, doc, fecha, generado, origen, vistaPrevia }: Omit<StockGeneralPdfProps, "filas" | "avisos">) {
+function Cabecera({ logoBuffer, logoAncho, doc, fecha, generado, origen, vistaPrevia }: Omit<StockGeneralPdfProps, "filas" | "avisos">) {
   return (
     <View style={s.cabecera} fixed>
-      <Image src={logoBuffer} style={s.logo} />
+      <Image src={logoBuffer} style={[s.logo, logoAncho ? { width: logoAncho } : {}]} />
       <View>
         <Text style={s.tituloDoc}>RESUMEN GENERAL DE STOCK</Text>
         <Text style={s.subDoc}>{doc === "lg" ? "EQUIPOS LG" : "EQUIPOS INDUSTRIALES"} · al {fecha}</Text>

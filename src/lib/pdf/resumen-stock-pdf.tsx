@@ -60,6 +60,7 @@ export interface FilaResumen {
 
 export interface ResumenStockPdfProps {
   logoBuffer: Buffer;
+  logoAncho?: number;
   archivo: string;
   generado: string;
   por: string;
@@ -145,7 +146,7 @@ function cortable(t: string | null | undefined, max = 24): string {
     .join(" ");
 }
 
-export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarga, empresa, filas: filasLeidas, existentes }: ResumenStockPdfProps) {
+export function ResumenStockPdf({ logoBuffer, logoAncho, archivo, generado, por, estadoCarga, empresa, filas: filasLeidas, existentes }: ResumenStockPdfProps) {
   // El PDF muestra cómo QUEDÓ cada máquina, no cómo vino el Excel (Santos 23-10: las mesas BIMAP
   // salían en naranja «Código retirado · se reactiva» y SECU302 con «Falta código» aunque ya
   // habían entrado con su código; «asusta y todo está bien»). Lo que entra con código es «Código de Lesly».
@@ -183,7 +184,7 @@ export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarg
     <Document title={`Resumen general de stock — ${archivo}`} author="CRM Efameinsa">
       <Page size="A4" orientation="landscape" style={s.pagina}>
         <View style={s.cabecera} fixed>
-          <Image src={logoBuffer} style={s.logo} />
+          <Image src={logoBuffer} style={[s.logo, logoAncho ? { width: logoAncho } : {}]} />
           <View>
             <Text style={s.titulo}>RESUMEN GENERAL DE STOCK</Text>
             <Text style={s.sub}>Stock de {empresa} · {archivo}</Text>

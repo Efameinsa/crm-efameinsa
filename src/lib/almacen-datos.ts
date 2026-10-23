@@ -207,3 +207,11 @@ export async function cargarInventarioComercial(supabase: SupabaseClient): Promi
   const llegadas: LlegadaComercial[] = proyeccion.map((p) => ({ id: p.id, codigo: p.codigo, descripcion: p.descripcion, cantidad: p.cantidad, fechaEstimada: p.fechaEstimada }));
   return { filas, llegadas };
 }
+
+/** Cuántas máquinas disponibles tiene cada empresa (un resumen general por empresa, 23-10). */
+export async function contarPorEmpresa(supabase: SupabaseClient): Promise<Record<"OPEN" | "EFAMEINSA", number>> {
+  const { data } = await supabase.from("inventario_equipos").select("empresa").eq("estado", "disponible").limit(5000);
+  const r = { OPEN: 0, EFAMEINSA: 0 };
+  for (const f of (data ?? []) as { empresa: string | null }[]) r[f.empresa === "EFAMEINSA" ? "EFAMEINSA" : "OPEN"]++;
+  return r;
+}
