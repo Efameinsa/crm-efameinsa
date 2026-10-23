@@ -49,12 +49,12 @@ export function ResumenGeneralStock({
             </span>
           </div>
         ))}
-      {/* Consolidado (Santos 23-10): un solo PDF con Open primero y Efameinsa después, cada una con su logo. */}
+      {/* Consolidado (Santos 23-10): las dos empresas en los mismos bloques por marca, con el cuadrito de la empresa en cada fila. */}
       <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2">
         <span className="w-24 text-xs font-semibold text-foreground">Consolidado</span>
         {boton(`/api/operaciones/stock/general?doc=industriales&empresa=TODAS`, "Industriales (PDF)")}
         {boton(`/api/operaciones/stock/general?doc=lg&empresa=TODAS`, "LG (PDF)")}
-        <span className="text-xs text-muted-foreground">Open y luego Efameinsa, en el mismo PDF ({porEmpresa.OPEN + porEmpresa.EFAMEINSA} máquinas).</span>
+        <span className="text-xs text-muted-foreground">Open y Efameinsa juntas por marca; cada fila dice de qué empresa es ({porEmpresa.OPEN + porEmpresa.EFAMEINSA} máquinas).</span>
       </div>
       {cargaEnRevision && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-amber-300 bg-amber-50/60 p-2.5 dark:border-amber-800 dark:bg-amber-950/20">

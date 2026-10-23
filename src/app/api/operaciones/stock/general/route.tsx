@@ -92,8 +92,6 @@ async function delAlmacen(supabase: Awaited<ReturnType<typeof createClient>>, em
   return { filas, origen, avisos };
 }
 
-const logoDe = (e: "OPEN" | "EFAMEINSA") => { const l = logoDeEmpresa(e); return { logoBuffer: l.buffer, logoAncho: l.ancho }; };
-
 export async function GET(request: Request) {
   const perfil = await requerirPerfil();
   const url = new URL(request.url);
@@ -103,7 +101,6 @@ export async function GET(request: Request) {
   let empresa = empresaValida(url.searchParams.get("empresa"));
   // ?empresa=TODAS: el consolidado, Open primero y Efameinsa después.
   const consolidado = !url.searchParams.get("carga") && String(url.searchParams.get("empresa") ?? "").toUpperCase() === "TODAS";
-  const secciones: NonNullable<Parameters<typeof StockGeneralPdf>[0]["secciones"]> = [];
   const supabase = await createClient();
 
   let filas: FilaStockGeneral[] = [];
@@ -128,11 +125,12 @@ export async function GET(request: Request) {
     if (sinDecidir > 0) avisos.push(`${sinDecidir} ${sinDecidir === 1 ? "máquina sin decidir no aparece" : "máquinas sin decidir no aparecen"} (falta código o revisar).`);
     if (noSuben > 0) avisos.push(`${noSuben} marcadas «No subir» no aparecen.`);
   } else if (consolidado) {
-    // Un solo PDF: primero Open y luego Efameinsa, cada una en su sección con su logo (Santos 23-10).
+    // Las dos empresas en los mismos bloques por marca; cada fila dice de cuál es (Santos 23-10).
     for (const e of ["OPEN", "EFAMEINSA"] as const) {
       const r = await delAlmacen(supabase, e);
-      secciones.push({ ...logoDe(e), origen: `Stock de ${e} · ${r.origen}`, filas: r.filas.filter((f) => (doc === "lg" ? f.esLg : !f.esLg)), avisos: r.avisos });
+      filas.push(...r.filas.map((f) => ({ ...f, empresa: e })));
     }
+    origen = "Open y Efameinsa juntas: cada máquina dice de qué empresa es";
   } else {
     const r = await delAlmacen(supabase, empresa);
     filas = r.filas;
@@ -146,14 +144,14 @@ export async function GET(request: Request) {
   const fecha = ahora.toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", year: "numeric" });
   const buffer = await renderToBuffer(
     <StockGeneralPdf
-      logoBuffer={logoDeEmpresa(empresa).buffer}
-      logoAncho={logoDeEmpresa(empresa).ancho}
+      logoBuffer={logoDeEmpresa(consolidado ? "EFAMEINSA" : empresa).buffer}
+      logoAncho={logoDeEmpresa(consolidado ? "EFAMEINSA" : empresa).ancho}
       doc={doc}
       filas={seleccion}
       fecha={fecha}
       generado={generado}
-      origen={`Stock de ${empresa} · ${origen}`} vistaPrevia={vistaPrevia} avisos={avisos}
-      secciones={consolidado ? secciones : undefined} />,
+      origen={consolidado ? `Consolidado · ${origen}` : `Stock de ${empresa} · ${origen}`} vistaPrevia={vistaPrevia} avisos={avisos}
+      consolidado={consolidado} />,
   );
 
   const fechaArchivo = ahora.toLocaleDateString("sv-SE", { timeZone: "America/Lima" });

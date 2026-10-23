@@ -30,6 +30,8 @@ export interface FilaStockGeneral {
   marca: string | null;
   proveedor: string | null;
   esLg: boolean;
+  /** En el consolidado (Santos 23-10): de qué empresa es, para el cuadrito OPEN / EFAMEINSA de la derecha. */
+  empresa?: "OPEN" | "EFAMEINSA" | null;
 }
 
 const mayus = (t: unknown) => String(t ?? "").trim().toUpperCase().replace(/\s+/g, " ");
@@ -130,7 +132,7 @@ export function armarIndustriales(filas: FilaStockGeneral[]): { bloques: BloqueP
       porTipo.set(t, [...(porTipo.get(t) ?? []), f]);
     }
     const secciones = ordenar([...porTipo.keys()], [(t) => posicion(ORDEN_TIPOS, t), (t) => t]).map((tipo) => {
-      const fs = ordenar(porTipo.get(tipo)!, [(f) => marcaDe(f), (f) => f.modelo, (f) => f.item ?? "", (f) => f.serie ?? ""]);
+      const fs = ordenar(porTipo.get(tipo)!, [(f) => marcaDe(f), (f) => f.modelo, (f) => f.empresa ?? "", (f) => f.item ?? "", (f) => f.serie ?? ""]);
       return { titulo: TITULO_TIPO[tipo] ?? tipo.toUpperCase(), filas: fs, total: unidades(fs) };
     });
     return { proveedor, secciones, total: secciones.reduce((a, s) => a + s.total, 0) };
@@ -156,6 +158,8 @@ export interface ModeloLg {
   descripcion: string;
   stock: number;
   series: string[];
+  /** En el consolidado, cada modelo se cuenta por empresa (no se suman Open y Efameinsa en una fila). */
+  empresa?: "OPEN" | "EFAMEINSA" | null;
 }
 
 export interface SeccionLg {
@@ -173,13 +177,13 @@ function consolidar(filas: FilaStockGeneral[]): ModeloLg[] {
   const mapa = new Map<string, ModeloLg>();
   for (const f of filas) {
     const modelo = etiquetaModeloLg(f);
-    const clave = f.codigo ?? modelo;
-    const m = mapa.get(clave) ?? { modelo, codigo: f.codigo, descripcion: f.descripcion, stock: 0, series: [] };
+    const clave = `${f.codigo ?? modelo}|${f.empresa ?? ""}`;
+    const m = mapa.get(clave) ?? { modelo, codigo: f.codigo, descripcion: f.descripcion, stock: 0, series: [], empresa: f.empresa ?? null };
     m.stock += f.serie ? 1 : f.cantidad;
     if (f.serie) m.series.push(f.serie);
     mapa.set(clave, m);
   }
-  return ordenar([...mapa.values()], [(m) => m.modelo, (m) => m.codigo ?? ""]);
+  return ordenar([...mapa.values()], [(m) => m.modelo, (m) => m.codigo ?? "", (m) => m.empresa ?? ""]);
 }
 
 /** Secadoras y lavadoras consolidadas por modelo, y la exhibición aparte (no se cuenta dos veces). */
