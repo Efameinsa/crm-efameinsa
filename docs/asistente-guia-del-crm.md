@@ -1016,12 +1016,13 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **El aviso del «Apurar» no saca a nadie de lo que hace:** llega abajo, dice quién apura, qué paso falta y desde cuándo, y se queda hasta que lo toquen. «Ver en el mapa» abre el mapa encima de la pantalla actual, sin cambiar de página.
 
 **El chat de cada caso (desde el 23-10)**
-- Cada **caso** y cada **pedido** tiene su propio chat entre las áreas involucradas (postventa, almacén, Central, Finanzas, Contabilidad / Facturación, operaciones y gerencia; el comercial, solo en los pedidos de sus ventas). Se abre con **«Chat del caso»** (o «Chat del pedido») en la sección Mapa, que muestra en rojo los mensajes sin leer, o desde el mapa con **«Escribir a <área>»**.
-- El chat es una ventana flotante abajo a la derecha, como Messenger: no saca a nadie de su pantalla, se minimiza y se cierra. Enter envía; Mayús + Enter salta de línea.
-- **Es un canal de todos con todos los involucrados:** quien lleva el caso, quien movió algún paso del caso o de su pedido / apertura, quien apuró o escribió y, en un pedido, el comercial de la venta. Cada mensaje les llega a todos con un aviso discreto («Responder» abre el chat encima de lo que esté haciendo). Tocando la línea de la cabecera se ve la lista completa. **«Para»** suma a un área entera (por ejemplo, todo el almacén) y la deja destacada en el mensaje.
-- Mientras el chat está abierto, la bolita de Efamein se pasa al lado izquierdo (en el celular, por encima del chat) y vuelve sola al cerrarlo.
+- Cada **caso** y cada **pedido** tiene su **canal de coordinación**, como un pequeño Slack: todos con todos los involucrados. Están quien lleva el caso, quien movió algún paso del caso o de su pedido / apertura, quien apuró o escribió y, en un pedido, el comercial de la venta. Cada mensaje les llega a todos con un aviso discreto («Responder» abre el chat encima de lo que esté haciendo).
+- Se abre con **«Chat del caso»** (o «Chat del pedido») en la sección Mapa, que marca en rojo los mensajes sin leer, o desde el mapa con «Escribir en el chat del caso».
+- **«Agregar a…»** (botón con la figura y el «+» arriba): para sumar a alguien que no está por defecto y ayude a destrabar (gerencia, administración, Central…). Le llega un aviso y en el chat queda «X agregó a Y». Un agregado entra al canal aunque por su puesto no viera el caso.
+- Cada mensaje dice **quién y a qué hora**, y debajo **«Visto por…»** quiénes ya lo leyeron (cuenta como visto solo si la persona tenía el chat abierto y a la vista).
+- La ventana flota abajo a la derecha: se agranda arrastrando la esquina de arriba a la izquierda (recuerda el tamaño), se maximiza, se minimiza a una pastilla y se cierra. Enter envía; Mayús + Enter salta de línea. Mientras está abierta, la bolita de Efamein se pasa al lado izquierdo.
 - El **«Apurar»** deja su línea en el chat (📳), con lo que se escriba en «¿Qué necesita?».
-- Se puede escribir **hasta que el caso o el pedido se cierra**; después queda como constancia, de solo lectura. Los mensajes no se editan ni se borran, y salen en el historial del caso («Chat del caso»).
+- **El canal se cierra cuando termina el caso o el pedido**: queda guardado, de solo lectura. Los mensajes no se editan ni se borran y salen en el historial del caso («Chat del caso»).
 - No es para hablar con el cliente: eso sigue por WhatsApp y Mi cuenta.
 
 **Preventivos y Ruta de mantenimiento**
@@ -1370,7 +1371,7 @@ No: Central abre un caso con «Derivar a un área», en la ficha del cliente o e
 En la sección «Mapa» (en el caso, en la ficha del pedido y, para el comercial, en su cierre o en «Pagos y facturas»). Ábrala con un clic: lo hecho está en verde, lo que falta en rojo y la etapa atascada palpita. En esa etapa toque «Apurar a <área>»: le llega un aviso con sirena. Una vez cada 15 minutos; desde el segundo apuro se entera gerencia. (3.8)
 
 **55. ¿Cómo le pregunto algo al almacén (o a Finanzas) sobre un caso sin llamar ni escribir por WhatsApp?**
-Abra «Chat del caso» en la sección Mapa del caso o del pedido, elija «Para» el área y escriba. Le llega un aviso que no la saca de lo que hace; responde desde la misma ventanita y todo queda en el caso. Cuando el caso se cierra, el chat queda de solo lectura. (3.8)
+Abra «Chat del caso» en la sección Mapa del caso o del pedido y escriba: les llega a todos los involucrados, sin sacarlos de lo que hacen, y responden desde la misma ventanita. Si hace falta alguien que no está (gerencia, administración, Central…), súmelo con «Agregar a…». Cuando el caso se cierra, el canal queda guardado, de solo lectura. (3.8)
 
 **53. Entró un contacto que es para Finanzas (un pago, una factura, unas letras). En «Asignar» no aparece Finanzas.**
 Es correcto: «Asignar» es para comerciales y postventa. Use el botón «A Finanzas o Facturación» de ese contacto, en la bandeja. El caso le llega al área con el mensaje del cliente, y el contacto sale de la bandeja. (3.10)
