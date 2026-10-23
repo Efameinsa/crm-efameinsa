@@ -210,7 +210,6 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
     correos: correosCampana ?? 0,
     documentos: (informesTecnicos ?? 0) + Object.keys((cuenta.carpetas_servidor as Record<string, string> | null) ?? {}).length,
   };
-  const pestanaActual = PESTANAS.find((p) => p.clave === pestana)!;
   const puedeDerivar = haceCasos && !comoGerencia && !comoCentral && !perfil.solo_preventivo;
   const casoUnico = casosApertura.length === 1 ? casosApertura[0].id : null;
 
@@ -368,7 +367,9 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
         className="flex items-center gap-1 overflow-x-auto rounded-xl border border-border bg-card/95 px-2 shadow-sm backdrop-blur"
         aria-label="Pestañas de la ficha"
       >
-        {PESTANAS.filter((p) => !p.mas).map((p) => (
+        {/* La de «Más» que está abierta se dibuja en la fila, junto a las demás (Santos 23-10: en HD
+            «Ventas» salía sola a la derecha, pegada al botón, y parecía desmaquetada). */}
+        {PESTANAS.filter((p) => !p.mas || p.clave === pestana).map((p) => (
           <Link
             key={p.clave}
             href={`?tab=${p.clave}`}
@@ -391,10 +392,10 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
           <summary
             className={cn(
               "flex cursor-pointer list-none items-center gap-1 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors [&::-webkit-details-marker]:hidden",
-              pestanaActual.mas ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
+              "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
-            {pestanaActual.mas ? pestanaActual.etiqueta : "Más"} ▾
+            Más ▾
           </summary>
           <div className="absolute right-0 top-full z-30 mt-1 min-w-52 rounded-lg border border-border bg-card p-1 shadow-lg">
             {PESTANAS.filter((p) => p.mas).map((p) => (
