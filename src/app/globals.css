@@ -510,3 +510,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .mapa-latir { animation: none; box-shadow: 0 0 0 3px rgb(220 38 38 / 0.35); }
 }
+/* El tramo recorrido avanza como el trazo animado de mapa.efameinsa.com. */
+@keyframes mapa-trazo { to { stroke-dashoffset: -32; } }
+.mapa-trazo { animation: mapa-trazo 1.2s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .mapa-trazo { animation: none; } }
