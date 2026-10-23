@@ -110,6 +110,7 @@ export function AperturaServicioCaso({
     if (abrirInterna) setAbierto(true);
   }, [abrirInterna]);
   const [ant, setAnt] = useState<AntecedentesInterna>(antecedentesInternaVacios());
+  const antVacios = (a: AntecedentesInterna) => !a.que_ejecutar && !a.fecha_compra && !a.guia_remision && !a.servicio;
   const interna = !esGarantia && modalidad === "interna";
   const [repuestos, setRepuestos] = useState<Repuesto[]>([]);
   const [busca, setBusca] = useState("");
@@ -151,7 +152,8 @@ export function AperturaServicioCaso({
     equiposParaAperturaDeCaso(atencionId).then((r) => {
       if (!vivo) return;
       setEquiposCliente(r.equipos);
-      setEquiposElegidos(r.delCaso && r.equipos.some((e) => e.id === r.delCaso) ? [r.delCaso] : r.equipos.length === 1 ? [r.equipos[0].id] : []);
+      const elegidos = r.delCaso && r.equipos.some((e) => e.id === r.delCaso) ? [r.delCaso] : r.equipos.length === 1 ? [r.equipos[0].id] : [];
+      setEquiposElegidos(elegidos);
     });
     return () => {
       vivo = false;
@@ -162,8 +164,10 @@ export function AperturaServicioCaso({
   // garantía) y sus «Antecedentes del equipo» (0560) si ya los registraron.
   const elegirModalidad = (m: ModalidadApertura) => {
     setModalidad(m);
-    if (m !== "interna" || ant.que_ejecutar || ant.fecha_compra || ant.guia_remision) return;
-    const eq = equiposCliente?.find((e) => e.id === equiposElegidos[0]) ?? null;
+    if (m !== "interna" || !antVacios(ant)) return;
+    proponerAntecedentes(equiposCliente?.find((e) => e.id === equiposElegidos[0]) ?? null);
+  };
+  const proponerAntecedentes = (eq: EquipoParaApertura | null) => {
     const a = eq?.antecedentes ?? null;
     const sn = (v: string | null | undefined): SiNoVerificar => (v === "si" || v === "no" ? v : "por_verificar");
     const hoy = hoyLima(); // en Lima: después de las 19:00 el UTC ya es mañana
@@ -194,6 +198,14 @@ export function AperturaServicioCaso({
     });
   };
 
+  // Si se llegó ya en «Interno» (?apertura=interna: visita sin solución), los equipos no
+  // estaban cargados cuando se eligió la modalidad: se propone recién cuando llegan.
+  useEffect(() => {
+    if (!equiposCliente || modalidad !== "interna" || !antVacios(ant)) return;
+    proponerAntecedentes(equiposCliente.find((e) => e.id === equiposElegidos[0]) ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo cuando llegan los equipos
+  }, [equiposCliente]);
+
   const repuestosListos = repuestos.filter((x) => x.descripcion.trim());
   const falta = [
     !atencionId && "el caso",
@@ -204,7 +216,8 @@ export function AperturaServicioCaso({
     esGarantia && entregaModo === "agencia" && !agencia.trim() && "la agencia",
     esGarantia && entregaModo === "agencia" && !agenciaDireccion.trim() && "la dirección de la agencia",
     esGarantia && entregaModo === "agencia" && !agenciaHorario.trim() && "el horario de atención de la agencia",
-    interna && !ant.que_ejecutar.trim() && "para qué es (qué se ejecuta)",
+    interna && !ant.servicio && "qué servicio se le hace en planta",
+    interna && !ant.que_ejecutar.trim() && "el problema (por qué viene a planta)",
     !interna && !direccion.trim() && (esGarantia ? "adónde se entregan" : "dónde se hace"),
     !confirmo.trim() && "con quién lo confirmó",
     !interna && !destino && "Lima o provincia",
