@@ -27,7 +27,24 @@ export async function GET(request: Request) {
   const { data } = await q.maybeSingle();
   if (!data) return NextResponse.json({ error: "No hay ninguna carga de stock para resumir" }, { status: 404 });
 
-  const filas = (data.filas ?? []) as FilaResumen[];
+  // La fecha de ingreso que vale es la del almacén (Santos 23-10: «incluir también las fechas de ingreso»).
+  const leidas = (data.filas ?? []) as FilaResumen[];
+  const series = [...new Set(leidas.map((f) => f.serie).filter((x): x is string => !!x))];
+  const ingresoPorSerie = new Map<string, string>();
+  for (let i = 0; i < series.length; i += 200) {
+    const { data: inv } = await supabase.from("inventario_equipos").select("serie, ingreso_at, productos(sku)").in("serie", series.slice(i, i + 200)).neq("estado", "baja");
+    for (const r of (inv ?? []) as unknown as { serie: string; ingreso_at: string | null; productos: { sku: string | null } | { sku: string | null }[] | null }[]) {
+      const sku = (Array.isArray(r.productos) ? r.productos[0] : r.productos)?.sku ?? "";
+      if (r.ingreso_at) ingresoPorSerie.set(`${r.serie.toUpperCase()}|${sku}`, r.ingreso_at).set(r.serie.toUpperCase(), r.ingreso_at);
+    }
+  }
+  const filas = leidas.map((f) => ({
+    ...f,
+    ingreso:
+      (f.serie && (ingresoPorSerie.get(`${f.serie.toUpperCase()}|${f.codigoFinal ?? f.codigo ?? ""}`) ?? (/^\d{1,3}$/.test(f.serie) ? null : ingresoPorSerie.get(f.serie.toUpperCase())))) ||
+      f.ingreso ||
+      null,
+  }));
   // Para marcar «nuevo»: el código a usar que todavía no está en el catálogo.
   const { data: productos } = await supabase.from("productos").select("sku").not("sku", "is", null);
   const existentes = new Set((productos ?? []).map((p) => String(p.sku).toUpperCase()));
