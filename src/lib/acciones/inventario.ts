@@ -19,6 +19,7 @@ export interface ResultadoCarga {
 const limpiar = (m: string) => m.replace(/^.*?:\s*(?=[A-ZÁÉÍÓÚÑ¿])/, "");
 
 function revalidarAlmacen() {
+  revalidatePath("/almacen/stock");
   revalidatePath("/operaciones/stock");
   revalidatePath("/operaciones/catalogo");
   revalidatePath("/comercial/stock");
@@ -35,6 +36,8 @@ export async function cargarSeries(
   productoId: string,
   seriesTexto: string,
   ubicacion: string | null,
+  // Desde la 0600 el almacén también carga lo que llega, con su empresa y su fecha de ingreso.
+  extra?: { empresa?: "OPEN" | "EFAMEINSA" | null; ingreso?: string | null },
 ): Promise<ResultadoCarga> {
   const series = seriesTexto
     .split(/[\n,;\t]+/)
@@ -48,6 +51,8 @@ export async function cargarSeries(
     p_series: series,
     p_ubicacion: ubicacion,
     p_nota: null,
+    p_empresa: extra?.empresa ?? null,
+    p_ingreso: extra?.ingreso || null,
   });
   if (error) return { error: limpiar(error.message) };
 

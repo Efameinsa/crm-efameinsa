@@ -56,12 +56,15 @@ export function AlmacenPorSerie({
   contraste,
   proyeccion,
   puedeEditar,
+  verCosto = true,
 }: {
   filas: FilaAlmacen[];
   totales: TotalesAlmacen;
   contraste: FilaContraste[];
   proyeccion: Proyeccion[];
   puedeEditar: boolean;
+  /** El costo solo lo ven operaciones y gerencia (0596): en el módulo del almacén va sin esa columna. */
+  verCosto?: boolean;
 }) {
   const [texto, setTexto] = useState("");
   const [vista, setVista] = useState<Vista>("planta");
@@ -193,9 +196,9 @@ export function AlmacenPorSerie({
             {lista.length === 0 ? (
               <p className="text-sm text-muted-foreground">Ninguna máquina coincide con ese filtro.</p>
             ) : modo === "codigo" ? (
-              <TablaPorCodigo filas={lista} opciones={{ puedeEditar, verIngreso: true, verCliente: true, verCosto: true }} />
+              <TablaPorCodigo filas={lista} opciones={{ puedeEditar, verIngreso: true, verCliente: true, verCosto }} />
             ) : (
-              <TablaPorSerie filas={lista} opciones={{ puedeEditar, verIngreso: true, verCliente: true, verCosto: true }} />
+              <TablaPorSerie filas={lista} opciones={{ puedeEditar, verIngreso: true, verCliente: true, verCosto }} />
             )}
           </>
         )}
