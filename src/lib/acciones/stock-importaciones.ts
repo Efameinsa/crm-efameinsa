@@ -171,7 +171,17 @@ export async function buscarSerie(serie: string): Promise<{ error: string | null
 }
 
 /** Lee el Excel, propone un código por máquina y guarda la propuesta para revisarla. */
-export async function analizarExcelStock(formData: FormData): Promise<{ error: string | null; id?: string; entraron?: number; observaciones?: number; noEntran?: number }> {
+export async function analizarExcelStock(formData: FormData): Promise<{
+  error: string | null;
+  id?: string;
+  entraron?: number;
+  observaciones?: number;
+  noEntran?: number;
+  /** Cuántas entraron de cada empresa (un Excel puede traer Open y Efameinsa). */
+  porEmpresa?: Record<string, number>;
+  /** Máquinas de una hoja suelta que Lesly no pasó a la hoja unida: no entraron. */
+  soloEnSueltas?: { hoja: string; serie: string; descripcion: string; empresa: string }[];
+}> {
   const sinPermiso = await soloOperaciones();
   if (sinPermiso) return { error: sinPermiso };
   const archivo = formData.get("archivo");
@@ -199,13 +209,24 @@ export async function analizarExcelStock(formData: FormData): Promise<{ error: s
     };
   }
 
-  // Si el Excel trae RAZÓN SOCIAL (Lesly 23-10), la empresa sale de ahí; lo elegido a mano tiene que coincidir.
+  // La empresa sale del Excel: de la hoja suelta de donde viene cada máquina (STOCK INDUSTRIALES
+  // PROV. OPEN / EFAMEINSA) o de RAZÓN SOCIAL (Lesly 23-10). Un Excel con las dos empresas se
+  // reparte en una carga por empresa (Santos 23-10 16:20: «ahí hay Efameinsa y Open»).
   const delExcel = [...new Set(lectura.filas.map((f) => f.empresa).filter(Boolean))] as string[];
-  if (delExcel.length > 1) return { error: "Este Excel trae máquinas de Open y de Efameinsa en RAZÓN SOCIAL. Suba un Excel por empresa." };
   if (delExcel.length === 1 && elegida && elegida !== delExcel[0])
-    return { error: `Eligió ${elegida}, pero la RAZÓN SOCIAL del Excel dice ${delExcel[0]}. Revise cuál es.` };
-  const empresa = delExcel[0] ?? elegida;
-  if (empresa !== "OPEN" && empresa !== "EFAMEINSA") return { error: "Elija de qué empresa es el Excel: Open o Efameinsa" };
+    return { error: `Eligió ${elegida}, pero el Excel dice ${delExcel[0]}. Revise cuál es.` };
+  const empresaUnica = delExcel.length === 1 ? delExcel[0] : delExcel.length === 0 ? elegida : null;
+  if (delExcel.length === 0 && empresaUnica !== "OPEN" && empresaUnica !== "EFAMEINSA") return { error: "Elija de qué empresa es el Excel: Open o Efameinsa" };
+  if (delExcel.length > 1) {
+    const sinEmpresa = lectura.filas.filter((f) => !f.empresa);
+    if (sinEmpresa.length)
+      return {
+        error: `El Excel trae máquinas de Open y de Efameinsa, pero ${sinEmpresa.length} fila${sinEmpresa.length === 1 ? " no dice" : "s no dicen"} de cuál ${sinEmpresa.length === 1 ? "es" : "son"} (RAZÓN SOCIAL vacía): ${sinEmpresa
+          .slice(0, 5)
+          .map((f) => `${f.hoja} fila ${f.fila}${f.serie ? ` (serie ${f.serie})` : ""}`)
+          .join(", ")}${sinEmpresa.length > 5 ? "…" : ""}.`,
+      };
+  }
 
   const [productos, ocupadas] = await Promise.all([productosParaComparar(), seriesOcupadas()]);
   // Manda el Excel de Lesly (Santos 21-10): el CRM no corrige sus códigos.
@@ -223,43 +244,60 @@ export async function analizarExcelStock(formData: FormData): Promise<{ error: s
         : "pendiente",
     codigoFinal: p.codigo,
     // La empresa de la máquina: la que diga su fila (si el Excel trae la columna) o la del Excel.
-    empresa: p.empresa ?? empresa,
+    empresa: p.empresa ?? empresaUnica,
   }));
 
-  // Las que están disponibles en el almacén y no vinieron en este Excel.
   const supabase = await createClient();
   // Un correlativo de caja (1, 2, 3…) solo es la misma máquina dentro de su código (0595).
   const clave = (serie: string, codigo: string | null | undefined) => (esCorrelativo(serie) ? `${codigo ?? ""}|${serie.toUpperCase()}` : serie.toUpperCase());
-  const enExcel = new Set(filas.filter((f) => f.serie).map((f) => clave(f.serie!, f.codigoFinal)));
-  // Solo las de ESTA empresa: el Excel de Efameinsa nunca da por salidas las máquinas de Open.
-  const { data: almacen } = await supabase.from("inventario_equipos").select("serie, productos(sku)").eq("estado", "disponible").eq("empresa", empresa);
   type Alm = { serie: string; productos: { sku: string | null } | { sku: string | null }[] | null };
-  const ausentes = ((almacen ?? []) as unknown as Alm[])
-    .filter((a) => !enExcel.has(clave(a.serie, (Array.isArray(a.productos) ? a.productos[0] : a.productos)?.sku)))
-    .map((a) => ({ serie: a.serie, codigo: (Array.isArray(a.productos) ? a.productos[0] : a.productos)?.sku ?? null }));
+  const skuDe = (a: Alm) => (Array.isArray(a.productos) ? a.productos[0] : a.productos)?.sku ?? null;
 
-  const { data: id, error } = await supabase.rpc("stock_carga_guardar", {
-    p_archivo: archivo.name,
-    p_hojas: lectura.hojas,
-    p_filas: filas,
-    p_ausentes: ausentes,
-    p_empresa: empresa,
-  });
-  if (error) return { error: limpiarError(error.message) };
+  // Una carga por empresa: cada una con sus máquinas y sus «ausentes» (las que están disponibles
+  // en el almacén de ESA empresa y no vinieron en el Excel; el de Efameinsa nunca da por salidas
+  // las de Open).
+  const empresas = [...new Set(filas.map((f) => f.empresa))].filter((e): e is "OPEN" | "EFAMEINSA" => e === "OPEN" || e === "EFAMEINSA");
+  let id: string | undefined;
+  let entraron = 0;
+  let observaciones = 0;
+  const porEmpresa: Record<string, number> = {};
+  for (const empresa of empresas) {
+    const propias = filas.filter((f) => f.empresa === empresa);
+    const enExcel = new Set(propias.filter((f) => f.serie).map((f) => clave(f.serie!, f.codigoFinal)));
+    const { data: almacen } = await supabase.from("inventario_equipos").select("serie, productos(sku)").eq("estado", "disponible").eq("empresa", empresa);
+    const ausentes = ((almacen ?? []) as unknown as Alm[])
+      .filter((a) => !enExcel.has(clave(a.serie, skuDe(a))))
+      .map((a) => ({ serie: a.serie, codigo: skuDe(a) }));
 
-  // Lo claro ENTRA al almacén en el acto (0588; Santos 22-10: «que todas suban en automático y
-  // solo señale las observaciones»). La carga queda abierta solo por las observaciones.
-  const { data: res, error: errorSubir } = await supabase.rpc("stock_carga_subir", { p_carga: id, p_sacar_ausentes: false, p_indices: null, p_cerrar: false });
-  if (errorSubir) return { error: `El Excel se leyó, pero no pudo entrar al almacén: ${limpiarError(errorSubir.message)}` };
+    const { data: idCarga, error } = await supabase.rpc("stock_carga_guardar", {
+      p_archivo: archivo.name,
+      p_hojas: lectura.hojas,
+      p_filas: propias,
+      p_ausentes: ausentes,
+      p_empresa: empresa,
+    });
+    if (error) return { error: limpiarError(error.message) };
+    id ??= idCarga as string;
+
+    // Lo claro ENTRA al almacén en el acto (0588; Santos 22-10: «que todas suban en automático y
+    // solo señale las observaciones»). La carga queda abierta solo por las observaciones.
+    const { data: res, error: errorSubir } = await supabase.rpc("stock_carga_subir", { p_carga: idCarga, p_sacar_ausentes: false, p_indices: null, p_cerrar: false });
+    if (errorSubir) return { error: `El Excel se leyó, pero lo de ${empresa} no pudo entrar al almacén: ${limpiarError(errorSubir.message)}` };
+    const r = (res ?? {}) as ResultadoSubida;
+    porEmpresa[empresa] = (r.cargadas ?? 0) + (r.iguales ?? 0) + (r.movidas ?? 0);
+    entraron += porEmpresa[empresa];
+    observaciones += r.sinDecidir ?? 0;
+  }
   await supabase.rpc("catalogo_cotejar_con_almacen");
-  const r = (res ?? {}) as ResultadoSubida;
   revalidarTodo();
   return {
     error: null,
-    id: id as string,
-    entraron: (r.cargadas ?? 0) + (r.iguales ?? 0) + (r.movidas ?? 0),
-    observaciones: r.sinDecidir ?? 0,
+    id,
+    entraron,
+    observaciones,
     noEntran: filas.filter((f) => f.decision === "no_subir").length,
+    porEmpresa,
+    soloEnSueltas: lectura.soloEnSueltas,
   };
 }
 
