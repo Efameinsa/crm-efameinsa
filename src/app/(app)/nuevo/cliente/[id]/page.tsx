@@ -54,19 +54,19 @@ import { BotonLlamar } from "@/components/crm/boton-llamar";
 
 export const dynamic = "force-dynamic";
 
-// REDISEÑO 23-10: cinco pestañas de todos los días y cuatro de consulta bajo
-// «Más» (ventas, llamadas grabadas, correos de campaña, documentos). Eran nueve
-// iguales en una fila, y para un cliente típico de postventa cuatro abrían vacías.
+// REDISEÑO 23-10: las cinco de todos los días primero y las de consulta después,
+// todas en una fila (Santos 23-10 17:10: «¿tiene que estar ese botón Más? ¿no entra
+// todo?»). Las de consulta llevan nombre corto para que quepan en HD.
 const PESTANAS = [
-  { clave: "resumen", etiqueta: "Resumen", mas: false },
-  { clave: "pedidos", etiqueta: "Pedidos y casos", mas: false },
-  { clave: "equipos", etiqueta: "Equipos", mas: false },
-  { clave: "historial", etiqueta: "Historial", mas: false },
-  { clave: "contactos", etiqueta: "Datos y contactos", mas: false },
-  { clave: "ventas", etiqueta: "Ventas", mas: true },
-  { clave: "llamadas", etiqueta: "Llamadas grabadas", mas: true },
-  { clave: "correos", etiqueta: "Correos de campaña", mas: true },
-  { clave: "documentos", etiqueta: "Documentos y sedes", mas: true },
+  { clave: "resumen", etiqueta: "Resumen" },
+  { clave: "pedidos", etiqueta: "Pedidos y casos" },
+  { clave: "equipos", etiqueta: "Equipos" },
+  { clave: "historial", etiqueta: "Historial" },
+  { clave: "contactos", etiqueta: "Datos y contactos" },
+  { clave: "ventas", etiqueta: "Ventas" },
+  { clave: "llamadas", etiqueta: "Llamadas" },
+  { clave: "correos", etiqueta: "Correos" },
+  { clave: "documentos", etiqueta: "Documentos" },
 ] as const;
 
 /**
@@ -367,9 +367,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
         className="flex items-center gap-1 overflow-x-auto rounded-xl border border-border bg-card/95 px-2 shadow-sm backdrop-blur"
         aria-label="Pestañas de la ficha"
       >
-        {/* La de «Más» que está abierta se dibuja en la fila, junto a las demás (Santos 23-10: en HD
-            «Ventas» salía sola a la derecha, pegada al botón, y parecía desmaquetada). */}
-        {PESTANAS.filter((p) => !p.mas || p.clave === pestana).map((p) => (
+        {PESTANAS.map((p) => (
           <Link
             key={p.clave}
             href={`?tab=${p.clave}`}
@@ -387,31 +385,6 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
             )}
           </Link>
         ))}
-        {/* LAS DE CONSULTA, BAJO «MÁS» (rediseño 23-10): sin JavaScript, con <details>. */}
-        <details className="group/mas relative ml-auto">
-          <summary
-            className={cn(
-              "flex cursor-pointer list-none items-center gap-1 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors [&::-webkit-details-marker]:hidden",
-              "border-transparent text-muted-foreground hover:text-foreground",
-            )}
-          >
-            Más ▾
-          </summary>
-          <div className="absolute right-0 top-full z-30 mt-1 min-w-52 rounded-lg border border-border bg-card p-1 shadow-lg">
-            {PESTANAS.filter((p) => p.mas).map((p) => (
-              <Link
-                key={p.clave}
-                href={`?tab=${p.clave}`}
-                className={cn("flex items-center justify-between gap-3 rounded-md px-3 py-1.5 text-sm hover:bg-accent", p.clave === pestana ? "font-semibold text-foreground" : "text-foreground")}
-              >
-                {p.etiqueta}
-                <span className={cn("rounded-full px-1.5 py-px text-[11px] font-bold tabular-nums", conteoPestana[p.clave] ? "bg-secondary text-foreground" : "text-muted-foreground/60")}>
-                  {conteoPestana[p.clave] ?? 0}
-                </span>
-              </Link>
-            ))}
-          </div>
-        </details>
       </nav>
       </FijaBajoCabecera>
 
