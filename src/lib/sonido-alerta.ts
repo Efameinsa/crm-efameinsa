@@ -205,6 +205,40 @@ export function sonarWhatsapp(idAviso: string): void {
 }
 
 /**
+ * EL ZUMBIDO, como el de Messenger (Santos, 23-10: «un ligero zumbido en la
+ * web, simulando al zumbido de Messenger de hace años»). Suena cuando a
+ * alguien lo apuran desde el mapa, junto con la sacudida de la pantalla
+ * (`lib/zumbido.ts`). Una cuadrada grave que tiembla (trémolo de 28 Hz)
+ * durante medio segundo: se reconoce como «bzzz», no como timbre.
+ */
+export function sonarZumbido(idAviso: string): void {
+  if (alertaSilenciada()) return;
+  conAudioListo((ctx) => {
+    if (yaSonoEnOtraPestana(idAviso)) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const ganancia = ctx.createGain();
+    const temblor = ctx.createOscillator();
+    const fuerzaTemblor = ctx.createGain();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(110, t);
+    osc.frequency.linearRampToValueAtTime(92, t + 0.55);
+    temblor.frequency.value = 28;
+    fuerzaTemblor.gain.value = 0.07;
+    temblor.connect(fuerzaTemblor).connect(ganancia.gain);
+    ganancia.gain.setValueAtTime(0.0001, t);
+    ganancia.gain.linearRampToValueAtTime(0.09, t + 0.03);
+    ganancia.gain.setValueAtTime(0.09, t + 0.48);
+    ganancia.gain.linearRampToValueAtTime(0.0001, t + 0.58);
+    osc.connect(ganancia).connect(ctx.destination);
+    osc.start(t);
+    temblor.start(t);
+    osc.stop(t + 0.6);
+    temblor.stop(t + 0.6);
+  });
+}
+
+/**
  * La campanada a pedido, para el botón «Probar sonido» del panel (31-08).
  *
  * NO respeta el silencio guardado ni la marca de otras pestañas, a propósito:

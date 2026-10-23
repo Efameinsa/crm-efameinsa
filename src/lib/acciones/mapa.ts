@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requerirPerfil } from "@/lib/auth";
 import { notificar, notificarAlmacen, notificarCentral, notificarFinanzas } from "@/lib/notificaciones";
 import type { TipoRuta } from "@/lib/mapa-recorrido";
+import { conZumbido } from "@/lib/zumbido";
 
 const limpiar = (m: string) => m.replace(/^[A-Z0-9]{5}:\s*/, "");
 
@@ -74,7 +75,8 @@ export async function apurarDesdeElMapa(datos: { tipo: TipoRuta; id: string; are
   const cliente = (r.cliente ?? "").replace(/^\d{8,11}\s*-\s*/, "") || "Cliente";
   const de = r.codigo ? ` (${r.codigo})` : "";
   const vez = r.aviso_numero > 1 ? ` Es el aviso n.º ${r.aviso_numero}.` : "";
-  const titulo = `${cliente}${de}: ${perfil.nombre} apura a ${NOMBRE_AREA[datos.area]}`;
+  // El 1.º y el 2.º apuro llevan el zumbido de Messenger en la pantalla del área (Santos 23-10).
+  const titulo = conZumbido(`${cliente}${de}: ${perfil.nombre} apura a ${NOMBRE_AREA[datos.area]}`, r.aviso_numero);
   const cuerpo = `Está atascado en «${datos.etiqueta}».${vez}`;
   const url = urlPara(datos.area, datos.tipo, datos.id);
   const esPrueba = r.es_prueba === true;

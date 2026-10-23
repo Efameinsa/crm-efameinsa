@@ -28,7 +28,9 @@ import {
   sonarCampanada,
   sonarPrueba,
   sonarWhatsapp,
+  sonarZumbido,
 } from "@/lib/sonido-alerta";
+import { pideZumbido, sacudirPantalla } from "@/lib/zumbido";
 import { tituloDePestanaWhatsapp } from "@/lib/aviso-whatsapp";
 import { anunciarPendientesWhatsapp } from "@/lib/pendientes-whatsapp";
 import type { RolUsuario } from "@/types/database";
@@ -493,7 +495,11 @@ export function CampanaNotificaciones({
       "file_pedido",
       "file_recoger",
     ].includes(n.tipo);
-    if (exigeAccion) sonarCampanada(n.id);
+    // El «Apurar» del mapa: zumbido de Messenger en vez de campanada, solo el 1.º y el 2.º (Santos 23-10).
+    if (pideZumbido(n)) {
+      sonarZumbido(n.id);
+      sacudirPantalla();
+    } else if (exigeAccion) sonarCampanada(n.id);
     else sonarAlerta(n.id);
     // Para Central, el prospecto nuevo además se queda en pantalla hasta que
     // lo toque (la miden por la entrega rápida).
