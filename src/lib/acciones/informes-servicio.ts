@@ -63,10 +63,12 @@ export async function corregirInformeServicio(
   if (error) return { error: error.message.replace(/^[A-Z0-9]{5}:\s*/, "") };
   revalidatePath(`/postventa/informes/${informeId}`);
   revalidatePath(`/postventa/informes/${informeId}/imprimir`);
+  // La apertura muestra su copia del informe (0598 la rehace): que se vea sin recargar.
+  const { data: inf } = await supabase.from("informes_servicio").select("apertura_id").eq("id", informeId).maybeSingle();
+  if (inf?.apertura_id) revalidatePath(`/aperturas/${inf.apertura_id}`);
   // Si ahora hay algo para cotizar, quien derivó la llamada se entera, como
   // cuando el almacén sube el informe por primera vez.
   if (cambios.repuestos?.length) {
-    const { data: inf } = await supabase.from("informes_servicio").select("apertura_id").eq("id", informeId).maybeSingle();
     if (inf?.apertura_id) {
       const { data: a } = await supabase
         .from("aperturas_llamada")
@@ -83,7 +85,6 @@ export async function corregirInformeServicio(
           url: `/aperturas/${inf.apertura_id}`,
         });
       }
-      revalidatePath(`/aperturas/${inf.apertura_id}`);
     }
   }
   return { error: null, version: (data as { version?: number } | null)?.version };
