@@ -178,6 +178,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "El macro", href: "/almacen/macro", icono: "numeros", coincide: ["/almacen/macro"] },
     { etiqueta: "Panorama", href: "/almacen", icono: "numeros", coincide: [] },
     { etiqueta: "Pedidos", href: "/nuevo/pedidos", icono: "pedidos", coincide: ["/nuevo/pedidos", "/almacen/pedidos"] },
+    // El stock vive en el almacén (Santos y Lesly 23-10 18:25: «almacén es el que va a trabajar el stock»).
+    { etiqueta: "Stock", href: "/almacen/stock", icono: "catalogo", coincide: ["/almacen/stock"] },
     { etiqueta: "Llamadas de postventa", href: "/almacen/aperturas", icono: "aperturas", coincide: ["/almacen/aperturas", "/aperturas"] },
     // Lesly, 25-09: la hoja de apertura que emite postventa, a la vista del almacén.
     { etiqueta: "Aperturas de postventa", href: "/almacen/aperturas-postventa", icono: "informes", coincide: ["/almacen/aperturas-postventa"] },
@@ -243,6 +245,8 @@ export const MENU: Record<TipoPerfil, OpcionMenu[]> = {
     { etiqueta: "Agenda", href: "/nuevo/agenda", icono: "agenda", coincide: ["/nuevo/agenda"] },
     { etiqueta: "Catálogo", href: "/operaciones/catalogo", icono: "catalogo", coincide: ["/operaciones/catalogo"] },
     // Subir el Excel de stock de Importaciones ya codificado (0576, Lesly y el ing. 21-10).
+    // Lesly también elige la serie desde el stock del almacén (23-10).
+    { etiqueta: "Stock del almacén", href: "/almacen/stock", icono: "catalogo", coincide: ["/almacen/stock"] },
     { etiqueta: "Stock y códigos", href: "/operaciones/stock", icono: "pedidos", coincide: ["/operaciones/stock"] },
     // Lo que el personal le pide al catálogo (0523, Santos 17-10): le llega a Lesly, no al buzón del CRM.
     { etiqueta: "Pedidos al catálogo", href: "/pedidos-catalogo", icono: "catalogo", coincide: ["/pedidos-catalogo"] },
