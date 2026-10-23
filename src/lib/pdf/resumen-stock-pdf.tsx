@@ -1,4 +1,4 @@
-import { Document, Page, View, Text, Image, StyleSheet, Svg, Path } from "@react-pdf/renderer";
+import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 import { etiquetaEstado, problemaCorto, type EstadoStock } from "@/lib/stock-textos";
 
 // «RESUMEN GENERAL DE STOCK» en PDF (Santos 21-10, con la hoja impresa de
@@ -49,6 +49,8 @@ export interface FilaResumen {
   motivo: string;
   crear?: boolean;
   decision: "pendiente" | "subir" | "no_subir";
+  /** Fecha de ingreso al almacén (la del almacén; si no, la del Excel), AAAA-MM-DD. */
+  ingreso?: string | null;
   ocupada?: { cliente: string | null; pedido: string | null } | null;
 }
 
@@ -92,7 +94,7 @@ const s = StyleSheet.create({
 });
 
 // Anchos de columna (A4 apaisado, ~790 pt útiles).
-const COL = { codigo: 78, modelo: 62, equipo: 262, stock: 30, marca: 56, serie: 76, disp: 46, estado: 118, decision: 58 };
+const COL = { codigo: 78, modelo: 62, equipo: 262, stock: 30, marca: 56, serie: 76, disp: 46, estado: 118, ingreso: 58 };
 
 const TIPO_PLURAL: Record<string, string> = {
   lavadora: "LAVADORAS",
@@ -124,16 +126,6 @@ function marcaDe(f: FilaResumen): string {
   return /LG/i.test(f.hoja) ? "LG" : "SIN MARCA";
 }
 
-/** La casilla de la decisión: marcada (sube), con raya (no sube) o vacía (falta decidir). */
-function Casilla({ decision }: { decision: FilaResumen["decision"] }) {
-  return (
-    <Svg width={9} height={9} viewBox="0 0 10 10">
-      <Path d="M0.5 0.5 H9.5 V9.5 H0.5 Z" stroke="#3a3a3a" strokeWidth={0.8} fill="none" />
-      {decision === "subir" && <Path d="M2 5.2 L4.2 7.4 L8.2 2.6" stroke="#2F6B3A" strokeWidth={1.4} fill="none" />}
-      {decision === "no_subir" && <Path d="M2 5 H8" stroke="#6B6B6B" strokeWidth={1.4} fill="none" />}
-    </Svg>
-  );
-}
 
 /**
  * Importaciones escribe descripciones sin espacios («SECADORA.APIL.ELECT.MOD.NSEN…»):
@@ -147,8 +139,6 @@ function cortable(t: string | null | undefined): string {
     .map((w) => w.split(" ").map((x) => (x.length > 26 ? x.match(/.{1,24}/g)!.join(" ") : x)).join(" "))
     .join(" ");
 }
-
-const TEXTO_DECISION = { subir: "Sube", no_subir: "No sube", pendiente: "Por decidir" } as const;
 
 export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarga, filas: filasLeidas, existentes }: ResumenStockPdfProps) {
   // El PDF muestra cómo QUEDÓ cada máquina, no cómo vino el Excel (Santos 23-10: las mesas BIMAP
@@ -207,15 +197,15 @@ export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarg
           </View>
           <View style={s.caja}>
             <Text style={[s.cajaNum, { color: TINTA.ok }]}>{cuenta.subir}</Text>
-            <Text style={s.cajaTxt}>van a subir al almacén</Text>
+            <Text style={s.cajaTxt}>en el almacén</Text>
           </View>
           <View style={s.caja}>
             <Text style={[s.cajaNum, { color: TINTA.elegir }]}>{cuenta.pendiente}</Text>
-            <Text style={s.cajaTxt}>por decidir</Text>
+            <Text style={s.cajaTxt}>con observaciones</Text>
           </View>
           <View style={s.caja}>
             <Text style={[s.cajaNum, { color: GRIS }]}>{cuenta.no_subir}</Text>
-            <Text style={s.cajaTxt}>no se suben</Text>
+            <Text style={s.cajaTxt}>no entran (ya están con un cliente)</Text>
           </View>
           <View style={s.caja}>
             <Text style={[s.cajaNum, { color: TINTA.nuevo }]}>{nuevos.length}</Text>
@@ -272,8 +262,8 @@ export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarg
                 <Text style={[s.thTxt, { width: COL.marca }]}>MARCA</Text>
                 <Text style={[s.thTxt, { width: COL.serie }]}>SERIE</Text>
                 <Text style={[s.thTxt, { width: COL.disp }]}>DISPONIBLE</Text>
-                <Text style={[s.thTxt, { width: COL.estado }]}>ESTADO</Text>
-                <Text style={[s.thTxt, { width: COL.decision, borderRightWidth: 0 }]}>DECISIÓN</Text>
+                <Text style={[s.thTxt, { width: COL.ingreso }]}>INGRESO</Text>
+                <Text style={[s.thTxt, { width: COL.estado, borderRightWidth: 0 }]}>ESTADO</Text>
               </View>
             </View>
             {fs.map((f, i) => {
@@ -305,7 +295,10 @@ export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarg
                   <View style={[s.celda, { width: COL.disp }]}>
                     <Text>{/^[\d.,\s-]*$/.test(f.ubicacion ?? "") ? "PLANTA" : f.ubicacion!.toUpperCase()}</Text>
                   </View>
-                  <View style={[s.celda, { width: COL.estado }]}>
+                  <View style={[s.celda, { width: COL.ingreso, alignItems: "center" }]}>
+                    <Text>{f.ingreso ? f.ingreso.slice(0, 10).split("-").reverse().join("/") : "—"}</Text>
+                  </View>
+                  <View style={[s.celda, { width: COL.estado, borderRightWidth: 0 }]}>
                     <Text style={{ color: TINTA[f.estado], fontFamily: f.estado === "ok" ? "Helvetica" : "Helvetica-Bold" }}>{etiquetaEstado(f)}</Text>
                     {f.ocupada && (
                       <Text style={s.chico}>
@@ -313,10 +306,6 @@ export function ResumenStockPdf({ logoBuffer, archivo, generado, por, estadoCarg
                         {f.ocupada.pedido ? ` · ${f.ocupada.pedido}` : ""}
                       </Text>
                     )}
-                  </View>
-                  <View style={[s.celda, { width: COL.decision, borderRightWidth: 0, flexDirection: "row", alignItems: "center", gap: 4 }]}>
-                    <Casilla decision={f.decision} />
-                    <Text>{TEXTO_DECISION[f.decision]}</Text>
                   </View>
                 </View>
               );
