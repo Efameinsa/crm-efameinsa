@@ -9,8 +9,10 @@ import { enlaceCierreDelPedido } from "@/lib/enlace-cierre-central";
  * que Importaciones trae la máquina; nadie se enteraba de que llegó: «la central
  * no sabe que la máquina ya llegó… ¿cómo le digo que ya tengo la serie para que
  * haga toda su gestión?». Cuando el almacén marca que llegó o le pone la serie a
- * una línea que estaba sin stock o por importar, Central y quien lleva el pedido
- * reciben el aviso con la serie y el enlace al pedido. Sin circuito nuevo.
+ * una línea que estaba sin stock o por importar, Central y TODA postventa
+ * reciben el aviso con la serie y el enlace al pedido. Santos (23-10): «cualquiera
+ * de postventa debe recibir el aviso al momento para gestionar», no una persona.
+ * Sin circuito nuevo.
  */
 export async function avisarQueLlegoLaMaquina(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -18,7 +20,7 @@ export async function avisarQueLlegoLaMaquina(
 ): Promise<void> {
   const { data: s } = await supabase
     .from("servicios_postventa")
-    .select("cliente_texto, responsable_id, es_prueba, informe_cierre_id, series_pedidas_at")
+    .select("cliente_texto, es_prueba, informe_cierre_id, series_pedidas_at")
     .eq("id", datos.servicioId)
     .maybeSingle();
   if (!s) return;
@@ -27,6 +29,16 @@ export async function avisarQueLlegoLaMaquina(
   const conSerie = datos.serie ? ` Serie ${datos.serie}, ya puesta en el pedido.` : " Falta ponerle la serie.";
   const titulo = `Llegó la máquina · ${cliente}`;
   const enlacePedido = `/nuevo/pedido/${datos.servicioId}`;
+  // El área de postventa, como en los demás avisos del almacén (sin la cuenta que solo vende preventivo).
+  const { data: postventa } = await supabase
+    .from("perfiles")
+    .select("id")
+    .eq("es_postventa", true)
+    .eq("activo", true)
+    .eq("solo_preventivo", false)
+    .is("espejo_de", null)
+    .eq("es_prueba", s.es_prueba === true);
+  const cuerpoPostventa = `${que}: el almacén avisa que ya está en planta.${conSerie} Ya se puede seguir con la prueba y la apertura.`;
   await Promise.all([
     notificarCentral({
       titulo,
@@ -34,14 +46,6 @@ export async function avisarQueLlegoLaMaquina(
       url: s.informe_cierre_id ? await enlaceCierreDelPedido(supabase, datos.servicioId) : enlacePedido,
       esPrueba: s.es_prueba === true,
     }),
-    s.responsable_id
-      ? notificar({
-          userId: s.responsable_id,
-          tipo: "almacen",
-          titulo,
-          cuerpo: `${que}: el almacén avisa que ya está en planta.${conSerie} Ya se puede seguir con la prueba y la apertura.`,
-          url: enlacePedido,
-        })
-      : Promise.resolve(),
+    ...(postventa ?? []).map((p) => notificar({ userId: p.id, tipo: "almacen", titulo, cuerpo: cuerpoPostventa, url: enlacePedido })),
   ]);
 }
