@@ -236,6 +236,16 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
   // abrir nada.
   const nombrePorId = new Map((comerciales ?? []).map((c) => [c.id as string, c.nombre as string]));
 
+  // A POSTVENTA SE DERIVA AL ÁREA (Santos, 23-10): «central solo debe derivar a
+  // postventa, y postventa es un área: cada integrante solito toma el caso como
+  // si fuera suyo, pero entre comillas suyo porque es del área». Central ve
+  // «Postventa (área)» y no a cada persona; la base hace lo mismo si igual
+  // llega una persona (0597). Gerencia y operaciones siguen viendo a todas.
+  const destinos =
+    perfil.rol === "central"
+      ? (comerciales ?? []).filter((c) => !c.es_postventa || c.codigo_comercial === "PV")
+      : (comerciales ?? []);
+
   // QUIÉN REGISTRÓ EL CONTACTO, EN LA TARJETA (Santos, 10-09): «ve un registro
   // pero no sabe quién le derivó; recién cuando lo asigna a alguien se
   // visualiza quién lo derivó». El dato vive en `leads.recibido_por` desde
@@ -469,7 +479,7 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
                       numDoc={lead.num_doc}
                       email={lead.email}
                       mensaje={lead.mensaje}
-                      comerciales={comerciales ?? []}
+                      comerciales={destinos}
                       pideCodigoPostventa={pideCodigoPostventa}
                       abrirAlCargar={foco?.id === lead.id}
                       sugerencia={
