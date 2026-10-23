@@ -1092,7 +1092,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 
 **Otras herramientas**
 - **«Ver la historia de la empresa»:** busca por razón social, palabras, dominio y siglas. Solo mira: no une ni deriva.
-- **«Buscar en todo el CRM»** (lupa de arriba, /buscar): un contacto de Central **sin ficha** es una consulta que nunca llegó a cotización ni compra (casi siempre de los Excel antiguos de Central): no tiene expediente y por eso no sale «Abrir». La fecha que se ve es cuándo llamó, no cuándo se pasó al CRM. Si el mismo celular hoy es contacto de un cliente, la fila lo dice y «Abrir» lleva a esa ficha (Central, 15-10: TERRANOVA REPRESENTACIONES era una llamada de 2019; la misma persona escribe hoy por otra empresa).
+- **«Buscar en todo el CRM»** (lupa de arriba, /buscar): un contacto de Central **sin ficha** es una consulta que nunca llegó a cotización ni compra (casi siempre de los Excel antiguos de Central): no tiene expediente y por eso no sale «Abrir». La fecha que se ve es cuándo llamó, no cuándo se pasó al CRM. Si el mismo celular hoy es contacto de un cliente, la fila lo dice y «Abrir» lleva a esa ficha (Central, 15-10: TERRANOVA REPRESENTACIONES era una llamada de 2019; la misma persona escribe hoy por otra empresa). Desde el 23-10, «Abrir» en un cliente lleva a la ficha compartida (/nuevo/cliente) para todos: antes llevaba a la sección de gerencia y a operaciones o postventa los devolvía a su inicio sin abrir nada (le pasó a Lesly con Sociedad Hotelera del Sur).
 - **Seguimiento a comerciales:**
   - los derivados quietos más de 7 días aparecen como «Preguntar a Cx por el seguimiento»;
   - la urgencia al comercial le llega en vivo, y desde la segunda por el mismo contacto se entera gerencia.
