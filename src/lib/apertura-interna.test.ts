@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { antecedentesInternaVacios, filasAntecedentesInterna, normalizarAntecedentesInterna, type AntecedentesInterna } from "./apertura-interna";
+import { antecedentesInternaVacios, filasAntecedentesInterna, normalizarAntecedentesInterna, proponerAntecedentesInterna, type AntecedentesInterna } from "./apertura-interna";
 
 /**
  * La apertura de servicio INTERNO con lo que pidió Brenda el 23-10: fecha de
@@ -58,5 +58,41 @@ describe("apertura interna: antecedentes (Brenda 23-10)", () => {
     expect(filas["Servicio en planta"]).toBe("Sin dato");
     expect(filas["Fecha de puesta en marcha"]).toBe("Sin dato");
     expect(filas["Fecha del último mantenimiento correctivo"]).toBe("Sin dato");
+  });
+});
+
+describe("apertura interna: propuesta desde el equipo (caso y pedido, 23-10)", () => {
+  it("toma fechas de la ficha y de los informes, y la garantía por la fecha de hoy en Lima", () => {
+    const p = proponerAntecedentesInterna(
+      { fechaVenta: "2024-03-01", guia: "EG07-921", garantiaHasta: "2026-12-31", fechaPuestaMarcha: "2024-03-15", fechaPrimerMantenimiento: "2024-09-10", fechaMantenimientoCorrectivo: "2025-06-02", antecedentes: null },
+      { hoy: "2026-10-23" },
+    );
+    expect(p.fecha_compra).toBe("2024-03-01");
+    expect(p.fecha_puesta_marcha).toBe("2024-03-15");
+    expect(p.fecha_primer_mantenimiento).toBe("2024-09-10");
+    expect(p.fecha_mantenimiento_correctivo).toBe("2025-06-02");
+    expect(p.guia_remision).toBe("EG07-921");
+    expect(p.garantia).toBe("vigente");
+    expect(p.servicio).toBe(""); // el servicio en planta siempre lo marca la persona
+    expect(proponerAntecedentesInterna({ garantiaHasta: "2026-10-22" }, { hoy: "2026-10-23" }).garantia).toBe("vencida");
+    expect(proponerAntecedentesInterna(null, { hoy: "2026-10-23", enGarantia: true }).garantia).toBe("vigente");
+    expect(proponerAntecedentesInterna(null, { hoy: "2026-10-23" }).garantia).toBe("por_verificar");
+  });
+
+  it("los «Antecedentes del equipo» ya registrados mandan sobre la ficha", () => {
+    const p = proponerAntecedentesInterna(
+      {
+        fechaVenta: "2024-03-01",
+        garantiaHasta: "2026-12-31",
+        antecedentes: { fecha_compra: "2024-02-20", guia_remision: "EG01-1", garantia: "vencida", mantenimiento: "no", mantenimiento_detalle: null, repuestos: "si", repuestos_detalle: "Válvula", fallas: "no", fallas_detalle: null },
+      },
+      { hoy: "2026-10-23" },
+    );
+    expect(p.fecha_compra).toBe("2024-02-20");
+    expect(p.garantia).toBe("vencida");
+    expect(p.mantenimiento).toBe("ninguno");
+    expect(p.vendido_repuesto).toBe("si");
+    expect(p.vendido_repuesto_detalle).toBe("Válvula");
+    expect(p.problemas).toBe("no");
   });
 });

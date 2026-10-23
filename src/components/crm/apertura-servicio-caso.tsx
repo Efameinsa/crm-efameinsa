@@ -15,19 +15,8 @@ import { formatoDelCaso, GUIAS_APERTURA } from "@/lib/apertura-servicio";
 import { CambiarTipoAtencion } from "@/components/crm/cambiar-tipo-atencion";
 import { tituloDelTipo } from "@/lib/atenciones";
 import { ListaTecnicos, ID_LISTA_TECNICOS } from "@/components/crm/lista-tecnicos";
-import {
-  antecedentesInternaVacios,
-  ETIQUETA_GARANTIA_INTERNA,
-  ETIQUETA_MANTENIMIENTO_INTERNO,
-  ETIQUETA_SERVICIO_EN_PLANTA,
-  ETIQUETA_SI_NO_VERIFICAR,
-  type AntecedentesInterna,
-  type GarantiaInterna,
-  type MantenimientoInterno,
-  type ModalidadApertura,
-  type ServicioEnPlanta,
-  type SiNoVerificar,
-} from "@/lib/apertura-interna";
+import { antecedentesInternaVacios, DIRECCION_SERVICIO_INTERNO, proponerAntecedentesInterna, type AntecedentesInterna, type ModalidadApertura } from "@/lib/apertura-interna";
+import { AntecedentesInternaCampos } from "@/components/crm/antecedentes-interna-campos";
 
 /**
  * APERTURA DE SERVICIO DESDE UN CASO (0407). Reunión de gerencia 06-10 11:01:
@@ -167,36 +156,7 @@ export function AperturaServicioCaso({
     if (m !== "interna" || !antVacios(ant)) return;
     proponerAntecedentes(equiposCliente?.find((e) => e.id === equiposElegidos[0]) ?? null);
   };
-  const proponerAntecedentes = (eq: EquipoParaApertura | null) => {
-    const a = eq?.antecedentes ?? null;
-    const sn = (v: string | null | undefined): SiNoVerificar => (v === "si" || v === "no" ? v : "por_verificar");
-    const hoy = hoyLima(); // en Lima: después de las 19:00 el UTC ya es mañana
-    const garantia: GarantiaInterna =
-      a?.garantia === "vigente" || a?.garantia === "vencida"
-        ? a.garantia
-        : eq?.garantiaHasta
-          ? eq.garantiaHasta >= hoy
-            ? "vigente"
-            : "vencida"
-          : enGarantia
-            ? "vigente"
-            : "por_verificar";
-    setAnt({
-      ...antecedentesInternaVacios(),
-      fecha_compra: a?.fecha_compra ?? eq?.fechaVenta ?? null,
-      fecha_puesta_marcha: eq?.fechaPuestaMarcha ?? null,
-      fecha_primer_mantenimiento: eq?.fechaPrimerMantenimiento ?? null,
-      fecha_mantenimiento_correctivo: eq?.fechaMantenimientoCorrectivo ?? null,
-      guia_remision: a?.guia_remision ?? eq?.guia ?? null,
-      garantia,
-      problemas: sn(a?.fallas),
-      problemas_detalle: a?.fallas_detalle ?? null,
-      vendido_repuesto: sn(a?.repuestos),
-      vendido_repuesto_detalle: a?.repuestos_detalle ?? null,
-      mantenimiento: a?.mantenimiento === "no" ? "ninguno" : "por_verificar",
-      mantenimiento_detalle: a?.mantenimiento_detalle ?? null,
-    });
-  };
+  const proponerAntecedentes = (eq: EquipoParaApertura | null) => setAnt(proponerAntecedentesInterna(eq, { hoy: hoyLima(), enGarantia }));
 
   // Si se llegó ya en «Interno» (?apertura=interna: visita sin solución), los equipos no
   // estaban cargados cuando se eligió la modalidad: se propone recién cuando llegan.
@@ -233,7 +193,7 @@ export function AperturaServicioCaso({
         tecnico,
         transporte: interna ? "" : transporte,
         // En planta no hay traslado: la hoja dice dónde se atiende.
-        direccion: interna ? "EN NUESTRA PLANTA (servicio interno)" : direccion,
+        direccion: interna ? DIRECCION_SERVICIO_INTERNO : direccion,
         confirmo,
         recibe: interna ? "" : recibe,
         recibeTelefono: interna ? "" : recibeTelefono,
@@ -647,121 +607,5 @@ export function AperturaServicioCaso({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-/** Los antecedentes del servicio interno (0566): lo que el técnico necesita saber antes de abrir el equipo. */
-function AntecedentesInternaCampos({ valor, cambiar }: { valor: AntecedentesInterna; cambiar: (c: Partial<AntecedentesInterna>) => void }) {
-  const select = "h-9 rounded-md border border-input bg-background px-2 text-sm";
-  const siNo = (
-    clave: "problemas" | "vendido_repuesto" | "repuesto_cambiado",
-    detalle: "problemas_detalle" | "vendido_repuesto_detalle" | "repuesto_cambiado_detalle",
-    titulo: string,
-  ) => (
-    <div className="grid gap-1 sm:col-span-2 sm:grid-cols-[12rem_minmax(0,1fr)] sm:items-center sm:gap-2">
-      <Label className="text-xs">{titulo}</Label>
-      <div className="flex gap-2">
-        <select className={`${select} w-36 shrink-0`} value={valor[clave]} onChange={(e) => cambiar({ [clave]: e.target.value as SiNoVerificar })}>
-          {(Object.keys(ETIQUETA_SI_NO_VERIFICAR) as SiNoVerificar[]).map((k) => (
-            <option key={k} value={k}>
-              {ETIQUETA_SI_NO_VERIFICAR[k]}
-            </option>
-          ))}
-        </select>
-        <Input value={valor[detalle] ?? ""} onChange={(e) => cambiar({ [detalle]: e.target.value })} placeholder="Cuál y cuándo" disabled={valor[clave] === "no"} />
-      </div>
-    </div>
-  );
-  return (
-    <div className="grid gap-2.5 rounded-md border border-primary/30 bg-primary/5 p-3 sm:col-span-2 sm:grid-cols-2">
-      <div className="sm:col-span-2">
-        <p className="text-xs font-semibold text-foreground">Antecedentes del equipo (servicio interno)</p>
-        <p className="text-[11px] text-muted-foreground">
-          Sale en la hoja de la apertura y queda en «Antecedentes del equipo» de la máquina. Lo que ya se sabía viene propuesto: revíselo.
-        </p>
-      </div>
-      <div className="grid gap-1.5 sm:col-span-2">
-        <Label className="text-xs">
-          Servicio que se le hace en planta <span className="text-destructive">*</span>
-        </Label>
-        <div className="grid gap-2 sm:grid-cols-3">
-          {(Object.keys(ETIQUETA_SERVICIO_EN_PLANTA) as Exclude<ServicioEnPlanta, "">[]).map((k) => (
-            <label
-              key={k}
-              className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-xs ${valor.servicio === k ? "border-primary bg-primary/5" : "border-border bg-background hover:bg-accent"}`}
-            >
-              <input type="radio" name="servicio-en-planta" className="accent-primary" checked={valor.servicio === k} onChange={() => cambiar({ servicio: k })} />
-              <span className="font-medium">{ETIQUETA_SERVICIO_EN_PLANTA[k]}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-      <div className="grid gap-1 sm:col-span-2">
-        <Label className="text-xs">
-          Problema: por qué viene a planta y qué se necesita que se ejecute <span className="text-destructive">*</span>
-        </Label>
-        <Textarea
-          rows={2}
-          value={valor.que_ejecutar}
-          onChange={(e) => cambiar({ que_ejecutar: e.target.value })}
-          placeholder="Ej.: la secadora no calienta: revisar quemador y válvula de gas, probar con carga"
-        />
-      </div>
-      <div className="grid gap-1">
-        <Label className="text-xs">Fecha de compra</Label>
-        <Input type="date" value={valor.fecha_compra ?? ""} onChange={(e) => cambiar({ fecha_compra: e.target.value || null })} />
-      </div>
-      <div className="grid gap-1">
-        <Label className="text-xs">Fecha de puesta en marcha</Label>
-        <Input type="date" value={valor.fecha_puesta_marcha ?? ""} onChange={(e) => cambiar({ fecha_puesta_marcha: e.target.value || null })} />
-      </div>
-      <div className="grid gap-1">
-        <Label className="text-xs">Fecha del primer mantenimiento</Label>
-        <Input type="date" value={valor.fecha_primer_mantenimiento ?? ""} onChange={(e) => cambiar({ fecha_primer_mantenimiento: e.target.value || null })} />
-      </div>
-      <div className="grid gap-1">
-        <Label className="text-xs">Fecha del último mantenimiento correctivo</Label>
-        <Input
-          type="date"
-          value={valor.fecha_mantenimiento_correctivo ?? ""}
-          onChange={(e) => cambiar({ fecha_mantenimiento_correctivo: e.target.value || null })}
-        />
-      </div>
-      <div className="grid gap-1">
-        <Label className="text-xs">N.º de guía</Label>
-        <Input value={valor.guia_remision ?? ""} onChange={(e) => cambiar({ guia_remision: e.target.value })} placeholder="Ej.: EG07-921" />
-      </div>
-      <div className="grid gap-1 sm:col-span-2">
-        <Label className="text-xs">¿Está en garantía?</Label>
-        <select className={select} value={valor.garantia} onChange={(e) => cambiar({ garantia: e.target.value as GarantiaInterna })}>
-          {(Object.keys(ETIQUETA_GARANTIA_INTERNA) as GarantiaInterna[]).map((k) => (
-            <option key={k} value={k}>
-              {ETIQUETA_GARANTIA_INTERNA[k]}
-            </option>
-          ))}
-        </select>
-      </div>
-      {siNo("problemas", "problemas_detalle", "¿Tuvo algún problema antes?")}
-      {siNo("vendido_repuesto", "vendido_repuesto_detalle", "¿Se le vendió repuesto?")}
-      <div className="grid gap-1 sm:col-span-2 sm:grid-cols-[12rem_minmax(0,1fr)] sm:items-center sm:gap-2">
-        <Label className="text-xs">¿Se le vendió mantenimiento?</Label>
-        <div className="flex gap-2">
-          <select className={`${select} w-44 shrink-0`} value={valor.mantenimiento} onChange={(e) => cambiar({ mantenimiento: e.target.value as MantenimientoInterno })}>
-            {(Object.keys(ETIQUETA_MANTENIMIENTO_INTERNO) as MantenimientoInterno[]).map((k) => (
-              <option key={k} value={k}>
-                {ETIQUETA_MANTENIMIENTO_INTERNO[k]}
-              </option>
-            ))}
-          </select>
-          <Input
-            value={valor.mantenimiento_detalle ?? ""}
-            onChange={(e) => cambiar({ mantenimiento_detalle: e.target.value })}
-            placeholder="Cuándo y qué se hizo"
-            disabled={valor.mantenimiento === "ninguno"}
-          />
-        </div>
-      </div>
-      {siNo("repuesto_cambiado", "repuesto_cambiado_detalle", "¿Se cambió algún repuesto?")}
-    </div>
   );
 }

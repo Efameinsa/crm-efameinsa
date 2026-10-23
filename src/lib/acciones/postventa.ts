@@ -3,17 +3,25 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { avanzarCasoAlEjecutar } from "@/lib/caso-avanza";
-import { anioLima } from "@/lib/periodo";
+import { anioLima, hoyLima } from "@/lib/periodo";
 import { requerirPerfil } from "@/lib/auth";
 import { duenoDelExpediente, esRechazoDeRls, mensajeExpedienteAjeno } from "@/lib/expediente-ajeno";
 import { notificar, notificarAlmacen, notificarCentral, notificarFacturacion, notificarFinanzas } from "@/lib/notificaciones";
 import { correoAlArea } from "@/lib/correo-al-area";
-import { bloquesPedido, cierreExigePuesta, evaluarPagoParaDespacho, faltaVistoBuenoFinanzas, puedeVerPrecios, textoCondicionPago, textoPlanoNoEnviado, type ServicioPostventa } from "@/lib/postventa";
+import { bloquesPedido, cierreExigePuesta, evaluarPagoParaDespacho, faltaVistoBuenoFinanzas, puedeVerPrecios, seriesDeTexto, textoCondicionPago, textoPlanoNoEnviado, type ServicioPostventa } from "@/lib/postventa";
 import { avisarFinanzasSiFaltaVistoBueno } from "@/lib/aviso-visto-bueno";
 import { MESES_PRIMER_PREVENTIVO } from "@/lib/preventivo";
 import { sumarContactoOperativo } from "@/lib/contacto-operativo-servidor";
 import { limpiarObsFilas, lineasGuia, type GuiaApertura } from "@/lib/apertura-servicio";
-import { aAntecedentesDelEquipo, antecedentesInternaVacios, normalizarAntecedentesInterna, type AntecedentesInterna, type ModalidadApertura } from "@/lib/apertura-interna";
+import {
+  aAntecedentesDelEquipo,
+  antecedentesInternaVacios,
+  normalizarAntecedentesInterna,
+  proponerAntecedentesInterna,
+  type AntecedentesInterna,
+  type EquipoParaAntecedentes,
+  type ModalidadApertura,
+} from "@/lib/apertura-interna";
 import { errorDocRecibe, tipoDocRecibe } from "@/lib/documento";
 import { enlaceCierreDelPedido } from "@/lib/enlace-cierre-central";
 import { avisarQueLlegoLaMaquina } from "@/lib/avisar-llegada";
@@ -1483,12 +1491,25 @@ export async function guardarAperturaServicio(
     /** Fila 2: orden de compra, de servicio o ninguna, y su número (0508; buzón Rubí 16-10). */
     ordenTipo?: string | null;
     ordenNumero?: string | null;
+    /** Dónde se hace el servicio (0566; desde el pedido también, Brenda 23-10): undefined = no tocar. */
+    modalidad?: ModalidadApertura | null;
+    /** Los antecedentes del servicio interno; se exigen cuando la modalidad es interna. */
+    antecedentes?: AntecedentesInterna | null;
   },
 ) {
-  await requerirPerfil();
+  const perfil = await requerirPerfil();
   const supabase = await createClient();
 
   const limpio = (v: string | null | undefined) => (v?.trim() ? v.trim() : null);
+  let antecedentes: AntecedentesInterna | null | undefined = undefined;
+  if (datos.modalidad !== undefined) {
+    if (datos.modalidad && datos.modalidad !== "externa" && datos.modalidad !== "interna") return falla("El servicio es externo o interno");
+    if (datos.modalidad === "interna") {
+      const n = normalizarAntecedentesInterna(datos.antecedentes ?? antecedentesInternaVacios());
+      if (typeof n === "string") return falla(n);
+      antecedentes = n;
+    } else antecedentes = null;
+  }
   if (
     datos.tipo &&
     !["entrega", "entrega_puesta_marcha", "puesta_marcha", "servicio_instalacion", "mantenimiento", "entrega_garantia", "servicio_tecnico", "revision_garantia", "capacitacion"].includes(datos.tipo)
@@ -1507,7 +1528,7 @@ export async function guardarAperturaServicio(
   // Con la apertura emitida, lo que cambie de esto va a Finanzas y al almacén (0406).
   const { data: antes } = await supabase
     .from("servicios_postventa")
-    .select("apertura_despacho_at, apertura_tipo, apertura_fecha, apertura_hora, direccion_final, destino_nota, apertura_obs_filas, apertura_guia, apertura_guia_detalle, informe_cierre_id, apertura_empresa, apertura_orden_tipo, apertura_orden_numero")
+    .select("apertura_modalidad, cuenta_id, equipo, tipo_pedido, es_prueba, apertura_despacho_at, apertura_tipo, apertura_fecha, apertura_hora, direccion_final, destino_nota, apertura_obs_filas, apertura_guia, apertura_guia_detalle, informe_cierre_id, apertura_empresa, apertura_orden_tipo, apertura_orden_numero")
     .eq("id", servicioId)
     .maybeSingle();
   const mismasObs = (a: Record<string, string> | null, b: Record<string, string> | null) =>
@@ -1528,6 +1549,7 @@ export async function guardarAperturaServicio(
           // Elegirla por primera vez no es corregir: antes salía sola la OC del cierre o «—».
           ["la orden de compra o de servicio", antes.apertura_orden_tipo, antes.apertura_orden_tipo ? datos.ordenTipo : undefined],
           ["el número de la orden", antes.apertura_orden_numero, antes.apertura_orden_tipo ? datos.ordenNumero : undefined],
+          ["dónde se hace el servicio (externo o interno)", antes.apertura_modalidad ?? "externa", datos.modalidad === undefined ? undefined : (datos.modalidad ?? "externa")],
         ] as [string, unknown, string | null | undefined][]
       )
         .filter(([, a, d]) => d !== undefined && String(a ?? "").trim() !== (limpio(d) ?? ""))
@@ -1562,10 +1584,51 @@ export async function guardarAperturaServicio(
       ...(datos.empresa !== undefined && !antes?.informe_cierre_id ? { apertura_empresa: datos.empresa } : {}),
       ...(datos.ordenTipo !== undefined ? { apertura_orden_tipo: limpio(datos.ordenTipo) } : {}),
       ...(datos.ordenNumero !== undefined ? { apertura_orden_numero: limpio(datos.ordenNumero) } : {}),
+      ...(datos.modalidad !== undefined ? { apertura_modalidad: datos.modalidad ?? "externa", apertura_antecedentes: antecedentes ?? null } : {}),
     })
     .eq("id", servicioId);
   if (error) return falla(error.message);
   if (cambios.length) await avisarAperturaCorregida(servicioId, cambios.join(", "));
+  // SERVICIO INTERNO desde el pedido (Brenda 23-10): lo mismo que al abrirlo desde el caso.
+  // Los antecedentes quedan en «Antecedentes del equipo» de la máquina de la serie del
+  // pedido, y si el pedido viene de un caso, el almacén recibe su orden de recepción (0568).
+  if (antecedentes && antes) {
+    const serie = seriesDeTexto(antes.equipo as string | null)[0] ?? null;
+    const { data: caso } = await supabase
+      .from("atenciones")
+      .select("id, equipo_id")
+      .eq("servicio_id", servicioId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    let equipoId = (caso?.equipo_id as string | null) ?? null;
+    if (!equipoId && serie && antes.cuenta_id) {
+      const { data: eq } = await supabase.from("equipos_instalados").select("id").eq("cuenta_id", antes.cuenta_id).ilike("serie", serie).limit(1).maybeSingle();
+      equipoId = (eq?.id as string | null) ?? null;
+    }
+    if (equipoId) {
+      const { data: previo } = await supabase.from("equipo_antecedentes").select("proveedor, factura_oc").eq("equipo_id", equipoId).maybeSingle();
+      const { error: e4 } = await supabase.rpc("guardar_antecedentes_equipo", {
+        p_equipo: equipoId,
+        p_datos: aAntecedentesDelEquipo(antecedentes, previo as { proveedor: string | null; factura_oc: string | null } | null),
+      });
+      if (e4) console.error("apertura interna (pedido): no se guardaron los antecedentes del equipo", e4.message);
+    }
+    if (caso?.id) {
+      const tipoPedido = antes.tipo_pedido as string | null;
+      const { error: eRec } = await supabase.rpc("crear_recepcion_equipo", {
+        p_atencion: caso.id,
+        p_equipo: ((antes.equipo as string | null)?.split(/\r?\n/)[0]?.trim() || "Equipo del pedido").slice(0, 200),
+        p_serie: serie,
+        p_motivo: tipoPedido === "garantia" ? "garantia" : tipoPedido === "revision" ? "revision" : "reparacion",
+        p_llega_por: "tecnico",
+        p_fecha: limpio(datos.fecha),
+        p_nota: `Apertura de servicio interna (desde el pedido, ${perfil.nombre ?? "postventa"}). Qué se ejecuta: ${antecedentes.que_ejecutar}`,
+        p_servicio: servicioId,
+      });
+      if (eRec) console.error("apertura interna (pedido): no se creó la recepción", eRec.message);
+    }
+  }
 
   revalidatePath(`/postventa/pedidos/${servicioId}`);
   revalidatePath(`/postventa/pedidos/${servicioId}/apertura`);
@@ -1752,29 +1815,10 @@ export async function traerPedidoAntiguo(datos: {
  * un pedido»). Nace un pedido de servicio con la apertura ya emitida y le
  * llega a Finanzas (autoriza la guía) y al almacén, igual que la de un pedido.
  */
-export type EquipoParaApertura = {
+export type EquipoParaApertura = EquipoParaAntecedentes & {
   id: string;
   serie: string | null;
   modelo: string;
-  /** Para proponer los antecedentes del servicio interno (20-10): lo que ya se sabe del equipo. */
-  fechaVenta?: string | null;
-  guia?: string | null;
-  garantiaHasta?: string | null;
-  /** Fechas que pide la apertura interna (Brenda 23-10): de la ficha del equipo y de sus informes de servicio. */
-  fechaPuestaMarcha?: string | null;
-  fechaPrimerMantenimiento?: string | null;
-  fechaMantenimientoCorrectivo?: string | null;
-  antecedentes?: {
-    fecha_compra: string | null;
-    guia_remision: string | null;
-    garantia: string | null;
-    mantenimiento: string | null;
-    mantenimiento_detalle: string | null;
-    repuestos: string | null;
-    repuestos_detalle: string | null;
-    fallas: string | null;
-    fallas_detalle: string | null;
-  } | null;
 };
 
 /**
@@ -1790,10 +1834,16 @@ export async function equiposParaAperturaDeCaso(atencionId: string): Promise<{ e
   const supabase = await createClient();
   const { data: a } = await supabase.from("atenciones").select("cuenta_id, equipo_id").eq("id", atencionId).maybeSingle();
   if (!a?.cuenta_id) return { equipos: [], delCaso: null };
+  const equipos = await equiposDeCuentaParaApertura(supabase, a.cuenta_id as string);
+  return { equipos, delCaso: (a.equipo_id as string | null) ?? null };
+}
+
+/** Las máquinas de una ficha con lo que se sabe de cada una, para proponer los antecedentes. */
+async function equiposDeCuentaParaApertura(supabase: Awaited<ReturnType<typeof createClient>>, cuentaId: string): Promise<EquipoParaApertura[]> {
   const { data } = await supabase
     .from("equipos_instalados")
     .select("id, serie, modelo_texto, fecha_venta, guia_remision, garantia_hasta, fecha_puesta_marcha")
-    .eq("cuenta_id", a.cuenta_id)
+    .eq("cuenta_id", cuentaId)
     // Solo máquinas: el kit de repuestos no es un equipo que atiende el técnico (0570, gerencia 20-10).
     .eq("es_repuesto", false)
     .order("modelo_texto")
@@ -1851,7 +1901,25 @@ export async function equiposParaAperturaDeCaso(atencionId: string): Promise<{ e
     // La serie va aparte: en el texto del modelo sobra.
     modelo: (e.modelo_texto ?? "Equipo").replace(/\s*\/?\s*Serie:\s*[^/]*/gi, "").replace(/\s*\/\s*$/, "").trim() || "Equipo",
   }));
-  return { equipos, delCaso: (a.equipo_id as string | null) ?? null };
+  return equipos;
+}
+
+/**
+ * Los antecedentes propuestos para la apertura INTERNA de un pedido (Brenda
+ * 23-10: la opción también en la apertura de despacho). El equipo es el de la
+ * serie que lleva el pedido; si la ficha tiene una sola máquina, esa.
+ */
+export async function antecedentesPropuestosDelPedido(servicioId: string): Promise<{ propuesta: AntecedentesInterna; equipo: string | null }> {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { data: s } = await supabase.from("servicios_postventa").select("cuenta_id, equipo, tipo_pedido").eq("id", servicioId).maybeSingle();
+  const equipos = s?.cuenta_id ? await equiposDeCuentaParaApertura(supabase, s.cuenta_id as string) : [];
+  const series = seriesDeTexto(s?.equipo as string | null).map((x) => x.toUpperCase());
+  const eq = equipos.find((e) => e.serie && series.includes(e.serie.toUpperCase())) ?? (equipos.length === 1 ? equipos[0] : null);
+  return {
+    propuesta: proponerAntecedentesInterna(eq, { hoy: hoyLima(), enGarantia: s?.tipo_pedido === "garantia" }),
+    equipo: eq ? `${eq.modelo}${eq.serie ? ` · serie ${eq.serie}` : ""}` : null,
+  };
 }
 
 export async function abrirAperturaDesdeCaso(

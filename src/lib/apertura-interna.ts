@@ -111,6 +111,65 @@ export function normalizarAntecedentesInterna(a: AntecedentesInterna): Anteceden
   };
 }
 
+/** Lo que se sabe de un equipo para proponer los antecedentes: su ficha y sus «Antecedentes del equipo» (0560). */
+export type EquipoParaAntecedentes = {
+  fechaVenta?: string | null;
+  guia?: string | null;
+  garantiaHasta?: string | null;
+  fechaPuestaMarcha?: string | null;
+  fechaPrimerMantenimiento?: string | null;
+  fechaMantenimientoCorrectivo?: string | null;
+  antecedentes?: {
+    fecha_compra: string | null;
+    guia_remision: string | null;
+    garantia: string | null;
+    mantenimiento: string | null;
+    mantenimiento_detalle: string | null;
+    repuestos: string | null;
+    repuestos_detalle: string | null;
+    fallas: string | null;
+    fallas_detalle: string | null;
+  } | null;
+};
+
+/**
+ * Los antecedentes propuestos a partir del equipo (la misma regla desde el caso
+ * y desde el pedido, 23-10): lo que ya se sabía viene puesto y la persona lo
+ * revisa. `hoy` en Lima decide si la garantía sigue vigente.
+ */
+export function proponerAntecedentesInterna(eq: EquipoParaAntecedentes | null, op: { hoy: string; enGarantia?: boolean }): AntecedentesInterna {
+  const a = eq?.antecedentes ?? null;
+  const sn = (v: string | null | undefined): SiNoVerificar => (v === "si" || v === "no" ? v : "por_verificar");
+  const garantia: GarantiaInterna =
+    a?.garantia === "vigente" || a?.garantia === "vencida"
+      ? a.garantia
+      : eq?.garantiaHasta
+        ? eq.garantiaHasta >= op.hoy
+          ? "vigente"
+          : "vencida"
+        : op.enGarantia
+          ? "vigente"
+          : "por_verificar";
+  return {
+    ...antecedentesInternaVacios(),
+    fecha_compra: a?.fecha_compra ?? eq?.fechaVenta ?? null,
+    fecha_puesta_marcha: eq?.fechaPuestaMarcha ?? null,
+    fecha_primer_mantenimiento: eq?.fechaPrimerMantenimiento ?? null,
+    fecha_mantenimiento_correctivo: eq?.fechaMantenimientoCorrectivo ?? null,
+    guia_remision: a?.guia_remision ?? eq?.guia ?? null,
+    garantia,
+    problemas: sn(a?.fallas),
+    problemas_detalle: a?.fallas_detalle ?? null,
+    vendido_repuesto: sn(a?.repuestos),
+    vendido_repuesto_detalle: a?.repuestos_detalle ?? null,
+    mantenimiento: a?.mantenimiento === "no" ? "ninguno" : "por_verificar",
+    mantenimiento_detalle: a?.mantenimiento_detalle ?? null,
+  };
+}
+
+/** Dirección que lleva la hoja cuando el servicio es en planta. */
+export const DIRECCION_SERVICIO_INTERNO = "EN NUESTRA PLANTA (servicio interno)";
+
 const fechaDMA = (iso: string | null) => (iso ? iso.split("-").reverse().join("/") : "Sin dato");
 const conDetalle = (valor: string, detalle: string | null) => (detalle ? `${valor} · ${detalle}` : valor);
 
