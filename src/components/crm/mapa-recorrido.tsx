@@ -28,6 +28,16 @@ export function MapaRecorrido({
   noLeidos?: Record<string, number>;
 }) {
   const [ver, setVer] = useState<number | null>(abierto ? 0 : null);
+  // Lo que se leyó en el chat flotante ya no cuenta como «sin leer».
+  const [leidos, setLeidos] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const alLeer = (ev: Event) => {
+      const d = (ev as CustomEvent<{ tipo: string; id: string }>).detail;
+      setLeidos((s) => (s.has(`${d.tipo}:${d.id}`) ? s : new Set(s).add(`${d.tipo}:${d.id}`)));
+    };
+    window.addEventListener("crm:chat-leido", alLeer);
+    return () => window.removeEventListener("crm:chat-leido", alLeer);
+  }, []);
   // Llegar desde un aviso de «Apurar» («#mapa=tipo:id») abre el mapa en ese recorrido.
   useEffect(() => {
     const abrirDesdeEnlace = () => {
@@ -79,7 +89,7 @@ export function MapaRecorrido({
           {rutas
             .filter((r) => r.tipo !== "recepcion")
             .map((r) => {
-              const n = noLeidos[`${r.tipo}:${r.id}`] ?? 0;
+              const n = leidos.has(`${r.tipo}:${r.id}`) ? 0 : (noLeidos[`${r.tipo}:${r.id}`] ?? 0);
               return (
                 <button
                   key={`chat-${r.tipo}:${r.id}`}

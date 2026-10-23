@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requerirPerfil } from "@/lib/auth";
 import { notificar } from "@/lib/notificaciones";
 import { AREAS_CHAT, areaDePerfil, type AreaChat, type MensajeChat, type TipoChat } from "@/lib/chat";
+import { idsDePersonasDelPedido, type ServicioPostventa } from "@/lib/postventa";
 
 /**
  * EL CHAT DE CADA CASO (Santos, 23-10; 0592). Lee con la sesión de quien mira
@@ -21,7 +22,7 @@ export type DatosChat = {
   titulo: string;
   cerradoAt: string | null;
   mensajes: MensajeChat[];
-  /** Quiénes ya escribieron, con su área: los «involucrados» a la vista. */
+  /** Todos los involucrados del caso, con su área (Santos 23-10: «es un canal de todos con todos»). */
   participantes: { nombre: string; area: string }[];
 };
 
@@ -48,6 +49,52 @@ async function cabecera(tipo: TipoChat, id: string) {
   };
 }
 
+/**
+ * LOS INVOLUCRADOS DEL CASO (Santos, 23-10: «recuerda que ese es un canal de
+ * chat de todos con todos, los involucrados en el caso»). Quien lo lleva, quien
+ * movió algún paso del caso o de su pedido / apertura de servicio, quien lo
+ * apuró o escribió y, en un pedido, el comercial de la venta. Cada mensaje les
+ * llega a todos; «Para» un área suma a esa área. Con la llave de servicio: el
+ * registro de acciones no lo lee cualquiera, y aquí solo salen ids.
+ */
+async function involucrados(tipo: TipoChat, id: string, esPrueba: boolean): Promise<string[]> {
+  const admin = createAdminClient();
+  const ids = new Set<string>();
+  const sumar = (...xs: (string | null | undefined)[]) => xs.forEach((x) => x && ids.add(x));
+  let servicioId: string | null = tipo === "pedido" ? id : null;
+  if (tipo === "caso") {
+    const [{ data: a }, { data: reg }] = await Promise.all([
+      admin.from("atenciones").select("asignado_a, tomada_por, recibido_por, servicio_id").eq("id", id).maybeSingle(),
+      admin.from("registro_acciones").select("quien").eq("tabla", "atenciones").eq("fila_id", id).limit(300),
+    ]);
+    sumar(a?.asignado_a as string | null, a?.tomada_por as string | null, a?.recibido_por as string | null);
+    ((reg ?? []) as { quien: string | null }[]).forEach((x) => sumar(x.quien));
+    servicioId = (a?.servicio_id as string | null) ?? null;
+  }
+  if (servicioId) {
+    const [{ data: s }, { data: reg }] = await Promise.all([
+      admin.from("servicios_postventa").select("*, informes_cierre!servicios_postventa_informe_cierre_id_fkey(creado_por)").eq("id", servicioId).maybeSingle(),
+      admin.from("registro_acciones").select("quien").eq("tabla", "servicios_postventa").eq("fila_id", servicioId).limit(300),
+    ]);
+    if (s) {
+      sumar(...idsDePersonasDelPedido(s as unknown as ServicioPostventa), (s as { responsable_id?: string | null }).responsable_id);
+      if (tipo === "pedido") sumar((s.informes_cierre as { creado_por?: string } | null)?.creado_por);
+    }
+    ((reg ?? []) as { quien: string | null }[]).forEach((x) => sumar(x.quien));
+  }
+  const col = tipo === "caso" ? "atencion_id" : "servicio_id";
+  const [{ data: autores }, { data: apuros }] = await Promise.all([
+    admin.from("chat_mensajes").select("autor_id").eq(col, id).limit(500),
+    admin.from("apuros_del_mapa").select("enviado_por").eq(col, id).limit(200),
+  ]);
+  ((autores ?? []) as { autor_id: string }[]).forEach((x) => sumar(x.autor_id));
+  ((apuros ?? []) as { enviado_por: string }[]).forEach((x) => sumar(x.enviado_por));
+  if (!ids.size) return [];
+  // Solo personas activas del mismo mundo (real / práctica) y no las cuentas espejo que solo miran.
+  const { data: vivos } = await admin.from("perfiles").select("id").in("id", [...ids]).eq("activo", true).eq("es_prueba", esPrueba).is("espejo_de", null);
+  return (vivos ?? []).map((p) => p.id as string);
+}
+
 export async function cargarChat(tipo: TipoChat, id: string): Promise<DatosChat | null> {
   const perfil = await requerirPerfil();
   const supabase = await createClient();
@@ -60,7 +107,8 @@ export async function cargarChat(tipo: TipoChat, id: string): Promise<DatosChat 
     .order("created_at")
     .limit(500);
   const filas = (data ?? []) as { id: string; autor_id: string; texto: string; para_area: AreaChat | null; clase: "mensaje" | "apuro"; created_at: string }[];
-  const ids = [...new Set(filas.map((f) => f.autor_id))];
+  const metidos = await involucrados(tipo, id, perfil.es_prueba === true);
+  const ids = [...new Set([...metidos, ...filas.map((f) => f.autor_id)])];
   // Los nombres con la llave de servicio: un nombre no es secreto y no todas las áreas leen todos los perfiles.
   const { data: autores } = ids.length
     ? await createAdminClient().from("perfiles").select("id, nombre, rol, es_postventa, es_almacen, es_operaciones, es_soporte").in("id", ids)
@@ -117,17 +165,12 @@ export async function enviarMensajeChat(datos: { tipo: TipoChat; id: string; tex
   });
   if (error) return { error: limpiar(error.message) };
 
-  // A quién le llega el aviso: el área del «Para:», quien lleva el caso y quienes ya conversaron. Nunca a quien escribe.
   const cab = await cabecera(datos.tipo, datos.id);
   const esPrueba = perfil.es_prueba === true;
   const admin = createAdminClient();
-  const { data: previos } = await admin
-    .from("chat_mensajes")
-    .select("autor_id")
-    .eq(datos.tipo === "caso" ? "atencion_id" : "servicio_id", datos.id)
-    .limit(500);
+  // A TODOS LOS INVOLUCRADOS (canal de todos con todos) y, si va «Para» un área, también a esa área.
   const destinos = new Set<string>([
-    ...((previos ?? []) as { autor_id: string }[]).map((p) => p.autor_id),
+    ...(await involucrados(datos.tipo, datos.id, esPrueba)),
     ...(cab?.asignado ? [cab.asignado] : []),
     ...(datos.para ? await personasDelArea(datos.para, esPrueba, cab?.creador ?? null) : []),
   ]);

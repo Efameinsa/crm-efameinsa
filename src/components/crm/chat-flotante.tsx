@@ -67,6 +67,13 @@ export function ChatFlotante() {
     };
   }, []);
 
+  // Avisa si el chat ocupa la esquina de abajo a la derecha: la bolita de Efamein se aparta (Santos 23-10).
+  const visible = abierto !== null;
+  useEffect(() => {
+    (window as unknown as { __crmChatVisible?: boolean }).__crmChatVisible = visible;
+    window.dispatchEvent(new CustomEvent("crm:chat-visible", { detail: { visible } }));
+  }, [visible]);
+
   if (!abierto) return null;
   // Al cuerpo de la página: la campana vive en la barra de arriba, cuyo desenfoque rompe el «fixed» (23-10).
   return createPortal(
@@ -102,6 +109,7 @@ function VentanaChat({
   const [cargando, setCargando] = useState(true);
   const [texto, setTexto] = useState("");
   const [para, setPara] = useState<AreaChat | "">(paraInicial ?? "");
+  const [verInvolucrados, setVerInvolucrados] = useState(false);
   const [enviando, empezar] = useTransition();
   const lista = useRef<HTMLDivElement>(null);
   const campo = useRef<HTMLTextAreaElement>(null);
@@ -116,7 +124,11 @@ function VentanaChat({
   const recargar = useCallback(async () => {
     const d = await cargarChat(tipo, id).catch(() => null);
     setCargando(false);
-    if (d) setDatos(d);
+    if (d) {
+      setDatos(d);
+      // Leído: el contador del botón «Chat del caso» se apaga sin recargar la pantalla.
+      window.dispatchEvent(new CustomEvent("crm:chat-leido", { detail: { tipo, id } }));
+    }
   }, [tipo, id]);
 
   // Primera carga y puesta al día: al instante por el canal en vivo (si está), y cada pocos segundos de respaldo.
@@ -189,11 +201,17 @@ function VentanaChat({
         <MessageCircle className="mt-0.5 size-4 shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-bold">{datos?.titulo ?? "Chat"}</p>
-          <p className="truncate text-[11px] opacity-85">
+          <button
+            type="button"
+            onClick={() => setVerInvolucrados((v) => !v)}
+            aria-expanded={verInvolucrados}
+            className="block w-full truncate text-left text-[11px] opacity-85 hover:underline"
+            title="Ver todos los involucrados"
+          >
             {datos?.participantes.length
-              ? datos.participantes.map((p) => `${p.nombre.split(" ")[0]}${p.area ? ` (${p.area})` : ""}`).join(", ")
-              : `Chat del ${tipo === "caso" ? "caso" : "pedido"} entre las áreas`}
-          </p>
+              ? `${datos.participantes.length} involucrado${datos.participantes.length === 1 ? "" : "s"}: ${datos.participantes.map((p) => `${p.nombre.split(" ")[0]}${p.area ? ` (${p.area})` : ""}`).join(", ")}`
+              : `Chat de todos los involucrados del ${tipo === "caso" ? "caso" : "pedido"}`}
+          </button>
         </div>
         <button type="button" onClick={() => alMinimizar(true)} className="rounded p-1 hover:bg-white/15" aria-label="Minimizar el chat">
           <Minus className="size-4" />
@@ -203,6 +221,20 @@ function VentanaChat({
         </button>
       </header>
 
+      {verInvolucrados && datos && (
+        <div className="max-h-40 overflow-y-auto border-b border-border bg-card px-3 py-2 text-xs">
+          <p className="mb-1 font-semibold text-foreground">Involucrados: a todos les llega cada mensaje</p>
+          <ul className="flex flex-wrap gap-1">
+            {datos.participantes.map((p, i) => (
+              <li key={`${p.nombre}-${i}`} className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-foreground">
+                {p.nombre}
+                {p.area ? <span className="text-muted-foreground"> · {p.area}</span> : null}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-[10px] text-muted-foreground">Quien lleva el caso, quien movió algún paso, quien apuró o escribió. «Para» suma a un área entera.</p>
+        </div>
+      )}
       <div ref={lista} className="flex-1 space-y-2 overflow-y-auto bg-secondary/30 px-3 py-3">
         {cargando ? (
           <p className="flex items-center justify-center gap-2 py-8 text-xs text-muted-foreground">
@@ -214,7 +246,7 @@ function VentanaChat({
           <div className="mx-auto max-w-[17rem] py-8 text-center text-xs text-muted-foreground">
             <p className="font-semibold text-foreground">Todavía no hay mensajes</p>
             <p className="mt-1">
-              Escriba qué necesita y elija «Para» el área que tiene que moverlo: le llega un aviso sin sacarla de lo que está haciendo.
+              Es el canal de todos los involucrados en este {tipo === "caso" ? "caso" : "pedido"}: cada mensaje les llega a todos. Si lo tiene que mover un área en particular, elíjala en «Para» y también le llega a ella.
             </p>
           </div>
         ) : (
@@ -276,12 +308,12 @@ function VentanaChat({
               onChange={(e) => setPara(e.target.value as AreaChat | "")}
               className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[11px] text-foreground"
             >
-              <option value="">Todos los que conversan</option>
+              <option value="">Todos los involucrados</option>
               {(Object.keys(AREAS_CHAT) as AreaChat[])
                 .filter((a) => a !== "comercial" || tipo === "pedido")
                 .map((a) => (
                   <option key={a} value={a}>
-                    {AREAS_CHAT[a]} (le llega el aviso)
+                    {AREAS_CHAT[a]} (y a todos los involucrados)
                   </option>
                 ))}
             </select>
