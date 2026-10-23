@@ -721,8 +721,8 @@ export function ResumenSubida({ resultado }: { resultado: ResultadoSubida }) {
       )}
       {resultado.retirados.length > 0 && (
         <p>
-          Máquinas en códigos retirados: <b className="font-mono">{resultado.retirados.join(", ")}</b>. Las comerciales no las ven hasta que
-          active el código.
+          Códigos que todavía no tienen ficha: <b className="font-mono">{resultado.retirados.join(", ")}</b>. Las máquinas ya están en el
+          almacén; cuando les ponga la ficha, las comerciales podrán cotizarlas.
         </p>
       )}
       {resultado.ocupadas.length > 0 && <p>No se tocaron porque ya estaban reservadas o despachadas: {resultado.ocupadas.join(", ")}.</p>}
