@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 23-10 · Stock por empresa, costo visible para gerencia y operaciones, observación del almacén (Santos, gerencia)
+- Santos: «tampoco dice de qué empresa; en un rato vamos a subir Efameinsa, que no se vaya a unir». Pidió además quitar del PDF de la subida las columnas de estado y decisión («es un reporte de cómo está todo»), agregar la fecha de ingreso, el costo y un espacio de observación que se llena desde el CRM. «Gerencia dijo que sí deben figurar los costos»: cambia lo decidido el 21-10.
+- Hecho y desplegado el mismo 23-10: cada Excel se sube con su empresa y no toca las máquinas de la otra; las 267 máquinas ya cargadas quedaron como OPEN. El costo vive aparte y solo lo leen operaciones y gerencia (probado: comercial y postventa no lo ven). Para que el stock de Open muestre sus costos, Lesly vuelve a subir su Excel de Open.
+
 ### 23-10 · Las mesas BIMAP con su número de serie y el PDF de stock que se desarmaba (Santos)
 - Lesly subió su Excel nuevo (262 máquinas) después de vaciar el almacén. Santos vio dos fallas: las mesas BIMAP salían «sin serie» aunque el Excel les pone 1, 2, 3…, como se acordó; y en el PDF de industriales los modelos largos sin espacios se salían de su columna.
 - Hecho y desplegado el mismo 23-10: el número de la caja queda como serie, único dentro de su código, y las 5 mesas de la carga de Lesly entraron con 1, 2, 3, 4 y 6. El modelo largo se parte dentro de su columna.
