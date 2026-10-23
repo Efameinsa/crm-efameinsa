@@ -145,7 +145,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
           <h1 className="text-lg font-semibold text-foreground">Stock y códigos</h1>
           <p className="mt-0.5 max-w-3xl text-sm text-muted-foreground">
             Suba el Excel de stock de Importaciones y las máquinas entran al almacén en el acto. El CRM solo le señala las observaciones: las que
-            no tienen código, las que hay que revisar y las series que ya están con un cliente. Los costos no se suben.
+            no tienen código, las que hay que revisar y las series que ya están con un cliente. Cada Excel es de una empresa (Open o Efameinsa) y no se mezclan. El costo solo lo ven operaciones y gerencia.
           </p>
         </div>
       </div>
