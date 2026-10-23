@@ -528,3 +528,41 @@ body {
   90% { transform: translate(-2px, 0); }
 }
 html.crm-zumbido body { animation: crm-zumbido 0.6s linear 1; }
+
+/* Avisos pequeños (toasts de sonner, abajo a la derecha): botón «×» para
+   cerrarlos, siempre visible, arriba a la derecha DENTRO del aviso. Pedido
+   de Santos el 23-10: llegaban sin forma de cerrarlos. El texto deja sitio
+   al botón con el padding derecho. */
+[data-sonner-toast][data-styled="true"] {
+  padding-right: 2.75rem;
+}
+[data-sonner-toast][data-styled="true"] [data-close-button].cn-toast-cerrar {
+  position: absolute;
+  left: auto;
+  right: 0.5rem;
+  top: 0.5rem;
+  transform: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted-foreground);
+  opacity: 1;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+[data-sonner-toast][data-styled="true"] [data-close-button].cn-toast-cerrar svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+[data-sonner-toast][data-styled="true"] [data-close-button].cn-toast-cerrar:hover,
+[data-sonner-toast][data-styled="true"]:hover [data-close-button].cn-toast-cerrar:hover {
+  background: var(--accent);
+  border-color: var(--border);
+  color: var(--primary);
+}
+[data-sonner-toast][data-styled="true"] [data-close-button].cn-toast-cerrar:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--primary);
+}
