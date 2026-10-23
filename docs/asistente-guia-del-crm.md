@@ -927,6 +927,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 **La apertura interna es la recepción del equipo** (desde el 20-10)
 - Al emitir una apertura de servicio **interna**, el CRM crea sola la orden de recepción (REC-…) para el almacén, con los antecedentes del equipo y qué se ejecuta. El almacén la recibe, la revisa y deja su informe en esos pasos; no ve nada de cobro.
 - Ya no hay un botón aparte «El equipo viene a planta» en el caso: es la apertura interna.
+- **Revisión en planta, antes de las pruebas** (desde el 23-10, reunión de gerencia con Brenda): en la línea de tiempo del caso, en «Atención» (aunque ya esté en verde) y en «Pruebas y conformidad», hay un recuadro «Revisión en planta · antes de las pruebas». Con el botón **«Dar la orden: apertura de servicio interno»** se abre la apertura ya en «Interno» con los antecedentes del equipo; al emitirla, el almacén recibe su orden de recepción. Después el mismo recuadro muestra cada orden (REC-…) con su estado —falta recibirlo, falta la revisión del técnico, revisado: listo para devolver o hay que cotizar— y el enlace al informe de la revisión. Si el caso tiene una apertura que todavía no salió, el recuadro lleva a esa apertura para cambiarla a «Interno».
 
 **Los repuestos no son máquinas del cliente** (desde el 20-10)
 - Las piezas de un kit o de un pedido de repuesto ya no aparecen como «equipos del cliente» en el caso ni en la apertura. Solo las máquinas.

@@ -18,6 +18,11 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 23-10 (17:25) · La orden de revisión en planta va en el caso, antes de las pruebas (gerencia, Brenda, Santos)
+- Con el caso de Lino Espíritu: el equipo vino a planta y Brenda tiene que dar la orden para que lo revisen y le respondan con un informe. «Antes de prueba y conformidad debería estar aquí yo dando la orden para que procedan a revisar la máquina», y «cuando está en verde también debe poder proceder». Gerencia: no todo caso trae la máquina; a veces se va al cliente. La apertura interna desde el pedido queda para lo que nace de un pedido; lo que viene de un caso se hace desde el caso.
+- Hecho y desplegado el mismo día: recuadro «Revisión en planta · antes de las pruebas» en la atención y las pruebas del caso, con «Dar la orden: apertura de servicio interno» y el estado de la orden de recepción hasta su informe.
+- En la misma reunión: el pedido de Sonesta quedó regularizado y pasa a Alondra; el inventario del almacén (302 equipos) está terminado y Lesly lo contrasta; gerencia pidió revisar en detalle la agenda de postventa como control del macro (pendientes por despachar, planos por enviar).
+
 ### 23-10 (tarde) · Los chats de casos y pedidos quedan en el menú, con «@» y el visto con nombre (Santos, a partir de un mensaje de Brenda)
 - Brenda escribió en el chat del pedido de Sonesta preguntando cómo quedó el pago, y nadie contestó: el aviso les llegó a las dos personas del canal, que ese día no habían entrado al CRM, y nadie más lo veía porque el chat vivía solo dentro del pedido.
 - Santos pidió que los chats abiertos queden en el menú lateral, que el visto diga el nombre de quienes lo leyeron y que se pueda nombrar a un participante con «@». Quedó así desde esa tarde: «Chats» en el menú con los abiertos y sus no leídos, pantalla con abiertos y cerrados, «Visto por» y «Sin ver» con nombre, «@» con aviso propio, y una franja que avisa cuando alguien del canal no entra al CRM hace días, para llamarlo.
