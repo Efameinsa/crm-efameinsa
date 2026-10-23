@@ -290,8 +290,9 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
         codigoExcel: textoDe(celda(r, cCodigo))?.toUpperCase() ?? null,
         modelo,
         descripcion: textoDe(celda(r, cDesc)) ?? "",
-        // Una «serie» sin dígitos (1, 2, 3 en las mesas BIMAP sí tienen) o vacía no es serie.
-        serie: serieTxt && /\d/.test(serieTxt) && serieTxt.length >= 3 ? serieTxt.toUpperCase() : null,
+        // Una «serie» sin dígitos o vacía no es serie. El 1, 2, 3… de las mesas BIMAP es su
+        // correlativo de caja y queda como serie (Santos 23-10, 0595): vale dentro de su código.
+        serie: serieTxt && (esCorrelativo(serieTxt) || (/\d/.test(serieTxt) && serieTxt.length >= 3)) ? serieTxt.toUpperCase() : null,
         capacidad: textoDe(celda(r, cCap)),
         cantidad: Math.max(0, Math.round(Number(celda(r, cStock)) || 0)),
         // En dos filas del Excel del 22-10 la celda UBICACIÓN traía un número (un costo
@@ -526,7 +527,7 @@ export function emparejar(
 
     const avisos: string[] = [];
     if (avisoModelo) avisos.push(avisoModelo);
-    const ocupada = f.serie ? ocupadas.get(f.serie) : undefined;
+    const ocupada = f.serie && !esCorrelativo(f.serie) ? ocupadas.get(f.serie) : undefined;
     if (f.serie && ocupada !== undefined) {
       // Lesly (21-10): «Importaciones me ha dado la liquidación después que ya hemos vendido la máquina».
       avisos.push(
@@ -588,7 +589,7 @@ export function revisarSegunExcel(filas: FilaStock[], productos: ProductoCatalog
   return filas.map((f) => {
     const r = rasgos(`${f.descripcion} ${f.modelo}`);
     const tipo = tipoEquipo(`${f.descripcion} ${f.modelo}`);
-    const ocupada = f.serie ? ocupadas.get(f.serie) : undefined;
+    const ocupada = f.serie && !esCorrelativo(f.serie) ? ocupadas.get(f.serie) : undefined;
     let estado: EstadoFila;
     let motivo: string;
     let codigo: string | null = f.codigoExcel;
@@ -641,3 +642,10 @@ export function revisarSegunExcel(filas: FilaStock[], productos: ProductoCatalog
     };
   });
 }
+
+/**
+ * Un número de 1 a 3 cifras en SERIE es el correlativo de caja que Importaciones pone
+ * a lo que no trae serie de placa (mesas BIMAP: 1, 2, 3…). Es serie, pero solo dentro
+ * de su código: otra marca puede numerar sus cajas igual (0595).
+ */
+export const esCorrelativo = (serie: string | null | undefined) => /^\d{1,3}$/.test(String(serie ?? "").trim());
