@@ -242,7 +242,8 @@ export async function analizarExcelStock(formData: FormData): Promise<{
       : p.estado === "ok" || p.estado === "nuevo"
         ? "subir"
         : "pendiente",
-    codigoFinal: p.codigo,
+    // El sugerido del CRM queda escrito en la casilla, pero la máquina no entra hasta el visto bueno de Lesly.
+    codigoFinal: p.codigo ?? p.sugerido ?? null,
     // La empresa de la máquina: la que diga su fila (si el Excel trae la columna) o la del Excel.
     empresa: p.empresa ?? empresaUnica,
   }));

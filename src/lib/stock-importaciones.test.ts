@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as XLSX from "xlsx";
-import { emparejar, revisarSegunExcel, esHojaDeStock, familia, leerExcelStock, rasgos, siguienteCodigoLibre, type ProductoCatalogo } from "./stock-importaciones";
+import { emparejar, revisarSegunExcel, esHojaDeStock, familia, leerExcelStock, rasgos, siguienteCodigoLibre, type FilaStock, type ProductoCatalogo } from "./stock-importaciones";
 
 const prod = (sku: string, descripcion: string, extra: Partial<ProductoCatalogo> = {}): ProductoCatalogo => ({
   id: sku,
@@ -287,5 +287,23 @@ describe("revisarSegunExcel (manda el Excel de Lesly)", () => {
     expect(b.motivo).toContain("ECOLAV");
     expect(c.estado).toBe("revisar");
     expect(d.motivo).toContain("modelos distintos");
+  });
+});
+
+describe("el CRM sugiere el código donde el Excel no trae (Lesly 23-10)", () => {
+  const fila = (o: Partial<FilaStock>): FilaStock => ({ hoja: "STOCK PARA SANTOS", fila: 1, item: "I1", codigoExcel: null, modelo: "RX350", descripcion: "LAVADORA IND. RIGIDA MOD. RX350, FUERZA: 150G, CONTROL X, CAP. 35KG, 220V/60HZ/1PH", serie: "S1", capacidad: null, cantidad: 1, ubicacion: null, ingreso: null, marca: null, ...o });
+  const cat: ProductoCatalogo[] = [{ id: "p1", sku: "LAV350", activo: true, marca: "PRIMUS", modelo: "RX350", nombre: "LAVADORA RIGIDA RX350 35KG", descripcion: "LAVADORA IND. RIGIDA MOD. RX350, FUERZA: 150G, CONTROL X, CAP. 35KG, 220V/60HZ/1PH", panel: null, calentamiento: null, nombreFicha: null }];
+  it("sin código: sigue en falta, pero con el sugerido y los candidatos", () => {
+    const [p] = revisarSegunExcel([fila({})], cat, []);
+    expect(p.estado).toBe("falta");
+    expect(p.codigo).toBeNull();
+    expect(p.sugerido).toBe("LAV350");
+    expect(p.candidatos.map((c) => c.sku)).toContain("LAV350");
+    expect(p.motivo).toContain("sugiere LAV350");
+  });
+  it("con el código de Lesly no sugiere nada: manda el Excel", () => {
+    const [p] = revisarSegunExcel([fila({ codigoExcel: "LAV350" })], cat, []);
+    expect(p.sugerido ?? null).toBeNull();
+    expect(p.codigo).toBe("LAV350");
   });
 });

@@ -112,6 +112,12 @@ export interface Propuesta extends FilaStock {
   tipo: string;
   /** El código propuesto no existe: hay que crear el producto. */
   crear: boolean;
+  /**
+   * El código que el CRM sugiere cuando el Excel no trae ninguno (Lesly 23-10: «que el CRM
+   * le recomiende códigos y ella dé el visto bueno»). Nunca entra solo: queda escrito en la
+   * casilla y la máquina entra recién cuando ella pulsa «Entra al almacén».
+   */
+  sugerido?: string | null;
   /** La serie ya está con un cliente en el CRM. */
   ocupada: { cliente: string | null; cuentaId: string | null; pedidoId: string | null; pedido: string | null } | null;
 }
@@ -639,6 +645,14 @@ export function revisarSegunExcel(filas: FilaStock[], productos: ProductoCatalog
   const vecesSerie = new Map<string, number>();
   for (const f of filas) if (f.serie && !esCorrelativo(f.serie)) vecesSerie.set(f.serie, (vecesSerie.get(f.serie) ?? 0) + 1);
 
+  // LO QUE EL CRM SUGIERE (Lesly 23-10): donde el Excel no trae código, o trae uno puesto a
+  // modelos distintos, se compara la configuración con el catálogo como en «Códigos y series».
+  // Manda el Excel: esto solo propone; no cambia un código que Lesly escribió.
+  const aSugerir = filas.filter((f) => !f.codigoExcel || (modelosPorCodigo.get(f.codigoExcel)?.size ?? 0) > 1);
+  const sugerencias = new Map<FilaStock, Propuesta>();
+  if (aSugerir.length > 0) emparejar(aSugerir.map((f) => ({ ...f, codigoExcel: null })), productos, []).forEach((p, i) => sugerencias.set(aSugerir[i], p));
+  const ocupadosSku = new Set(productos.map((p) => p.sku.toUpperCase()));
+
   return filas.map((f) => {
     const r = rasgos(`${f.descripcion} ${f.modelo}`);
     const tipo = tipoEquipo(`${f.descripcion} ${f.modelo}`);
@@ -648,10 +662,25 @@ export function revisarSegunExcel(filas: FilaStock[], productos: ProductoCatalog
     let codigo: string | null = f.codigoExcel;
     let crear = false;
 
+    const sug = sugerencias.get(f);
+    const iguales = sug ? sug.candidatos.filter((c) => c.choques.length === 0) : [];
+    // Un código del catálogo con la misma configuración; si hay varios, el primero (los demás quedan como opciones);
+    // si no hay ninguno, el código nuevo que el CRM arma sin repetir ninguno, ni los retirados.
+    const sugerido = !sug
+      ? null
+      : sug.codigo && !sug.crear
+        ? sug.codigo
+        : iguales[0]?.sku ?? (sug.crear && sug.codigo ? sug.codigo : siguienteCodigoLibre(sug.candidatos[0]?.sku ?? "EQ", ocupadosSku));
+    const sugeridoEsNuevo = !!sugerido && !porSku.has(sugerido);
+
     if (!f.codigoExcel) {
       estado = "falta";
       codigo = null;
-      motivo = "En el Excel no tiene código. Escriba el código que le corresponde";
+      motivo = sugerido
+        ? sugeridoEsNuevo
+          ? `En el Excel no tiene código. El CRM sugiere ${sugerido}, un código NUEVO: en el catálogo no hay uno con esta configuración. Revíselo y dé el visto bueno con «Entra al almacén», o escriba otro`
+          : `En el Excel no tiene código. El CRM sugiere ${sugerido}${iguales.length > 1 ? ` (hay ${iguales.length} iguales en el catálogo: elija el que corresponde)` : ", que ya existe con la misma configuración"}. Dé el visto bueno con «Entra al almacén», o escriba otro`
+        : "En el Excel no tiene código. Escriba el código que le corresponde";
     } else if (!CODIGO_VALIDO.test(f.codigoExcel)) {
       estado = "revisar";
       codigo = null;
@@ -659,6 +688,7 @@ export function revisarSegunExcel(filas: FilaStock[], productos: ProductoCatalog
     } else if ((modelosPorCodigo.get(f.codigoExcel)?.size ?? 0) > 1) {
       estado = "revisar";
       motivo = `En el Excel el código ${f.codigoExcel} está puesto a modelos distintos (${[...modelosPorCodigo.get(f.codigoExcel)!].join(", ")}). Confirme que es el mismo equipo`;
+      if (sugerido && sugerido !== f.codigoExcel) motivo += `. Para esta máquina el CRM sugiere ${sugerido}`;
     } else {
       const p = porSku.get(f.codigoExcel);
       if (!p) {
@@ -691,7 +721,8 @@ export function revisarSegunExcel(filas: FilaStock[], productos: ProductoCatalog
       estado,
       motivo,
       codigo,
-      candidatos: [],
+      candidatos: sug ? sug.candidatos : [],
+      sugerido: estado === "falta" ? sugerido : null,
       rasgos: r,
       tipo,
       crear,
