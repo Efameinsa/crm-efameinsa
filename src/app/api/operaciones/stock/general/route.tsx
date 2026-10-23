@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
+import { empresaValida, logoDeEmpresa } from "@/lib/pdf/logo-empresa";
 import { renderToBuffer } from "@react-pdf/renderer";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requerirPerfil } from "@/lib/auth";
@@ -17,7 +16,6 @@ import type { FilaCarga } from "@/lib/acciones/stock-importaciones";
 // y sigue disponible), así que lo puede bajar cualquiera: es el informe que
 // Importaciones entregaba a las comerciales. Con ?carga=<id>, operaciones ve
 // una VISTA PREVIA de lo que va a subir de una carga en revisión. Sin costos.
-const LOGO_BUFFER = readFileSync(join(process.cwd(), "public", "logo-efameinsa.png"));
 
 type Uno<T> = T | T[] | null;
 const uno = <T,>(v: Uno<T>): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
@@ -40,6 +38,8 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const doc = url.searchParams.get("doc") === "lg" ? "lg" : "industriales";
   const cargaId = url.searchParams.get("carga");
+  // Un resumen por empresa, con su logo (Santos 23-10): el stock de Open y el de Efameinsa no se mezclan.
+  let empresa = empresaValida(url.searchParams.get("empresa"));
   const supabase = await createClient();
 
   let filas: FilaStockGeneral[] = [];
@@ -51,8 +51,9 @@ export async function GET(request: Request) {
     if (!(["operaciones", "gerencia", "admin"].includes(perfil.rol) || perfil.es_operaciones)) {
       return NextResponse.json({ error: "La vista previa de una carga es de operaciones" }, { status: 403 });
     }
-    const { data } = await supabase.from("stock_cargas").select("id, archivo, filas, estado").eq("id", cargaId).maybeSingle();
+    const { data } = await supabase.from("stock_cargas").select("id, archivo, filas, estado, empresa").eq("id", cargaId).maybeSingle();
     if (!data) return NextResponse.json({ error: "No existe esa carga de stock" }, { status: 404 });
+    empresa = empresaValida(data.empresa);
     const todas = (data.filas ?? []) as FilaCarga[];
     filas = todas.filter((f) => f.decision === "subir" && (f.codigoFinal ?? f.codigo)).map(deCarga);
     vistaPrevia = data.estado === "revisando";
@@ -67,7 +68,8 @@ export async function GET(request: Request) {
     const { data: inv } = await supabase
       .from("inventario_equipos")
       .select("serie, ubicacion, item_importaciones, descripcion, modelo, capacidad, proveedor, productos(sku, marca, modelo, nombre, segmento, dm:ficha->>descripcion_maestro)")
-      .eq("estado", "disponible");
+      .eq("estado", "disponible")
+      .eq("empresa", empresa);
     type Inv = {
       serie: string; ubicacion: string | null; item_importaciones: string | null; descripcion: string | null; modelo: string | null; proveedor: string | null;
       productos: Uno<{ sku: string | null; marca: string | null; modelo: string | null; nombre: string; segmento: string | null; dm: string | null }>;
@@ -97,6 +99,7 @@ export async function GET(request: Request) {
       .select("archivo, filas, subida_at")
       .eq("estado", "subida")
       .eq("es_prueba", false)
+      .eq("empresa", empresa)
       .order("subida_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -115,14 +118,21 @@ export async function GET(request: Request) {
   const generado = fechaHoraLima(ahora.toISOString());
   const fecha = ahora.toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", year: "numeric" });
   const buffer = await renderToBuffer(
-    <StockGeneralPdf logoBuffer={LOGO_BUFFER} doc={doc} filas={seleccion} fecha={fecha} generado={generado} origen={origen} vistaPrevia={vistaPrevia} avisos={avisos} />,
+    <StockGeneralPdf
+      logoBuffer={logoDeEmpresa(empresa).buffer}
+      logoAncho={logoDeEmpresa(empresa).ancho}
+      doc={doc}
+      filas={seleccion}
+      fecha={fecha}
+      generado={generado}
+      origen={`Stock de ${empresa} · ${origen}`} vistaPrevia={vistaPrevia} avisos={avisos} />,
   );
 
   const fechaArchivo = ahora.toLocaleDateString("sv-SE", { timeZone: "America/Lima" });
   return new NextResponse(buffer as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": cabeceraArchivo(`Resumen general de stock ${doc === "lg" ? "LG" : "industriales"} ${fechaArchivo}`, "pdf", true),
+      "Content-Disposition": cabeceraArchivo(`Resumen general de stock ${empresa} ${doc === "lg" ? "LG" : "industriales"} ${fechaArchivo}`, "pdf", true),
       "Cache-Control": "no-store",
     },
   });
