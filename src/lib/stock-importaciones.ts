@@ -238,15 +238,20 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
   const hojas: string[] = [];
   const ignoradas: string[] = [];
 
+  // Lesly (23-10 14:24): «STOCK PARA SANTOS» es la hoja que ella une con las industriales de
+  // Open y de Efameinsa. Si el libro la trae, las hojas sueltas no se leen (serían las mismas
+  // máquinas dos veces); LG va aparte y se lee siempre.
+  const hayUnida = libro.SheetNames.some((n) => esHojaDeStock(n) && normCabecera(n).includes("SANTOS"));
   for (const nombre of libro.SheetNames) {
-    if (!esHojaDeStock(nombre)) {
+    const sueltaDeLaUnida = hayUnida && !normCabecera(nombre).includes("SANTOS") && !/LG/i.test(nombre);
+    if (!esHojaDeStock(nombre) || sueltaDeLaUnida) {
       ignoradas.push(nombre.trim());
       continue;
     }
     const matriz = XLSX.utils.sheet_to_json<unknown[]>(libro.Sheets[nombre], { header: 1, raw: true, defval: null });
     const iCab = matriz.findIndex((r) => {
       const c = (r ?? []).map(normCabecera);
-      return c.includes("SERIE") && c.includes("MODELO");
+      return c.includes("SERIE") && (c.includes("MODELO") || c.includes("MOD"));
     });
     if (iCab < 0) {
       ignoradas.push(nombre.trim());
@@ -257,20 +262,22 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
     const col = (...nombres: string[]) => cab.findIndex((c) => nombres.includes(c));
     const cCodigo = col("CODIFICACION") >= 0 ? col("CODIFICACION") : cab[0] === "" ? 0 : -1;
     const cItem = col("CODIGO");
-    const cModelo = col("MODELO");
-    const cDesc = col("NOMBRE", "DESCRIPCION");
+    // La hoja unida del 23-10 dice MOD, EQUIPO y «UBICAICION».
+    const cModelo = col("MODELO", "MOD");
+    const cDesc = col("NOMBRE", "DESCRIPCION", "EQUIPO");
     const cSerie = col("SERIE");
     const cCap = col("CAPACIDAD");
     const cStock = col("STOCK");
     const cSistema = col("SISTEMA");
-    const cUbic = col("UBICACION");
+    const cUbic = col("UBICACION", "UBICAICION");
     const cIngreso = col("INGRESO");
     const cMarca = col("MARCA");
     const cProveedor = col("PROVEEDOR");
     const cCosto = col("COSTO");
     // Carlos (22-10): cada máquina dice si es de Open o de Efameinsa. En las hojas de
     // reserva y vendidos Importaciones lo llama «C. INICIAL» o «SOLICITADO».
-    const cEmpresa = col("EMPRESA", "PERTENECE", "CINICIAL", "SOLICITADO", "PROPIETARIO");
+    // Desde el 23-10 la hoja unida y la de LG lo dicen en RAZÓN SOCIAL.
+    const cEmpresa = col("EMPRESA", "RAZONSOCIAL", "PERTENECE", "CINICIAL", "SOLICITADO", "PROPIETARIO");
 
     const celda = (r: unknown[], i: number) => (i >= 0 ? r[i] : null);
     const textoDe = (v: unknown) => {
@@ -593,6 +600,10 @@ export function revisarSegunExcel(filas: FilaStock[], productos: ProductoCatalog
     m.add(modeloDe(f));
     modelosPorCodigo.set(f.codigoExcel, m);
   }
+  // Una serie de placa es una sola máquina: dos filas con la misma (los rodillos YC8-30 del
+  // 23-10 traen las dos «16002») se taparían una a la otra en el almacén.
+  const vecesSerie = new Map<string, number>();
+  for (const f of filas) if (f.serie && !esCorrelativo(f.serie)) vecesSerie.set(f.serie, (vecesSerie.get(f.serie) ?? 0) + 1);
 
   return filas.map((f) => {
     const r = rasgos(`${f.descripcion} ${f.modelo}`);
@@ -629,6 +640,10 @@ export function revisarSegunExcel(filas: FilaStock[], productos: ProductoCatalog
       }
     }
 
+    if (f.serie && (vecesSerie.get(f.serie) ?? 0) > 1) {
+      estado = "revisar";
+      motivo = `La serie ${f.serie} está en más de una fila del Excel. Cada máquina tiene su propia serie: corrija la que no es`;
+    }
     if (ocupada) {
       estado = "revisar";
       motivo = `Esta serie ya está en el CRM con ${ocupada.cliente ?? "un cliente"}${ocupada.pedido ? ` (pedido ${ocupada.pedido})` : ""}: ya se vendió o está reservada. Pásela a vendido o reserva en el Excel; aquí no se sube como stock libre`;

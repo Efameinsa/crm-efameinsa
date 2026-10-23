@@ -233,15 +233,14 @@ export function SubirExcelStock({ hayCarga }: { hayCarga: boolean }) {
         name="empresa"
         value={empresa}
         onChange={(e) => setEmpresa(e.target.value as "" | "OPEN" | "EFAMEINSA")}
-        required
         className={cn("h-9 rounded-md border border-border bg-background px-2 text-sm", !empresa && "text-muted-foreground")}
-        title="Cada Excel es de una empresa: sus máquinas no se mezclan con las de la otra"
+        title="Cada Excel es de una empresa: sus máquinas no se mezclan con las de la otra. Si el Excel trae RAZÓN SOCIAL, se toma de ahí."
       >
-        <option value="">¿De qué empresa?</option>
+        <option value="">Empresa: la de RAZÓN SOCIAL</option>
         <option value="OPEN">Stock de OPEN</option>
         <option value="EFAMEINSA">Stock de EFAMEINSA</option>
       </select>
-      <Button type="submit" disabled={pendiente || !nombre || !empresa}>
+      <Button type="submit" disabled={pendiente || !nombre}>
         <Upload className="size-4" />
         {pendiente ? "Leyendo y comparando…" : "Leer y comparar"}
       </Button>
