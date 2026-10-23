@@ -365,7 +365,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - **Al confirmar una cotización queda el seguimiento:** si el expediente no tenía próxima acción o la tenía vencida, queda «Hacer seguimiento de la cotización …» para el siguiente día hábil, a nombre de quien la confirmó.
   - **«Hoy cubro a…»** (inicio de postventa): cuando una compañera falta, otra la cubre hasta la fecha que elija. Sus carpetas y casos siguen a nombre de la ausente (a su vuelta no hay nada que mover); quien cubre recibe copia de sus avisos y ve lo que a ella le tocaba hoy o tenía vencido. «Ya volvió» termina la cobertura.
   - **En el reporte diario** de cada persona de postventa (hoja «Panel del día») hay una franja con: cuántas veces ayudó en carpetas que lleva otra, cuántas la ayudaron, la mediana de tiempo de respuesta a lo que derivó Central (en horas de oficina, últimos 6 días) y cuántas derivaciones siguen sin gestión.
-  - Central, al derivar, elige «Postventa (área)».
+  - **Central deriva a «Postventa (área)», nunca a una persona** (Santos, 23-10: «postventa es un área; cada integrante toma el caso como si fuera suyo»). En la bandeja de Central es la única opción de postventa; si por otra vía se elige a una persona de postventa, el CRM lo manda al área. El caso queda a nombre de la primera persona de postventa que lo gestiona; una carpeta que ya tiene quién la lleva no se mueve.
 - **Las pantallas de postventa, rediseñadas (desde el 23-10, Santos: «son muchas opciones y se pierde la señorita»).** El menú tiene seis opciones de trabajo diario, en el orden en que se usan, más Panorama y un grupo «Apoyo»:
   - **Hoy:** la cola del día. Lo repetido va junto: «48 · Caso nuevo sin tomar · Ver las 48» es una sola fila; lo distinto sale solo. Trae además **«Caso sin avance»**: un caso tomado hace 7 días o más que sigue en Registro o Antecedentes, con el motivo y «Abrir el caso».
   - **Casos** (antes «Atenciones»): una sola tira de pestañas: **Por tomar** (lo que llegó y nadie tomó, con «Lo que mandé a Central» y «Mis pendientes»), **En curso** (los casos abiertos del área con sus filtros), **Llamadas al almacén** (antes la opción «Derivación de llamadas» del menú), **Cerrados**, y **Reportes y archivo** (reporte del día, cierre semanal, reporte del mes y por fechas, «Hoy cubro a…», y el archivo: carpetas anteriores, histórico e informes, pedidos cerrados, máquinas instaladas). Ya no hay tiras dentro de las pestañas.
@@ -1087,6 +1087,7 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 **Cliente que ya atiende alguien y vuelve a escribir**
 - La cinta ámbar dice «Ya lo está viendo C# · Nombre» y ofrece **«Avisarle a C#»**.
 - Ese botón anota una nota en su expediente (no cuenta como gestión), le manda «Su cliente volvió a escribir» y cierra el contacto como repetido.
+- La nota empieza con **«Escribió: nombre · teléfono · correo»** de quien escribió (desde el 23-10; antes, en los formularios de la web, al comercial le llegaba solo la ciudad y la campaña). Si Central cambia el texto, esos datos se agregan solos. Igual al derivar un aviso.
 - **«Descartar» significa «el contacto no procedía»**: se lee literal en marketing y afecta el costo por lead. Nunca se usa para algo repetido.
 
 **Otras herramientas**
