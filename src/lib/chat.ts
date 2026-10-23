@@ -18,11 +18,13 @@ export type MensajeChat = {
   id: string;
   texto: string;
   para: AreaChat | null;
-  clase: "mensaje" | "apuro";
+  clase: "mensaje" | "apuro" | "sistema";
   at: string;
   mio: boolean;
   autor: string;
   area: string;
+  /** Quiénes ya lo leyeron (sin quien lo escribió). */
+  vistos: string[];
 };
 
 /** El área con que se presenta quien escribe (lo que se lee junto a su nombre). */

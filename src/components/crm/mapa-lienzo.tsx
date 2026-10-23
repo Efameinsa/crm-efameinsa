@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { BellRing, Check, Loader2, Maximize2, MessageCircle, Minus, Plus, X } from "lucide-react";
 import { abrirChat } from "@/components/crm/chat-flotante";
-import type { AreaChat } from "@/lib/chat";
 import { Button } from "@/components/ui/button";
 import { apurarDesdeElMapa } from "@/lib/acciones/mapa";
 import { ETIQUETA_AREA, areaQueSeApura, haceCuanto, resumenDeRuta, type AreaMapa, type RutaMapa } from "@/lib/mapa-recorrido";
@@ -326,17 +325,6 @@ function Lienzo({ r, apuros, ruta, alCerrar }: { r: RutaMapa; apuros: ApurosMapa
   );
 }
 
-/** El área del chat que corresponde a la etapa (el técnico lo programa postventa; al cliente no se le escribe aquí). */
-const AREA_CHAT_DE: Partial<Record<AreaMapa, AreaChat>> = {
-  central: "central",
-  almacen: "almacen",
-  finanzas: "finanzas",
-  contabilidad: "contabilidad",
-  postventa: "postventa",
-  tecnico: "postventa",
-  comercial: "comercial",
-};
-
 function PanelDelPaso({ r, i, apuros, ruta, alCerrar }: { r: RutaMapa; i: number; apuros: ApurosMapa; ruta: string; alCerrar: () => void }) {
   const e = r.etapas[i];
   const router = useRouter();
@@ -344,7 +332,6 @@ function PanelDelPaso({ r, i, apuros, ruta, alCerrar }: { r: RutaMapa; i: number
   const [nota, setNota] = useState("");
   if (!e) return null;
   const conChat = r.tipo !== "recepcion";
-  const areaChat = AREA_CHAT_DE[e.area] ?? null;
   const est = estadoDe(r, i);
   const area = areaQueSeApura(e.area);
   const apuro = area ? apuros[`${r.tipo}:${r.id}:${area}`] : undefined;
@@ -419,11 +406,11 @@ function PanelDelPaso({ r, i, apuros, ruta, alCerrar }: { r: RutaMapa; i: number
           onClick={() => {
             // El mapa se cierra para que el chat (que flota abajo a la derecha) quede libre para escribir.
             alCerrar();
-            abrirChat(r.tipo as "caso" | "pedido", r.id, est === "actual" ? areaChat : null);
+            abrirChat(r.tipo as "caso" | "pedido", r.id);
           }}
         >
           <MessageCircle className="size-4" />
-          {est === "actual" && areaChat ? `Escribir a ${nombreApurado} en el chat` : "Abrir el chat de este recorrido"}
+          {r.tipo === "caso" ? "Escribir en el chat del caso" : "Escribir en el chat del pedido"}
         </Button>
       )}
       {r.enlace && !ruta.startsWith(r.enlace) && (
