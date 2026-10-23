@@ -6,14 +6,27 @@
 // repuesto o mantenimiento (preventivo o correctivo), si se cambió algún
 // repuesto, la garantía y qué hay que ejecutar. Se guarda en el pedido
 // (servicios_postventa.apertura_antecedentes) y sale en la hoja de la apertura.
+//
+// 23-10 (Brenda, postventa2@): la apertura interna además lleva la fecha de
+// puesta en marcha, la del primer mantenimiento y la del último mantenimiento
+// correctivo, y marca qué servicio se le hace en planta: mantenimiento
+// preventivo, correctivo o revisión. Las aperturas anteriores no tienen esos
+// campos: salen como «Sin dato».
 
 export type ModalidadApertura = "externa" | "interna";
 export type SiNoVerificar = "si" | "no" | "por_verificar";
 export type GarantiaInterna = "vigente" | "vencida" | "por_verificar";
 export type MantenimientoInterno = "ninguno" | "preventivo" | "correctivo" | "ambos" | "por_verificar";
+/** Qué se le hace al equipo en planta (Brenda 23-10). "" = todavía no marcado. */
+export type ServicioEnPlanta = "preventivo" | "correctivo" | "revision" | "";
 
 export type AntecedentesInterna = {
+  /** Qué servicio se le hace en planta: obligatorio. */
+  servicio?: ServicioEnPlanta;
   fecha_compra: string | null;
+  fecha_puesta_marcha?: string | null;
+  fecha_primer_mantenimiento?: string | null;
+  fecha_mantenimiento_correctivo?: string | null;
   guia_remision: string | null;
   garantia: GarantiaInterna;
   problemas: SiNoVerificar;
@@ -29,6 +42,11 @@ export type AntecedentesInterna = {
 
 export const ETIQUETA_SI_NO_VERIFICAR: Record<SiNoVerificar, string> = { si: "Sí", no: "No", por_verificar: "Por verificar" };
 export const ETIQUETA_GARANTIA_INTERNA: Record<GarantiaInterna, string> = { vigente: "En garantía", vencida: "Sin garantía (vencida)", por_verificar: "Por verificar" };
+export const ETIQUETA_SERVICIO_EN_PLANTA: Record<Exclude<ServicioEnPlanta, "">, string> = {
+  preventivo: "Mantenimiento preventivo",
+  correctivo: "Mantenimiento correctivo",
+  revision: "Revisión",
+};
 export const ETIQUETA_MANTENIMIENTO_INTERNO: Record<MantenimientoInterno, string> = {
   ninguno: "No se le vendió mantenimiento",
   preventivo: "Mantenimiento preventivo",
@@ -38,7 +56,11 @@ export const ETIQUETA_MANTENIMIENTO_INTERNO: Record<MantenimientoInterno, string
 };
 
 export const antecedentesInternaVacios = (): AntecedentesInterna => ({
+  servicio: "",
   fecha_compra: null,
+  fecha_puesta_marcha: null,
+  fecha_primer_mantenimiento: null,
+  fecha_mantenimiento_correctivo: null,
   guia_remision: null,
   garantia: "por_verificar",
   problemas: "por_verificar",
@@ -58,11 +80,23 @@ const limpio = (v: string | null | undefined) => (v?.trim() ? v.trim() : null);
 export function normalizarAntecedentesInterna(a: AntecedentesInterna): AntecedentesInterna | string {
   const sn = (v: unknown): SiNoVerificar => (v === "si" || v === "no" ? v : "por_verificar");
   const que = limpio(a.que_ejecutar);
-  if (!que) return "Escriba para qué es: qué se necesita que se ejecute en planta";
-  const fecha = limpio(a.fecha_compra);
-  if (fecha && !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return "La fecha de compra no es válida";
+  if (!que) return "Escriba el problema: por qué viene a planta y qué se necesita que se ejecute";
+  const servicio = a.servicio === "preventivo" || a.servicio === "correctivo" || a.servicio === "revision" ? a.servicio : "";
+  if (!servicio) return "Marque qué servicio se le hace en planta: mantenimiento preventivo, correctivo o revisión";
+  const esFecha = (v: string | null) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v);
+  const fechas = {
+    fecha_compra: limpio(a.fecha_compra),
+    fecha_puesta_marcha: limpio(a.fecha_puesta_marcha),
+    fecha_primer_mantenimiento: limpio(a.fecha_primer_mantenimiento),
+    fecha_mantenimiento_correctivo: limpio(a.fecha_mantenimiento_correctivo),
+  };
+  if (!esFecha(fechas.fecha_compra)) return "La fecha de compra no es válida";
+  if (!esFecha(fechas.fecha_puesta_marcha)) return "La fecha de puesta en marcha no es válida";
+  if (!esFecha(fechas.fecha_primer_mantenimiento)) return "La fecha del primer mantenimiento no es válida";
+  if (!esFecha(fechas.fecha_mantenimiento_correctivo)) return "La fecha del mantenimiento correctivo no es válida";
   return {
-    fecha_compra: fecha,
+    servicio,
+    ...fechas,
     guia_remision: limpio(a.guia_remision)?.toUpperCase() ?? null,
     garantia: a.garantia === "vigente" || a.garantia === "vencida" ? a.garantia : "por_verificar",
     problemas: sn(a.problemas),
@@ -83,8 +117,12 @@ const conDetalle = (valor: string, detalle: string | null) => (detalle ? `${valo
 /** Las filas de la hoja: [qué se pregunta, qué se respondió]. */
 export function filasAntecedentesInterna(a: AntecedentesInterna): [string, string][] {
   return [
-    ["Para qué es (qué se ejecuta)", a.que_ejecutar],
+    ["Servicio en planta", a.servicio ? ETIQUETA_SERVICIO_EN_PLANTA[a.servicio] : "Sin dato"],
+    ["Problema: por qué viene a planta y qué se ejecuta", a.que_ejecutar],
     ["Fecha de compra", fechaDMA(a.fecha_compra)],
+    ["Fecha de puesta en marcha", fechaDMA(a.fecha_puesta_marcha ?? null)],
+    ["Fecha del primer mantenimiento", fechaDMA(a.fecha_primer_mantenimiento ?? null)],
+    ["Fecha del último mantenimiento correctivo", fechaDMA(a.fecha_mantenimiento_correctivo ?? null)],
     ["N.º de guía", a.guia_remision ?? "Sin dato"],
     ["Garantía", ETIQUETA_GARANTIA_INTERNA[a.garantia]],
     ["Problemas anteriores del equipo", conDetalle(ETIQUETA_SI_NO_VERIFICAR[a.problemas], a.problemas_detalle)],

@@ -19,11 +19,13 @@ import {
   antecedentesInternaVacios,
   ETIQUETA_GARANTIA_INTERNA,
   ETIQUETA_MANTENIMIENTO_INTERNO,
+  ETIQUETA_SERVICIO_EN_PLANTA,
   ETIQUETA_SI_NO_VERIFICAR,
   type AntecedentesInterna,
   type GarantiaInterna,
   type MantenimientoInterno,
   type ModalidadApertura,
+  type ServicioEnPlanta,
   type SiNoVerificar,
 } from "@/lib/apertura-interna";
 
@@ -178,6 +180,9 @@ export function AperturaServicioCaso({
     setAnt({
       ...antecedentesInternaVacios(),
       fecha_compra: a?.fecha_compra ?? eq?.fechaVenta ?? null,
+      fecha_puesta_marcha: eq?.fechaPuestaMarcha ?? null,
+      fecha_primer_mantenimiento: eq?.fechaPrimerMantenimiento ?? null,
+      fecha_mantenimiento_correctivo: eq?.fechaMantenimientoCorrectivo ?? null,
       guia_remision: a?.guia_remision ?? eq?.guia ?? null,
       garantia,
       problemas: sn(a?.fallas),
@@ -662,9 +667,25 @@ function AntecedentesInternaCampos({ valor, cambiar }: { valor: AntecedentesInte
           Sale en la hoja de la apertura y queda en «Antecedentes del equipo» de la máquina. Lo que ya se sabía viene propuesto: revíselo.
         </p>
       </div>
+      <div className="grid gap-1.5 sm:col-span-2">
+        <Label className="text-xs">
+          Servicio que se le hace en planta <span className="text-destructive">*</span>
+        </Label>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {(Object.keys(ETIQUETA_SERVICIO_EN_PLANTA) as Exclude<ServicioEnPlanta, "">[]).map((k) => (
+            <label
+              key={k}
+              className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-xs ${valor.servicio === k ? "border-primary bg-primary/5" : "border-border bg-background hover:bg-accent"}`}
+            >
+              <input type="radio" name="servicio-en-planta" className="accent-primary" checked={valor.servicio === k} onChange={() => cambiar({ servicio: k })} />
+              <span className="font-medium">{ETIQUETA_SERVICIO_EN_PLANTA[k]}</span>
+            </label>
+          ))}
+        </div>
+      </div>
       <div className="grid gap-1 sm:col-span-2">
         <Label className="text-xs">
-          Para qué es: qué se necesita que se ejecute <span className="text-destructive">*</span>
+          Problema: por qué viene a planta y qué se necesita que se ejecute <span className="text-destructive">*</span>
         </Label>
         <Textarea
           rows={2}
@@ -676,6 +697,22 @@ function AntecedentesInternaCampos({ valor, cambiar }: { valor: AntecedentesInte
       <div className="grid gap-1">
         <Label className="text-xs">Fecha de compra</Label>
         <Input type="date" value={valor.fecha_compra ?? ""} onChange={(e) => cambiar({ fecha_compra: e.target.value || null })} />
+      </div>
+      <div className="grid gap-1">
+        <Label className="text-xs">Fecha de puesta en marcha</Label>
+        <Input type="date" value={valor.fecha_puesta_marcha ?? ""} onChange={(e) => cambiar({ fecha_puesta_marcha: e.target.value || null })} />
+      </div>
+      <div className="grid gap-1">
+        <Label className="text-xs">Fecha del primer mantenimiento</Label>
+        <Input type="date" value={valor.fecha_primer_mantenimiento ?? ""} onChange={(e) => cambiar({ fecha_primer_mantenimiento: e.target.value || null })} />
+      </div>
+      <div className="grid gap-1">
+        <Label className="text-xs">Fecha del último mantenimiento correctivo</Label>
+        <Input
+          type="date"
+          value={valor.fecha_mantenimiento_correctivo ?? ""}
+          onChange={(e) => cambiar({ fecha_mantenimiento_correctivo: e.target.value || null })}
+        />
       </div>
       <div className="grid gap-1">
         <Label className="text-xs">N.º de guía</Label>

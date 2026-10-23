@@ -1750,6 +1750,10 @@ export type EquipoParaApertura = {
   fechaVenta?: string | null;
   guia?: string | null;
   garantiaHasta?: string | null;
+  /** Fechas que pide la apertura interna (Brenda 23-10): de la ficha del equipo y de sus informes de servicio. */
+  fechaPuestaMarcha?: string | null;
+  fechaPrimerMantenimiento?: string | null;
+  fechaMantenimientoCorrectivo?: string | null;
   antecedentes?: {
     fecha_compra: string | null;
     guia_remision: string | null;
@@ -1768,6 +1772,9 @@ export type EquipoParaApertura = {
  * servicio (0453, Santos 13-10). `delCaso` es el que el caso ya tenía anotado:
  * sale marcado.
  */
+/** Un instante → el día en Lima (YYYY-MM-DD): después de las 19:00 el UTC ya es mañana. */
+const diaEnLima = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+
 export async function equiposParaAperturaDeCaso(atencionId: string): Promise<{ equipos: EquipoParaApertura[]; delCaso: string | null }> {
   await requerirPerfil();
   const supabase = await createClient();
@@ -1775,13 +1782,45 @@ export async function equiposParaAperturaDeCaso(atencionId: string): Promise<{ e
   if (!a?.cuenta_id) return { equipos: [], delCaso: null };
   const { data } = await supabase
     .from("equipos_instalados")
-    .select("id, serie, modelo_texto, fecha_venta, guia_remision, garantia_hasta")
+    .select("id, serie, modelo_texto, fecha_venta, guia_remision, garantia_hasta, fecha_puesta_marcha")
     .eq("cuenta_id", a.cuenta_id)
     // Solo máquinas: el kit de repuestos no es un equipo que atiende el técnico (0570, gerencia 20-10).
     .eq("es_repuesto", false)
     .order("modelo_texto")
     .limit(100);
-  const filas = (data ?? []) as { id: string; serie: string | null; modelo_texto: string | null; fecha_venta: string | null; guia_remision: string | null; garantia_hasta: string | null }[];
+  const filas = (data ?? []) as {
+    id: string;
+    serie: string | null;
+    modelo_texto: string | null;
+    fecha_venta: string | null;
+    guia_remision: string | null;
+    garantia_hasta: string | null;
+    fecha_puesta_marcha: string | null;
+  }[];
+  // Las fechas de puesta en marcha, primer mantenimiento y último correctivo salen de
+  // los informes de servicio ya emitidos del equipo (Brenda 23-10): se proponen, no se inventan.
+  const { data: informes } = filas.length
+    ? await supabase
+        .from("informes_servicio")
+        .select("equipo_id, tipo, ejecutado_at")
+        .in("equipo_id", filas.map((e) => e.id))
+        .in("tipo", ["puesta_en_marcha", "mantenimiento_preventivo", "mantenimiento_correctivo"])
+        .not("emitido_at", "is", null)
+        .order("ejecutado_at", { ascending: true })
+        .limit(1000)
+    : { data: [] };
+  const fechasDe = new Map<string, { puesta: string | null; primerMant: string | null; correctivo: string | null }>();
+  for (const i of (informes ?? []) as { equipo_id: string | null; tipo: string; ejecutado_at: string }[]) {
+    if (!i.equipo_id) continue;
+    const f = fechasDe.get(i.equipo_id) ?? { puesta: null, primerMant: null, correctivo: null };
+    const dia = diaEnLima(i.ejecutado_at);
+    if (i.tipo === "puesta_en_marcha") f.puesta ??= dia;
+    else {
+      f.primerMant ??= dia; // el más antiguo (vienen ordenados)
+      if (i.tipo === "mantenimiento_correctivo") f.correctivo = dia; // el más reciente
+    }
+    fechasDe.set(i.equipo_id, f);
+  }
   const { data: ants } = filas.length
     ? await supabase
         .from("equipo_antecedentes")
@@ -1795,6 +1834,9 @@ export async function equiposParaAperturaDeCaso(atencionId: string): Promise<{ e
     fechaVenta: e.fecha_venta,
     guia: e.guia_remision,
     garantiaHasta: e.garantia_hasta,
+    fechaPuestaMarcha: e.fecha_puesta_marcha ?? fechasDe.get(e.id)?.puesta ?? null,
+    fechaPrimerMantenimiento: fechasDe.get(e.id)?.primerMant ?? null,
+    fechaMantenimientoCorrectivo: fechasDe.get(e.id)?.correctivo ?? null,
     antecedentes: antDe.get(e.id) ?? null,
     // La serie va aparte: en el texto del modelo sobra.
     modelo: (e.modelo_texto ?? "Equipo").replace(/\s*\/?\s*Serie:\s*[^/]*/gi, "").replace(/\s*\/\s*$/, "").trim() || "Equipo",
