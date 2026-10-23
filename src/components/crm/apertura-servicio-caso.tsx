@@ -47,6 +47,12 @@ export type CasoParaApertura = {
   tipoDetalle?: string | null;
 };
 
+/** Abre el diálogo de apertura del caso ya en «Interno» (Brenda 23-10). */
+export const EVENTO_APERTURA_INTERNA = "crm:abrir-apertura-interna";
+export function pedirAperturaInterna(atencionId: string) {
+  window.dispatchEvent(new CustomEvent(EVENTO_APERTURA_INTERNA, { detail: { atencionId } }));
+}
+
 export function AperturaServicioCaso({
   atencionId: atencionFija,
   enGarantia: garantiaFija,
@@ -98,6 +104,18 @@ export function AperturaServicioCaso({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- se abre una sola vez al llegar con ?apertura=interna
     if (abrirInterna) setAbierto(true);
   }, [abrirInterna]);
+  // «DAR LA ORDEN» DESDE EL PASO DEL CASO (Brenda 23-10): el botón vive en la línea
+  // de tiempo, este diálogo en la cabecera. Se hablan con un evento de la ventana.
+  useEffect(() => {
+    if (!atencionId) return;
+    const abrir = (e: Event) => {
+      if ((e as CustomEvent<{ atencionId?: string }>).detail?.atencionId !== atencionId) return;
+      setModalidad("interna");
+      setAbierto(true);
+    };
+    window.addEventListener(EVENTO_APERTURA_INTERNA, abrir);
+    return () => window.removeEventListener(EVENTO_APERTURA_INTERNA, abrir);
+  }, [atencionId]);
   const [ant, setAnt] = useState<AntecedentesInterna>(antecedentesInternaVacios());
   const antVacios = (a: AntecedentesInterna) => !a.que_ejecutar && !a.fecha_compra && !a.guia_remision && !a.servicio;
   const interna = !esGarantia && modalidad === "interna";
@@ -161,10 +179,10 @@ export function AperturaServicioCaso({
   // Si se llegó ya en «Interno» (?apertura=interna: visita sin solución), los equipos no
   // estaban cargados cuando se eligió la modalidad: se propone recién cuando llegan.
   useEffect(() => {
-    if (!equiposCliente || modalidad !== "interna" || !antVacios(ant)) return;
+    if (!abierto || !equiposCliente || modalidad !== "interna" || !antVacios(ant)) return;
     proponerAntecedentes(equiposCliente.find((e) => e.id === equiposElegidos[0]) ?? null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo cuando llegan los equipos
-  }, [equiposCliente]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cuando llegan los equipos o se abre ya en «Interno»
+  }, [equiposCliente, abierto, modalidad]);
 
   const repuestosListos = repuestos.filter((x) => x.descripcion.trim());
   const falta = [
