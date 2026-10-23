@@ -21,6 +21,7 @@ const ICONO: Record<TipoTarea, typeof Package> = {
   liquidacion: FileText,
   serie: Barcode,
   contacto: Inbox,
+  cotizacion: FileText,
 };
 const FILTRO: Record<TipoTarea, string> = {
   pedido: "Pedidos",
@@ -33,6 +34,7 @@ const FILTRO: Record<TipoTarea, string> = {
   liquidacion: "Liquidaciones",
   serie: "Series",
   contacto: "Contactos",
+  cotizacion: "Cotizaciones",
 };
 const POR_GRUPO = 15;
 

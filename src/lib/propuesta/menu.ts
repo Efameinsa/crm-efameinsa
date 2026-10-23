@@ -474,7 +474,8 @@ export const SECCIONES: Record<string, Seccion> = {
     ayuda: "La campaña de preventivos, las cotizaciones, las ventas emitidas y sus números.",
     pestanas: [
       { clave: "", etiqueta: "Campaña de preventivos", pagina: "comercial/ruta" },
-      { clave: "cotizaciones", etiqueta: "Cotizaciones", pagina: "comercial/cotizaciones" },
+      // Brenda, 23-10: la pestaña dice cuántas del área esperan a gerencia.
+      { clave: "cotizaciones", etiqueta: "Cotizaciones", pagina: "vista:postventa-cotizaciones" },
       { clave: "cierres", etiqueta: "Ventas emitidas", pagina: "comercial/cierres" },
       { clave: "numeros", etiqueta: "Mis números", pagina: "comercial/mi-gestion" },
     ],
