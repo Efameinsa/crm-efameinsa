@@ -1,6 +1,6 @@
 # Base de conocimiento del CRM Efameinsa
 
-Vigente al 22-10-2026. Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
+Vigente al 23-10-2026. Explica cómo funciona el CRM y por qué pasa lo que pasa. Sirve para responder a todas las áreas: Central, comerciales (C1–C10), postventa (PV, PV1, PV2, PV3), operaciones, almacén, Finanzas, Contabilidad/Facturación, Importaciones, gerencia y administración.
 
 ## 0. Cómo usar este documento
 
@@ -1005,6 +1005,14 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - Una venta es del autor de su cotización.
   - Los comerciales siguen midiéndose por cartera.
 
+**El mapa del recorrido y «Apurar» (desde el 23-10)**
+- En el **caso** de postventa, arriba de «El circuito», hay una sección **«Mapa»**. Cerrada dice en una línea dónde está atascado cada recorrido y a qué área le toca; con un clic se abre el mapa.
+- El mapa del caso muestra el caso, su apertura de servicio (si la tiene) y el equipo que viene a planta (recepción). **Verde suave = hecho**; **rojo = falta**; la etapa **donde está atascado palpita en rojo** y dice desde cuándo; **gris punteado = no corresponde** (por ejemplo, pruebas en un repuesto) o se pasó sin ese paso.
+- El mapa del **pedido** va de la venta al cierre: cierre emitido (comercial), series (almacén), pedido generado, liquidación (Finanzas) y liberación (Central); después los pasos de postventa, la guía (Contabilidad), el despacho (almacén), la verificación, la puesta en marcha y, si es a crédito, el OK de Finanzas y la factura.
+- Toque cualquier etapa para ver quién la hizo y cuándo, o qué la traba. En la etapa atascada está el botón **«Apurar a <área>»**: le llega a esa área un aviso con sirena. Se puede apurar una vez cada 15 minutos por área; desde el segundo apuro también se entera gerencia. Al cliente no se le apura: se le llama. Lo que debe el técnico se le apura a postventa, que lo programa.
+- **Quién lo ve:** postventa y operaciones (caso y pedido), el almacén (su ficha del pedido), Finanzas (su ficha del pedido), Contabilidad / Facturación («Ver el mapa» en su bandeja, abre «Pagos y facturas») y el **comercial**, solo en los pedidos de sus ventas: en su cierre y en «Pagos y facturas». El comercial no apura casos de postventa.
+- El mapa no se edita: muestra los pasos reales. Para que avance, se hace el paso en su pantalla de siempre.
+
 **Preventivos y Ruta de mantenimiento**
 - Alerta de preventivo a los 3 meses («Preventivos por ofrecer»).
 - En la **Ruta de mantenimiento**: rojo = NUNCA tuvo preventivo; ámbar = vencido (6 meses o más); verde = al día; gris = sin registro.
@@ -1346,6 +1354,9 @@ No hace falta: si el caso sigue abierto, la llamada se suma a ese caso con su fe
 
 **52. Necesito que Finanzas o Facturación hagan algo por un cliente. ¿Les escribo por WhatsApp?**
 No: Central abre un caso con «Derivar a un área», en la ficha del cliente o en «Sus pedidos». Si es para hoy mismo, márquelo urgente: le suena al área hasta que lo toque, y si en 2 horas nadie lo toma, se avisa también a gerencia. La respuesta vuelve al mismo caso, en «Casos a otras áreas». A RR. HH. todavía no se puede derivar porque no tiene cuenta en el CRM. (3.10)
+
+**54. ¿Dónde veo en qué etapa está un caso o un pedido, y cómo apuro al área que lo tiene parado?**
+En la sección «Mapa» (en el caso, en la ficha del pedido y, para el comercial, en su cierre o en «Pagos y facturas»). Ábrala con un clic: lo hecho está en verde, lo que falta en rojo y la etapa atascada palpita. En esa etapa toque «Apurar a <área>»: le llega un aviso con sirena. Una vez cada 15 minutos; desde el segundo apuro se entera gerencia. (3.8)
 
 **53. Entró un contacto que es para Finanzas (un pago, una factura, unas letras). En «Asignar» no aparece Finanzas.**
 Es correcto: «Asignar» es para comerciales y postventa. Use el botón «A Finanzas o Facturación» de ese contacto, en la bandeja. El caso le llega al área con el mensaje del cliente, y el contacto sale de la bandeja. (3.10)

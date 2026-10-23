@@ -1,6 +1,6 @@
 # Bitácora del CRM Efameinsa: historia de las decisiones
 
-Vigente al 22-10-2026. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
+Vigente al 23-10-2026. Complementa la «Base de conocimiento del CRM» (asistente-guia-del-crm.md). Esa guía dice **cómo funciona hoy** el CRM. Esta bitácora dice **cuándo se decidió cada cosa, quién la pidió, por qué y qué quedó pendiente**.
 
 Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién decidió que postventa no vea precios?», «¿esto siempre fue así?» o «¿qué pasó con el caso X?».
 
@@ -17,6 +17,11 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 ---
 
 ## Cronología de reuniones y decisiones
+
+### 23-10 · El «Mapa» del recorrido con «Apurar» (Santos)
+- **Qué pidió Santos.** Que en el caso de postventa haya una sección «Mapa» donde se vea en qué etapa está: lo avanzado en verde suave, lo que falta en rojo, la etapa atascada palpitando y un botón para apurar al área que lo tiene parado. Que lo vean también el comercial (si nace de una venta suya), Finanzas, Facturación / Contabilidad, el almacén y Lesly (operaciones).
+- **Cómo quedó (ver la guía, «El mapa del recorrido y Apurar»).** El mapa lee los pasos que ya existen (los mismos que «qué sigue» en el pedido y la tira del circuito en el caso); no guarda nada aparte. «Apurar» manda un aviso con sirena al área; uno cada 15 minutos por área y, desde el segundo, también a gerencia.
+- **El mismo día:** el mapa de procesos de postventa pasó de 12 a 15 diagramas: carpeta de postventa y casos del cliente, servicio en planta (apertura interna y recepción) y casos de Central a Finanzas o Facturación; y se pusieron al día el pedido liberado, el despacho, la puesta en marcha y el caso técnico.
 
 ### 22-10 (10:29) · El almacén por serie es la punta de partida y sigue al pedido (Carlos, Santos, Lesly)
 - **Serie de facturación (Open / Efameinsa).** Carlos explicó que la pauta comercial de este mes (vender con Efameinsa, probablemente solo hasta fin de mes, solo para algunas comerciales) la coordina él con cada persona y **no es un tema del CRM**: el sistema es para elegir y «ellos solamente harán el clic». Pidió que todo se mantenga como estaba: Open en comercial y Open en postventa por defecto. Santos no cambia nada por ahora. (Por confirmar: desde el 21-10 el CRM propone Efameinsa para equipos por indicación de gerencia; Santos lo verá con el ingeniero.)
