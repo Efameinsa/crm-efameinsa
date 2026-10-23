@@ -366,6 +366,18 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
   - **«Hoy cubro a…»** (inicio de postventa): cuando una compañera falta, otra la cubre hasta la fecha que elija. Sus carpetas y casos siguen a nombre de la ausente (a su vuelta no hay nada que mover); quien cubre recibe copia de sus avisos y ve lo que a ella le tocaba hoy o tenía vencido. «Ya volvió» termina la cobertura.
   - **En el reporte diario** de cada persona de postventa (hoja «Panel del día») hay una franja con: cuántas veces ayudó en carpetas que lleva otra, cuántas la ayudaron, la mediana de tiempo de respuesta a lo que derivó Central (en horas de oficina, últimos 6 días) y cuántas derivaciones siguen sin gestión.
   - Central, al derivar, elige «Postventa (área)».
+- **Las pantallas de postventa, rediseñadas (desde el 23-10, Santos: «son muchas opciones y se pierde la señorita»).** El menú tiene seis opciones de trabajo diario, en el orden en que se usan, más Panorama y un grupo «Apoyo»:
+  - **Hoy:** la cola del día. Lo repetido va junto: «48 · Caso nuevo sin tomar · Ver las 48» es una sola fila; lo distinto sale solo. Trae además **«Caso sin avance»**: un caso tomado hace 7 días o más que sigue en Registro o Antecedentes, con el motivo y «Abrir el caso».
+  - **Casos** (antes «Atenciones»): una sola tira de pestañas: **Por tomar** (lo que llegó y nadie tomó, con «Lo que mandé a Central» y «Mis pendientes»), **En curso** (los casos abiertos del área con sus filtros), **Llamadas al almacén** (antes la opción «Derivación de llamadas» del menú), **Cerrados**, y **Reportes y archivo** (reporte del día, cierre semanal, reporte del mes y por fechas, «Hoy cubro a…», y el archivo: carpetas anteriores, histórico e informes, pedidos cerrados, máquinas instaladas). Ya no hay tiras dentro de las pestañas.
+  - **Pedidos:** Por paso · Esperando a otras áreas · Tablero · Cola del Excel · Regularizar · Cerrados, todas como pestañas (antes cuatro de ellas eran un interruptor dentro de «Por paso»).
+  - **Clientes**, **Agenda** (Lo que falta · Calendario · Visitas a planta; el calendario ya no repite la lista de lo que falta) y **Vender**, como estaban.
+  - **Panorama:** los cuadros en números; la lista de clientes para llamar va plegada al final.
+  - **Apoyo:** Files, Directorio y Procesos, bajo su propio rótulo.
+- **La ficha del cliente para postventa** tiene un solo panel **«Abierto con este cliente»** (reemplaza «Pendiente con este cliente», «Expedientes vivos» y «Lo que sigue», que decían lo mismo tres veces): cada carpeta con quién la lleva, qué sigue, su cotización y la última gestión, y debajo lo que cuelga de ella: los casos con sus llamadas al almacén (y un botón «Derivar llamada al almacén» por caso), los pedidos con el paso que sigue y quién lo tiene, y las aperturas. Lo que no cuelga de ninguna carpeta sale al final en **«Sin carpeta»**, con la explicación. Cinco pestañas de trabajo con su número (Resumen · Pedidos y casos · Equipos · Historial · Datos y contactos) y las de consulta bajo «Más» (Ventas, Llamadas grabadas, Correos de campaña, Documentos y sedes). El contador dice «carpeta abierta», no «expediente vivo».
+- **Toda llamada al almacén cuelga de un caso** (desde el 23-10, caso Inversiones Turísticas Centenario: Brenda derivó una videollamada desde la ficha y no salía en el caso ni en Casos). Si se deriva desde la ficha sin elegir caso y el cliente tiene un solo caso abierto, la llamada queda en ese caso; con varios casos, se deriva desde el caso o con el botón de cada caso en la ficha. El 23-10 se unieron a su caso 14 llamadas que estaban sueltas; las que quedan sueltas se ven en «Sin carpeta» y se unen a mano desde el caso.
+- **El caso avanza con lo que se ejecuta** (desde el 23-10): derivar una llamada al almacén o emitir la apertura de servicio pasa el caso a **Planificación**; el informe del almacén lo pasa a **Atención**. Nunca retrocede y deja anotado qué paso se saltó. Antes el caso se quedaba en «Registro» aunque se hubiera coordinado la videollamada (46 días en el CASO-00019).
+- **El paso «Guía y fotos enviadas al cliente» ofrece su botón** (desde el 23-10, caso Elvis Choquehuanca): lleva al bloque de envío con el WhatsApp armado. Antes el paso decía «le toca a postventa» y el botón estaba en otra parte de la pantalla.
+- **Una palabra por cosa:** *caso* es el caso técnico (CASO-…); *carpeta* es el expediente de postventa (una por cliente); *llamada al almacén* es la derivación de llamada; el botón se llama siempre «Derivar llamada al almacén» y el de registrar, «Registrar caso». Las «Casos anteriores» pasan a llamarse «Carpetas anteriores». En la carpeta de postventa no hay Infocorp y «Registrar gestión» va plegado (desde la ficha es «Anotar gestión»).
 - **PV1, PV2 y PV3 tienen permisos idénticos y no tienen cartera propia** (28-09 y 29-09). Nunca se asigna cartera a un perfil de postventa. Postventa atiende clientes de cualquier cartera sin quitárselos a nadie.
 - **Ve:**
   - todas las fichas (el buscador no le limita la cartera);
@@ -1144,11 +1156,13 @@ En una frase: **Central reparte, el comercial vende, Central verifica, Finanzas 
 - **PV:** el área de postventa. **PV1, PV2, PV3:** las personas de postventa.
 - **ALM, ALM2:** cuentas de almacén. **IMP:** cuenta de Importaciones.
 - **Ficha:** el cliente (RUC o DNI) con sus contactos, equipos e historia.
-- **Expediente:** un negocio con un cliente (la oportunidad). En postventa, el expediente del caso.
+- **Expediente:** un negocio con un cliente (la oportunidad). En postventa se llama **carpeta**: una sola por cliente, y dentro van los casos.
+- **Carpeta (de postventa):** el expediente de postventa de un cliente; una por cliente (desde el 17-10). Dentro cuelgan los casos; de cada caso, sus llamadas al almacén, aperturas, informes, cotizaciones y pedidos.
+- **Llamada al almacén:** la derivación de llamada (videollamada o visita que postventa le pasa al almacén). Siempre cuelga de un caso (desde el 23-10).
 - **Cartera:** las fichas de un comercial. **Liberable:** cliente sin venta en 3 meses.
 - **Ficha cascarón:** ficha sin RUC creada por un lead de anuncios.
 - **Grupo económico:** fichas madre e hijas de empresas relacionadas, enlazadas sin fusionar.
-- **Caso / atención:** solicitud de postventa, con su tipo y sus etapas.
+- **Caso / atención:** solicitud técnica de postventa (CASO-…), con su tipo y sus etapas. Vive dentro de la carpeta del cliente. En las pantallas se dice «caso»; «atención» es la palabra antigua.
 - **Pedido:** la venta en ejecución, desde que Central la libera hasta «Pedido cerrado».
 - **Pedido ejecutado / liberar:** el check de Central que entrega el pedido a postventa, almacén y Finanzas.
 - **Liquidación:** el documento de Finanzas que Central acepta.
@@ -1390,6 +1404,12 @@ No. Finanzas confirma cada abono, no el total. Desde el 15-10 el pedido lo muest
 Depende del cliente. Lea el cierre completo, revise en la ficha si sus compras anteriores llevaron orden y, si no está claro, pregúntele al comercial. Las empresas medianas y grandes suelen trabajar con orden, y sin ella no se puede facturar ni despachar. (2.2)
 
 ---
+
+**56. Soy de postventa: derivé una llamada al almacén y no aparece en el caso. ¿Qué pasó?**
+Se derivó desde la ficha del cliente sin elegir el caso, así que quedó colgada del cliente y no del caso. Desde el 23-10, si el cliente tiene un solo caso abierto la llamada entra sola en ese caso; si tiene varios, derívela desde el caso (botón «Derivar llamada al almacén») o desde la ficha, donde cada caso tiene su botón. Las que quedaron sueltas se ven en la ficha, en «Abierto con este cliente › Sin carpeta». Al derivar, el caso pasa solo a «Planificación».
+
+**57. En el pedido dice «le toca a postventa» en «Guía y fotos enviadas al cliente». ¿Qué hago?**
+Mándele al cliente la guía y las fotos del despacho (están en «Fotos del pedido») y márquelo. Desde el 23-10 el paso tiene el botón «Enviar guía y fotos al cliente», que abre el mensaje de WhatsApp ya armado y deja registrado quién lo envió y cuándo.
 
 ## 6. Puntos abiertos (no los afirme como reglas cerradas)
 
