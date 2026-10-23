@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 23-10 · Las mesas BIMAP con su número de serie y el PDF de stock que se desarmaba (Santos)
+- Lesly subió su Excel nuevo (262 máquinas) después de vaciar el almacén. Santos vio dos fallas: las mesas BIMAP salían «sin serie» aunque el Excel les pone 1, 2, 3…, como se acordó; y en el PDF de industriales los modelos largos sin espacios se salían de su columna.
+- Hecho y desplegado el mismo 23-10: el número de la caja queda como serie, único dentro de su código, y las 5 mesas de la carga de Lesly entraron con 1, 2, 3, 4 y 6. El modelo largo se parte dentro de su columna.
+
 ### 23-10 (11:01) · Lo que gerencia decidió al revisar los correos automáticos a clientes (Carlos, Santos)
 - **Repuestos:** cuando se vende solo el repuesto, Efameinsa no coordina la instalación ni entrega guías de instalación; el cliente la hace con su personal. La instalación se coordina solo cuando se vendió con instalación (en provincia, normalmente el cliente envía la máquina o viaja el técnico). Por eso el correo «Repuesto enviado» ya no ofrece coordinar ni guía.
 - **Mantenimiento preventivo:** no se promete «gratuito». El correo de suscripción dice «mantenimiento preventivo para clientes, cuando lo programemos».
