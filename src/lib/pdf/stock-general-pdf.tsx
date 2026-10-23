@@ -76,6 +76,11 @@ export interface StockGeneralPdfProps {
   origen: string;
   vistaPrevia: boolean;
   avisos: string[];
+  /**
+   * CONSOLIDADO (Santos 23-10): un solo PDF con una sección por empresa, primero Open y
+   * luego Efameinsa; cada una arranca en página nueva con su logo y su total.
+   */
+  secciones?: { logoBuffer: Buffer; logoAncho?: number; origen: string; filas: FilaStockGeneral[]; avisos: string[] }[];
 }
 
 function Cabecera({ logoBuffer, logoAncho, doc, fecha, generado, origen, vistaPrevia }: Omit<StockGeneralPdfProps, "filas" | "avisos">) {
@@ -270,7 +275,21 @@ function Lg({ filas }: { filas: FilaStockGeneral[] }) {
 }
 
 export function StockGeneralPdf(props: StockGeneralPdfProps) {
-  const { doc, filas, avisos, generado } = props;
+  const { doc, filas, avisos, generado, secciones } = props;
+  if (secciones?.length) {
+    return (
+      <Document title={`Resumen general de stock ${doc === "lg" ? "LG" : "industriales"} · consolidado`} author="CRM Efameinsa">
+        {secciones.map((sec, i) => (
+          <Page key={i} size="A4" style={s.pagina}>
+            <Cabecera {...props} logoBuffer={sec.logoBuffer} logoAncho={sec.logoAncho} origen={sec.origen} />
+            <Avisos avisos={sec.avisos} />
+            {doc === "lg" ? <Lg filas={sec.filas} /> : <Industriales filas={sec.filas} />}
+            <Pie doc={doc} generado={generado} />
+          </Page>
+        ))}
+      </Document>
+    );
+  }
   return (
     <Document title={`Resumen general de stock ${doc === "lg" ? "LG" : "industriales"}`} author="CRM Efameinsa">
       <Page size="A4" style={s.pagina}>

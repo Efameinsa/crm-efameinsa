@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { SeccionPanel } from "@/components/crm/seccion-panel";
 import { AlmacenPorSerie } from "@/components/crm/almacen-por-serie";
 import { AgregarAlStock, CentralPideSerie, type CodigoParaAgregar, type MaquinaDisponible, type MaquinaQueEsperaSerie } from "@/components/crm/stock-del-almacen";
-import { cargarAlmacenPorSerie, cargarProyeccion } from "@/lib/almacen-datos";
+import { cargarAlmacenPorSerie, cargarProyeccion, contarPorEmpresa } from "@/lib/almacen-datos";
+import { ResumenGeneralStock } from "@/components/crm/resumen-general-stock";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export default async function StockDelAlmacenPage() {
   const supabase = await createClient();
   const veCosto = ["operaciones", "gerencia", "admin"].includes(perfil.rol) || !!perfil.es_operaciones;
 
-  const [{ filas, totales }, proyeccion, { data: lineas }, { data: productos }] = await Promise.all([
+  const [{ filas, totales }, proyeccion, { data: lineas }, { data: productos }, porEmpresa] = await Promise.all([
     cargarAlmacenPorSerie(supabase),
     cargarProyeccion(supabase),
     supabase
@@ -37,6 +38,7 @@ export default async function StockDelAlmacenPage() {
       .is("servicios_postventa.cerrado_at", null)
       .limit(300),
     supabase.from("productos").select("id, sku, nombre, modelo").eq("activo", true).not("sku", "is", null).order("sku").limit(3000),
+    contarPorEmpresa(supabase),
   ]);
 
   type Linea = {
@@ -85,6 +87,9 @@ export default async function StockDelAlmacenPage() {
       <SeccionPanel titulo="Agregar al stock">
         <AgregarAlStock codigos={codigos} />
       </SeccionPanel>
+
+      {/* El resumen en PDF: solo Open, solo Efameinsa o el consolidado (Santos 23-10). */}
+      <ResumenGeneralStock porEmpresa={porEmpresa} />
 
       <SeccionPanel titulo="Stock por serie">
         <AlmacenPorSerie filas={filas} totales={totales} contraste={[]} proyeccion={proyeccion} puedeEditar={veCosto} verCosto={veCosto} />

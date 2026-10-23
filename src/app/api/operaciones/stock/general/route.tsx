@@ -33,6 +33,67 @@ const deCarga = (f: FilaCarga): FilaStockGeneral => ({
   esLg: /LG/i.test(f.hoja),
 });
 
+/** El stock de UNA empresa sacado del almacén (más las piezas sin serie del último Excel de esa empresa). */
+async function delAlmacen(supabase: Awaited<ReturnType<typeof createClient>>, empresa: "OPEN" | "EFAMEINSA") {
+  const filas: FilaStockGeneral[] = [];
+  const avisos: string[] = [];
+  let origen = "";
+  // El almacén: una fila por máquina disponible, con lo que Importaciones dijo de ella (0584).
+  const { data: inv } = await supabase
+    .from("inventario_equipos")
+    .select("serie, ubicacion, item_importaciones, descripcion, modelo, capacidad, proveedor, productos(sku, marca, modelo, nombre, segmento, dm:ficha->>descripcion_maestro)")
+    .eq("estado", "disponible")
+    .eq("empresa", empresa);
+  type Inv = {
+    serie: string; ubicacion: string | null; item_importaciones: string | null; descripcion: string | null; modelo: string | null; proveedor: string | null;
+    productos: Uno<{ sku: string | null; marca: string | null; modelo: string | null; nombre: string; segmento: string | null; dm: string | null }>;
+  };
+  for (const i of (inv ?? []) as unknown as Inv[]) {
+    const p = uno(i.productos);
+    const marca = i.proveedor === "LG" ? "LG" : (p?.marca ?? null);
+    filas.push({
+      item: i.item_importaciones,
+      codigo: p?.sku ?? null,
+      modelo: i.modelo ?? p?.modelo ?? "",
+      descripcion: i.descripcion ?? p?.dm ?? p?.nombre ?? "",
+      serie: i.serie,
+      cantidad: 1,
+      ubicacion: i.ubicacion,
+      marca,
+      proveedor: i.proveedor,
+      // LG es la marca, no el segmento: un calderín Sidi Mondial «semi-industrial» no es LG.
+      esLg: /^LG$/i.test(marca ?? "") || /^LG$/i.test(i.proveedor ?? ""),
+    });
+  }
+  // Las piezas sin serie de placa (mesas, coches) no entran al almacén por serie:
+  // vienen del último Excel subido, con su cantidad.
+  const admin = createAdminClient();
+  const { data: ultima } = await admin
+    .from("stock_cargas")
+    .select("archivo, filas, subida_at")
+    // Desde 0588 lo claro entra al leer el Excel y la carga sigue «revisando» mientras
+    // queden observaciones: también cuenta como Excel subido (Santos 23-10: el PDF decía
+    // «todavía no se subió ningún Excel» con 35 máquinas ya en el almacén).
+    .in("estado", ["subida", "revisando"])
+    .not("subida_at", "is", null)
+    .eq("es_prueba", false)
+    .eq("empresa", empresa)
+    .order("subida_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (ultima) {
+    const sinSerie = ((ultima.filas ?? []) as FilaCarga[]).filter((f) => f.decision === "subir" && !f.serie && f.cantidad > 0);
+    filas.push(...sinSerie.map(deCarga));
+    origen = `Último Excel subido: ${ultima.archivo}${ultima.subida_at ? ` (${fechaHoraLima(ultima.subida_at)})` : ""}`;
+  } else {
+    origen = "Todavía no se subió ningún Excel de stock";
+  }
+  if (filas.length === 0) avisos.push("El almacén no tiene máquinas disponibles todavía.");
+  return { filas, origen, avisos };
+}
+
+const logoDe = (e: "OPEN" | "EFAMEINSA") => { const l = logoDeEmpresa(e); return { logoBuffer: l.buffer, logoAncho: l.ancho }; };
+
 export async function GET(request: Request) {
   const perfil = await requerirPerfil();
   const url = new URL(request.url);
@@ -40,6 +101,9 @@ export async function GET(request: Request) {
   const cargaId = url.searchParams.get("carga");
   // Un resumen por empresa, con su logo (Santos 23-10): el stock de Open y el de Efameinsa no se mezclan.
   let empresa = empresaValida(url.searchParams.get("empresa"));
+  // ?empresa=TODAS: el consolidado, Open primero y Efameinsa después.
+  const consolidado = !url.searchParams.get("carga") && String(url.searchParams.get("empresa") ?? "").toUpperCase() === "TODAS";
+  const secciones: NonNullable<Parameters<typeof StockGeneralPdf>[0]["secciones"]> = [];
   const supabase = await createClient();
 
   let filas: FilaStockGeneral[] = [];
@@ -63,58 +127,17 @@ export async function GET(request: Request) {
     if (vistaPrevia) avisos.push("Vista previa con lo que está marcado para subir. El informe definitivo sale del almacén cuando se pulsa «Subir al almacén».");
     if (sinDecidir > 0) avisos.push(`${sinDecidir} ${sinDecidir === 1 ? "máquina sin decidir no aparece" : "máquinas sin decidir no aparecen"} (falta código o revisar).`);
     if (noSuben > 0) avisos.push(`${noSuben} marcadas «No subir» no aparecen.`);
+  } else if (consolidado) {
+    // Un solo PDF: primero Open y luego Efameinsa, cada una en su sección con su logo (Santos 23-10).
+    for (const e of ["OPEN", "EFAMEINSA"] as const) {
+      const r = await delAlmacen(supabase, e);
+      secciones.push({ ...logoDe(e), origen: `Stock de ${e} · ${r.origen}`, filas: r.filas.filter((f) => (doc === "lg" ? f.esLg : !f.esLg)), avisos: r.avisos });
+    }
   } else {
-    // El almacén: una fila por máquina disponible, con lo que Importaciones dijo de ella (0584).
-    const { data: inv } = await supabase
-      .from("inventario_equipos")
-      .select("serie, ubicacion, item_importaciones, descripcion, modelo, capacidad, proveedor, productos(sku, marca, modelo, nombre, segmento, dm:ficha->>descripcion_maestro)")
-      .eq("estado", "disponible")
-      .eq("empresa", empresa);
-    type Inv = {
-      serie: string; ubicacion: string | null; item_importaciones: string | null; descripcion: string | null; modelo: string | null; proveedor: string | null;
-      productos: Uno<{ sku: string | null; marca: string | null; modelo: string | null; nombre: string; segmento: string | null; dm: string | null }>;
-    };
-    for (const i of (inv ?? []) as unknown as Inv[]) {
-      const p = uno(i.productos);
-      const marca = i.proveedor === "LG" ? "LG" : (p?.marca ?? null);
-      filas.push({
-        item: i.item_importaciones,
-        codigo: p?.sku ?? null,
-        modelo: i.modelo ?? p?.modelo ?? "",
-        descripcion: i.descripcion ?? p?.dm ?? p?.nombre ?? "",
-        serie: i.serie,
-        cantidad: 1,
-        ubicacion: i.ubicacion,
-        marca,
-        proveedor: i.proveedor,
-        // LG es la marca, no el segmento: un calderín Sidi Mondial «semi-industrial» no es LG.
-        esLg: /^LG$/i.test(marca ?? "") || /^LG$/i.test(i.proveedor ?? ""),
-      });
-    }
-    // Las piezas sin serie de placa (mesas, coches) no entran al almacén por serie:
-    // vienen del último Excel subido, con su cantidad.
-    const admin = createAdminClient();
-    const { data: ultima } = await admin
-      .from("stock_cargas")
-      .select("archivo, filas, subida_at")
-      // Desde 0588 lo claro entra al leer el Excel y la carga sigue «revisando» mientras
-      // queden observaciones: también cuenta como Excel subido (Santos 23-10: el PDF decía
-      // «todavía no se subió ningún Excel» con 35 máquinas ya en el almacén).
-      .in("estado", ["subida", "revisando"])
-      .not("subida_at", "is", null)
-      .eq("es_prueba", false)
-      .eq("empresa", empresa)
-      .order("subida_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (ultima) {
-      const sinSerie = ((ultima.filas ?? []) as FilaCarga[]).filter((f) => f.decision === "subir" && !f.serie && f.cantidad > 0);
-      filas.push(...sinSerie.map(deCarga));
-      origen = `Último Excel subido: ${ultima.archivo}${ultima.subida_at ? ` (${fechaHoraLima(ultima.subida_at)})` : ""}`;
-    } else {
-      origen = "Todavía no se subió ningún Excel de stock";
-    }
-    if (filas.length === 0) avisos.push("El almacén no tiene máquinas disponibles todavía.");
+    const r = await delAlmacen(supabase, empresa);
+    filas = r.filas;
+    origen = r.origen;
+    avisos.push(...r.avisos);
   }
 
   const seleccion = filas.filter((f) => (doc === "lg" ? f.esLg : !f.esLg));
@@ -129,14 +152,15 @@ export async function GET(request: Request) {
       filas={seleccion}
       fecha={fecha}
       generado={generado}
-      origen={`Stock de ${empresa} · ${origen}`} vistaPrevia={vistaPrevia} avisos={avisos} />,
+      origen={`Stock de ${empresa} · ${origen}`} vistaPrevia={vistaPrevia} avisos={avisos}
+      secciones={consolidado ? secciones : undefined} />,
   );
 
   const fechaArchivo = ahora.toLocaleDateString("sv-SE", { timeZone: "America/Lima" });
   return new NextResponse(buffer as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": cabeceraArchivo(`Resumen general de stock ${empresa} ${doc === "lg" ? "LG" : "industriales"} ${fechaArchivo}`, "pdf", true),
+      "Content-Disposition": cabeceraArchivo(`Resumen general de stock ${consolidado ? "consolidado Open y Efameinsa" : empresa} ${doc === "lg" ? "LG" : "industriales"} ${fechaArchivo}`, "pdf", true),
       "Cache-Control": "no-store",
     },
   });
