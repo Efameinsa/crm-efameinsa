@@ -18,6 +18,10 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 23-10 (tarde) · Los chats de casos y pedidos quedan en el menú, con «@» y el visto con nombre (Santos, a partir de un mensaje de Brenda)
+- Brenda escribió en el chat del pedido de Sonesta preguntando cómo quedó el pago, y nadie contestó: el aviso les llegó a las dos personas del canal, que ese día no habían entrado al CRM, y nadie más lo veía porque el chat vivía solo dentro del pedido.
+- Santos pidió que los chats abiertos queden en el menú lateral, que el visto diga el nombre de quienes lo leyeron y que se pueda nombrar a un participante con «@». Quedó así desde esa tarde: «Chats» en el menú con los abiertos y sus no leídos, pantalla con abiertos y cerrados, «Visto por» y «Sin ver» con nombre, «@» con aviso propio, y una franja que avisa cuando alguien del canal no entra al CRM hace días, para llamarlo.
+
 ### 23-10 (15:30) · La apertura de servicio interno con lo que pide Brenda (Brenda, Santos)
 - Brenda (PV2) escribió por WhatsApp lo que la apertura de servicio interno «tiene que tener»: fecha de compra, fecha del primer mantenimiento, fecha del mantenimiento correctivo, si se le vendió repuesto, fecha de puesta en marcha, el problema (motivo por el cual viene a planta) y marcar la opción de servicio: mantenimiento preventivo, correctivo o revisión. Santos recordó que la apertura interna/externa se había pedido en la reunión del 20-10 y preguntó si estaba hecha.
 - Sí estaba desde el 20-10 (noche) y en producción; lo que faltaba eran esos campos. Hecho y desplegado el mismo 23-10: la apertura interna pide el servicio en planta (obligatorio), el problema por el que viene a planta, y las tres fechas nuevas, que el CRM propone desde la ficha del equipo y sus informes de servicio emitidos. Todo sale en la hoja de la apertura, en el pedido y en la recepción del almacén.
