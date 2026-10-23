@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { celebrar } from "@/lib/celebrar";
 import { History } from "lucide-react";
 import { cerrarPedidoAnteriorEntregado } from "@/lib/acciones/postventa";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ export function CerrarPedidoAnterior({ servicioId, fechaSugerida }: { servicioId
         return;
       }
       toast.success("Pedido cerrado como entregado. Ya aparece en Pedidos › Cerrados.");
+      celebrar("cierre");
       router.refresh();
     });
   }

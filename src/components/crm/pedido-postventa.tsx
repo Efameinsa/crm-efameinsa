@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { celebrar } from "@/lib/celebrar";
 import { createClient } from "@/lib/supabase/client";
 import { Check, CircleDashed, OctagonAlert, Loader2, ImagePlus, Paperclip, Lock, X, FileText, Pencil } from "lucide-react";
 import Link from "@/components/enlace";
@@ -185,6 +186,7 @@ export function PedidoPostventa({
       // vez, no cuando el almacén reclame que lo ve en rojo.
       if (r.aviso) toast.warning(exito, { description: r.aviso, duration: 12000 });
       else toast.success(exito);
+      celebrar("paso");
       setForm(null);
       router.refresh();
     });

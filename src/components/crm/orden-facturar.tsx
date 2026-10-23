@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { celebrar } from "@/lib/celebrar";
 import { Loader2, Receipt } from "lucide-react";
 import { atenderOrdenFacturar, ordenarFacturar } from "@/lib/acciones/finanzas";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
@@ -25,6 +26,7 @@ export function OrdenFacturar({ servicioId, sinPuesta = false }: { servicioId: s
       const r = await ordenarFacturar(servicioId, nota, sinPuesta ? pin : null);
       if (r.error) return void toast.error(r.error, { duration: 9000 });
       toast.success("Orden enviada: a Finanzas le llegó el aviso y el correo para facturar y cobrar.");
+      celebrar("paso");
       setAbierto(false);
       router.refresh();
     });
@@ -96,6 +98,7 @@ export function AtenderOrdenFacturar({ servicioId }: { servicioId: string }) {
           const r = await atenderOrdenFacturar(servicioId);
           if (r.error) return void toast.error(r.error, { duration: 9000 });
           toast.success("OK dado: el pedido ya está en «Por facturar» de Facturación, y postventa lo ve.");
+          celebrar("paso");
           router.refresh();
         })
       }

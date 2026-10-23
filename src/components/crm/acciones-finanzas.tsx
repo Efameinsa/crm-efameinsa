@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { celebrar } from "@/lib/celebrar";
 import { AlertTriangle, BadgeCheck, Loader2, Paperclip, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { confirmarAbono, observarPago, type Avisar } from "@/lib/acciones/finanzas";
@@ -182,6 +183,7 @@ export function DialogoAbono({
         return;
       }
       toast.success("Abono confirmado y avisado.");
+      celebrar("paso");
       setAbierto(false);
       setOperacion("");
       setNota("");

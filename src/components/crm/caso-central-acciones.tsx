@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { celebrar, type Celebracion } from "@/lib/celebrar";
 import {
   cerrarCasoCentral,
   contestarCasoCentral,
@@ -43,7 +44,8 @@ export function CasoCentralAcciones({
   const [problema, setProblema] = useState<string | null>(null);
   const [ocupado, iniciar] = useTransition();
 
-  function correr(fn: () => Promise<{ error: string | null }>, ok: string) {
+  // Cada movimiento del caso celebra como «paso»; darlo por cerrado, como «cierre» (Santos, 23-10).
+  function correr(fn: () => Promise<{ error: string | null }>, ok: string, fiesta: Celebracion = "paso") {
     setProblema(null);
     iniciar(async () => {
       const r = await fn();
@@ -52,6 +54,7 @@ export function CasoCentralAcciones({
         return;
       }
       toast.success(ok);
+      celebrar(fiesta);
       setModo(null);
       setTexto("");
       setArchivos([]);
@@ -111,7 +114,7 @@ export function CasoCentralAcciones({
       );
     if (estado === "respondido") {
       botones.push(
-        <Button key="cerrar-ok" size="sm" disabled={ocupado} onClick={() => correr(() => cerrarCasoCentral(casoId, ""), "Caso cerrado")}>
+        <Button key="cerrar-ok" size="sm" disabled={ocupado} onClick={() => correr(() => cerrarCasoCentral(casoId, ""), "Caso cerrado", "cierre")}>
           Dar por cerrado
         </Button>,
         <Button key="reab" size="sm" variant="outline" disabled={ocupado} onClick={() => setModo("reabrir")}>
@@ -161,7 +164,7 @@ export function CasoCentralAcciones({
       ayuda: "Ej. El cliente ya pagó por otro medio; no hace falta.",
       boton: "Cerrar el caso",
       archivos: false,
-      enviar: () => correr(() => cerrarCasoCentral(casoId, texto), "Caso cerrado"),
+      enviar: () => correr(() => cerrarCasoCentral(casoId, texto), "Caso cerrado", "cierre"),
     },
   };
   const f = modo ? formulario[modo] : null;

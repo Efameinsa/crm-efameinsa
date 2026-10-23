@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { celebrar } from "@/lib/celebrar";
 import { BadgeCheck, FileSignature, Loader2, Receipt, ShieldAlert } from "lucide-react";
 import { anotarComprobanteDeLaGuia, darVistoBuenoSalida, marcarLetrasFirmadas } from "@/lib/acciones/finanzas";
 import { ETIQUETA_LETRAS, type EstadoLetras } from "@/lib/postventa";
@@ -74,6 +75,7 @@ export function VistoBuenoSalida({ d }: { d: DatosVistoBueno }) {
       const r = await fn();
       if (r.error) return void setProblema({ donde, texto: r.error });
       toast.success(exito);
+      celebrar("paso");
       router.refresh();
     });
   }
@@ -242,6 +244,7 @@ export function VistoBuenoSalida({ d }: { d: DatosVistoBueno }) {
                           if (r.error) return void setProblema({ donde: "vb", texto: r.error });
                           setConfirmar(false);
                           toast.success("Visto bueno dado: el almacén y postventa ya recibieron el aviso");
+                          celebrar("paso");
                           router.refresh();
                         })
                       }

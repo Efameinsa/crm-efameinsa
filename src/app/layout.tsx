@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import { Celebraciones } from "@/components/crm/celebraciones";
 
 export const metadata: Metadata = {
   title: "CRM Efameinsa",
@@ -51,6 +52,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col font-sans">
         {children}
         <Toaster />
+        {/* La celebración al cerrar un pedido o un caso y al pasar de un estado a otro (Santos, 23-10). Solo escucha; no dibuja nada hasta que alguien la llama. */}
+        <Celebraciones />
       </body>
     </html>
   );

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { celebrar } from "@/lib/celebrar";
 import { Loader2, Truck } from "lucide-react";
 import { confirmarGuia } from "@/lib/acciones/finanzas";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,7 @@ export function ConfirmarGuiaBoton({
       const r = await confirmarGuia(servicioId, nota, { tipo, numero: pideNumero ? numero : "" }, motivo, motivo === "otro" ? motivoOtro : "");
       if (r.error) return void setProblema(r.error);
       toast.success("Confirmado: el almacén ya puede emitir la guía");
+      celebrar("paso");
       setAbierto(false);
       setNota("");
       setTipo(null);
