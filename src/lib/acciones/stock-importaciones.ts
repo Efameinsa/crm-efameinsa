@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   emparejar,
+  esCorrelativo,
   revisarSegunExcel,
   leerExcelStock,
   rasgos,
@@ -213,11 +214,13 @@ export async function analizarExcelStock(formData: FormData): Promise<{ error: s
 
   // Las que están disponibles en el almacén y no vinieron en este Excel.
   const supabase = await createClient();
-  const enExcel = new Set(filas.map((f) => f.serie).filter(Boolean));
+  // Un correlativo de caja (1, 2, 3…) solo es la misma máquina dentro de su código (0595).
+  const clave = (serie: string, codigo: string | null | undefined) => (esCorrelativo(serie) ? `${codigo ?? ""}|${serie.toUpperCase()}` : serie.toUpperCase());
+  const enExcel = new Set(filas.filter((f) => f.serie).map((f) => clave(f.serie!, f.codigoFinal)));
   const { data: almacen } = await supabase.from("inventario_equipos").select("serie, productos(sku)").eq("estado", "disponible");
   type Alm = { serie: string; productos: { sku: string | null } | { sku: string | null }[] | null };
   const ausentes = ((almacen ?? []) as unknown as Alm[])
-    .filter((a) => !enExcel.has(a.serie.toUpperCase()))
+    .filter((a) => !enExcel.has(clave(a.serie, (Array.isArray(a.productos) ? a.productos[0] : a.productos)?.sku)))
     .map((a) => ({ serie: a.serie, codigo: (Array.isArray(a.productos) ? a.productos[0] : a.productos)?.sku ?? null }));
 
   const { data: id, error } = await supabase.rpc("stock_carga_guardar", {

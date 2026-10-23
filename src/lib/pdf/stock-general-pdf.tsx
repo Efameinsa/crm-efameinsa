@@ -55,11 +55,11 @@ const COL = { n: 20, codigo: 46, modelo: 64, equipo: 212, stock: 32, marca: 50, 
 const COL_LG = { n: 18, modelo: 96, equipo: 329, stock: 40, marca: 60 };
 
 /** Importaciones escribe sin espacios («SECADORA.APIL.ELECT.MOD…»): se dan puntos de corte. */
-function cortable(t: string | null | undefined): string {
+function cortable(t: string | null | undefined, max = 24): string {
   return String(t ?? "")
     .split(" ")
-    .map((w) => (w.length > 22 ? w.replace(/([.,/])(?=\S)/g, "$1 ") : w))
-    .map((w) => w.split(" ").map((x) => (x.length > 26 ? x.match(/.{1,24}/g)!.join(" ") : x)).join(" "))
+    .map((w) => (w.length > max - 2 ? w.replace(/([.,/])(?=\S)/g, "$1 ") : w))
+    .map((w) => w.split(" ").map((x) => (x.length > max ? x.match(new RegExp(`.{1,${max}}`, "g"))!.join(" ") : x)).join(" "))
     .join(" ");
 }
 
@@ -152,7 +152,7 @@ function Industriales({ filas }: { filas: FilaStockGeneral[] }) {
                     <Text style={s.centrado}>{f.item ?? "—"}</Text>
                   </View>
                   <View style={[s.celda, { width: COL.modelo }]}>
-                    <Text style={[s.centrado, s.negrita]}>{cortable(f.modelo)}</Text>
+                    <Text style={[s.centrado, s.negrita]}>{cortable(f.modelo, 11)}</Text>
                     {f.codigo && <Text style={[s.chico, s.centrado]}>{f.codigo}</Text>}
                   </View>
                   <View style={[s.celda, { width: COL.equipo }]}>
