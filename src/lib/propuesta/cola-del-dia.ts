@@ -16,7 +16,7 @@ import type { Perfil } from "@/types/database";
  */
 
 export type Urgencia = "atrasado" | "hoy" | "semana";
-export type TipoTarea = "pedido" | "apertura" | "atencion" | "caso" | "cliente" | "despacho" | "pago" | "liquidacion" | "serie" | "contacto";
+export type TipoTarea = "pedido" | "apertura" | "atencion" | "caso" | "cliente" | "despacho" | "pago" | "liquidacion" | "serie" | "contacto" | "cotizacion";
 
 export interface Tarea {
   id: string;
@@ -82,7 +82,11 @@ export async function colaSupervision(
 
 async function colaPostventa(supabase: Cliente) {
   const hoy = hoyLima();
-  const [{ data: pedidos }, { data: aperturas }, { data: atenciones }, { data: casos }, { data: visitas }, { data: casosNuevos }] = await Promise.all([
+  // Las cotizaciones del área que esperan a gerencia (Brenda, 23-10): en la
+  // cola, con los días que llevan. Gerencia contesta en el día; más de uno es atraso.
+  const { data: areaPv } = await supabase.from("perfiles").select("id").eq("es_postventa", true).eq("es_prueba", false);
+  const idsArea = ((areaPv ?? []) as { id: string }[]).map((x) => x.id);
+  const [{ data: pedidos }, { data: aperturas }, { data: atenciones }, { data: casos }, { data: visitas }, { data: casosNuevos }, { data: cotizacionesEsperando }] = await Promise.all([
     supabase
       .from("servicios_postventa")
       .select("*")
@@ -120,10 +124,32 @@ async function colaPostventa(supabase: Cliente) {
       .is("proxima_accion_at", null)
       .order("created_at", { ascending: true })
       .limit(50),
+    idsArea.length
+      ? supabase
+          .from("cotizaciones")
+          .select("id, codigo, updated_at, oportunidad_id, autor:perfiles!cotizaciones_creada_por_fkey(codigo_comercial, nombre), oportunidades!cotizaciones_oportunidad_id_fkey!inner(comercial_id, cuentas(razon_social))")
+          .in("oportunidades.comercial_id", idsArea)
+          .eq("estado_aprobacion", "pendiente_gerencia")
+          .is("anulada_at", null)
+          .order("updated_at", { ascending: true })
+          .limit(50)
+      : Promise.resolve({ data: [] }),
   ]);
 
   const tareas: Tarea[] = [];
   const agenda: EventoAgenda[] = [];
+  for (const c of (cotizacionesEsperando ?? []) as unknown as { id: string; codigo: string | null; updated_at: string; oportunidad_id: string; autor: { codigo_comercial: string | null; nombre: string } | null; oportunidades: { cuentas: { razon_social: string } | null } | null }[]) {
+    const dias = diasEntre(diaLima(c.updated_at), hoy);
+    tareas.push({
+      id: `cot-${c.id}`,
+      urgencia: dias >= 1 ? "atrasado" : "hoy",
+      tipo: "cotizacion",
+      cliente: sinRuc(c.oportunidades?.cuentas?.razon_social),
+      que: "Cotización esperando a gerencia",
+      porque: `${c.codigo ?? "Borrador"}${c.autor ? ` · la hizo ${c.autor.codigo_comercial ?? c.autor.nombre}` : ""} · enviada a gerencia ${dias === 0 ? "hoy" : `hace ${dias} día${dias === 1 ? "" : "s"}`}. Si urge, recuérdeselo a gerencia.`,
+      accion: { etiqueta: "Ver la cotización", href: `/comercial/oportunidades/${c.oportunidad_id}/cotizar/${c.id}` },
+    });
+  }
   for (const c of (casosNuevos ?? []) as unknown as { id: string; tipo_postventa: string | null; created_at: string; cuentas: { razon_social: string } | null }[]) {
     const dias = diasEntre(c.created_at.slice(0, 10), hoy);
     tareas.push({

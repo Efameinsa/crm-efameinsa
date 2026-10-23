@@ -85,9 +85,9 @@ interface Fila {
 export default async function MisCotizacionesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; pagina?: string }>;
+  searchParams: Promise<{ q?: string; pagina?: string; gerencia?: string }>;
 }) {
-  const { q, pagina } = await searchParams;
+  const { q, pagina, gerencia } = await searchParams;
   const busqueda = (q ?? "").trim();
   const pag = Math.max(1, Number(pagina) || 1);
   const perfil = await requerirPerfil();
@@ -183,9 +183,34 @@ export default async function MisCotizacionesPage({
   // la sección de gerencia desaparecía entera; quedaba el borrador a secas y
   // no se enteraba de que ya estaba aprobado, mientras Rubí, sin buscar, lo
   // veía «Aprobada por gerencia». Ahora se filtra por el mismo texto.
-  const porGerenciaVisibles = porGerencia.filter(
+  const porGerenciaTexto = porGerencia.filter(
     (c) => !busqueda || contiene(razonSocial(c.oportunidades)) || (c.codigo != null && contiene(c.codigo as string)),
   );
+  // LAS PENDIENTES PRIMERO Y CON SU NÚMERO (Brenda, 23-10: no encontraba las
+  // que esperan a gerencia entre las aprobadas). Tres chips: esperando,
+  // aprobadas que faltan confirmar, rechazadas; y el orden pone adelante lo
+  // que todavía pide algo de ella.
+  const grupoDe = (c: (typeof porGerencia)[number]) =>
+    c.estado_aprobacion === "pendiente_gerencia" ? "esperando" : c.estado_aprobacion === "rechazada_gerencia" ? "rechazadas" : c.estado === "borrador" ? "confirmar" : "aprobadas";
+  const GRUPOS_GERENCIA = [
+    { clave: "esperando", etiqueta: "Esperando a gerencia", peso: 0 },
+    { clave: "confirmar", etiqueta: "Aprobadas · falta confirmar", peso: 1 },
+    { clave: "rechazadas", etiqueta: "Rechazadas", peso: 2 },
+    { clave: "aprobadas", etiqueta: "Aprobadas y confirmadas", peso: 3 },
+  ] as const;
+  const conteoGerencia = Object.fromEntries(GRUPOS_GERENCIA.map((g) => [g.clave, porGerenciaTexto.filter((c) => grupoDe(c) === g.clave).length])) as Record<string, number>;
+  const filtroGerencia = GRUPOS_GERENCIA.some((g) => g.clave === gerencia) ? (gerencia as string) : null;
+  const pesoDe = (c: (typeof porGerencia)[number]) => GRUPOS_GERENCIA.find((g) => g.clave === grupoDe(c))?.peso ?? 9;
+  const porGerenciaVisibles = porGerenciaTexto
+    .filter((c) => !filtroGerencia || grupoDe(c) === filtroGerencia)
+    .sort((a, b) => pesoDe(a) - pesoDe(b) || String(b.updated_at).localeCompare(String(a.updated_at)));
+  const hrefGerencia = (clave: string | null) => {
+    const sp = new URLSearchParams();
+    if (busqueda) sp.set("q", busqueda);
+    if (clave) sp.set("gerencia", clave);
+    const s = sp.toString();
+    return s ? `?${s}` : "?";
+  };
 
   const borradores: Fila[] = borradoresCrudos
     .map((c) => ({
@@ -430,11 +455,40 @@ export default async function MisCotizacionesPage({
         )}
       </form>
 
-      {porGerenciaVisibles.length > 0 && (
+      {porGerenciaTexto.length > 0 && (
         <div className="mb-4">
           <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Lo que pasó por gerencia · últimos 60 días
           </p>
+          <div className="mb-2 flex flex-wrap gap-1.5" role="group" aria-label="Qué ver de gerencia">
+            <Link
+              href={hrefGerencia(null)}
+              className={cn("rounded-full border px-2.5 py-1 text-xs font-medium", !filtroGerencia ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:bg-accent")}
+            >
+              Todo ({porGerenciaTexto.length})
+            </Link>
+            {GRUPOS_GERENCIA.map((g) => (
+              <Link
+                key={g.clave}
+                href={hrefGerencia(g.clave)}
+                className={cn(
+                  "rounded-full border px-2.5 py-1 text-xs font-medium",
+                  filtroGerencia === g.clave
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : g.clave === "esperando" && conteoGerencia[g.clave] > 0
+                      ? "border-amber-500/50 bg-amber-500/10 text-amber-900 hover:bg-amber-500/20"
+                      : "border-border bg-background hover:bg-accent",
+                )}
+              >
+                {g.etiqueta} ({conteoGerencia[g.clave]})
+              </Link>
+            ))}
+          </div>
+          {porGerenciaVisibles.length === 0 && (
+            <p className="rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
+              {filtroGerencia === "esperando" ? "Ninguna cotización del área espera a gerencia ahora mismo." : "Nada en este grupo en los últimos 60 días."}
+            </p>
+          )}
           <div className="space-y-1.5">
             {porGerenciaVisibles.map((c) => {
               const estado = c.estado_aprobacion as string;
