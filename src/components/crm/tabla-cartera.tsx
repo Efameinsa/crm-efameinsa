@@ -10,6 +10,9 @@ import { OfrecerMantenimientoBoton } from "@/components/crm/ofrecer-mantenimient
 import { RegistrarSeguimientoBoton } from "@/components/crm/registrar-seguimiento-boton";
 import { fechaCalendario } from "@/lib/fechas";
 import { recordarLista, useRetomarScrollDeLista } from "@/components/crm/volver-a-la-lista";
+import { useState } from "react";
+import { Link2 } from "lucide-react";
+import { UnirSeleccionadas } from "@/components/crm/unir-seleccionadas";
 
 export interface FilaCartera {
   id: string;
@@ -83,10 +86,17 @@ export function TablaCartera({
   filas,
   mostrarDueno = false,
   seguimientoComercial = false,
+  unir = null,
 }: {
   filas: FilaCartera[];
   mostrarDueno?: boolean;
   seguimientoComercial?: boolean;
+  /**
+   * UNIR LAS REPETIDAS DESDE LA LISTA (Brenda, 23-10: buscó «logisminsa» y
+   * salieron tres fichas; «unir, uno solo, es lo mismo»). Con esto cada fila
+   * trae una casilla; al marcar dos o más aparece «Unir las marcadas».
+   */
+  unir?: { supervisores: { id: string; nombre: string; rol?: string }[] } | null;
 }) {
   const router = useRouter();
   // «Volver a clientes» desde la ficha retoma esta página y este scroll (Ariana, 28-09).
@@ -95,12 +105,62 @@ export function TablaCartera({
     recordarLista();
     router.push(`/comercial/cartera/${id}`);
   };
+  const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
+  const [uniendo, setUniendo] = useState(false);
+  const marcar = (id: string, si: boolean) =>
+    setMarcadas((prev) => {
+      const n = new Set(prev);
+      if (si) n.add(id);
+      else n.delete(id);
+      return n;
+    });
+  const seleccionadas = filas.filter((f) => marcadas.has(f.id));
 
   return (
     <div className="overflow-x-auto">
+      {unir && (
+        <div className={cnBarra(seleccionadas.length)}>
+          {seleccionadas.length === 0 ? (
+            <span className="text-[11px] text-muted-foreground">¿Ve el mismo cliente dos veces? Marque las fichas repetidas y únalas en una.</span>
+          ) : (
+            <>
+              <span className="text-xs font-semibold text-foreground">
+                {seleccionadas.length} marcada{seleccionadas.length === 1 ? "" : "s"}
+                {seleccionadas.length === 1 ? " · marque otra para unirlas" : ""}
+              </span>
+              <button type="button" onClick={() => setMarcadas(new Set())} className="text-[11px] text-muted-foreground hover:underline">
+                Desmarcar
+              </button>
+              {seleccionadas.length >= 2 && (
+                <button
+                  type="button"
+                  onClick={() => setUniendo(true)}
+                  className="ml-auto inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                >
+                  <Link2 className="size-3.5" /> Unir las {seleccionadas.length} marcadas
+                </button>
+              )}
+            </>
+          )}
+          <UnirSeleccionadas
+            key={uniendo ? "abierto" : "cerrado"}
+            abierto={uniendo}
+            onOpenChange={setUniendo}
+            supervisores={unir.supervisores}
+            fichas={seleccionadas.map((f) => ({
+              id: f.id,
+              razonSocial: f.razonSocial,
+              documento: f.documento && f.documento !== "—" ? f.documento : null,
+              comercial: f.duenoCodigo ?? null,
+              compras: f.compras,
+            }))}
+          />
+        </div>
+      )}
       <Table>
         <TableHeader>
           <TableRow>
+            {unir && <TableHead className="w-8" />}
             <TableHead>Cliente</TableHead>
             <TableHead>Documento</TableHead>
             <TableHead>Zona</TableHead>
@@ -122,8 +182,19 @@ export function TablaCartera({
               onKeyDown={(e) => {
                 if (e.key === "Enter") abrir(c.id);
               }}
-              className="cursor-pointer transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+              className={cnFila(marcadas.has(c.id))}
             >
+              {unir && (
+                <TableCell className="w-8" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    aria-label={`Marcar ${c.razonSocial} para unir`}
+                    className="size-4 cursor-pointer accent-[var(--c-marca,#7a1e1e)]"
+                    checked={marcadas.has(c.id)}
+                    onChange={(e) => marcar(c.id, e.target.checked)}
+                  />
+                </TableCell>
+              )}
               <TableCell className="max-w-[280px] whitespace-normal">
                 <span className="flex items-start gap-2 font-medium text-foreground">
                   <Building2 className="mt-0.5 size-3.5 flex-none text-muted-foreground" />
@@ -219,4 +290,11 @@ export function TablaCartera({
       </Table>
     </div>
   );
+}
+
+function cnFila(marcada: boolean) {
+  return `cursor-pointer transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none${marcada ? " bg-primary/5" : ""}`;
+}
+function cnBarra(n: number) {
+  return `mb-2 flex flex-wrap items-center gap-3 rounded-lg border px-3 py-2 ${n >= 2 ? "border-primary/40 bg-primary/5" : "border-dashed border-border"}`;
 }

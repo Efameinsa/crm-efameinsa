@@ -139,7 +139,7 @@ export default async function OportunidadDetallePage({
         )
         .eq("oportunidad_id", id)
         .order("created_at", { ascending: false }),
-      supabase.from("catalogo_resultados_gestion").select("id, codigo, nombre, accion_sugerida, dias_sugeridos, efecto").eq("activo", true).order("orden"),
+      supabase.from("catalogo_resultados_gestion").select("id, codigo, nombre, accion_sugerida, dias_sugeridos, efecto, solo_postventa").eq("activo", true).order("orden"),
     ]);
 
   if (!oportunidad) {

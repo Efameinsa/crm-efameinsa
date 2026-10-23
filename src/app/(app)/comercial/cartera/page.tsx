@@ -13,6 +13,7 @@ import { EsperaDeNavegacion } from "@/components/crm/espera-de-navegacion";
 import { FiltroSeguimiento } from "@/components/crm/filtro-seguimiento";
 import { ETIQUETA_SEGUIMIENTO, leerSeguimiento, parametrosSeguimiento } from "@/lib/seguimiento-cartera";
 import { ClientesRecientes } from "@/components/crm/clientes-recientes";
+import { cargarSupervisores } from "@/lib/supervisores";
 
 export const dynamic = "force-dynamic";
 
@@ -170,6 +171,7 @@ export default async function CarteraPage({
                 ultimaGestionAt: ultimaGestion.get(c.id)?.at ?? null,
                 ultimaGestionTipo: ultimaGestion.get(c.id)?.tipo ?? null,
               }))}
+              unir={{ supervisores: await cargarSupervisores(supabase) }}
               // Con poder global (0561), la búsqueda trae clientes de otras carteras: se dice de quién es cada uno.
               mostrarDueno={atiendeSinPoseer || (Boolean(perfil.edita_clientes_global) && Boolean(q))}
               // El comercial anota la llamada desde la fila, en SU expediente

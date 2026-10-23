@@ -115,7 +115,7 @@ export default async function Ficha360Page({ params, searchParams }: { params: P
       ? supabase.from("perfiles").select("id, nombre, codigo_comercial").eq("rol", "comercial").eq("activo", true).eq("es_prueba", false).eq("es_soporte", false).order("codigo_comercial")
       : Promise.resolve({ data: null }),
     // Lo que pide «Anotar gestión» (el mismo formulario del expediente).
-    supabase.from("catalogo_resultados_gestion").select("id, codigo, nombre, accion_sugerida, dias_sugeridos, efecto").eq("activo", true).order("orden"),
+    supabase.from("catalogo_resultados_gestion").select("id, codigo, nombre, accion_sugerida, dias_sugeridos, efecto, solo_postventa").eq("activo", true).order("orden"),
     supabase.from("catalogo_motivos_rechazo").select("id, nombre, solo_postventa, requiere_nota").eq("activo", true).order("nombre"),
   ]);
   const [
