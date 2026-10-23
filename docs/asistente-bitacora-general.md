@@ -18,6 +18,12 @@ Sirve para preguntas como «¿por qué ahora piden el protocolo?», «¿quién d
 
 ## Cronología de reuniones y decisiones
 
+### 23-10 (11:01) · Lo que gerencia decidió al revisar los correos automáticos a clientes (Carlos, Santos)
+- **Repuestos:** cuando se vende solo el repuesto, Efameinsa no coordina la instalación ni entrega guías de instalación; el cliente la hace con su personal. La instalación se coordina solo cuando se vendió con instalación (en provincia, normalmente el cliente envía la máquina o viaja el técnico). Por eso el correo «Repuesto enviado» ya no ofrece coordinar ni guía.
+- **Mantenimiento preventivo:** no se promete «gratuito». El correo de suscripción dice «mantenimiento preventivo para clientes, cuando lo programemos».
+- **Avisos que por ahora no salen:** garantía registrada (gerencia va a definir desde cuándo corre la garantía), equipo en camino, salida de planta con fotos, visita reprogramada (ese aviso tiene que ser personal, no automático) y «el técnico salió».
+- **Los artículos y cambios de la web** se revisan en mkt.efameinsa.com, pestaña «Contenidos web», con los botones Aprobado / Observación / No va, igual que los correos.
+
 ### 23-10 (tarde) · Rediseño de las pantallas de postventa (Santos, con el caso de Brenda)
 - **Qué se pidió.** Santos: «haz una reingeniería de las vistas de postventa para quitar redundancias y darle todo más amigable porque son muchas opciones y se pierde la señorita». Antes pidió un análisis completo y verlo en una copia local; dio el visto bueno y se desplegó el mismo día.
 - **Qué se encontró.** Postventa era el perfil con más pantallas del CRM: once opciones de menú, diecisiete pestañas y tiras de navegación dentro de otras. El mismo caso aparecía en cuatro lugares, el mismo pedido en cinco y la misma llamada al almacén en seis. La ficha del cliente decía lo mismo tres veces («Pendiente con este cliente», «Expedientes vivos», «Lo que sigue»). «Hoy» abría con 193 filas atrasadas, casi todas «Caso nuevo sin tomar», una por cliente. Cuatro palabras para lo mismo (atención, caso, expediente, carpeta) y «apertura» para cuatro cosas distintas.
