@@ -86,7 +86,17 @@ interface FilaInforme {
   corregido_at: string | null;
   perfiles: { nombre: string; codigo_comercial: string | null } | null;
   cotizaciones: { id: string; codigo: string } | null;
+  /** Venta por leasing (0603): cliente_nombre es el banco que factura; la ficha es el cliente final. */
+  leasing: boolean;
+  cuentas: { razon_social: string; num_doc: string | null } | null;
 }
+
+/**
+ * A QUIÉN SE LE VENDE, PARA CENTRAL (Santos 24-10). En un leasing el cierre se
+ * factura al banco, pero el pedido, la ejecución y el despacho son del cliente
+ * final: Central veía «BANCO INTERAMERICANO DE FINANZAS» en vez de AQU ANQA.
+ */
+const clienteDelPedido = (f: FilaInforme) => (f.leasing ? (f.cuentas?.razon_social ?? f.cliente_nombre) : f.cliente_nombre);
 
 export default async function CierresCentralPage({
   searchParams,
@@ -118,10 +128,15 @@ export default async function CierresCentralPage({
     ? await supabase.from("servicios_postventa").select("informe_cierre_id").ilike("numero_pedido_erp", patron).not("informe_cierre_id", "is", null).limit(100)
     : { data: [] };
   const idsPorPedido = ((porNumeroDePedido ?? []) as { informe_cierre_id: string }[]).map((p) => p.informe_cierre_id);
+  // El cliente final de un leasing no está en cliente_nombre (ahí va el banco): se busca también por la ficha.
+  const { data: porFicha } = busqueda
+    ? await supabase.from("cuentas").select("id").ilike("razon_social", patron).limit(50)
+    : { data: [] };
+  const idsPorFicha = ((porFicha ?? []) as { id: string }[]).map((c) => c.id);
   let consulta = supabase
     .from("informes_cierre")
     .select(
-      "id, codigo, serie, fecha, emitido_at, asunto, items, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, oportunidad_id, venta_id, adjuntos, anulado_at, anulado_motivo, regularizado, reg_por_entregar, version, corregido_at, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial), cotizaciones!informes_cierre_cotizacion_id_fkey(id, codigo)",
+      "id, codigo, serie, fecha, emitido_at, asunto, items, cliente_nombre, cliente_doc, monto_total, moneda, urgente, entrega_lugar, entrega_fecha, modalidad_pago, cuenta_id, oportunidad_id, venta_id, adjuntos, anulado_at, anulado_motivo, regularizado, reg_por_entregar, version, corregido_at, perfiles!informes_cierre_creado_por_fkey(nombre, codigo_comercial), cotizaciones!informes_cierre_cotizacion_id_fkey(id, codigo), leasing, cuentas(razon_social, num_doc)",
     )
     .not("emitido_at", "is", null);
   if (busqueda) {
@@ -132,6 +147,7 @@ export default async function CierresCentralPage({
         `cliente_doc.ilike.${patron}`,
         `asunto.ilike.${patron}`,
         ...(idsPorPedido.length ? [`id.in.(${idsPorPedido.join(",")})`] : []),
+        ...(idsPorFicha.length ? [`cuenta_id.in.(${idsPorFicha.join(",")})`] : []),
       ].join(","),
     );
   }
@@ -468,8 +484,16 @@ export default async function CierresCentralPage({
                         href={fichaDe(f.cuenta_id)}
                         className="text-sm font-semibold text-foreground hover:text-primary hover:underline"
                       >
-                        {f.cliente_nombre}
+                        {clienteDelPedido(f)}
                       </Link>
+                      {f.leasing && (
+                        <span
+                          title={`Venta por leasing: se factura a ${f.cliente_nombre}${f.cliente_doc ? ` (RUC ${f.cliente_doc})` : ""}; el pedido y el despacho son del cliente final.`}
+                          className="rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-sky-800 dark:text-sky-300"
+                        >
+                          Leasing · factura a {f.cliente_nombre}
+                        </span>
+                      )}
                       {estaAnulado && (
                         <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
                           Anulado
@@ -586,7 +610,7 @@ export default async function CierresCentralPage({
                     {!estaAnulado && (liberado(f.id) || pedido?.aprobado_at != null) && (
                     <ChecksPedidoCentral
                       informeId={f.id}
-                      cliente={f.cliente_nombre}
+                      cliente={clienteDelPedido(f)}
                       numeroPedido={(pedido?.numero_pedido_erp as string | null) ?? null}
                       pedidoEjecutado={pedido?.pedido_ejecutado_at != null}
                       liquidacion={pedido?.liquidacion_at != null}
@@ -641,7 +665,7 @@ export default async function CierresCentralPage({
                       pedidoEjecutadoAt={(pedido?.pedido_ejecutado_at as string | null) ?? null}
                       apuroAlmacen={pedido?.apuro_almacen_at ? { at: pedido.apuro_almacen_at as string, n: Number(pedido.apuro_almacen_n ?? 1) } : null}
                       apuroFinanzas={pedido?.apuro_finanzas_at ? { at: pedido.apuro_finanzas_at as string, n: Number(pedido.apuro_finanzas_n ?? 1) } : null}
-                      cliente={{ cuentaId: f.cuenta_id, nombre: f.cliente_nombre, empresa: f.serie === "OPEN" ? "open" : f.serie === "EFAMEINSA" ? "efameinsa" : null }}
+                      cliente={{ cuentaId: f.cuenta_id, nombre: clienteDelPedido(f), empresa: f.serie === "OPEN" ? "open" : f.serie === "EFAMEINSA" ? "efameinsa" : null }}
                       fileEntregado={pedido?.id ? (fileDePedido.get(pedido.id as string) ?? null) : null}
                       accesorios={pedido?.id ? { incluye: (pedido.accesorios_incluye as boolean | null) ?? null, detalle: (pedido.accesorios_detalle as string | null) ?? null } : null}
                       esServicio={esPedidoDeServicio(pedido?.tipo_pedido as string | null | undefined)}
@@ -690,7 +714,7 @@ export default async function CierresCentralPage({
                       equipos={equiposPorInforme.get(f.id)!}
                       modo="central"
                       despachado={false}
-                      cliente={f.cliente_nombre}
+                      cliente={clienteDelPedido(f)}
                       enlaceEquipo={null}
                     />
                   </div>
