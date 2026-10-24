@@ -756,6 +756,18 @@ function Fila({
     window.addEventListener("beforeunload", avisar);
     return () => window.removeEventListener("beforeunload", avisar);
   }, [sinGuardar]);
+  // AL VOLVER DEL INFORME, LA TARJETA SE PONE AL DÍA (Santos 24-10: Lesly guardó la hoja en
+  // la otra pestaña y aquí seguía pidiendo lo mismo hasta salir y volver a entrar). No es una
+  // recarga: router.refresh() trae los datos nuevos y conserva lo elegido. Con algo sin guardar
+  // o subiendo, no se toca.
+  useEffect(() => {
+    if (!puedeSubirFotos || sinGuardar || pendiente) return;
+    const alVolver = () => {
+      if (document.visibilityState === "visible") router.refresh();
+    };
+    document.addEventListener("visibilitychange", alVolver);
+    return () => document.removeEventListener("visibilitychange", alVolver);
+  }, [puedeSubirFotos, sinGuardar, pendiente, router]);
   return (
     <li className={cn("rounded-md border px-2.5 py-2", apagado ? "border-dashed border-border bg-muted/40 text-muted-foreground" : "border-border bg-card")}>
       <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
@@ -1317,7 +1329,7 @@ function Fila({
                 <a href={`/pedidos/${servicioId}/protocolo`} target="_blank" rel="noreferrer" className="font-semibold underline">
                   el informe de prueba y embalaje
                 </a>
-                ; las fotos y el PDF, aquí arriba. Al volver, recargue la página.
+                ; las fotos y el PDF, aquí arriba. Al volver a esta pestaña, esta lista se pone al día sola.
               </p>
             </div>
           )}

@@ -8,6 +8,7 @@ import { BotonImprimir } from "@/components/crm/boton-imprimir";
 import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
 import { DatosHojaProtocolo } from "@/components/crm/datos-hoja-protocolo";
 import { CandadoProtocolo } from "@/components/crm/candado-protocolo";
+import { VolverAlPedido } from "@/components/crm/volver-al-pedido";
 import { HojaChequeoProtocolo } from "@/components/crm/hoja-chequeo-protocolo";
 import { esTorre } from "@/lib/torres";
 import { cabeceraDeLaDescripcion, chequeoVacio, plantillaPara, type Chequeo } from "@/lib/protocolo-checklist";
@@ -194,9 +195,7 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
   return (
     <div className="hoja-informe mx-auto max-w-3xl bg-white p-8 text-[13px] leading-relaxed text-black">
       <div className="no-imprimir mb-4 flex items-center justify-between gap-3">
-        <a href={`/postventa/pedidos/${id}`} className="text-xs text-muted-foreground hover:underline">
-          ← Volver al pedido
-        </a>
+        <VolverAlPedido href={permisos[0].data === true ? `/almacen/pedidos/${id}` : `/postventa/pedidos/${id}`}>← Volver al pedido</VolverAlPedido>
         <TituloParaImprimir titulo={`${titulo}${refs.length ? ` ${refs.join(" ")}` : ""} - ${cliente}`.replace(/[^\w\s.\-áéíóúñÁÉÍÓÚÑ]/g, "")} />
         <BotonImprimir>Imprimir / guardar PDF</BotonImprimir>
       </div>
@@ -204,6 +203,10 @@ export default async function ProtocoloDelPedidoPage({ params }: { params: Promi
       {borrador && (
         <p className="mb-2 rounded border-2 border-dashed border-amber-500 bg-amber-50 px-3 py-1.5 text-center text-[12px] font-bold uppercase tracking-wide text-amber-800">
           Borrador · falta marcar {equipos.filter((e) => !e.prueba_lista_at).length > 1 ? "las máquinas" : "la máquina"} como probada y embalada
+          {/* Santos 24-10: Lesly guardó la hoja y seguía viendo «borrador» sin saber qué faltaba. */}
+          <span className="no-imprimir mt-0.5 block text-[11px] font-medium normal-case tracking-normal text-amber-900">
+            Lo que guarda en esta hoja ya queda guardado. El borrador termina cuando, en el pedido, pulsa «Probada y embalada»: use «← Volver al pedido» de arriba.
+          </span>
         </p>
       )}
       {puedeEditar && (equipos.some(cerrada) || (abiertoConCodigo && equipos.some((e) => e.prueba_lista_at))) && (
