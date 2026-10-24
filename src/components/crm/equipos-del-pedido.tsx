@@ -18,7 +18,7 @@ import { seriesDisponibles, type SerieDisponible } from "@/lib/acciones/inventar
 import { createClient } from "@/lib/supabase/client";
 import { abrirOtroCircuito, agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarProcedencia, marcarSinStock, quitarLineaQueNoCorresponde, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
 import { probarEquipoDelPedido, probarKitDelPedido, tecnicoYFechaDeLaPrueba } from "@/lib/acciones/almacen";
-import { agregarLineaAlPedido, corregirSerie, editarLineaDelPedido, quitarLineaDelPedido, quitarSerieDeParte, traerLineasDelCierre } from "@/lib/acciones/pedido-central";
+import { agregarLineaAlPedido, corregirSerie, editarLineaDelPedido, quitarLineaDelPedido, quitarSerie, traerLineasDelCierre } from "@/lib/acciones/pedido-central";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
 import type { FotoAlmacen } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
@@ -590,8 +590,32 @@ function Fila({
 
   const confirmando = (valor: string) => avisoSerie?.para === valor.trim().toUpperCase();
 
+  // LA «×» (0602; Santos 24-10): quitar la serie sin poner otra, para volver a elegirla.
+  const [quitando, setQuitando] = useState(false);
+  function botonQuitar(id: string, serie: string) {
+    if (despachado) return null;
+    return (
+      <button
+        type="button"
+        disabled={pendiente}
+        aria-label={`Quitar la serie ${serie}`}
+        title="Quitar esta serie (pide el código de operaciones o gerencia)"
+        onClick={() => {
+          setCorregirCual(id);
+          setSerieNueva("");
+          setQuitando(true);
+          setCorrigiendo(true);
+        }}
+        className="-ml-1 inline-flex size-5 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+      >
+        <X className="size-3.5" />
+      </button>
+    );
+  }
+
   function cerrarCorreccion() {
     setCorrigiendo(false);
+    setQuitando(false);
     setCorregirCual(e.id);
     setSerieNueva("");
     setMotivoSerie("");
@@ -770,6 +794,7 @@ function Fila({
                 </span>
               </>
             )}
+            {e.serie && !e.sin_serie && !e.sin_stock_motivo && !e.prueba_lista_at && botonQuitar(e.id, e.serie)}
             {e.prueba_lista_at ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 font-medium">
                 <Check className="size-3" /> Probada{e.protocolo_ref ? ` · protocolo ${e.protocolo_ref}` : ""}
@@ -855,6 +880,7 @@ function Fila({
               ) : (
                 <span className="rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-mono font-semibold text-[#1E7F4F] whitespace-nowrap">Serie {p.serie}</span>
               )}
+              {p.serie && botonQuitar(p.id, p.serie)}
               {!despachado && (
                 <button
                   type="button"
@@ -863,6 +889,7 @@ function Fila({
                   onClick={() => {
                     setCorregirCual(p.id);
                     setSerieNueva("");
+                    setQuitando(false);
                     setCorrigiendo(true);
                   }}
                 >
@@ -962,8 +989,9 @@ function Fila({
           {corrigiendo ? (
             <div className="space-y-1.5 rounded-md border border-amber-500/40 bg-amber-500/5 p-2">
               <p className="text-[11px] text-amber-900">
-                La serie queda fija. Para cambiarla{partes.length > 0 ? " o quitarla" : ""} hace falta el código de operaciones o gerencia; queda escrito
-                por qué y se avisa a Central, postventa y almacén.
+                {quitando
+                  ? "Quitar la serie: la línea vuelve a esperar serie y la máquina vuelve a estar disponible en el stock. Hace falta el código de operaciones o gerencia; queda escrito por qué y se avisa a Central, postventa y almacén."
+                  : "La serie queda fija. Para cambiarla o quitarla hace falta el código de operaciones o gerencia; queda escrito por qué y se avisa a Central, postventa y almacén."}
               </p>
               {partes.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
@@ -985,17 +1013,24 @@ function Fila({
                   ))}
                 </div>
               )}
-              <div className="grid gap-1.5 sm:grid-cols-2">
-                <Input value={serieNueva} onChange={(x) => setSerieNueva(x.target.value)} placeholder="Serie correcta" className="h-8 font-mono text-sm uppercase" />
-                <Input value={motivoSerie} onChange={(x) => setMotivoSerie(x.target.value)} placeholder="Por qué (ej.: se leyó mal la placa)" className="h-8 text-sm" />
+              <div className={cn("grid gap-1.5", !quitando && "sm:grid-cols-2")}>
+                {!quitando && (
+                  <Input value={serieNueva} onChange={(x) => setSerieNueva(x.target.value)} placeholder="Serie correcta" className="h-8 font-mono text-sm uppercase" />
+                )}
+                <Input
+                  value={motivoSerie}
+                  onChange={(x) => setMotivoSerie(x.target.value)}
+                  placeholder={quitando ? "Por qué (ej.: se marcó para otro cliente)" : "Por qué (ej.: se leyó mal la placa)"}
+                  className="h-8 text-sm"
+                />
               </div>
-              {avisoDeSerie(serieNueva)}
+              {!quitando && avisoDeSerie(serieNueva)}
               <CampoCodigo valor={pinSerie} onChange={setPinSerie} tono="amber" id={`pin-serie-${e.id}`} />
-              {(!serieNueva.trim() || motivoSerie.trim().length < 5 || pinSerie.replace(/\D/g, "").length < 4) && (
+              {((!quitando && !serieNueva.trim()) || motivoSerie.trim().length < 5 || pinSerie.replace(/\D/g, "").length < 4) && (
                 <p className="text-[11px] leading-snug text-muted-foreground">
                   Falta:{" "}
                   {[
-                    !serieNueva.trim() && (partes.some((p) => p.id === corregirCual) ? "la serie correcta (o «Quitar esta serie»)" : "la serie correcta"),
+                    !quitando && !serieNueva.trim() && "la serie correcta (o «Quitar esta serie»)",
                     motivoSerie.trim().length < 5 && "el motivo (al menos una frase corta)",
                     pinSerie.replace(/\D/g, "").length < 4 && "el código de 4 dígitos",
                   ]
@@ -1005,6 +1040,7 @@ function Fila({
                 </p>
               )}
               <div className="flex gap-1.5">
+                {!quitando && (
                 <Button
                   size="sm"
                   className="h-8"
@@ -1021,22 +1057,24 @@ function Fila({
                 >
                   {confirmando(serieNueva) ? "Sí, corregir así" : "Corregir"}
                 </Button>
-                {corregirCual !== e.id && partes.some((p) => p.id === corregirCual) && (
+                )}
+                {/* La principal ya probada no se quita: su protocolo es de esa máquina (0602). */}
+                {(quitando || corregirCual !== e.id || !e.prueba_lista_at) && (
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="h-8 border-destructive/40 text-destructive hover:bg-destructive/5"
+                    variant={quitando ? "default" : "outline"}
+                    className={cn("h-8", quitando ? "bg-destructive text-white hover:bg-destructive/90" : "border-destructive/40 text-destructive hover:bg-destructive/5")}
                     disabled={pendiente || motivoSerie.trim().length < 5 || pinSerie.replace(/\D/g, "").length < 4}
-                    title="Quita esta serie de la unidad; después puede registrar la correcta"
+                    title="Quita esta serie del pedido; la máquina vuelve al stock y después puede elegir la correcta"
                     onClick={() =>
                       correr(async () => {
-                        const r = await quitarSerieDeParte(corregirCual, servicioId, pinSerie, motivoSerie);
+                        const r = await quitarSerie(corregirCual, servicioId, pinSerie, motivoSerie);
                         if (!r.error) cerrarCorreccion();
                         return r;
-                      }, "Serie quitada; quedó escrito en el pedido y se avisó")
+                      }, "Serie quitada: la máquina volvió al stock y se avisó")
                     }
                   >
-                    Quitar esta serie
+                    {quitando ? "Quitar la serie" : "Quitar esta serie"}
                   </Button>
                 )}
                 <Button size="sm" variant="ghost" className="h-8" onClick={cerrarCorreccion}>
