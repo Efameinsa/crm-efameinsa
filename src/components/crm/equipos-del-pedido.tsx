@@ -31,6 +31,7 @@ import { subirConProgreso } from "@/lib/subir-con-progreso";
 import { cn } from "@/lib/utils";
 import { esTorre, seriesDeLaDescripcion } from "@/lib/torres";
 import { esAccesorioDelPedido, esFilaDeServicio, faltaParaProbar, hojaDelSistema, type ArchivoProtocolo, type MaquinaParaProbar } from "@/lib/protocolo-completo";
+import { ElegirTecnico } from "@/components/crm/lista-tecnicos";
 
 /** Las tres opciones de la generación de código (0385), con el nombre que usa Lesly. */
 const PROCEDENCIA: Record<string, string> = {
@@ -1220,7 +1221,7 @@ function Fila({
             </label>
             <label className="flex flex-wrap items-center gap-1.5">
               Técnico que hizo la prueba:
-              <Input value={tecnico} onChange={(x) => setTecnico(x.target.value)} placeholder="Nombre del técnico" maxLength={120} className="h-8 w-56 text-sm" />
+              <ElegirTecnico value={tecnico} onChange={setTecnico} className="w-full max-w-md" claseCampo="h-8 text-sm" />
             </label>
             <span>(salen en el informe; si deja la fecha de hoy, queda la de hoy)</span>
           </div>
@@ -1545,7 +1546,7 @@ function ProtocoloDelKit({ servicioId, piezas, cliente }: { servicioId: string; 
         </label>
         <label className="flex flex-wrap items-center gap-1.5">
           Técnico que hizo la prueba:
-          <Input value={tecnico} onChange={(x) => setTecnico(x.target.value)} placeholder="Nombre del técnico" maxLength={120} className="h-8 w-56 text-sm" />
+          <ElegirTecnico value={tecnico} onChange={setTecnico} className="w-full max-w-md" claseCampo="h-8 text-sm" />
         </label>
       </div>
       <TomarOSubirVarias titulo="Fotos del kit completo" archivos={fotos} onChange={setFotos} maximo={100} />

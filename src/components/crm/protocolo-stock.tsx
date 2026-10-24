@@ -15,6 +15,7 @@ import type { FotoAlmacen } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TomarOSubirVarias, VideosDeLaPrueba } from "@/components/crm/tomar-o-subir";
+import { ElegirTecnico } from "@/components/crm/lista-tecnicos";
 import { NumeroDeProtocolo } from "@/components/crm/numero-de-protocolo";
 import { Documentos } from "@/components/crm/informe-soporte-apertura";
 
@@ -85,7 +86,7 @@ export function NuevoProtocoloDeStock({ abiertoAlEntrar = false }: { abiertoAlEn
         </label>
         <label className="text-xs font-medium sm:col-span-2">
           Técnico que hizo la prueba
-          <Input value={d.tecnico} onChange={poner("tecnico")} maxLength={120} className="mt-0.5 h-8 text-sm" />
+          <ElegirTecnico value={d.tecnico} onChange={(nombre) => setD((v) => ({ ...v, tecnico: nombre }))} className="mt-0.5" claseCampo="h-8 text-sm font-normal" />
         </label>
       </div>
       <div className="flex gap-2">

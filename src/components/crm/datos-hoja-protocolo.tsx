@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { datosDelProtocolo } from "@/lib/acciones/almacen";
 import { datosDelProtocoloDeStock } from "@/lib/acciones/protocolo-stock";
+import { ElegirTecnico } from "@/components/crm/lista-tecnicos";
 import type { DatosHoja, Maquina } from "@/lib/protocolo-hoja";
 
 const CAMPOS: { clave: keyof DatosHoja; etiqueta: string; tipo?: "date"; ayuda?: string }[] = [
@@ -81,14 +82,23 @@ export function DatosHojaProtocolo({
         {campos.map((c) => (
           <label key={c.clave} className="text-[11px] font-semibold text-neutral-700">
             {c.etiqueta}
-            <input
-              type={c.tipo ?? "text"}
-              max={c.tipo === "date" ? hoy : undefined}
-              placeholder={c.ayuda}
-              value={datos[c.clave] ?? ""}
-              onChange={(x) => setDatos((d) => ({ ...d, [c.clave]: x.target.value }))}
-              className="mt-0.5 block h-8 w-full rounded border border-neutral-400 bg-white px-2 text-[12px] font-normal"
-            />
+            {c.clave === "tecnico" ? (
+              <ElegirTecnico
+                value={datos.tecnico ?? ""}
+                onChange={(nombre) => setDatos((d) => ({ ...d, tecnico: nombre }))}
+                className="mt-0.5"
+                claseCampo="h-8 rounded border-neutral-400 bg-white text-[12px] font-normal"
+              />
+            ) : (
+              <input
+                type={c.tipo ?? "text"}
+                max={c.tipo === "date" ? hoy : undefined}
+                placeholder={c.ayuda}
+                value={datos[c.clave] ?? ""}
+                onChange={(x) => setDatos((d) => ({ ...d, [c.clave]: x.target.value }))}
+                className="mt-0.5 block h-8 w-full rounded border border-neutral-400 bg-white px-2 text-[12px] font-normal"
+              />
+            )}
           </label>
         ))}
       </div>
