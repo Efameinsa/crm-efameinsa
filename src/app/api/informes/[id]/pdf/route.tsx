@@ -34,7 +34,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const { data: informe } = await supabase
     .from("informes_cierre")
-    .select("*, perfiles!informes_cierre_creado_por_fkey(nombre, telefono, celular, email_contacto)")
+    .select("*, perfiles!informes_cierre_creado_por_fkey(nombre, telefono, celular, email_contacto), cuentas(razon_social, num_doc)")
     .eq("id", id)
     .maybeSingle();
 
@@ -107,6 +107,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         correo: informe.cliente_correo,
         ordenCompra: informe.orden_compra,
       }}
+      leasing={
+        informe.leasing
+          ? {
+              clienteFinal: (informe.cuentas as unknown as { razon_social: string } | null)?.razon_social ?? "—",
+              doc: (informe.cuentas as unknown as { num_doc: string | null } | null)?.num_doc ?? null,
+            }
+          : null
+      }
       contactoVenta={informe.contacto_venta ?? {}}
       contactoContabilidad={informe.contacto_contabilidad ?? {}}
       contactoDespacho={informe.contacto_despacho ?? {}}

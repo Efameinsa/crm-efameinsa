@@ -84,6 +84,8 @@ export const esquemaCorreccionInforme = z
     nota_final: z.string().trim().max(1000).optional(),
     // Qué se vende (0436): "" vuelve a «según los renglones».
     tipo_pedido: z.enum(["equipo", "repuesto", "accesorio", "mantenimiento", "revision", "embalaje", ""]).optional(),
+    // Venta por leasing (0603): se factura al banco; la ficha es el cliente final.
+    leasing: z.boolean().optional(),
   })
   .strict();
 

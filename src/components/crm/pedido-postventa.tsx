@@ -40,6 +40,7 @@ import { verificarDespacho } from "@/lib/acciones/almacen";
 import { AperturaLlamadaBoton } from "@/components/crm/apertura-llamada-boton";
 import { PedirConfirmacionPago } from "@/components/crm/pedir-confirmacion-pago";
 import { OrdenFacturar } from "@/components/crm/orden-facturar";
+import { LeasingDelPedido } from "@/components/crm/leasing-del-pedido";
 import { fechaHoraLima, fechaLima } from "@/lib/fechas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -485,6 +486,16 @@ export function PedidoPostventa({
   return (
     <div className="space-y-3">
       {avisoAprobar}
+      {/* VENTA POR LEASING (0603): a quién se factura, a quién se entrega y a nombre de quién sale la guía. */}
+      {servicio.leasing && (
+        <LeasingDelPedido
+          servicioId={servicio.id}
+          facturaA={servicio.factura_a_texto ?? null}
+          cliente={servicio.cliente_texto ?? null}
+          guiaANombreDe={servicio.guia_a_nombre_de === "banco" ? "banco" : "cliente"}
+          editable={!servicio.despachado_at && !servicio.guia}
+        />
+      )}
       {/* QUÉ SE VENDIÓ decide el circuito (Carlos, 15-09; 0239). */}
       {(servicio.informe_cierre_id || servicio.tipo_pedido) && (
         <TipoPedidoSelector

@@ -29,6 +29,7 @@ import {
   corregirInformeEmitido,
   guardarContactoEntrega,
   quitarAdjuntoInforme,
+  listarEntidadesFinancieras,
   type BorradorInforme,
   type DatosInforme,
   type ItemInformeEntrada,
@@ -167,6 +168,7 @@ function aCorreccion(d: DatosInforme): Record<string, unknown> {
     garantia: d.garantia ?? "",
     nota_final: d.notaFinal ?? "",
     tipo_pedido: d.tipoPedido ?? "",
+    leasing: d.leasing === true,
   };
 }
 
@@ -320,6 +322,31 @@ export function FormularioInforme({
   // que el documento salga a su nombre y la ficha traía dos razones sociales
   // pegadas.
   const [editandoCliente, setEditandoCliente] = useState(false);
+  // VENTA POR LEASING (0603; Santos 24-10, AQU ANQA con el BanBif): el cierre
+  // y la factura salen a nombre del banco; esta ficha es el cliente final, que
+  // recibe el equipo, el despacho y la guía de remisión.
+  const [leasing, setLeasing] = useState(b?.leasing ?? false);
+  const [bancos, setBancos] = useState<{ ruc: string; razonSocial: string; direccion: string | null }[] | null>(null);
+  useEffect(() => {
+    if (leasing && bancos === null) listarEntidadesFinancieras().then(setBancos);
+  }, [leasing, bancos]);
+  function alternarLeasing(si: boolean) {
+    setLeasing(si);
+    if (si) {
+      // El banco paga todo antes de que salga el equipo.
+      setPctAntesDespacho("100");
+      return;
+    }
+    setClienteNombre(cuenta.razon_social);
+    setClienteDoc(cuenta.num_doc ?? "");
+    setClienteDireccion(cuenta.direccion ?? "");
+  }
+  function elegirBanco(banco: { ruc: string; razonSocial: string; direccion: string | null }) {
+    setClienteNombre(banco.razonSocial);
+    setClienteDoc(banco.ruc);
+    setClienteDireccion(banco.direccion ?? "");
+  }
+  const leasingSinBanco = leasing && (clienteDoc.trim() === (cuenta.num_doc ?? "").trim() || !/^\d{11}$/.test(clienteDoc.trim()));
   // «Pegar una lista»: qué tipo de renglón se está pegando, o nada.
   const [pegando, setPegando] = useState<TipoItemInforme | null>(null);
   const [textoPegado, setTextoPegado] = useState("");
@@ -505,6 +532,7 @@ export function FormularioInforme({
       // atado a ella: es la trazabilidad que el archivo viejo no puede dar.
       cotizacionId: presupuesto?.fuente === "crm" ? presupuesto.id : presupuestoId ? null : (b?.cotizacionId ?? null),
       comprobante,
+      leasing,
       clienteNuevo,
       clienteNombre,
       clienteDoc: clienteDoc || null,
@@ -541,7 +569,8 @@ export function FormularioInforme({
   // de texto enterradas en "Ver y editar lo prellenado": se podían cambiar sin
   // que nada avisara, y el PDF salía diciendo una cosa mientras la cartera
   // decía otra. La regla vive en lib/informes.ts, con sus pruebas.
-  const avisosIdentidad = avisosDeIdentidad(
+  // En leasing la factura va al banco a propósito: que no salga el aviso de «otra empresa».
+  const avisosIdentidad = leasing ? [] : avisosDeIdentidad(
     { nombre: clienteNombre, doc: clienteDoc },
     { razonSocial: cuenta.razon_social, numDoc: cuenta.num_doc },
   );
@@ -650,6 +679,7 @@ export function FormularioInforme({
     setIncluye(d.incluye);
     setGratis(d.gratis ?? "");
     setNotaFinal(d.notaFinal ?? "");
+    setLeasing(d.leasing === true);
     setItems(d.items);
     if (!enCorreccion) {
       if (d.ventaId && ventasSinInforme.some((v) => v.id === d.ventaId)) setVentaId(d.ventaId);
@@ -1026,6 +1056,43 @@ export function FormularioInforme({
               </button>
             )}
           </div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <Pastilla activa={leasing} onClick={() => alternarLeasing(!leasing)}>
+              Venta por leasing
+            </Pastilla>
+            <span className="text-[11px] text-muted-foreground">
+              {leasing
+                ? `Se factura al banco. ${cuenta.razon_social} es el cliente final: recibe el equipo, el despacho y la guía de remisión.`
+                : "Márquelo si un banco financia la compra."}
+            </span>
+          </div>
+          {leasing && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-medium text-foreground">Banco que financia:</span>
+              {(bancos ?? []).map((banco) => (
+                <Pastilla key={banco.ruc} activa={clienteDoc.trim() === banco.ruc} onClick={() => elegirBanco(banco)}>
+                  {banco.razonSocial}
+                </Pastilla>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  setClienteNombre("");
+                  setClienteDoc("");
+                  setClienteDireccion("");
+                  setEditandoCliente(true);
+                }}
+                className="text-[11px] font-medium text-primary hover:underline"
+              >
+                Otro banco: escribir su RUC y razón social
+              </button>
+              {leasingSinBanco && (
+                <p className="w-full text-[11px] font-medium text-amber-700">
+                  Falta el banco: elíjalo o escriba su RUC (11 dígitos). La factura no puede salir a nombre del cliente final.
+                </p>
+              )}
+            </div>
+          )}
           {editandoCliente ? (
             <div className="mt-1.5 space-y-2">
               <Campo etiqueta="Razón social" pista="tal como el cliente quiere que salga en el documento">

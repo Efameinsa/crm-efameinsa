@@ -20,6 +20,10 @@ export const dynamic = "force-dynamic";
 
 type FilaAp = {
   id: string;
+  /** Leasing (0603): se factura al banco; se entrega y la guía va (por defecto) al cliente final. */
+  leasing?: boolean | null;
+  cliente_texto?: string | null;
+  guia_a_nombre_de?: string | null;
   apertura_despacho_at: string | null;
   apertura_enviada_almacen_at: string | null;
   fecha_despacho: string | null;
@@ -64,7 +68,7 @@ export default async function AperturasPorConfirmarPage() {
   const conPedido = perfil.rol !== "facturacion";
   const supabase = await createClient();
   const columnas =
-    "id, apertura_despacho_at, apertura_enviada_almacen_at, fecha_despacho, guia_confirmada_at, guia_confirmada_nota, guia_comprobante_tipo, guia_comprobante_numero, guia_motivo, guia_motivo_detalle, despachado_at, forma_pago, pct_antes_despacho, origen, tipo_pedido, letras_cantidad, confirmacion_abono, informe_cierre_id, pago_confirmado_at, finanzas_vb_at, finanzas_vb_por, finanzas_vb_nota, finanzas_vb_comision, letras_estado, letras_firmadas_at, salida_autorizada_at, salida_autorizada_motivo, moneda";
+    "id, apertura_despacho_at, apertura_enviada_almacen_at, fecha_despacho, guia_confirmada_at, guia_confirmada_nota, guia_comprobante_tipo, guia_comprobante_numero, guia_motivo, guia_motivo_detalle, despachado_at, forma_pago, pct_antes_despacho, origen, tipo_pedido, letras_cantidad, confirmacion_abono, informe_cierre_id, pago_confirmado_at, finanzas_vb_at, finanzas_vb_por, finanzas_vb_nota, finanzas_vb_comision, letras_estado, letras_firmadas_at, salida_autorizada_at, salida_autorizada_motivo, moneda, leasing, cliente_texto, guia_a_nombre_de";
   const [{ data }, { data: sinEmitir }] = await Promise.all([
     supabase
       .from("servicios_postventa")
@@ -175,6 +179,12 @@ function FilaApertura({
         {p?.cliente ?? "Pedido"}
         {p?.clienteDoc ? ` · ${p.clienteDoc}` : ""}
       </p>
+      {f.leasing && (
+        <p className="mt-0.5 font-medium text-sky-800 dark:text-sky-300">
+          Leasing · se entrega a {(f.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "") || "el cliente final"} · guía de remisión a nombre de{" "}
+          {f.guia_a_nombre_de === "banco" ? "el banco" : "el cliente final"}
+        </p>
+      )}
       <p className="text-muted-foreground">
         {[p?.codigoCierre ? `Cierre ${p.codigoCierre}` : null, p?.numeroErp ? `Pedido ${p.numeroErp}` : null, p?.comercialNombre ?? null]
           .filter(Boolean)
@@ -225,6 +235,7 @@ function FilaApertura({
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-foreground">
           {p?.cliente ?? "Pedido"}
+          {f.leasing && <span className="ml-1.5 rounded-full bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-sky-800 dark:text-sky-300">LEASING</span>}
         </p>
         <p className="text-xs text-muted-foreground">
           {p?.numeroErp ? `Pedido ${p.numeroErp} · ` : ""}

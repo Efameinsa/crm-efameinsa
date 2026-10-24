@@ -1208,6 +1208,21 @@ async function avisarSiYaEstanTodas(supabase: Awaited<ReturnType<typeof createCl
   return ok();
 }
 
+/**
+ * LEASING (0603; Santos 24-10): a nombre de quién sale la guía de remisión.
+ * Por defecto el cliente final; postventa o Central la cambian al banco en la
+ * apertura, mientras la guía no esté emitida.
+ */
+export async function elegirGuiaANombreDe(servicioId: string, aNombreDe: "cliente" | "banco"): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("elegir_guia_a_nombre_de", { p_servicio: servicioId, p_a_nombre_de: aNombreDe });
+  if (error) return falla(enCastellano(error.message));
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath(`/almacen/pedidos/${servicioId}`);
+  revalidatePath("/finanzas/aperturas");
+  return ok();
+}
+
 /** Postventa decide qué va en este despacho (Ecolav: sale la lavadora, la secadora sin stock espera). */
 export async function equipoVaEnEsteDespacho(itemId: string, servicioId: string, va: boolean): Promise<{ error: string | null }> {
   const supabase = await createClient();
