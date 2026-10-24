@@ -51,7 +51,7 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
   const supabase = await createClient();
   const { data: s } = await supabase
     .from("servicios_postventa")
-    .select("id, informe_cierre_id, numero_pedido_erp, cliente_texto, pedido_ejecutado_at, liquidacion_at, modalidad, pedido_generado_por, pedido_ejecutado_por, liquidacion_subida_por, liquidacion_por, tipo_pedido, despachado_at, cerrado_at")
+    .select("id, informe_cierre_id, numero_pedido_erp, cliente_texto, pedido_ejecutado_at, liquidacion_at, modalidad, pedido_generado_por, pedido_ejecutado_por, liquidacion_subida_por, liquidacion_por, tipo_pedido, despachado_at, cerrado_at, leasing, factura_a_texto, guia_a_nombre_de, cuenta_id")
     .eq("id", id)
     .maybeSingle();
   if (!s) notFound();
@@ -95,7 +95,15 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
   // editar»). Mientras no salga, Central lo corrige aquí mismo; no se imprime.
   const editable = perfil.rol === "central" && !s.despachado_at && !s.cerrado_at;
   const empresa = i?.serie === "OPEN" ? "Open Investments" : "Corporación Efameinsa e Ingeniería S.A.";
-  const cliente = i?.cliente_nombre ?? (s.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "");
+  // LEASING (0603; Central 24-10, AQU ANQA): el cierre se factura al banco, pero
+  // el pedido es del cliente final (la ficha): a él se prepara, despacha y emite
+  // la guía. El banco va en su propia fila.
+  const { data: ficha } = s.leasing && s.cuenta_id
+    ? await supabase.from("cuentas").select("razon_social, num_doc, direccion").eq("id", s.cuenta_id).maybeSingle()
+    : { data: null };
+  const cliente = s.leasing
+    ? (ficha?.razon_social ?? (s.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, ""))
+    : (i?.cliente_nombre ?? (s.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, ""));
   const titulo = `PEDIDO ${s.numero_pedido_erp ?? "SIN NÚMERO"}`;
   // Lo regalado que es una máquina ya va en la tabla con su serie (0502); aquí
   // queda solo lo que no lleva fila (servicios sin costo y otros conceptos).
@@ -106,9 +114,15 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
   // En un servicio todo va en «Detalle del servicio», que es lo que se edita (Santos 21-10).
   const otros = esServicio ? [] : (i?.items ?? []).filter((x) => x.descripcion?.trim() && !enLaTabla.has(primeraLinea(x.descripcion)));
   const filas: [string, string | null][] = [
-    ["Cliente", cliente],
-    ["RUC / DNI", i?.cliente_doc ?? null],
-    ["Dirección fiscal", i?.cliente_direccion ?? null],
+    ["Cliente", s.leasing ? `${cliente} (cliente final · leasing)` : cliente],
+    ["RUC / DNI", s.leasing ? (ficha?.num_doc ?? null) : (i?.cliente_doc ?? null)],
+    ["Dirección fiscal", s.leasing ? (ficha?.direccion ?? null) : (i?.cliente_direccion ?? null)],
+    ...(s.leasing
+      ? ([
+          ["Se factura a (leasing)", (s.factura_a_texto as string | null) ?? (i ? `${i.cliente_doc ?? ""} - ${i.cliente_nombre}` : null)],
+          ["Guía de remisión a nombre de", s.guia_a_nombre_de === "banco" ? "El banco" : `${cliente} (cliente final)`],
+        ] as [string, string | null][])
+      : []),
     ["Cierre de venta", i?.codigo ? `N.º ${i.codigo} · ${empresa} · ${fecha(i.fecha)}` : null],
     ["Comercial", i?.perfiles ? `${i.perfiles.codigo_comercial ? `${i.perfiles.codigo_comercial} · ` : ""}${i.perfiles.nombre}` : null],
     ["Orden de compra", i?.orden_compra ?? null],

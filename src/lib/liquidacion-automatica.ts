@@ -527,7 +527,7 @@ export async function cargarBaseLiquidacion(supabase: SupabaseClient, servicioId
     f.informe_cierre_id
       ? supabase
           .from("informes_cierre")
-          .select("codigo, serie, cliente_nombre, cliente_doc, orden_compra, presupuesto_ref, modalidad_pago, items, moneda, cotizaciones!informes_cierre_cotizacion_id_fkey(codigo)")
+          .select("codigo, serie, cliente_nombre, cliente_doc, orden_compra, presupuesto_ref, modalidad_pago, items, moneda, leasing, cotizaciones!informes_cierre_cotizacion_id_fkey(codigo)")
           .eq("id", f.informe_cierre_id as string)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -608,7 +608,10 @@ export async function cargarBaseLiquidacion(supabase: SupabaseClient, servicioId
   return {
     servicioId,
     empresa: serie,
-    cliente: String((cuenta?.razon_social as string | null) ?? (i?.cliente_nombre as string | null) ?? f.cliente_texto ?? "Cliente").replace(/^\d{8,11}\s*-\s*/, ""),
+    // LEASING (0603): la liquidación es para facturar, y se factura al banco (nombre y RUC del cierre).
+    cliente: String(
+      (i?.leasing ? (i?.cliente_nombre as string | null) : null) ?? (cuenta?.razon_social as string | null) ?? (i?.cliente_nombre as string | null) ?? f.cliente_texto ?? "Cliente",
+    ).replace(/^\d{8,11}\s*-\s*/, ""),
     clienteDoc: (i?.cliente_doc as string | null) ?? (cuenta?.num_doc as string | null) ?? null,
     pedido: (f.numero_pedido_erp as string | null) ?? (i?.codigo as string | null) ?? "—",
     moneda: (f.moneda as string | null) ?? (i?.moneda as string | null) ?? "USD",
