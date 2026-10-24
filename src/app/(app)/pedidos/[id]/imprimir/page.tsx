@@ -8,6 +8,7 @@ import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
 import { DetalleDelServicio } from "@/components/crm/detalle-del-servicio";
 import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
 import { equiposDelPedido } from "@/lib/acciones/postventa";
+import { maquinasParaImprimir } from "@/lib/maquinas-del-pedido";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +65,7 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
           .eq("id", s.informe_cierre_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase.from("pedido_equipos").select("orden, descripcion, serie, cantidad, precio").eq("servicio_id", id).order("orden"),
+    supabase.from("pedido_equipos").select("id, orden, descripcion, serie, cantidad, precio, parte_de, parte_nombre").eq("servicio_id", id).order("orden"),
   ]);
   const i = inf as unknown as {
     codigo: string | null; serie: string | null; fecha: string | null; cliente_nombre: string; cliente_doc: string | null; cliente_direccion: string | null;
@@ -80,11 +81,15 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
   const ids = [idCentral, idFinanzas].filter(Boolean) as string[];
   const { data: firmantes } = ids.length ? await supabase.from("perfiles").select("id, nombre").in("id", ids) : { data: [] };
   const nombreDe = (x: string | null) => (firmantes ?? []).find((f) => f.id === x)?.nombre ?? "";
-  const lista = (equipos ?? []) as { orden: number; descripcion: string; serie: string | null; cantidad: number | null; precio: number | null }[];
+  const lista = (equipos ?? []) as {
+    id: string; orden: number; descripcion: string; serie: string | null; cantidad: number | null; precio: number | null; parte_de: string | null; parte_nombre: string | null;
+  }[];
   // El servicio se escribe (0574): cantidad y serie de la máquina atendida, sin «serie pendiente».
   const esServicio = ["mantenimiento", "revision", "embalaje"].includes((s.tipo_pedido as string | null) ?? "");
   const conPrecio = esServicio && verPrecios && lista.some((e) => e.precio != null);
-  const pendientes = esServicio ? 0 : lista.filter((e) => !e.serie).length;
+  // La torre sale en dos máquinas, cada una con su serie (Facturación, 24-10).
+  const maquinas = esServicio ? [] : maquinasParaImprimir(lista);
+  const pendientes = maquinas.filter((e) => !e.serie).length;
   // CORREGIR DESDE LA HOJA (Santos 21-10, FAMILY FARMS PED-0037-2026: «generó
   // el pedido por error y ahora no puede editarlo, no tiene vista para
   // editar»). Mientras no salga, Central lo corrige aquí mismo; no se imprime.
@@ -174,7 +179,21 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
             </tr>
           </thead>
           <tbody>
-            {lista.map((e, k) => (
+            {!esServicio &&
+              maquinas.map((m) => (
+                <tr key={m.numero}>
+                  <td className="w-10 border border-neutral-500 px-2 py-1 align-top">{m.numero}</td>
+                  <td className="whitespace-pre-line border border-neutral-500 px-2 py-1">
+                    {m.titulo && <p className="font-bold">{m.titulo}</p>}
+                    {m.ficha && <p className="font-semibold">{m.ficha}</p>}
+                    <p className={m.titulo ? "text-[11px] text-neutral-600" : ""}>{m.descripcion}</p>
+                  </td>
+                  <td className="w-40 border border-neutral-500 px-2 py-1 align-top font-mono font-semibold">
+                    {m.serie ?? <span className="font-sans text-[#8B1510]">SERIE PENDIENTE</span>}
+                  </td>
+                </tr>
+              ))}
+            {esServicio && lista.map((e, k) => (
               <tr key={k}>
                 <td className="w-8 border border-neutral-500 px-2 py-1 align-top">{k + 1}</td>
                 <td className="whitespace-pre-line border border-neutral-500 px-2 py-1">{e.descripcion}</td>

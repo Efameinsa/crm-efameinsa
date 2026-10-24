@@ -38,7 +38,7 @@ function tipoDe(descripcion: string, maquina: Maquina, parteNombre: string | nul
 }
 
 /** La capacidad: «10 - 13 KG» en una torre es 13 la lavadora y 10 la secadora. */
-function capacidadDe(descripcion: string, secadora: boolean): string | null {
+export function capacidadDe(descripcion: string, secadora: boolean): string | null {
   const d = descripcion.toUpperCase().replace(/,/g, ".");
   const rango = d.match(/(\d+(?:\.\d+)?)\s*(?:-|–|A|\/)\s*(\d+(?:\.\d+)?)\s*(KG|LB|BHP|HP)\b/);
   if (rango) {
