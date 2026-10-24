@@ -4,6 +4,8 @@ import { useState, useTransition, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { celebrar, type Celebracion } from "@/lib/celebrar";
+import Link from "@/components/enlace";
+import { pedirAperturaInterna } from "@/components/crm/apertura-servicio-caso";
 import {
   Check,
   Minus,
@@ -121,8 +123,22 @@ function nombreMaquina(serie: string | null | undefined, modelo: string | null |
   return [serie ? `Serie ${serie}` : null, corto].filter(Boolean).join(" · ") || "Máquina sin serie";
 }
 
+/** Una orden de recepción del caso (0557/0568): el equipo que entra a planta y su revisión. */
+export type RecepcionDelCaso = {
+  id: string;
+  codigo: string;
+  equipo_texto: string;
+  recibido_at: string | null;
+  revisado_at: string | null;
+  listo_at: string | null;
+  resultado: string | null;
+  anulada_at: string | null;
+};
+
 export function LineaAtencion({
   atencion,
+  recepciones = [],
+  aperturaInterna,
   garantia,
   cliente,
   hayMaquinas = false,
@@ -135,6 +151,14 @@ export function LineaAtencion({
   tecnicos = [],
 }: {
   atencion: Atencion;
+  /** Las órdenes de recepción del caso: el equipo que vino a planta y su revisión. */
+  recepciones?: RecepcionDelCaso[];
+  /**
+   * La orden de revisión en planta desde el paso (Brenda 23-10): si se puede
+   * emitir otra apertura (la anterior ya salió o no hay), y el pedido de la
+   * apertura actual para cambiarla a interna allí si todavía no salió.
+   */
+  aperturaInterna?: { puedeNueva: boolean; servicioId: string | null; esInterna: boolean };
   /** Las máquinas del cliente: la del caso se elige DENTRO del Paso 1, no en
    *  otro panel (Rubí, 28-09). */
   equipos?: EquipoDelCliente[];
@@ -495,6 +519,17 @@ export function LineaAtencion({
           })()}
         </p>
       )}
+      {/* LA ORDEN DE REVISIÓN EN PLANTA, ANTES DE LAS PRUEBAS (Brenda y gerencia, 23-10
+          17:25, caso LINO ESPIRITU): «antes de prueba y conformidad debería estar aquí yo
+          dando la orden para que procedan a revisar la máquina». Va en la atención y en
+          las pruebas —también mirando la atención ya en verde: «cuando está en verde
+          también debe poder proceder»— y muestra después la revisión del almacén. */}
+      {!a.cerrado_at &&
+        aperturaInterna &&
+        pasoDe(a.etapa) >= pasoDe("planificacion") &&
+        ["atencion", "pruebas", "conformidad"].includes(etapaVista) && (
+          <RevisionEnPlanta atencionId={a.id} recepciones={recepciones} apertura={aperturaInterna} />
+        )}
       {etapaVista !== a.etapa ? (
         <ActaEtapa
           etapa={etapaVista as EtapaAtencion}
@@ -870,6 +905,78 @@ function dondeSeCorrige(error: string): { texto: string; ancla: string | null } 
   // La pestaña quedó atrás de lo que pasó en la base: otra persona avanzó el caso.
   if (/ya pasó por esa etapa|de a un paso/i.test(error)) return { texto: "Ver el paso actual", ancla: null };
   return null;
+}
+
+/**
+ * «Revisión en planta» dentro del caso: dar la orden (apertura de servicio
+ * interno → orden de recepción al almacén) y seguirla hasta el informe.
+ */
+function RevisionEnPlanta({
+  atencionId,
+  recepciones,
+  apertura,
+}: {
+  atencionId: string;
+  recepciones: RecepcionDelCaso[];
+  apertura: { puedeNueva: boolean; servicioId: string | null; esInterna: boolean };
+}) {
+  const vivas = recepciones.filter((r) => !r.anulada_at);
+  const estado = (r: RecepcionDelCaso) =>
+    r.listo_at
+      ? r.resultado === "cotizar"
+        ? "Revisado: hay que cotizar"
+        : "Revisado: listo para devolver al cliente"
+      : r.revisado_at
+        ? "Revisado por el técnico: falta cerrar la revisión"
+        : r.recibido_at
+          ? "El almacén lo recibió: falta la revisión del técnico"
+          : "Orden dada: falta que el almacén lo reciba";
+  const pendiente = vivas.some((r) => !r.listo_at);
+  return (
+    <div className={cn("rounded-lg border p-3", pendiente ? "border-amber-400 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30" : "border-primary/30 bg-primary/5")}>
+      <p className="text-[11px] font-bold uppercase tracking-wide text-foreground">Revisión en planta · antes de las pruebas</p>
+      {vivas.length > 0 ? (
+        <ul className="mt-1.5 space-y-1 text-xs">
+          {vivas.map((r) => (
+            <li key={r.id} className="flex flex-wrap items-center gap-x-2">
+              <Link href={`/recepciones/${r.id}`} className="font-mono font-semibold text-primary hover:underline">
+                {r.codigo}
+              </Link>
+              <span className="text-foreground">{r.equipo_texto}</span>
+              <span className={cn("font-medium", r.listo_at ? "text-[#1E7F4F]" : "text-amber-800 dark:text-amber-300")}>· {estado(r)}</span>
+              <Link href={`/recepciones/${r.id}`} className="text-primary hover:underline">
+                {r.listo_at ? "Ver el informe de la revisión ›" : "Ver la orden ›"}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-1 text-xs text-muted-foreground">
+          Si el equipo vino o viene a nuestra planta, dé la orden al almacén para que lo revisen. Sale como apertura de servicio
+          interno con los antecedentes del equipo, y el almacén recibe su orden de recepción.
+        </p>
+      )}
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        {apertura.puedeNueva ? (
+          <Button size="sm" variant={vivas.length ? "outline" : "default"} onClick={() => pedirAperturaInterna(atencionId)}>
+            {vivas.length ? "Dar otra orden de revisión en planta" : "Dar la orden: apertura de servicio interno"}
+          </Button>
+        ) : apertura.servicioId ? (
+          <>
+            <Link
+              href={`/postventa/pedidos/${apertura.servicioId}/apertura`}
+              className="inline-flex h-8 items-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent"
+            >
+              {apertura.esInterna ? "Ver la apertura interna" : "Cambiar su apertura a «Interno»"}
+            </Link>
+            {!apertura.esInterna && (
+              <span className="text-[11px] text-muted-foreground">El caso ya tiene una apertura que todavía no sale: se cambia allí a «Interno».</span>
+            )}
+          </>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 function Caja({ titulo, id, children }: { titulo: string; id?: string; children: React.ReactNode }) {

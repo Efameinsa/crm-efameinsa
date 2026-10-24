@@ -6,7 +6,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Copy, Check, Save, Mail, Send } from "lucide-react";
-import { guardarAperturaServicio, marcarAperturaEnviada } from "@/lib/acciones/postventa";
+import { antecedentesPropuestosDelPedido, guardarAperturaServicio, marcarAperturaEnviada } from "@/lib/acciones/postventa";
+import { antecedentesInternaVacios, DIRECCION_SERVICIO_INTERNO, type AntecedentesInterna, type ModalidadApertura } from "@/lib/apertura-interna";
+import { AntecedentesInternaCampos } from "@/components/crm/antecedentes-interna-campos";
 import { enviarAperturaPorCorreo } from "@/lib/acciones/apertura-correo";
 import { esCorreoDeLaEmpresa, type Destinatario } from "@/lib/directorio";
 import { Button } from "@/components/ui/button";
@@ -66,6 +68,9 @@ export function AperturaServicioPanel({
     /** Fila 2: orden de compra, de servicio o ninguna (buzón Rubí 16-10). */
     ordenTipo: OrdenApertura | null;
     ordenNumero: string | null;
+    /** Dónde se hace el servicio (0566): null = externa (las aperturas de antes). */
+    modalidad?: ModalidadApertura | null;
+    antecedentes?: AntecedentesInterna | null;
   };
   asunto: string;
   cuerpo: string;
@@ -86,6 +91,23 @@ export function AperturaServicioPanel({
   notaAutomatica?: string | null;
 }) {
   const [v, setV] = useState(inicial);
+  // INTERNO O EXTERNO también desde el pedido (Brenda 23-10): el equipo viene a planta.
+  const [modalidad, setModalidad] = useState<ModalidadApertura>(inicial.modalidad === "interna" ? "interna" : "externa");
+  const [ant, setAnt] = useState<AntecedentesInterna>(inicial.antecedentes ?? antecedentesInternaVacios());
+  const [equipoPropuesto, setEquipoPropuesto] = useState<string | null>(null);
+  const [proponiendo, empezarPropuesta] = useTransition();
+  const antVacios = (a: AntecedentesInterna) => !a.que_ejecutar && !a.fecha_compra && !a.guia_remision && !a.servicio;
+  function elegirModalidad(m: ModalidadApertura) {
+    setModalidad(m);
+    if (m === "interna" && !v.direccionFinal?.trim()) setV((x) => ({ ...x, direccionFinal: DIRECCION_SERVICIO_INTERNO }));
+    if (m === "externa" && v.direccionFinal === DIRECCION_SERVICIO_INTERNO) setV((x) => ({ ...x, direccionFinal: "" }));
+    if (m !== "interna" || !antVacios(ant)) return;
+    empezarPropuesta(async () => {
+      const r = await antecedentesPropuestosDelPedido(servicioId);
+      setAnt((a) => (antVacios(a) ? r.propuesta : a));
+      setEquipoPropuesto(r.equipo);
+    });
+  }
   const [empresa, setEmpresa] = useState<"EFAMEINSA" | "OPEN">(empresaCorreo);
   const [copiado, setCopiado] = useState<"asunto" | "cuerpo" | null>(null);
   const [guardando, empezar] = useTransition();
@@ -183,6 +205,8 @@ export function AperturaServicioPanel({
         ordenTipo: v.ordenTipo,
         ordenNumero: v.ordenTipo === "compra" || v.ordenTipo === "servicio" ? v.ordenNumero : null,
         ...(empresaElegible ? { empresa } : {}),
+        modalidad: v.tipo === "entrega_garantia" ? "externa" : modalidad,
+        antecedentes: v.tipo !== "entrega_garantia" && modalidad === "interna" ? ant : null,
       });
       if (r.error) {
         setProblemaHoja(r.error);
@@ -253,6 +277,42 @@ export function AperturaServicioPanel({
             ))}
           </div>
         </fieldset>
+
+        {/* INTERNO O EXTERNO (0566; en el pedido desde el 23-10, Brenda): la interna lleva los antecedentes del equipo. */}
+        {v.tipo !== "entrega_garantia" && (
+          <fieldset className="mt-3">
+            <legend className="mb-1.5 text-xs font-medium text-foreground">Dónde se hace el servicio</legend>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(
+                [
+                  ["externa", "Externo", "El técnico va al local del cliente (el circuito de siempre)."],
+                  ["interna", "Interno", "El equipo se atiende en nuestra planta: lleva sus antecedentes."],
+                ] as const
+              ).map(([m, titulo, ayuda]) => (
+                <label
+                  key={m}
+                  className={cn("flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-xs transition-colors", modalidad === m ? "border-primary bg-primary/5" : "border-border hover:bg-accent")}
+                >
+                  <input type="radio" name="modalidad-apertura" className="mt-0.5 accent-primary" checked={modalidad === m} onChange={() => elegirModalidad(m)} />
+                  <span>
+                    <span className="font-semibold text-foreground">{titulo}</span>
+                    <span className="block text-muted-foreground">{ayuda}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+            {modalidad === "interna" && (
+              <div className="mt-2 grid gap-2.5 sm:grid-cols-2">
+                {proponiendo && <p className="text-[11px] text-muted-foreground sm:col-span-2">Buscando lo que ya se sabe del equipo…</p>}
+                {!proponiendo && equipoPropuesto && <p className="text-[11px] text-muted-foreground sm:col-span-2">Propuesto desde la ficha de: {equipoPropuesto}.</p>}
+                <AntecedentesInternaCampos valor={ant} cambiar={(c) => setAnt((x) => ({ ...x, ...c }))} />
+              </div>
+            )}
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Interno: los antecedentes salen en la hoja, en el pedido y en el almacén; si el pedido viene de un caso, al guardar el almacén recibe sola su orden de recepción.
+            </p>
+          </fieldset>
+        )}
 
         {/* Rubí, 16-10: «después de "SERVICIO A REALIZAR" debe estar para seleccionar ORDEN DE COMPRA U ORDEN DE SERVICIO». */}
         <fieldset className="mt-3">

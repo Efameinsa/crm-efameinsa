@@ -44,9 +44,11 @@ import {
   History,
   FolderX,
   ArrowRightLeft,
+  Boxes,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePendientesWhatsapp } from "@/lib/pendientes-whatsapp";
+import { ChatsEnElMenu } from "@/components/crm/chats-en-el-menu";
 import type { RolUsuario } from "@/types/database";
 
 const ENLACES_POR_ROL: Record<RolUsuario, { href: string; etiqueta: string; icono: LucideIcon }[]> = {
@@ -337,6 +339,9 @@ const ENLACE_OPERACIONES = { href: "/operaciones", etiqueta: "Autorizaciones", i
 const ENLACES_ALMACEN = [
   { href: "/almacen", etiqueta: "Agenda del almacén", icono: Gauge },
   { href: "/almacen/pedidos", etiqueta: "Pedidos", icono: Package },
+  // El stock vive en el almacén (Santos y Lesly 23-10: «almacén es el que va a trabajar el stock»;
+  // se acabó el Excel): elegir la serie que pide Central y agregar lo que llega.
+  { href: "/almacen/stock", etiqueta: "Stock", icono: Boxes },
   // Equipos que llegan a planta (0557): la lista vivía solo en la tarjeta del macro (21-10).
   { href: "/recepciones", etiqueta: "Equipos que llegan", icono: Inbox },
   { href: "/almacen/aperturas", etiqueta: "Llamadas de postventa", icono: PhoneForwarded },
@@ -574,6 +579,8 @@ export function NavLateral({
           })}
         </div>
       ))}
+      {/* Los chats de cada caso y pedido donde está (0599, Santos 23-10). */}
+      <ChatsEnElMenu estilo="sidebar" plegada={plegada} />
     </nav>
   );
 }

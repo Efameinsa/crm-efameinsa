@@ -193,12 +193,23 @@ export function SubirExcelStock({ hayCarga }: { hayCarga: boolean }) {
           const r = await analizarExcelStock(fd);
           if (r.error) toast.error(r.error);
           else {
+            const porEmpresa = Object.entries(r.porEmpresa ?? {});
             toast.success(
               `${r.entraron ?? 0} máquinas entraron al almacén` +
+                (porEmpresa.length > 1 ? ` (${porEmpresa.map(([e, n]) => `${e === "OPEN" ? "Open" : "Efameinsa"} ${n}`).join(" · ")})` : "") +
                 (r.observaciones ? ` · ${r.observaciones} con observaciones por resolver` : "") +
                 (r.noEntran ? ` · ${r.noEntran} no entran (ya están con un cliente)` : ""),
               { duration: 8000 },
             );
+            // Lo que está en una hoja suelta (Open / Efameinsa) y no pasó a la hoja unida no entra.
+            if (r.soloEnSueltas?.length)
+              toast.warning(
+                `${r.soloEnSueltas.length} máquina${r.soloEnSueltas.length === 1 ? "" : "s"} de «${r.soloEnSueltas[0].hoja}» no ${r.soloEnSueltas.length === 1 ? "está" : "están"} en la hoja unida y no ${r.soloEnSueltas.length === 1 ? "entró" : "entraron"}: ${r.soloEnSueltas
+                  .slice(0, 4)
+                  .map((m) => `${m.descripcion || "sin descripción"} (serie ${m.serie})`)
+                  .join(", ")}${r.soloEnSueltas.length > 4 ? "…" : ""}. Páselas a la hoja unida y vuelva a subir.`,
+                { duration: 15000 },
+              );
             router.refresh();
           }
         })
@@ -233,15 +244,14 @@ export function SubirExcelStock({ hayCarga }: { hayCarga: boolean }) {
         name="empresa"
         value={empresa}
         onChange={(e) => setEmpresa(e.target.value as "" | "OPEN" | "EFAMEINSA")}
-        required
         className={cn("h-9 rounded-md border border-border bg-background px-2 text-sm", !empresa && "text-muted-foreground")}
-        title="Cada Excel es de una empresa: sus máquinas no se mezclan con las de la otra"
+        title="Cada Excel es de una empresa: sus máquinas no se mezclan con las de la otra. Si el Excel trae RAZÓN SOCIAL, se toma de ahí."
       >
-        <option value="">¿De qué empresa?</option>
+        <option value="">Empresa: la de RAZÓN SOCIAL</option>
         <option value="OPEN">Stock de OPEN</option>
         <option value="EFAMEINSA">Stock de EFAMEINSA</option>
       </select>
-      <Button type="submit" disabled={pendiente || !nombre || !empresa}>
+      <Button type="submit" disabled={pendiente || !nombre}>
         <Upload className="size-4" />
         {pendiente ? "Leyendo y comparando…" : "Leer y comparar"}
       </Button>

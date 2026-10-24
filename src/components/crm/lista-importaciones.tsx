@@ -6,8 +6,8 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CalendarClock } from "lucide-react";
-import { anotarImportacion, type PendienteImportacion } from "@/lib/acciones/importaciones";
+import { CalendarClock, PackageCheck } from "lucide-react";
+import { anotarImportacion, avisarQueLlego, type PendienteImportacion } from "@/lib/acciones/importaciones";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { fechaLima } from "@/lib/fechas";
@@ -30,6 +30,9 @@ function Fila({ f, hoy }: { f: PendienteImportacion; hoy: string }) {
   const [eta, setEta] = useState(f.eta ?? "");
   const [nota, setNota] = useState(f.nota ?? "");
   const [guardando, iniciar] = useTransition();
+  // «Llegó · avisar a Central» (Lesly 23-10): con la serie de placa, queda puesta en el pedido.
+  const [serie, setSerie] = useState("");
+  const [llego, setLlego] = useState(false);
   const cambio = eta !== (f.eta ?? "") || nota !== (f.nota ?? "");
   const atrasada = f.eta && f.eta < hoy;
   const espera = dias(f.pedido_desde, hoy);
@@ -66,6 +69,39 @@ function Fila({ f, hoy }: { f: PendienteImportacion; hoy: string }) {
         >
           {guardando ? "Guardando…" : "Guardar"}
         </Button>
+        {llego ? (
+          <div className="mt-2 flex flex-col items-end gap-1">
+            <Input value={serie} onChange={(e) => setSerie(e.target.value)} placeholder="Serie de placa (opcional)" className="h-8 w-44 font-mono text-xs uppercase" autoFocus />
+            <div className="flex items-center gap-2">
+              <button type="button" className="text-[11px] text-muted-foreground hover:underline" onClick={() => setLlego(false)}>
+                Cancelar
+              </button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={guardando}
+                onClick={() =>
+                  iniciar(async () => {
+                    const r = await avisarQueLlego({ itemId: f.item_id, pedidoId: f.pedido_id, descripcion: f.descripcion, serie });
+                    if (r.error) toast.error(r.error);
+                    else {
+                      toast.success(serie.trim() ? "Serie puesta en el pedido. Central y quien lleva el pedido ya tienen el aviso" : "Central y quien lleva el pedido ya tienen el aviso de que llegó");
+                      setLlego(false);
+                      router.refresh();
+                    }
+                  })
+                }
+              >
+                <PackageCheck className="size-3.5" /> {guardando ? "Avisando…" : "Avisar que llegó"}
+              </Button>
+            </div>
+            <p className="max-w-56 text-right text-[11px] leading-snug text-muted-foreground">Con la serie, la máquina queda en el pedido y reservada; sin serie, solo se anota que llegó.</p>
+          </div>
+        ) : (
+          <button type="button" className="mt-2 text-[11px] font-medium text-primary hover:underline" onClick={() => setLlego(true)}>
+            <PackageCheck className="mr-0.5 inline size-3" /> Llegó · avisar a Central
+          </button>
+        )}
       </td>
     </tr>
   );

@@ -78,8 +78,9 @@ export async function pedirSeriesAlAlmacen(informeId: string, accesorios: Acceso
   const { data: s } = await supabase.from("servicios_postventa").select("cliente_texto").eq("id", servicioId).maybeSingle();
   await notificarAlmacen({
     titulo: `Generación de código · ${sinRuc(s?.cliente_texto)}`,
-    cuerpo: `Central pide la serie de ${faltan} equipo${faltan === 1 ? "" : "s"}. Escríbalas como se leen en la placa: quedan fijas. ${textoAccesorios(accesorios)}`,
-    url: `/almacen/pedidos/${servicioId}`,
+    cuerpo: `Central pide la serie de ${faltan} equipo${faltan === 1 ? "" : "s"}. Elíjala en «Stock» con un check (o escríbala como se lee en la placa): queda fija. ${textoAccesorios(accesorios)}`,
+    // Al stock, donde el almacén elige la serie con un check (Lesly 23-10).
+    url: "/almacen/stock",
     esPrueba: perfil.es_prueba === true,
   });
   revalidar(servicioId);

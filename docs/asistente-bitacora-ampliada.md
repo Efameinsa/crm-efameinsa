@@ -1,6 +1,6 @@
 # Bitácora ampliada (gerencia, administración, Central y operaciones)
 
-Vigente al 22-10-2026. Complementa la «Bitácora del CRM» general (asistente-bitacora-general.md). Santos, 14-10: Central y operaciones (Lesly) deben tener el mismo contexto que gerencia —estados, montos, dinero— para continuar lo que se habló en las reuniones. Aquí va:
+Vigente al 23-10-2026. Complementa la «Bitácora del CRM» general (asistente-bitacora-general.md). Santos, 14-10: Central y operaciones (Lesly) deben tener el mismo contexto que gerencia —estados, montos, dinero— para continuar lo que se habló en las reuniones. Aquí va:
 - estrategia, presupuestos de publicidad y marketing;
 - web y campañas;
 - desempeño por comercial y metas;
@@ -16,6 +16,20 @@ Vigente al 22-10-2026. Complementa la «Bitácora del CRM» general (asistente-b
 ---
 
 ## Cronología
+
+### 23-10 (11:01) · Carlos revisa los correos con Santos en mkt.efameinsa.com: fotos, textos, los artículos de la web pasan a la herramienta (Carlos, Santos)
+- **Qué revisó:** Carlos dejó 44 marcas en Revisión (la noche del 22-10 y la mañana del 23-10): 24 correos aprobados, 14 con observación y 6 «no va». Lo que pidió ya quedó aplicado el mismo día en los correos y en los WhatsApp.
+- **Textos corregidos:** en «Confirme su suscripción» se quita «gratuito» del mantenimiento preventivo (no es así); en «Repuesto enviado» se quita el párrafo que ofrecía coordinar la instalación o una guía paso a paso: **Efameinsa vende el repuesto y ahí termina su responsabilidad**; si una empresa grande abre la máquina y falla algo, no debe quedar la impresión de que fue con asesoría nuestra. La instalación se coordina solo cuando se vendió con instalación.
+- **Correos que no van (apagados):** garantía registrada (falta definir desde cuándo corre la garantía: Carlos quiere definirlo antes), equipo en camino, salida de planta con fotos, visita reprogramada («eso tiene que ser muy personalizado; la persona se puede molestar»), «el técnico salió» y el segundo correo de la serie de consulta (A2). En evaluación, sin apagar: «¿nos cuenta cómo le va?» a los 14 días («mantengámoslo para luego revisarlo») y «caso en atención» («definir en detalle el procedimiento»).
+- **Fotos (la regla nueva de Carlos):** fondos limpios, sin mamparas ni ventanas con marcos negros («muchas líneas negras, pierdo el enfoque»), sin filas de luminarias («se ve irreal»); pocas máquinas al fondo (tres o cuatro alineadas) y, donde se muestra una lavandería, los tres equipos: lavadora, secadora y calandria («siempre presentamos lavadora y secadora; falta la calandria»); equipo industrial con panel táctil (Primus, UniMac, calandria GMP E125), «no todo Sailstar»; semi industrial = torres LG con rodillo; personas distintas en cada foto («parecen gemelos», «las trillizas»); las máquinas se mueven con estoca o carretilla sube-escaleras y siempre en su caja, con dos personas y sin sufrir; nada eléctrico pegado a la lavadora; sin tanques ni cilindros; siempre algo de verde (una planta). Santos tiene los 22 prompts de ajuste (Descargas, «Prompts v7») para rehacerlas en ChatGPT; después se reemplazan en los correos. **Hecho la tarde del 23-10:** 14 de las 22 ya están rehechas y puestas en los correos (bienvenida, cotización, repuestos, despacho con caja y estoca, calandria en hoteles, T03, T07, T40 y el correo de la web nueva, entre otras): sin marcos negros ni luminarias, con calandria, planta y fondos limpios. Faltan ocho (T14, T15 y seis de las series) porque no se recuperaron las fotos base para editarlas, y el panel táctil de Primus en dos de ellas (las referencias recuperadas son de botonera). Santos revisó después la galería de mkt y vio que debajo de W1T seguían correos oscuros: eran los WhatsApp de T37 y T38 (ya usan la foto clara del correo), tres plantillas de inicio del editor con el banner viejo (ya con fotos claras) y tres avisos apagados sin foto clara (constancia de reclamo, respuesta al reclamo y «llegó el técnico»), que van con escenas nuevas en los prompts v7b.
+- **Correo de la web nueva (W0):** a Carlos le gustó el título «Rehicimos efameinsa.com pensando en lo que usted hace antes de decidir» («perfecto mensaje») y pidió juntarlo con el texto de Santos («hoy estuvimos probando en la oficina…»); «en su sala» no: es el área de lavandería, la oficina o el espacio de trabajo; el concepto no es solo «si entra por la puerta», es más amplio. También pidió quitar el vidrio con marcos negros del fondo de la foto del equipo. Versión 8 preparada y probada en los tres Gmail de Santos; falta ver a qué pestaña llega (el 22-10 ese título, con asunto de anuncio, cayó en Promociones). Por la tarde Carlos le preguntó a Santos por el W0 para lanzarlo ya, y observó que el acero de la Sailstar GP50 se veía apagado: Santos hizo la foto con el acero más brillante y la misma tarde quedó en la ficha de la tienda, en la página del equipo de la web y en el correo (la captura de la ficha con la flecha «Toque aquí» se rehizo sobre la ficha ya publicada); prueba nueva a los tres Gmail de Santos a las 18:26. Santos también pidió que «efameinsa.com» no salga en azul subrayado dentro del texto (Gmail convierte en enlace cualquier dominio suelto): desde el 23-10 va en negrita, del color del texto y sin subrayado, en W0 y en W2. Y lo que Carlos llamó «la cacofonía»: el W0 repetía «ver» siete veces en diez líneas; reescrito el 23-10 por la tarde con el verbo una sola vez (regla para todos los correos: no repetir el mismo verbo). Título final del W0, de Santos: «Rehicimos efameinsa.com pensando en usted». **El 23-10 a las 19:03 Santos dio la orden y el W0 salió a los 976 compradores (segmento S1): es el primer correo masivo real de Efameinsa.** Se mide la apertura (píxel), los clics de cada botón y el tráfico que llega a la web (UTM de la campaña W0, que GA4, Clarity y el CRM leen); los resultados se ven en mkt.efameinsa.com, pestaña Envíos. Plan acordado: después S2 (cotizados sin cierre), S3 (leads recientes) y S4 (históricos, por tandas de unas 2.000 al día), cada grupo con la orden de Santos. Pendiente: la foto del catálogo del CRM (la que sale en las cotizaciones en PDF) sigue con el acabado anterior. Sigue sin orden de envío: el envío está preparado para las 976 personas y sale cuando Santos lo diga.
+- **Los artículos de la web se revisan en la herramienta:** Carlos: «ese Word está bien difícil de leer; pásalo a esta herramienta, que se vea como se vería en la página web, para poder hacer estos comentarios; es más dinámico y ordenado». Hecho el mismo día: en mkt.efameinsa.com, pestaña «Contenidos web», están los 39 artículos nuevos y los 23 cambios a páginas que ya existen, cada uno como se vería en efameinsa.com (con los huecos de las fotos por generar y los datos por confirmar en granate), con los mismos botones Aprobado / Observación / No va. Desde ahí no se publica nada: la web se cambia con lo que marquen.
+- **Lanzamiento:** «necesitamos terminar los correos primero para poder lanzarlo». La web se lanza por correo y también como publicación orgánica en Meta y todas las redes.
+- **Campaña de tráfico a la web en Meta:** Carlos pide armarla ya con las herramientas que hay («no vamos a esperar, se pasan las semanas, necesitamos vender»), mientras Santos termina los modelos que quería; el 22-10 se cortó la entrada de prospectos por saldo y ya se regularizó.
+- **Respaldo de sistemas:** terminar de empaquetarlo «masticadito, como para primaria» para Juan Carlos: qué es el CRM, dónde está alojado, las claves, el compendio completo (unos 130 GB); desde ahí la responsabilidad de sacar las copias pasa a él, en equipo.
+- **Web de Open:** Carlos la vio: una máquina de la portada ya no se trae (salió de la foto de referencia de Karen, que era de la web anterior; en la web actual ya no está); el logo «está bien feo, muy chicha», se mejora poco a poco; las marcas van para todos los equipos, calandrias incluidas; Carlos explica después la estrategia.
+- **Postventa:** vio el mapa del recorrido y el chat del caso («interesante, vamos a probarlo como piloto»). El requerimiento de repuestos de postventa para cotizar no es urgente: «primero marketing, Santos; está amarrado a la web».
+- **Lesly:** Carlos le pidió el reporte personal y, urgente, terminar el inventario y lo de Open para cerrar ese punto; Lesly dijo que ya casi lo tiene.
 
 ### 21-10 (~15:50) · Llamada de Carlos con Santos: correo de la web nueva, correos claros, respaldo y hosting
 - **Correo «Anuncio de la web nueva» (W0):** a Carlos el texto le pareció «excelente» (web renovada, catálogo, 3D, realidad aumentada, tres equipos de ejemplo). Solo pidió cambiar la imagen principal por una foto clara y real, y **lanzarlo ese mismo día a todos, lo más masivo posible pero progresivo** según el volumen. El envío sigue esperando la orden expresa de Santos.
@@ -46,128 +60,23 @@ Vigente al 22-10-2026. Complementa la «Bitácora del CRM» general (asistente-b
 - **Rubí:** está enfocada en regularizar para cerrar el circuito (ya bajó a ocho pendientes) y en temas puntuales; por eso casi no se le deriva nuevo. Gerencia ve que lo documentario la demora. Las cotizaciones se ven con Ariana.
 - **Ariana:** recibe más derivaciones (el 16-10, siete pedidos de repuesto en un día). Se le pidió entender el proceso completo hasta el final (caso Lino: seguimiento al técnico).
 
-### 15-10 · Reunión de Carlos con Santos (09:53)
-- **Casos de cierre:**
-  - **NEWREST (OPEN 057-2026):** el cierre pasó los checks de Central sin la orden de servicio; Brenda lo corrigió con el código de Lesly. Carlos detuvo el avance a propósito «para ver quién reacciona». Desde ese día el código de corrección de cierres lo da Central, coordinando con Carlos.
-  - **Inversiones EIP (Ilo):** se le cotizó US$ 425 el 24-09 sin descuento; la clienta pidió que se le respete la cotización del 20-03 (US$ 399). La demora que reclama (un mes) se debió a que se le vendieron repuestos aparte (unos US$ 500 por máquina y US$ 941 en la otra). Carlos aprobó tratarlo **como paquete** pese a la fecha: se le confirma, paga y recién se regulariza la cotización y se hace el cierre. Si pide la cotización antes, se le manda.
-  - **Consorcio del Portal Marqués:** pagó en soles con el tipo de cambio de la empresa; el cierre sigue en dólares.
-- **Campañas de Facebook y «no contesta».** Carlos vio en la agenda que casi todo dice «no contesta» y pidió un doble check. Medición del 15-10 (WhatsApp de campañas de los últimos 14 días, 614 contactos): en la agenda abierta, la mitad (141 de 278) tiene como última gestión «No contestó». Del total, el 24 % quedó en «No contestó», el 34 % en «Sin interés / no procede» y el 22 % sin ninguna gestión. Por semana, los «no contestó» bajaron de 27 % (semana del 28-09) a 17-20 %. Por campaña, M3-PERU y M4-PERU están cerca de un tercio; M5-PERU y M9-PERU, por debajo del 15 %.
-- **Marketing (lo que contó Santos y lo que pidió Carlos):**
-  - Unos 50 correos con imágenes listos y la cuenta de envío de Amazon confirmada (dominio y dirección validados). Santos le manda 10 a Carlos para que los revise.
-  - **SEO:** la autoridad de la marca ya existe («todo el mundo habla de nosotros»); para reforzarla hacen falta artículos revisados por un técnico, con toque humano y **firmados por una persona real** (Carlos, Katherine u otra con LinkedIn), publicados en una sección de noticias de la web. Un alias no sirve.
-  - **Enlaces de otros sitios (backlinks):** Carlos pidió no perderlo de vista: de menos a más (unos 50 para empezar), con proveedores de sitios afines y con tráfico, y con auditoría de los enlaces. Comprar a cualquiera perjudica.
-  - **Imágenes de la web:** Santos las deja corriendo hoy.
-  - **Contenido orgánico:** a Carlos le preocupa que no haya nada orgánico mientras corren las campañas. Hace falta una persona para videos: Carlos pidió un **perfil de asistente para cámara** (buena dicción y buena actitud), con funciones generales y sin un detalle que asuste. Los técnicos pueden salir en videos con frases muy puntuales.
-  - Micrófono (lo gestiona Santos; si no llega, se compra igual), luces, firma de correo con alternativas y stickers con la misma línea gráfica.
-- **Desempeño:** Rubí es quien más reporta en el buzón, pero recién desde hace tres días, con más de un mes y medio de CRM; Carlos quiere más retroalimentación. Ariana está a cargo de las llamadas y el seguimiento de prospectos de postventa: Carlos le da la oportunidad por su actitud.
+### 15-10 · Reunión de Carlos con Santos (09:53) (resumido)
+- Resumen: NEWREST (OPEN 057-2026) pasó los checks de Central sin orden de servicio y desde ese día el código para corregir cierres lo da Central coordinando con Carlos. Inversiones EIP (Ilo): Carlos aprobó tratarlo como paquete y respetar la cotización de marzo (US$ 399 en vez de US$ 425) porque la demora vino de los repuestos vendidos aparte. Portal Marqués pagó en soles con el tipo de cambio de la empresa; el cierre sigue en dólares. Carlos pidió un doble check del «no contesta» de las campañas (medido: 24 % de 614 contactos de 14 días, bajando de 27 % a 17-20 % por semana; M3 y M4 peores). Marketing: unos 50 correos listos con Amazon; SEO con artículos firmados por una persona real; enlaces de otros sitios de menos a más y auditados; perfil de asistente para cámara para contenido orgánico; micrófono, luces, firma y stickers. Desempeño: Carlos quiere más retroalimentación de Rubí; Ariana lleva las llamadas y el seguimiento de prospectos de postventa.
 
-### 14-10
-- **Fichas unidas que cambian cartera:**
-  - **Abzul:** tenía una ficha en C1 (Brenda, con la venta de agosto y los casos de postventa) y otra con RUC en C5 (Katerine, con notas de 2024 y los equipos de la guía). Santos decidió unirlas en la de Brenda; **Katerine pierde esa ficha** de su cartera. Origen: Rubí no veía la cotización de Ariana.
-  - **Operador Nacional de Hoteles del Perú (Decameron):** las tres fichas sin RUC de C1 (Brenda) se unieron. La ficha con RUC está en C4 (Ariana, ventas de postventa 2023-24) y **no se unió: espera decisión de gerencia** sobre la cartera. **Resuelto 20-10:** gerencia aprobó unirla; la ficha con RUC quedó en la cartera de Brenda (C1) con todos los expedientes, contactos y cotizaciones (antes estaba en C4, Ariana). Blue Marlin Beach Club (C1) es del mismo grupo.
-- **Cartera y campaña de C6.**
-  - Su campaña de Meta «Torre LG para hoteles» pasó a **Brenda (C1)**. Los 12 chats de esa noche se movieron a Brenda.
-  - **Pendiente de gerencia:** a quién va el resto de su cartera (unas 80 fichas y 77 chats de una campaña anterior).
-  - El texto del anuncio todavía dice «Abel, su asesor». Hay que corregirlo a mano.
-- **Correos por historias:** 31 correos en series por rubro (general, hoteles, lavanderías, agro, mina grande, emprendedor, reactivación, clientes).
-  - Siguen la estructura valor → prueba → invitación, sin escasez inventada.
-  - Las historias salen de las clases de Katerine, que autorizó las citas.
-  - Santos los aprobó, pero **no hay orden de envío**. Ningún correo a clientes sale sin orden expresa de Santos para ese envío.
-- **Audiencia de correo:** unas 945 empresas cliente, 353 cotizadas, 1.005 contactos sin rubro y unos 15.400 contactos antiguos.
-- **Asistente IA:** pasó a Claude y se abrió a todo el personal, solo para consultas.
-  - El crédito vence el 03-11 y no hay medio de pago definido.
-  - La credencial vence el 13-11.
+### 14-10 (resumido)
+- Resumen: Abzul se unió en la ficha de Brenda (C1) y Katerine perdió esa ficha; Operador Nacional de Hoteles (Decameron) se unió en C1 el 20-10 con aprobación de gerencia (antes la ficha con RUC estaba en C4). La campaña de Meta «Torre LG para hoteles» de C6 pasó a Brenda con sus 12 chats; el resto de la cartera de C6 (unas 80 fichas y 77 chats) espera decisión de gerencia; el anuncio todavía decía «Abel, su asesor». 31 correos por historias aprobados por Santos, sin orden de envío. Audiencia de correo: unas 945 empresas cliente, 353 cotizadas y unos 15.400 contactos antiguos. Efamein pasó a Claude y se abrió a todos (crédito vence el 03-11 sin medio de pago definido; credencial el 13-11).
 
-### 13-10 · Publicidad: primera campaña con datos del CRM
-- **Meta, «Torre LG para hoteles»:** video de 21 s (un hotel lava edredones afuera → torre LG Titan).
-  - Dos campañas a WhatsApp, de **S/ 15 diarios cada una**, todo el Perú, sin fecha de fin. Una es de Moisés y la otra era de Abel (pasó a Brenda).
-  - Por primera vez usa públicos parecidos a los compradores y cotizados del CRM. Excluye a quien ya compró, cotizó o no califica.
-- **Retroalimentación a Google en marcha.**
-  - Se enviaron 149 registros: 146 cotizados y 3 ventas.
-  - Listas subidas: Compradores (~1.034), Cotizados sin compra (~15.890) y No califican (~339, usada como exclusión). Se renuevan solas cada lunes, en Google y en Meta.
-  - Ahora mandan las conversiones «Cotizado» y «Venta» del CRM; las antiguas pasaron a secundarias (orden de Santos).
-- **Google Ads** se administra también desde una cuenta propia del CRM.
-  - Falta darle acceso a facturación.
-  - Después de verificar todo se decide si se retira la cuenta anterior.
-- **Correo masivo:** se pasa a Amazon (unos US$ 0,10 por cada 1.000 correos), porque el plan gratuito anterior solo permitía 100 al día. Santos crea la cuenta.
+### 13-10 · Publicidad: primera campaña con datos del CRM (resumido)
+- Resumen: primera campaña de Meta con datos del CRM («Torre LG para hoteles», video de 21 s, dos campañas a WhatsApp de S/ 15 diarios cada una, de Moisés y de Brenda, con públicos parecidos a compradores y cotizados). Retroalimentación a Google en marcha (149 registros; listas Compradores, Cotizados y No califican renovadas cada lunes en Google y Meta; mandan las conversiones «Cotizado» y «Venta»). Google Ads también desde una cuenta propia del CRM (falta acceso a facturación). Correo masivo pasa a Amazon (unos US$ 0,10 por 1.000 correos).
 
-### 12-10 · Reunión del lunes con el equipo (campañas, video, correos, web)
-- Participó el equipo completo (gerencia, Lesly, Central, postventa, almacén, Finanzas, marketing y comerciales). Acuerdos: campaña de prueba en Meta con presupuesto chico antes de escalar; contenido orgánico estático en paralelo mientras se busca la imagen para los videos; compra de micrófono y luces.
-- **Compromisos de Abel** (guiones de los videos para revisión, ficha de compra del micrófono y las luces, plantilla del primer correo masivo para aprobación), con plazo 13-10: figuran **en pausa** en Tasking. Hay que reasignarlos (por confirmar a quién).
-- **Beneficencia de Huancayo:** se autorizó cambiar la condición de pago a crédito; Katerine envía la cotización corregida (en pausa en Tasking).
-- **Campaña chica ya:** unos S/ 15 con el video hecho con IA, «para salir de apuro con Abel».
-  - En paralelo, contenido orgánico estático.
-  - Probar los públicos personalizados y parecidos de Meta.
-  - Criterio de Carlos: el tráfico a la web se crea mejor en Facebook. Google solo atiende la demanda que ya existe, con una página específica.
-- **Producción de video:**
-  - Micrófono **urgente** (marca, modelo, proveedor y precio) y 2 luces (~S/ 140 cada una).
-  - Carlos averigua el modelo de la Canon para el podcast.
-  - Los guiones técnicos pasan por revisión de Carlos.
-  - Talento: el modelo del video de Compas, una chica de contraparte y la pasante. Moisés quedó descartado por dicción.
-  - Hacen falta camisas formales Efameinsa: las blancas dicen Open Investments.
-- **Correos masivos por segmentos:** compradores (~500), cotizados sin cierre, recientes e históricos (~15.000).
-  - Grupos de 500, con pocas imágenes.
-  - Carlos da el visto bueno antes del primer envío. Falta definir la firma y el remitente.
-- **Paquete web + cambio de hosting con correos:** cerrarlo **este mes** (meta: Halloween). Se revisa una semana antes y la migración se hace con Carlos al lado.
-- **Google Ads:** la retroalimentación estaba bloqueada por la verificación en dos pasos, que está en el celular de Juan Carlos. Se resolvió el 13-10.
-- **Formularios de Meta:** «los problemas siguen» (la grabación se corta).
+### 12-10 · Reunión del lunes con el equipo (campañas, video, correos, web) (resumido)
+- Resumen: campaña chica de prueba en Meta (unos S/ 15) antes de escalar, con contenido orgánico estático en paralelo; micrófono urgente y 2 luces (~S/ 140 cada una); guiones técnicos revisados por Carlos; Moisés descartado para video por dicción; hacen falta camisas Efameinsa. Correos masivos por segmentos en grupos de 500 con visto bueno de Carlos antes del primero. Paquete web + cambio de hosting con correos para este mes (meta Halloween). Beneficencia de Huancayo autorizada a crédito. Los compromisos de Abel quedaron en pausa (por confirmar a quién se reasignan).
 
-### 10-10 y 09-10
-- **Devolver «toda la información» a Meta y Google** (orden de Santos): cotizaciones históricas y ventas.
-  - En Meta, los públicos se actualizan cada hora.
-  - Pendiente: emitir una cotización todavía no avisa sola a Meta.
-- **Correos de avance por comercial (tipificación de leads):** seis correos preparados y **sin enviar**. A esa fecha:
-  - Moisés iba al 79 %, atrasado.
-  - Brenda tenía 16 cotizados y Abel 13.
-  - Desiree no figura en el directorio de correos.
-- **Web de Open Investments:** se empezó y **no está publicada**.
-  - Santos eligió el nombre «Open Investments» a secas. **Choca con Carlos (07-10)**, que pidió «Efameinsa Open» sin mezclar logos. Hay que resolverlo antes de publicar.
-  - Solo Primus y LG, según gerencia del 22-09.
-  - Faltan: alojamiento, buzón de Open y documentos de licitación.
-- **Nueve videos para Meta** (20 s): UniMac para Katerine, otra línea UniMac para Brenda y torre LG para Abel.
-  - Tope propuesto: S/ 500 en 5 días, solo a WhatsApp.
-  - Es una **propuesta**; no consta que se haya lanzado.
-- **Página de Facebook en otro portafolio de negocio**, que administra otra persona.
-  - Por eso los formularios de Meta no podían llegar al CRM. Se resolvió pasándolos por una hoja de Google.
-  - Pendiente: que el dueño comparta la página con el portafolio de la empresa.
-- **Seguridad en Meta:** un ex colaborador sigue con acceso total (inactivo). Pendiente retirarlo. La verificación en dos pasos de la cuenta principal se activó el 12-10.
-- **Saldo de Google Ads en el CRM:** tarjeta con tope diario de S/ 250. Avisa cuando queda menos de un día. Las recargas se anotan a mano: si no se anotan, no hay aviso.
-- **Configuración aplicada el 09-10** (orden de Carlos del 07-10):
-  - Industrial: costo objetivo por conversión de S/ 30 a S/ 22, presupuesto S/ 150 al día.
-  - Comercial: S/ 100 al día.
-  - Total: S/ 250 al día.
-  - Santos apagó a mano la aplicación automática de recomendaciones de Google.
-  - Revisión prevista hacia el 15 o 16-10: confirmar que la aplicación automática siga apagada.
-- **Web:** mejoras para la búsqueda «efameinsa» y para buscadores con IA, y una página para dejar reseña.
-  - Pendiente: el enlace directo de reseñas.
-  - Se sugirió agregar el teléfono fijo nuevo al perfil de Google.
+### 10-10 y 09-10 (resumido)
+- Resumen: se devuelven a Meta y Google cotizaciones históricas y ventas (pendiente: que emitir una cotización avise sola a Meta). Seis correos de avance por comercial preparados y sin enviar (Moisés al 79 %, atrasado). Web de Open Investments empezada y no publicada; el nombre chocaba con lo pedido por Carlos el 07-10 («Efameinsa Open»). Propuesta de nueve videos para Meta con tope de S/ 500 en 5 días (no consta que se lanzara). La página de Facebook está en otro portafolio (los formularios pasan por una hoja de Google) y un ex colaborador seguía con acceso en Meta (pendiente retirarlo). Saldo de Google Ads en el CRM con tope diario de S/ 250 y aviso; configuración del 09-10: Industrial S/ 150 al día con costo objetivo de S/ 22, Comercial S/ 100 al día; aplicación automática de recomendaciones apagada.
 
-### 07-10 · Reunión de gerencia (16:24)
-- **Buzón con agente automático:** Carlos «no muy cómodo».
-  - Pidió que Santos no pierda el hilo y que el agente tenga claras las reglas duras de negocio.
-  - Santos revisa un resumen cada mediodía. De unos 30 pedidos, unos 20 se atendieron solos.
-- **Google Ads (orden de Carlos):**
-  - Bajar el tope de puja de unos S/ 30 a un término medio de S/ 20-23.
-  - Límite de gasto: **S/ 250 al día**. Santos proponía 220-240.
-  - Revisar a los 7 días.
-  - Meta: cuota de impresiones ~80 % y la competencia (Serfac, Cimelco) por debajo de 10 %. Luego, foco en conversión.
-  - **Política de Carlos: no hablar de la competencia;** defenderse con lo propio.
-  - Gasto: septiembre S/ 7.425; octubre iba hacia ~S/ 8.500.
-- **Alerta de saldo de Google en el CRM**, porque quedarse sin saldo ya los castigó. Está hecha.
-- **Correo a comerciales con plazo el viernes 09-10** para regularizar informes y tipificaciones. Es «mandatorio»; si no, «se perjudican ellos».
-- **Reseñas de Google:** que colegas dejen reseñas desde su celular y cuenta personal, fuera del wifi de la empresa, con sus propias palabras; pantallazo a Crece por puntos.
-  - Santos entregó un Word: **Google prohíbe reseñas de empleados y con incentivos.** Recomienda premiar que el personal *pida* reseñas a clientes.
-  - **Decisión pendiente de Santos y gerencia.**
-- **Marca:** «Open no se entiende». Todo debe ir como «Efameinsa Open», sin mezclar logos. Open necesita web.
-- **Plan de «ofensiva» de Google (Santos):**
-  - **No hay guerra de la competencia.** Serfac nos superaba en Industrial el 89 % de las veces en mayo y solo el 6 % en octubre.
-  - El costo por clic lo subimos nosotros. El mercado es chico: unas 1.000 búsquedas al mes.
-  - Unos S/ 5.200 del año se fueron en búsquedas domésticas.
-  - Desde el 28-09: Industrial 51 contactos y 18 cotizados (~S/ 93 por cotizado); Comercial 31 contactos y 7 cotizados (~S/ 187 por cotizado).
-  - Escenarios mensuales: **A S/ 5.930 · B S/ 10.500 (sugerido) · C S/ 15.050.** Chocan con el techo de S/ 7.800 del 06-10.
-  - Una recarga de S/ 1.000 duró 2 días, porque Google puede gastar hasta el doble del diario. Hubo apagón por saldo el 04-10.
-- **Tasa de llegada a cotización por fuente:** formulario del anuncio 27 %, página de campaña 45 %, web 64 %, WhatsApp de Meta 18 %.
-- **Gestión de proyectos:** Santos propone un ciclo (acta el mismo día → criterio de aceptación → prueba → validación del usuario clave → aviso → medir uso). Ofreció un tablero de adopción para Carlos; **sin respuesta**.
+### 07-10 · Reunión de gerencia (16:24) (resumido)
+- Resumen: Carlos, poco cómodo con el agente del buzón, pidió que Santos no pierda el hilo (resumen cada mediodía). Google Ads: tope de puja de unos S/ 30 a S/ 20-23, gasto de S/ 250 al día, revisar a los 7 días; meta de ~80 % de cuota de impresiones; política de no hablar de la competencia. Gasto: septiembre S/ 7.425, octubre hacia ~S/ 8.500. Alerta de saldo de Google en el CRM hecha. Correo «mandatorio» a comerciales para regularizar informes y tipificaciones. Reseñas de Google por el personal: Google lo prohíbe con incentivos; decisión pendiente. Marca: «Efameinsa Open», sin mezclar logos. Plan de Santos: no hay guerra de la competencia (Serfac pasó de superarnos 89 % a 6 %); escenarios mensuales A S/ 5.930 · B S/ 10.500 (sugerido) · C S/ 15.050, contra el techo de S/ 7.800 del 06-10. Llegada a cotización por fuente: formulario 27 %, página de campaña 45 %, web 64 %, WhatsApp de Meta 18 %. Ciclo de gestión de proyectos propuesto por Santos, sin respuesta.
 
 ### 06-10 (resumido)
 - Resumen: Carlos pidió «leads de mayor calidad». Diagnóstico de Santos: Google S/ 34.511 y Meta S/ 4.831 en el año; ventas 2026 US$ 1,87 millones en 335 cierres (septiembre US$ 316 mil, 54 % de Las Bambas); ventas con prueba de origen en anuncios: Google 7 y Meta 1; cierre del CRM 6,9 %; 54 % abandona el formulario; Display de Industrial traía basura; el segmento del lead falta en el 98,5 %. Techo propuesto: S/ 7.800 al mes (Google 5.930, Meta 1.870) para 110 cotizaciones calificadas a ≤ S/ 70. Pendientes de Carlos: quitar Display de Industrial, formulario a página de campaña, públicos de ticket alto, botones rápidos de WhatsApp. El setter con IA quedó para una segunda etapa por costo («primero calidad, no cantidad»).

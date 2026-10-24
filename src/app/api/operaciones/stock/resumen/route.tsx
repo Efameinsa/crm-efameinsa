@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
+import { logoDeEmpresa } from "@/lib/pdf/logo-empresa";
 import { renderToBuffer } from "@react-pdf/renderer";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { createClient } from "@/lib/supabase/server";
 import { requerirPerfil } from "@/lib/auth";
 import { cabeceraArchivo } from "@/lib/nombre-archivo";
@@ -12,7 +11,6 @@ import { ResumenStockPdf, type FilaResumen } from "@/lib/pdf/resumen-stock-pdf";
 // tiene abierta en «Stock y códigos», en el formato de la hoja impresa de
 // Importaciones. Lo puede bajar operaciones, gerencia o admin (la carga solo
 // la leen ellos: RLS de stock_cargas, 0576).
-const LOGO_BUFFER = readFileSync(join(process.cwd(), "public", "logo-efameinsa.png"));
 
 export async function GET(request: Request) {
   const perfil = await requerirPerfil();
@@ -67,7 +65,8 @@ export async function GET(request: Request) {
   const autor = (Array.isArray(data.perfiles) ? data.perfiles[0] : data.perfiles) as { nombre?: string } | null;
   const buffer = await renderToBuffer(
     <ResumenStockPdf
-      logoBuffer={LOGO_BUFFER}
+      logoBuffer={logoDeEmpresa(data.empresa).buffer}
+      logoAncho={logoDeEmpresa(data.empresa).ancho}
       archivo={data.archivo}
       generado={fechaHoraLima(new Date().toISOString())}
       por={autor?.nombre ?? perfil.nombre ?? "operaciones"}
@@ -82,7 +81,7 @@ export async function GET(request: Request) {
   return new NextResponse(buffer as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": cabeceraArchivo(`Resumen general de stock ${fecha}`, "pdf", true),
+      "Content-Disposition": cabeceraArchivo(`Resumen de stock ${data.empresa ?? "OPEN"} ${fecha}`, "pdf", true),
       "Cache-Control": "no-store",
     },
   });

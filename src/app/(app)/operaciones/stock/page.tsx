@@ -15,7 +15,7 @@ import {
 } from "@/components/crm/stock-importaciones";
 import { ResumenGeneralStock } from "@/components/crm/resumen-general-stock";
 import { AlmacenPorSerie } from "@/components/crm/almacen-por-serie";
-import { cargarAlmacenPorSerie, cargarContraste, cargarProyeccion } from "@/lib/almacen-datos";
+import { cargarAlmacenPorSerie, cargarContraste, cargarProyeccion, contarPorEmpresa } from "@/lib/almacen-datos";
 import type { FilaCarga } from "@/lib/acciones/stock-importaciones";
 import { productosParaComparar, type CargaStock } from "@/lib/acciones/stock-importaciones";
 import { rasgos } from "@/lib/stock-importaciones";
@@ -41,14 +41,14 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
   let contenido: React.ReactNode;
   if (pestana === "subir") {
     // Una carga viva por empresa (Santos 23-10): el Excel de Efameinsa no tapa ni reemplaza el de Open.
-    const [{ data: lista }, { count: enAlmacen }] = await Promise.all([
+    const [{ data: lista }, porEmpresa] = await Promise.all([
       supabase
         .from("stock_cargas")
         .select("id, archivo, hojas, filas, ausentes, estado, resultado, empresa, created_at, subida_at")
         .in("estado", ["revisando", "subida"])
         .order("created_at", { ascending: false })
         .limit(10),
-      supabase.from("inventario_equipos").select("id", { count: "exact", head: true }).eq("estado", "disponible"),
+      contarPorEmpresa(supabase),
     ]);
     const vistas = new Set<string>();
     const cargas: CargaStock[] = [];
@@ -96,7 +96,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
           </section>
         ))}
         {/* El informe de los lunes de Importaciones, ahora armado por el CRM (reunión Santos–Lesly 22-10). */}
-        <ResumenGeneralStock enAlmacen={enAlmacen ?? 0} />
+        <ResumenGeneralStock porEmpresa={porEmpresa} />
       </div>
     );
   } else if (pestana === "almacen") {

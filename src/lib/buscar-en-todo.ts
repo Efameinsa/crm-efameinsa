@@ -207,7 +207,8 @@ export async function buscarEnTodo(
       estado: c.ultima_venta_at ? `última venta ${dia(c.ultima_venta_at)}` : "sin ventas registradas",
       fecha: null,
       monto: null,
-      href: `/gerencia/clientes/${c.id}`,
+      // La ficha de todos (23-10, Lesly no podía abrir Sociedad Hotelera del Sur): /gerencia/* echa a quien no es gerencia.
+      href: `/nuevo/cliente/${c.id}`,
     })),
   );
 
@@ -309,7 +310,7 @@ export async function buscarEnTodo(
         estado: `${String(l.estado).replace(/_/g, " ")} · por ${l.canal}`,
         fecha,
         monto: null,
-        href: l.cuenta_id ? `/gerencia/clientes/${l.cuenta_id}` : otra ? `/gerencia/clientes/${otra.id}` : null,
+        href: l.cuenta_id ? `/nuevo/cliente/${l.cuenta_id}` : otra ? `/nuevo/cliente/${otra.id}` : null,
         nota: l.cuenta_id
           ? null
           : otra

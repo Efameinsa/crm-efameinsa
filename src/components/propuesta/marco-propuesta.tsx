@@ -123,18 +123,6 @@ export async function MarcoPropuesta({
               pantalla completa). La vista nueva no la tenía: Ariana, 28-09-2026. */}
           <BotonAtrasApp />
           <BuscadorCabecera href={buscar.href} ayuda={buscar.ayuda} />
-          {/* «Cotizar», dentro de un expediente, cotiza a ese cliente (Moisés, 14-10). */}
-          {NUEVO[tipo] && (tipo === "comercial" || tipo === "preventivo") ? (
-            <BotonCotizarCabecera etiqueta={NUEVO[tipo].etiqueta} hrefFuera={NUEVO[tipo].href} />
-          ) : NUEVO[tipo] ? (
-            <Link
-              href={NUEVO[tipo].href}
-              className="group inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-md"
-            >
-              <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
-              <span className="max-[380px]:hidden">{NUEVO[tipo].etiqueta}</span>
-            </Link>
-          ) : null}
           {pasaContactos && (
             <span className="pasar-a-central">
               <PasarContactoCentral contexto={tipo === "postventa" ? "postventa" : tipo === "almacen" ? "almacen" : "comercial"} campaniasWhatsapp={campanias} />
@@ -168,6 +156,22 @@ export async function MarcoPropuesta({
           >
             {oscuro ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </a>
+          {/* EL BOTÓN ROJO LEJOS DEL BUSCADOR (Santos 23-10: «la gente presiona ese botón rojo
+              pensando que es el botón buscar»). El buscador tiene su propio «Buscar» gris y la
+              acción de crear queda después de los íconos, separada por una raya. */}
+          <span className="hidden h-6 w-px bg-border sm:block" aria-hidden />
+          {/* «Cotizar», dentro de un expediente, cotiza a ese cliente (Moisés, 14-10). */}
+          {NUEVO[tipo] && (tipo === "comercial" || tipo === "preventivo") ? (
+            <BotonCotizarCabecera etiqueta={NUEVO[tipo].etiqueta} hrefFuera={NUEVO[tipo].href} />
+          ) : NUEVO[tipo] ? (
+            <Link
+              href={NUEVO[tipo].href}
+              className="group inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-md"
+            >
+              <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
+              <span className="max-[380px]:hidden">{NUEVO[tipo].etiqueta}</span>
+            </Link>
+          ) : null}
           <div className="ml-auto flex items-center gap-3">
             {demo ? (
               <span className="hidden items-center gap-1 rounded-full bg-[var(--c-verde)]/12 px-2.5 py-1 text-[11px] font-semibold text-[var(--verde-texto)] lg:inline-flex" title="Vista de la propuesta: se mira, no se guarda">

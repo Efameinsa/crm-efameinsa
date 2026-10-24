@@ -64,7 +64,7 @@ export default async function AtencionPage({
   const { data } = await supabase
     .from("atenciones")
     .select(
-      "id, codigo, created_at, cuenta_id, equipo_id, cliente_texto, equipo_texto, tipo, tipo_detalle, clasificacion, etapa, en_garantia, hizo_preventivo, asignado_a, tecnico, solicitado_at, registrado_at, diagnosticado_at, programada_at, atendido_at, pruebas_at, conformidad_at, cerrado_at, seguimiento_at, seguimiento_nota, tomada_at, tomada_por, conformidad_nombre, informe_servicio_id, resultado, detalle, diagnostico, motivo_cierre, no_facturado_motivo, etapas_omitidas, garantia_omitida_at, garantia_omitida_motivo, trabajo_realizado, repuestos_usados, ciclos, pruebas_detalle, pruebas_conforme, oportunidad_id, servicio_id, servicios_postventa(id, equipo, despachado_at, fecha_despacho, puesta_en_marcha), cuentas(razon_social, num_doc), perfiles:asignado_a(nombre, codigo_comercial), tomadaPor:tomada_por(nombre, codigo_comercial), recibido_por, recibidoPor:recibido_por(nombre, codigo_comercial)",
+      "id, codigo, created_at, cuenta_id, equipo_id, cliente_texto, equipo_texto, tipo, tipo_detalle, clasificacion, etapa, en_garantia, hizo_preventivo, asignado_a, tecnico, solicitado_at, registrado_at, diagnosticado_at, programada_at, atendido_at, pruebas_at, conformidad_at, cerrado_at, seguimiento_at, seguimiento_nota, tomada_at, tomada_por, conformidad_nombre, informe_servicio_id, resultado, detalle, diagnostico, motivo_cierre, no_facturado_motivo, etapas_omitidas, garantia_omitida_at, garantia_omitida_motivo, trabajo_realizado, repuestos_usados, ciclos, pruebas_detalle, pruebas_conforme, oportunidad_id, servicio_id, servicios_postventa(id, equipo, despachado_at, fecha_despacho, puesta_en_marcha, apertura_modalidad), cuentas(razon_social, num_doc), perfiles:asignado_a(nombre, codigo_comercial), tomadaPor:tomada_por(nombre, codigo_comercial), recibido_por, recibidoPor:recibido_por(nombre, codigo_comercial)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -88,7 +88,9 @@ export default async function AtencionPage({
     resultado: string | null;
     anulada_at: string | null;
   }[];
-  const pedidoEnganchado = (data as unknown as { servicios_postventa: { id: string; equipo: string | null; despachado_at: string | null; fecha_despacho: string | null; puesta_en_marcha: string | null } | null }).servicios_postventa;
+  const pedidoEnganchado = (data as unknown as { servicios_postventa: { id: string; equipo: string | null; despachado_at: string | null; fecha_despacho: string | null; puesta_en_marcha: string | null; apertura_modalidad?: string | null } | null }).servicios_postventa;
+  // La apertura del caso, ¿es interna? (botón de la revisión en planta, Brenda 23-10)
+  const aperturaEsInterna = pedidoEnganchado?.apertura_modalidad === "interna";
 
   const a = data as unknown as Atencion & {
     oportunidad_id: string | null;
@@ -536,6 +538,16 @@ export default async function AtencionPage({
             )}
             <LineaAtencion
               atencion={a}
+              recepciones={recepciones}
+              aperturaInterna={
+                a.cuenta_id
+                  ? {
+                      puedeNueva: !a.servicio_id || Boolean(pedidoEnganchado?.despachado_at),
+                      servicioId: a.servicio_id ?? null,
+                      esInterna: aperturaEsInterna,
+                    }
+                  : undefined
+              }
               puedeCotizar={puedeCotizarla}
               tecnicos={tecnicos}
               garantia={garantia}

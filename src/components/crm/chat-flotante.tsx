@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useTransition, type PointerEvent as EventoPuntero } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { CheckCheck, Loader2, Lock, Maximize2, MessageCircle, Minimize2, Minus, SendHorizontal, UserPlus, X } from "lucide-react";
+import { AtSign, CheckCheck, Loader2, Lock, Maximize2, MessageCircle, Minimize2, Minus, SendHorizontal, UserPlus, UserX, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { agregarAlChat, buscarPersonasChat, cargarChat, enviarMensajeChat, type DatosChat } from "@/lib/acciones/chat";
-import { AREAS_CHAT, chatDelEnlace, type TipoChat } from "@/lib/chat";
+import { AREAS_CHAT, chatDelEnlace, diasSinEntrar, mencionesEnElTexto, partirMenciones, type TipoChat } from "@/lib/chat";
+import { refrescarMisChats } from "@/lib/mis-chats";
 import { fechaLima } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 
@@ -128,6 +129,13 @@ function VentanaChat({
   const lista = useRef<HTMLDivElement>(null);
   const campo = useRef<HTMLTextAreaElement>(null);
   const minimizadoRef = useRef(minimizado);
+  // EL «@» (Santos 23-10): a quiénes se eligió al escribir, y la lista que se abre al teclear «@».
+  const [elegidas, setElegidas] = useState<{ id: string; nombre: string }[]>([]);
+  const [arroba, setArroba] = useState<{ desde: number; q: string } | null>(null);
+  const [opcionArroba, setOpcionArroba] = useState(0);
+  const [otrasPersonas, setOtrasPersonas] = useState<{ id: string; nombre: string; area: string }[]>([]);
+  const primeraCarga = useRef(true);
+  const [verAusentes, setVerAusentes] = useState(false);
 
   useEffect(() => {
     minimizadoRef.current = minimizado;
@@ -140,7 +148,10 @@ function VentanaChat({
   // Leer con la ventana abierta y a la vista es «visto»; minimizada o en otra pestaña, no.
   const recargar = useCallback(async () => {
     const aLaVista = !minimizadoRef.current && document.visibilityState === "visible";
-    const d = await cargarChat(tipo, id, aLaVista).catch(() => null);
+    // La primera vez se rehace la lista de quiénes están en el canal (0599): un paso movido suma gente.
+    const sincronizar = primeraCarga.current;
+    primeraCarga.current = false;
+    const d = await cargarChat(tipo, id, aLaVista, sincronizar).catch(() => null);
     setCargando(false);
     if (d) {
       setDatos(d);
@@ -216,17 +227,79 @@ function VentanaChat({
 
   const cerrado = Boolean(datos?.cerradoAt);
 
+  // Quiénes se pueden nombrar: primero los del canal; con dos letras, también cualquiera del CRM (entra al canal al nombrarlo).
+  const yoId = datos?.participantes.find((p) => p.yo)?.id ?? null;
+  const normal = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const delCanal = (datos?.participantes ?? []).filter((p) => !p.yo && (!arroba || normal(p.nombre).includes(normal(arroba.q))));
+  const candidatos = [
+    ...delCanal.map((p) => ({ id: p.id, nombre: p.nombre, area: p.area, fuera: false })),
+    ...otrasPersonas
+      .filter((p) => p.id !== yoId && !(datos?.participantes ?? []).some((x) => x.id === p.id))
+      .map((p) => ({ id: p.id, nombre: p.nombre.replace(/\s*\([^)]*\)$/, ""), area: p.area, fuera: true })),
+  ].slice(0, 8);
+
+  const qArroba = arroba?.q.trim() ?? "";
+  useEffect(() => {
+    let vigente = true;
+    const t = window.setTimeout(
+      async () => {
+        const r = qArroba.length < 2 ? [] : await buscarPersonasChat(qArroba).catch(() => []);
+        if (vigente) setOtrasPersonas(r);
+      },
+      qArroba.length < 2 ? 0 : 250,
+    );
+    return () => {
+      vigente = false;
+      window.clearTimeout(t);
+    };
+  }, [qArroba]);
+
+  /** Mira si quien escribe está tecleando un «@algo» justo antes del cursor. */
+  function alEscribir(valor: string, cursor: number) {
+    setTexto(valor);
+    const antes = valor.slice(0, cursor);
+    const m = /(^|\s)@([^\s@]{0,30})$/.exec(antes);
+    if (m) {
+      setArroba({ desde: cursor - m[2].length - 1, q: m[2] });
+      setOpcionArroba(0);
+    } else setArroba(null);
+  }
+
+  /** Cambia «@algo» por «@Nombre Apellido » y la recuerda para mandarla con el mensaje. */
+  function nombrar(p: { id: string; nombre: string }) {
+    if (!arroba) return;
+    const cursor = campo.current?.selectionStart ?? texto.length;
+    const nuevo = `${texto.slice(0, arroba.desde)}@${p.nombre} ${texto.slice(cursor)}`;
+    setTexto(nuevo);
+    setElegidas((e) => (e.some((x) => x.id === p.id) ? e : [...e, { id: p.id, nombre: p.nombre }]));
+    setArroba(null);
+    const pos = arroba.desde + p.nombre.length + 2;
+    window.setTimeout(() => {
+      campo.current?.focus();
+      campo.current?.setSelectionRange(pos, pos);
+    }, 0);
+  }
+
+  // QUIÉN NO ENTRA AL CRM (0599): si un involucrado no entra hace dos días o más, quien escribe sabe que hoy toca llamarlo.
+  const ausentes = (datos?.participantes ?? [])
+    .filter((p) => !p.yo)
+    .map((p) => ({ ...p, dias: diasSinEntrar(p.ultimoAcceso) }))
+    .filter((p) => p.dias === null || p.dias >= 2);
+
   function enviar() {
     const t = texto.trim();
     if (!t || enviando) return;
     empezar(async () => {
-      const r = await enviarMensajeChat({ tipo, id, texto: t });
+      const r = await enviarMensajeChat({ tipo, id, texto: t, menciones: mencionesEnElTexto(t, elegidas) });
       if (r.error) {
         toast.error(r.error);
         return;
       }
       setTexto("");
+      setElegidas([]);
+      setArroba(null);
       await recargar();
+      refrescarMisChats();
     });
   }
 
@@ -373,9 +446,19 @@ function VentanaChat({
                       className={cn(
                         "max-w-[85%] rounded-2xl px-3 py-1.5 text-[13px] leading-snug whitespace-pre-wrap break-words shadow-sm",
                         m.mio ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md bg-card text-foreground ring-1 ring-border",
+                        m.meMenciona && "ring-2 ring-amber-400",
                       )}
                     >
-                      {m.texto}
+                      {/* «@Nombre» resaltado (0599). */}
+                      {partirMenciones(m.texto, m.menciones).map((t, k) =>
+                        t.mencion ? (
+                          <b key={k} className={cn("rounded px-0.5 font-semibold", m.mio ? "bg-white/20" : "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100")}>
+                            {t.texto}
+                          </b>
+                        ) : (
+                          <span key={k}>{t.texto}</span>
+                        ),
+                      )}
                     </div>
                     <Visto m={m} />
                   </div>
@@ -392,6 +475,44 @@ function VentanaChat({
           {tipo === "caso" ? "El caso" : "El pedido"} se cerró{datos?.cerradoAt ? ` el ${fechaLima(datos.cerradoAt)}` : ""}: el canal terminó y la conversación queda guardada, de solo lectura.
         </p>
       ) : (
+        <>
+        {ausentes.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setVerAusentes((v) => !v)}
+            className="flex w-full items-start gap-1.5 border-t border-border bg-amber-50 px-3 py-1.5 text-left text-[11px] text-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
+          >
+            <UserX className="mt-px size-3.5 shrink-0" />
+            <span>
+              {ausentes.length <= 2 || verAusentes
+                ? ausentes.map((p) => (p.ultimoAcceso ? `${p.nombre} no entra al CRM desde el ${fechaLima(p.ultimoAcceso)}` : `${p.nombre} nunca entró al CRM`)).join(" · ")
+                : `${ausentes.length} del canal no entran al CRM hace días: ${ausentes.map((p) => p.nombre.split(" ")[0]).join(", ")} (ver detalle)`}
+              . Si es urgente, {ausentes.length > 1 ? "llámelos" : "llámelo"}.
+            </span>
+          </button>
+        )}
+        {arroba && candidatos.length > 0 && (
+          <ul className="max-h-48 overflow-y-auto border-t border-border bg-card py-1 text-xs" role="listbox" aria-label="Nombrar a alguien">
+            {candidatos.map((p, i) => (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={i === opcionArroba}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    nombrar(p);
+                  }}
+                  className={cn("flex w-full items-center gap-2 px-3 py-1.5 text-left", i === opcionArroba ? "bg-accent" : "hover:bg-secondary")}
+                >
+                  <AtSign className="size-3.5 shrink-0 text-primary" />
+                  <span className="min-w-0 flex-1 truncate font-medium text-foreground">{p.nombre}</span>
+                  <span className="shrink-0 text-[10px] text-muted-foreground">{p.fuera ? "no está en el canal: entra al nombrarlo" : p.area}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         <form
           className="flex items-end gap-1.5 border-t border-border bg-card p-2"
           onSubmit={(e) => {
@@ -402,8 +523,26 @@ function VentanaChat({
           <textarea
             ref={campo}
             value={texto}
-            onChange={(e) => setTexto(e.target.value)}
+            onChange={(e) => alEscribir(e.target.value, e.target.selectionStart ?? e.target.value.length)}
             onKeyDown={(e) => {
+              // Con la lista del «@» abierta, las flechas eligen y Enter / Tab nombra.
+              if (arroba && candidatos.length > 0) {
+                if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setOpcionArroba((i) => (i + (e.key === "ArrowDown" ? 1 : candidatos.length - 1)) % candidatos.length);
+                  return;
+                }
+                if (e.key === "Enter" || e.key === "Tab") {
+                  e.preventDefault();
+                  nombrar(candidatos[Math.min(opcionArroba, candidatos.length - 1)]);
+                  return;
+                }
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  setArroba(null);
+                  return;
+                }
+              }
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 enviar();
@@ -411,8 +550,8 @@ function VentanaChat({
             }}
             rows={Math.min(5, Math.max(1, texto.split("\n").length))}
             maxLength={2000}
-            placeholder="Escriba al canal… (Enter envía)"
-            title="Enter envía · Mayús + Enter salta de línea"
+            placeholder="Escriba al canal… (@ para nombrar a alguien)"
+            title="Enter envía · Mayús + Enter salta de línea · @ nombra a alguien y le llega su aviso"
             className="min-h-9 flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-primary"
           />
           <button
@@ -424,23 +563,36 @@ function VentanaChat({
             {enviando ? <Loader2 className="size-4 animate-spin" /> : <SendHorizontal className="size-4" />}
           </button>
         </form>
+        </>
       )}
     </section>
   );
 }
 
-/** «Visto por…»: quiénes ya leyeron el mensaje (Santos 23-10: «el visto también de quiénes lo van leyendo»). */
+/**
+ * «Visto por…»: quiénes ya leyeron el mensaje, con NOMBRE COMPLETO (Santos
+ * 23-10: «debe estar el visto de las personas que lo vieron con nombre»), y
+ * quiénes del canal todavía no. Con muchos, se abre tocándolo (también en el celular).
+ */
 function Visto({ m }: { m: DatosChat["mensajes"][number] }) {
+  const [abierto, setAbierto] = useState(false);
   const n = m.vistos.length;
-  const nombres = m.vistos.map((v) => v.split(" ")[0]);
+  const largo = n + m.sinVer.length > 3;
+  const vistos = !largo || abierto ? m.vistos.join(", ") : `${m.vistos.slice(0, 2).join(", ")}${n > 2 ? ` y ${n - 2} más` : ""}`;
   return (
-    <span
-      className={cn("mt-0.5 inline-flex items-center gap-1 px-1 text-[10px]", n ? "text-sky-700 dark:text-sky-300" : "text-muted-foreground")}
-      title={n ? `Visto por: ${m.vistos.join(", ")}` : "Todavía nadie lo vio"}
+    <button
+      type="button"
+      onClick={() => largo && setAbierto((v) => !v)}
+      className={cn("mt-0.5 inline-flex max-w-[92%] items-start gap-1 px-1 text-left text-[10px]", largo && "cursor-pointer hover:underline")}
+      title={`Visto por: ${m.vistos.join(", ") || "nadie todavía"}${m.sinVer.length ? `\nSin ver: ${m.sinVer.join(", ")}` : ""}`}
     >
-      <CheckCheck className="size-3" />
-      {n === 0 ? "Enviado" : n <= 3 ? `Visto por ${nombres.join(", ")}` : `Visto por ${nombres.slice(0, 2).join(", ")} y ${n - 2} más`}
-    </span>
+      <CheckCheck className={cn("mt-px size-3 shrink-0", n ? "text-sky-700 dark:text-sky-300" : "text-muted-foreground")} />
+      <span>
+        {n === 0 ? <span className="text-muted-foreground">Enviado</span> : <span className="text-sky-700 dark:text-sky-300">Visto por {vistos}</span>}
+        {m.sinVer.length > 0 && (!largo || abierto) && <span className="text-muted-foreground"> · Sin ver: {m.sinVer.join(", ")}</span>}
+        {m.sinVer.length > 0 && largo && !abierto && <span className="text-muted-foreground"> · {m.sinVer.length} sin ver</span>}
+      </span>
+    </button>
   );
 }
 

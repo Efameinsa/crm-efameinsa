@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as XLSX from "xlsx";
-import { emparejar, revisarSegunExcel, esHojaDeStock, familia, leerExcelStock, rasgos, siguienteCodigoLibre, type ProductoCatalogo } from "./stock-importaciones";
+import { emparejar, revisarSegunExcel, esHojaDeStock, familia, leerExcelStock, rasgos, siguienteCodigoLibre, type FilaStock, type ProductoCatalogo } from "./stock-importaciones";
 
 const prod = (sku: string, descripcion: string, extra: Partial<ProductoCatalogo> = {}): ProductoCatalogo => ({
   id: sku,
@@ -183,6 +183,75 @@ describe("leerExcelStock", () => {
   });
 });
 
+describe("leerExcelStock con la hoja unida (Lesly 23-10)", () => {
+  it("lee STOCK PARA SANTOS y LG, no las hojas sueltas; MOD, EQUIPO, UBICAICION y RAZÓN SOCIAL", () => {
+    const libro = XLSX.utils.book_new();
+    const cab = ["CODIGO", "MOD", "EQUIPO", "STOCK", "MARCA", "AÑO", "SERIE", "UBICAICION", "COSTO"];
+    XLSX.utils.book_append_sheet(libro, XLSX.utils.aoa_to_sheet([cab, ["I22894", "UST030", "LAVADORA UST030", 1, "UNIMAC", null, 2409600366, "PLANTA", 11500]]), "STOCK INDUSTRIALES PROV. OPEN");
+    XLSX.utils.book_append_sheet(
+      libro,
+      XLSX.utils.aoa_to_sheet([
+        ["ITEM", "CODIFICACION", "CODIGO", "MOD", "EQUIPO", "SERIE", "CAPACIDAD", "STOCK", "UBICAICION", "COSTO", "PROVEEDOR", "MARCA", "RAZON SOCIAL"],
+        [1, "LAVUS030", "I22894", "UST030", "LAVADORA UST030", 2409600366, "15 KG", 1, "PLANTA", 11500, "ALLIANCES LAUNDRY", "UNIMAC", "EFAMEINSA"],
+      ]),
+      "STOCK PARA SANTOS IDUS",
+    );
+    XLSX.utils.book_append_sheet(
+      libro,
+      XLSX.utils.aoa_to_sheet([
+        ["IETEM", "CODIFICACION", "CODIGO", "MODELO", "DESCRIPCION ", "SERIE", "CAPACIDAD ", "STOCK", "UBICACIÓN", "INGRESO", "COSTO", "RAZON SOCIAL"],
+        [1, null, "I21002", "GIANT-C+", "SECADORA LG", "905KWMK4A731", "10.2 KG", 1, "PLANTA", null, "$812.09", "EFAMEINSA"],
+      ]),
+      "STOCK LG",
+    );
+    const { filas, hojas, ignoradas, soloEnSueltas } = leerExcelStock(XLSX.write(libro, { type: "array", bookType: "xlsx" }));
+    expect(hojas).toEqual(["STOCK PARA SANTOS IDUS", "STOCK LG"]);
+    expect(ignoradas).toContain("STOCK INDUSTRIALES PROV. OPEN");
+    expect(filas).toHaveLength(2);
+    // La 2409600366 viene de la hoja «PROV. OPEN»: es de Open aunque RAZÓN SOCIAL diga EFAMEINSA (Santos 23-10 16:20).
+    expect(filas[0]).toMatchObject({ codigoExcel: "LAVUS030", modelo: "UST030", descripcion: "LAVADORA UST030", ubicacion: "PLANTA", costo: 11500, empresa: "OPEN" });
+    expect(filas[1]).toMatchObject({ costo: 812.09, empresa: "EFAMEINSA" });
+    expect(soloEnSueltas).toEqual([]);
+  });
+
+  it("la empresa sale de la hoja suelta de origen y avisa lo que no pasó a la unida", () => {
+    const libro = XLSX.utils.book_new();
+    const cab = ["CODIGO", "MOD", "EQUIPO", "STOCK", "MARCA", "SERIE", "UBICACION"];
+    XLSX.utils.book_append_sheet(libro, XLSX.utils.aoa_to_sheet([cab, ["I22894", "UST030", "LAVADORA UST030", 1, "UNIMAC", 2409600366, "PLANTA"]]), "STOCK INDUSTRIALES PROV. OPEN");
+    XLSX.utils.book_append_sheet(
+      libro,
+      XLSX.utils.aoa_to_sheet([
+        cab,
+        ["I21383", "FX280", "LAVADORA FX280", 1, "PRIMUS", "280FX004020QU", "PLANTA"],
+        ["I25001", null, "CALDERIN SIDI MONDIAL", 1, "SIDI MONDIAL", 51005, "PLANTA"],
+      ]),
+      "STOCK INDUSTRIALES EFAMEINSA",
+    );
+    XLSX.utils.book_append_sheet(
+      libro,
+      XLSX.utils.aoa_to_sheet([
+        ["ITEM", "CODIFICACION", "CODIGO", "MOD", "EQUIPO", "SERIE", "STOCK", "UBICAICION", "RAZON SOCIAL"],
+        [1, "LAVUS030", "I22894", "UST030", "LAVADORA UST030", 2409600366, 1, "PLANTA", "EFAMEINSA"],
+        [2, "LAVF280", "I21383", "FX280", "LAVADORA FX280", "280FX004020QU", 1, "PLANTA", "EFAMEINSA"],
+      ]),
+      "STOCK PARA SANTOS IDUS",
+    );
+    const { filas, soloEnSueltas } = leerExcelStock(XLSX.write(libro, { type: "array", bookType: "xlsx" }));
+    expect(filas.map((f) => [f.serie, f.empresa])).toEqual([
+      ["2409600366", "OPEN"],
+      ["280FX004020QU", "EFAMEINSA"],
+    ]);
+    // El calderín está solo en la hoja de Efameinsa: no entra y se avisa.
+    expect(soloEnSueltas).toEqual([{ hoja: "STOCK INDUSTRIALES EFAMEINSA", serie: "51005", descripcion: "CALDERIN SIDI MONDIAL", empresa: "EFAMEINSA" }]);
+  });
+
+  it("la misma serie en dos filas va a revisar (rodillos 16002)", () => {
+    const fila = (item: string, cod: string) => ({ hoja: "STOCK PARA SANTOS", fila: 1, item, codigoExcel: cod, modelo: "", descripcion: "RODILLO", serie: "16002", capacidad: null, cantidad: 1, ubicacion: null, ingreso: null, marca: null });
+    const r = revisarSegunExcel([fila("I20250", "ROD1"), fila("I20251", "ROD2")], [], []);
+    expect(r.map((x) => x.estado)).toEqual(["revisar", "revisar"]);
+  });
+});
+
 describe("revisarSegunExcel (manda el Excel de Lesly)", () => {
   const catalogo = [
     prod("SECGIA10", "", { modelo: "GIANT C MAX (CDG27MUCPS)", nombre: "SECADORA C. APILABLE", marca: "LG" }),
@@ -218,5 +287,23 @@ describe("revisarSegunExcel (manda el Excel de Lesly)", () => {
     expect(b.motivo).toContain("ECOLAV");
     expect(c.estado).toBe("revisar");
     expect(d.motivo).toContain("modelos distintos");
+  });
+});
+
+describe("el CRM sugiere el código donde el Excel no trae (Lesly 23-10)", () => {
+  const fila = (o: Partial<FilaStock>): FilaStock => ({ hoja: "STOCK PARA SANTOS", fila: 1, item: "I1", codigoExcel: null, modelo: "RX350", descripcion: "LAVADORA IND. RIGIDA MOD. RX350, FUERZA: 150G, CONTROL X, CAP. 35KG, 220V/60HZ/1PH", serie: "S1", capacidad: null, cantidad: 1, ubicacion: null, ingreso: null, marca: null, ...o });
+  const cat: ProductoCatalogo[] = [{ id: "p1", sku: "LAV350", activo: true, marca: "PRIMUS", modelo: "RX350", nombre: "LAVADORA RIGIDA RX350 35KG", descripcion: "LAVADORA IND. RIGIDA MOD. RX350, FUERZA: 150G, CONTROL X, CAP. 35KG, 220V/60HZ/1PH", panel: null, calentamiento: null, nombreFicha: null }];
+  it("sin código: sigue en falta, pero con el sugerido y los candidatos", () => {
+    const [p] = revisarSegunExcel([fila({})], cat, []);
+    expect(p.estado).toBe("falta");
+    expect(p.codigo).toBeNull();
+    expect(p.sugerido).toBe("LAV350");
+    expect(p.candidatos.map((c) => c.sku)).toContain("LAV350");
+    expect(p.motivo).toContain("sugiere LAV350");
+  });
+  it("con el código de Lesly no sugiere nada: manda el Excel", () => {
+    const [p] = revisarSegunExcel([fila({ codigoExcel: "LAV350" })], cat, []);
+    expect(p.sugerido ?? null).toBeNull();
+    expect(p.codigo).toBe("LAV350");
   });
 });

@@ -112,6 +112,12 @@ export interface Propuesta extends FilaStock {
   tipo: string;
   /** El código propuesto no existe: hay que crear el producto. */
   crear: boolean;
+  /**
+   * El código que el CRM sugiere cuando el Excel no trae ninguno (Lesly 23-10: «que el CRM
+   * le recomiende códigos y ella dé el visto bueno»). Nunca entra solo: queda escrito en la
+   * casilla y la máquina entra recién cuando ella pulsa «Entra al almacén».
+   */
+  sugerido?: string | null;
   /** La serie ya está con un cliente en el CRM. */
   ocupada: { cliente: string | null; cuentaId: string | null; pedidoId: string | null; pedido: string | null } | null;
 }
@@ -232,45 +238,48 @@ export function esHojaDeStock(nombre: string): boolean {
  * DESCRIPCION…). En la hoja LG la columna del código no tiene título: es la
  * primera columna cuando su cabecera está vacía. COSTO se lee (0596).
  */
-export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaStock[]; hojas: string[]; ignoradas: string[] } {
+export interface LecturaStock {
+  filas: FilaStock[];
+  hojas: string[];
+  ignoradas: string[];
+  /** Máquinas que están en una hoja suelta (Open / Efameinsa) y Lesly no pasó a la hoja unida: no entran. */
+  soloEnSueltas: { hoja: string; serie: string; descripcion: string; empresa: string }[];
+}
+
+export function leerExcelStock(datos: ArrayBuffer | Uint8Array): LecturaStock {
   const libro = XLSX.read(datos, { type: "array", cellDates: true });
   const filas: FilaStock[] = [];
   const hojas: string[] = [];
   const ignoradas: string[] = [];
 
-  for (const nombre of libro.SheetNames) {
-    if (!esHojaDeStock(nombre)) {
-      ignoradas.push(nombre.trim());
-      continue;
-    }
+  /** Las máquinas de una hoja, o null si la hoja no tiene cabecera de stock (SERIE + MODELO). */
+  const leerHoja = (nombre: string): FilaStock[] | null => {
     const matriz = XLSX.utils.sheet_to_json<unknown[]>(libro.Sheets[nombre], { header: 1, raw: true, defval: null });
     const iCab = matriz.findIndex((r) => {
       const c = (r ?? []).map(normCabecera);
-      return c.includes("SERIE") && c.includes("MODELO");
+      return c.includes("SERIE") && (c.includes("MODELO") || c.includes("MOD"));
     });
-    if (iCab < 0) {
-      ignoradas.push(nombre.trim());
-      continue;
-    }
-    hojas.push(nombre.trim());
+    if (iCab < 0) return null;
     const cab = matriz[iCab].map(normCabecera);
     const col = (...nombres: string[]) => cab.findIndex((c) => nombres.includes(c));
     const cCodigo = col("CODIFICACION") >= 0 ? col("CODIFICACION") : cab[0] === "" ? 0 : -1;
     const cItem = col("CODIGO");
-    const cModelo = col("MODELO");
-    const cDesc = col("NOMBRE", "DESCRIPCION");
+    // La hoja unida del 23-10 dice MOD, EQUIPO y «UBICAICION».
+    const cModelo = col("MODELO", "MOD");
+    const cDesc = col("NOMBRE", "DESCRIPCION", "EQUIPO");
     const cSerie = col("SERIE");
     const cCap = col("CAPACIDAD");
     const cStock = col("STOCK");
     const cSistema = col("SISTEMA");
-    const cUbic = col("UBICACION");
+    const cUbic = col("UBICACION", "UBICAICION");
     const cIngreso = col("INGRESO");
     const cMarca = col("MARCA");
     const cProveedor = col("PROVEEDOR");
     const cCosto = col("COSTO");
     // Carlos (22-10): cada máquina dice si es de Open o de Efameinsa. En las hojas de
     // reserva y vendidos Importaciones lo llama «C. INICIAL» o «SOLICITADO».
-    const cEmpresa = col("EMPRESA", "PERTENECE", "CINICIAL", "SOLICITADO", "PROPIETARIO");
+    // Desde el 23-10 la hoja unida y la de LG lo dicen en RAZÓN SOCIAL.
+    const cEmpresa = col("EMPRESA", "RAZONSOCIAL", "PERTENECE", "CINICIAL", "SOLICITADO", "PROPIETARIO");
 
     const celda = (r: unknown[], i: number) => (i >= 0 ? r[i] : null);
     const textoDe = (v: unknown) => {
@@ -279,6 +288,7 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
       return s && !s.startsWith("=") ? s : null;
     };
 
+    const deLaHoja: FilaStock[] = [];
     matriz.slice(iCab + 1).forEach((r, k) => {
       const item = textoDe(celda(r, cItem));
       // Las filas de subtítulo («SECADORA 15 KG - LG») y de totales no tienen ítem.
@@ -286,7 +296,7 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
       const modelo = [textoDe(celda(r, cModelo)), textoDe(celda(r, cSistema))].filter(Boolean).join(" ");
       const ingreso = celda(r, cIngreso);
       const serieTxt = textoDe(celda(r, cSerie));
-      filas.push({
+      deLaHoja.push({
         hoja: nombre.trim(),
         fila: iCab + 2 + k,
         item,
@@ -312,8 +322,45 @@ export function leerExcelStock(datos: ArrayBuffer | Uint8Array): { filas: FilaSt
         })(),
       });
     });
+    return deLaHoja;
+  };
+
+  // Lesly (23-10 14:24): «STOCK PARA SANTOS» es la hoja que ella une con las industriales de
+  // Open y de Efameinsa. Si el libro la trae, las hojas sueltas no se leen (serían las mismas
+  // máquinas dos veces); LG va aparte y se lee siempre.
+  const hayUnida = libro.SheetNames.some((n) => esHojaDeStock(n) && normCabecera(n).includes("SANTOS"));
+  const esSuelta = (n: string) => hayUnida && esHojaDeStock(n) && !normCabecera(n).includes("SANTOS") && !/LG/i.test(n);
+  for (const nombre of libro.SheetNames) {
+    const deLaHoja = !esHojaDeStock(nombre) || esSuelta(nombre) ? null : leerHoja(nombre);
+    if (!deLaHoja) {
+      ignoradas.push(nombre.trim());
+      continue;
+    }
+    hojas.push(nombre.trim());
+    filas.push(...deLaHoja);
   }
-  return { filas, hojas, ignoradas };
+
+  // Santos (23-10 16:20): «ahí hay Efameinsa y Open». En la hoja unida Lesly dejó RAZÓN SOCIAL
+  // en «EFAMEINSA» para todas las filas, también para las 19 que vienen de «STOCK INDUSTRIALES
+  // PROV. OPEN». La hoja suelta de la que sale cada máquina dice de quién es: manda sobre la
+  // columna. Y lo que está en una suelta y no pasó a la unida se avisa, porque no entra.
+  const soloEnSueltas: LecturaStock["soloEnSueltas"] = [];
+  const empresaPorSerie = new Map<string, string>();
+  const enLaUnida = new Set(filas.filter((f) => f.serie).map((f) => f.serie!));
+  for (const nombre of libro.SheetNames) {
+    const empresa = empresaDe(nombre);
+    if (!esSuelta(nombre) || !empresa) continue;
+    for (const f of leerHoja(nombre) ?? []) {
+      if (!f.serie) continue;
+      empresaPorSerie.set(f.serie, empresa);
+      if (!enLaUnida.has(f.serie)) soloEnSueltas.push({ hoja: nombre.trim(), serie: f.serie, descripcion: f.descripcion || f.modelo, empresa });
+    }
+  }
+  for (const f of filas) {
+    const deSuelta = f.serie ? empresaPorSerie.get(f.serie) : undefined;
+    if (deSuelta) f.empresa = deSuelta;
+  }
+  return { filas, hojas, ignoradas, soloEnSueltas };
 }
 
 // ------------------------------------------------------------------ comparar
@@ -593,6 +640,18 @@ export function revisarSegunExcel(filas: FilaStock[], productos: ProductoCatalog
     m.add(modeloDe(f));
     modelosPorCodigo.set(f.codigoExcel, m);
   }
+  // Una serie de placa es una sola máquina: dos filas con la misma (los rodillos YC8-30 del
+  // 23-10 traen las dos «16002») se taparían una a la otra en el almacén.
+  const vecesSerie = new Map<string, number>();
+  for (const f of filas) if (f.serie && !esCorrelativo(f.serie)) vecesSerie.set(f.serie, (vecesSerie.get(f.serie) ?? 0) + 1);
+
+  // LO QUE EL CRM SUGIERE (Lesly 23-10): donde el Excel no trae código, o trae uno puesto a
+  // modelos distintos, se compara la configuración con el catálogo como en «Códigos y series».
+  // Manda el Excel: esto solo propone; no cambia un código que Lesly escribió.
+  const aSugerir = filas.filter((f) => !f.codigoExcel || (modelosPorCodigo.get(f.codigoExcel)?.size ?? 0) > 1);
+  const sugerencias = new Map<FilaStock, Propuesta>();
+  if (aSugerir.length > 0) emparejar(aSugerir.map((f) => ({ ...f, codigoExcel: null })), productos, []).forEach((p, i) => sugerencias.set(aSugerir[i], p));
+  const ocupadosSku = new Set(productos.map((p) => p.sku.toUpperCase()));
 
   return filas.map((f) => {
     const r = rasgos(`${f.descripcion} ${f.modelo}`);
@@ -603,10 +662,25 @@ export function revisarSegunExcel(filas: FilaStock[], productos: ProductoCatalog
     let codigo: string | null = f.codigoExcel;
     let crear = false;
 
+    const sug = sugerencias.get(f);
+    const iguales = sug ? sug.candidatos.filter((c) => c.choques.length === 0) : [];
+    // Un código del catálogo con la misma configuración; si hay varios, el primero (los demás quedan como opciones);
+    // si no hay ninguno, el código nuevo que el CRM arma sin repetir ninguno, ni los retirados.
+    const sugerido = !sug
+      ? null
+      : sug.codigo && !sug.crear
+        ? sug.codigo
+        : iguales[0]?.sku ?? (sug.crear && sug.codigo ? sug.codigo : siguienteCodigoLibre(sug.candidatos[0]?.sku ?? "EQ", ocupadosSku));
+    const sugeridoEsNuevo = !!sugerido && !porSku.has(sugerido);
+
     if (!f.codigoExcel) {
       estado = "falta";
       codigo = null;
-      motivo = "En el Excel no tiene código. Escriba el código que le corresponde";
+      motivo = sugerido
+        ? sugeridoEsNuevo
+          ? `En el Excel no tiene código. El CRM sugiere ${sugerido}, un código NUEVO: en el catálogo no hay uno con esta configuración. Revíselo y dé el visto bueno con «Entra al almacén», o escriba otro`
+          : `En el Excel no tiene código. El CRM sugiere ${sugerido}${iguales.length > 1 ? ` (hay ${iguales.length} iguales en el catálogo: elija el que corresponde)` : ", que ya existe con la misma configuración"}. Dé el visto bueno con «Entra al almacén», o escriba otro`
+        : "En el Excel no tiene código. Escriba el código que le corresponde";
     } else if (!CODIGO_VALIDO.test(f.codigoExcel)) {
       estado = "revisar";
       codigo = null;
@@ -614,6 +688,7 @@ export function revisarSegunExcel(filas: FilaStock[], productos: ProductoCatalog
     } else if ((modelosPorCodigo.get(f.codigoExcel)?.size ?? 0) > 1) {
       estado = "revisar";
       motivo = `En el Excel el código ${f.codigoExcel} está puesto a modelos distintos (${[...modelosPorCodigo.get(f.codigoExcel)!].join(", ")}). Confirme que es el mismo equipo`;
+      if (sugerido && sugerido !== f.codigoExcel) motivo += `. Para esta máquina el CRM sugiere ${sugerido}`;
     } else {
       const p = porSku.get(f.codigoExcel);
       if (!p) {
@@ -629,6 +704,10 @@ export function revisarSegunExcel(filas: FilaStock[], productos: ProductoCatalog
       }
     }
 
+    if (f.serie && (vecesSerie.get(f.serie) ?? 0) > 1) {
+      estado = "revisar";
+      motivo = `La serie ${f.serie} está en más de una fila del Excel. Cada máquina tiene su propia serie: corrija la que no es`;
+    }
     if (ocupada) {
       estado = "revisar";
       motivo = `Esta serie ya está en el CRM con ${ocupada.cliente ?? "un cliente"}${ocupada.pedido ? ` (pedido ${ocupada.pedido})` : ""}: ya se vendió o está reservada. Pásela a vendido o reserva en el Excel; aquí no se sube como stock libre`;
@@ -642,7 +721,8 @@ export function revisarSegunExcel(filas: FilaStock[], productos: ProductoCatalog
       estado,
       motivo,
       codigo,
-      candidatos: [],
+      candidatos: sug ? sug.candidatos : [],
+      sugerido: estado === "falta" ? sugerido : null,
       rasgos: r,
       tipo,
       crear,

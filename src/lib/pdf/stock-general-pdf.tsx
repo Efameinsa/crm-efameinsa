@@ -53,6 +53,29 @@ const s = StyleSheet.create({
 // Carlos (22-10): «que se numere, de todas maneras».
 const COL = { n: 20, codigo: 46, modelo: 64, equipo: 212, stock: 32, marca: 50, serie: 72, disp: 47 };
 const COL_LG = { n: 18, modelo: 96, equipo: 329, stock: 40, marca: 60 };
+// En el consolidado la EMPRESA va a la derecha, en un cuadrito (Santos 23-10); el equipo cede el ancho.
+const COL_EMP = 46;
+
+function CuadritoEmpresa({ empresa }: { empresa?: string | null }) {
+  const open = empresa === "OPEN";
+  return (
+    <Text
+      style={{
+        fontFamily: "Helvetica-Bold",
+        fontSize: 5.8,
+        textAlign: "center",
+        paddingVertical: 1.5,
+        borderWidth: 0.75,
+        borderRadius: 2,
+        borderColor: open ? "#1D4E89" : GRANATE,
+        color: open ? "#1D4E89" : GRANATE,
+        backgroundColor: open ? "#E8EFF8" : "#F7ECEA",
+      }}
+    >
+      {open ? "OPEN" : empresa === "EFAMEINSA" ? "EFAMEINSA" : "—"}
+    </Text>
+  );
+}
 
 /** Importaciones escribe sin espacios («SECADORA.APIL.ELECT.MOD…»): se dan puntos de corte. */
 function cortable(t: string | null | undefined, max = 24): string {
@@ -65,6 +88,8 @@ function cortable(t: string | null | undefined, max = 24): string {
 
 export interface StockGeneralPdfProps {
   logoBuffer: Buffer;
+  /** El logo de Open es más alto que el de Efameinsa: cada uno con su ancho. */
+  logoAncho?: number;
   doc: "industriales" | "lg";
   filas: FilaStockGeneral[];
   /** «al 22/10/2026» */
@@ -74,12 +99,17 @@ export interface StockGeneralPdfProps {
   origen: string;
   vistaPrevia: boolean;
   avisos: string[];
+  /**
+   * CONSOLIDADO (Santos 23-10): Open y Efameinsa juntas, en los mismos bloques por marca,
+   * y a la derecha de cada fila un cuadrito con la empresa.
+   */
+  consolidado?: boolean;
 }
 
-function Cabecera({ logoBuffer, doc, fecha, generado, origen, vistaPrevia }: Omit<StockGeneralPdfProps, "filas" | "avisos">) {
+function Cabecera({ logoBuffer, logoAncho, doc, fecha, generado, origen, vistaPrevia }: Omit<StockGeneralPdfProps, "filas" | "avisos">) {
   return (
     <View style={s.cabecera} fixed>
-      <Image src={logoBuffer} style={s.logo} />
+      <Image src={logoBuffer} style={[s.logo, logoAncho ? { width: logoAncho } : {}]} />
       <View>
         <Text style={s.tituloDoc}>RESUMEN GENERAL DE STOCK</Text>
         <Text style={s.subDoc}>{doc === "lg" ? "EQUIPOS LG" : "EQUIPOS INDUSTRIALES"} · al {fecha}</Text>
@@ -113,8 +143,9 @@ function Pie({ doc, generado }: { doc: string; generado: string }) {
   );
 }
 
-function Industriales({ filas }: { filas: FilaStockGeneral[] }) {
+function Industriales({ filas, conEmpresa = false }: { filas: FilaStockGeneral[]; conEmpresa?: boolean }) {
   const { bloques, total } = armarIndustriales(filas);
+  const anchoEquipo = conEmpresa ? COL.equipo - COL_EMP : COL.equipo;
   if (bloques.length === 0) {
     return (
       <View style={s.aviso}>
@@ -136,11 +167,12 @@ function Industriales({ filas }: { filas: FilaStockGeneral[] }) {
                   <Text style={[s.thTxt, { width: COL.n }]}>N.º</Text>
                   <Text style={[s.thTxt, { width: COL.codigo }]}>CÓDIGO</Text>
                   <Text style={[s.thTxt, { width: COL.modelo }]}>MOD.</Text>
-                  <Text style={[s.thTxt, { width: COL.equipo }]}>EQUIPO</Text>
+                  <Text style={[s.thTxt, { width: anchoEquipo }]}>EQUIPO</Text>
                   <Text style={[s.thTxt, { width: COL.stock }]}>STOCK</Text>
                   <Text style={[s.thTxt, { width: COL.marca }]}>MARCA</Text>
                   <Text style={[s.thTxt, { width: COL.serie }]}>SERIE</Text>
-                  <Text style={[s.thTxt, { width: COL.disp, borderRightWidth: 0 }]}>DISPONIBLE</Text>
+                  <Text style={[s.thTxt, { width: COL.disp, borderRightWidth: conEmpresa ? 0.5 : 0 }]}>DISPONIBLE</Text>
+                  {conEmpresa && <Text style={[s.thTxt, { width: COL_EMP, borderRightWidth: 0 }]}>EMPRESA</Text>}
                 </View>
               </View>
               {sec.filas.map((f, i) => (
@@ -155,7 +187,7 @@ function Industriales({ filas }: { filas: FilaStockGeneral[] }) {
                     <Text style={[s.centrado, s.negrita]}>{cortable(f.modelo, 11)}</Text>
                     {f.codigo && <Text style={[s.chico, s.centrado]}>{f.codigo}</Text>}
                   </View>
-                  <View style={[s.celda, { width: COL.equipo }]}>
+                  <View style={[s.celda, { width: anchoEquipo }]}>
                     <Text>{cortable(f.descripcion)}</Text>
                   </View>
                   <View style={[s.celda, { width: COL.stock }]}>
@@ -167,9 +199,14 @@ function Industriales({ filas }: { filas: FilaStockGeneral[] }) {
                   <View style={[s.celda, { width: COL.serie }]}>
                     <Text style={s.centrado}>{f.serie ? cortable(f.serie) : "sin serie"}</Text>
                   </View>
-                  <View style={[s.celda, { width: COL.disp, borderRightWidth: 0 }]}>
+                  <View style={[s.celda, { width: COL.disp, borderRightWidth: conEmpresa ? 0.5 : 0 }]}>
                     <Text style={[s.centrado, s.negrita]}>{disponibleDe(f)}</Text>
                   </View>
+                  {conEmpresa && (
+                    <View style={[s.celda, { width: COL_EMP, borderRightWidth: 0 }]}>
+                      <CuadritoEmpresa empresa={f.empresa} />
+                    </View>
+                  )}
                 </View>
               ))}
               <View style={s.subtotal} wrap={false}>
@@ -197,8 +234,9 @@ function Industriales({ filas }: { filas: FilaStockGeneral[] }) {
   );
 }
 
-function Lg({ filas }: { filas: FilaStockGeneral[] }) {
+function Lg({ filas, conEmpresa = false }: { filas: FilaStockGeneral[]; conEmpresa?: boolean }) {
   const { secciones, total } = armarLg(filas);
+  const anchoEquipo = conEmpresa ? COL_LG.equipo - COL_EMP : COL_LG.equipo;
   if (secciones.length === 0) {
     return (
       <View style={s.aviso}>
@@ -224,15 +262,16 @@ function Lg({ filas }: { filas: FilaStockGeneral[] }) {
             <View style={s.th}>
               <Text style={[s.thTxt, { width: COL_LG.n }]}>N.º</Text>
               <Text style={[s.thTxt, { width: COL_LG.modelo }]}>MODELO</Text>
-              <Text style={[s.thTxt, { width: COL_LG.equipo }]}>EQUIPO</Text>
+              <Text style={[s.thTxt, { width: anchoEquipo }]}>EQUIPO</Text>
               <Text style={[s.thTxt, { width: COL_LG.stock }]}>STOCK</Text>
-              <Text style={[s.thTxt, { width: COL_LG.marca, borderRightWidth: 0 }]}>MARCA</Text>
+              <Text style={[s.thTxt, { width: COL_LG.marca, borderRightWidth: conEmpresa ? 0.5 : 0 }]}>MARCA</Text>
+              {conEmpresa && <Text style={[s.thTxt, { width: COL_EMP, borderRightWidth: 0 }]}>EMPRESA</Text>}
             </View>
           </View>
           {sec.modelos.map((m, im) => {
             const esExhib = sec.titulo.startsWith("EXHIBICIÓN");
             return (
-              <View key={`${sec.titulo}-${m.codigo ?? m.modelo}`} style={s.fila} wrap={false}>
+              <View key={`${sec.titulo}-${m.codigo ?? m.modelo}-${m.empresa ?? ""}`} style={s.fila} wrap={false}>
                 <View style={[s.celda, { width: COL_LG.n }]}>
                   <Text style={s.centrado}>{inicio[is] + im + 1}</Text>
                 </View>
@@ -240,16 +279,21 @@ function Lg({ filas }: { filas: FilaStockGeneral[] }) {
                   <Text style={[s.centrado, s.negrita]}>{m.modelo}</Text>
                   {m.codigo && <Text style={[s.chico, s.centrado]}>{m.codigo}</Text>}
                 </View>
-                <View style={[s.celda, { width: COL_LG.equipo }]}>
+                <View style={[s.celda, { width: anchoEquipo }]}>
                   <Text>{cortable(m.descripcion)}</Text>
                   {esExhib && m.series.length > 0 && <Text style={s.chico}>S: {m.series.join(" / ")}</Text>}
                 </View>
                 <View style={[s.celda, { width: COL_LG.stock }]}>
                   <Text style={[s.centrado, s.negrita]}>{m.stock}</Text>
                 </View>
-                <View style={[s.celda, { width: COL_LG.marca, borderRightWidth: 0 }]}>
+                <View style={[s.celda, { width: COL_LG.marca, borderRightWidth: conEmpresa ? 0.5 : 0 }]}>
                   <Text style={s.centrado}>LG</Text>
                 </View>
+                {conEmpresa && (
+                  <View style={[s.celda, { width: COL_EMP, borderRightWidth: 0 }]}>
+                    <CuadritoEmpresa empresa={m.empresa} />
+                  </View>
+                )}
               </View>
             );
           })}
@@ -268,13 +312,13 @@ function Lg({ filas }: { filas: FilaStockGeneral[] }) {
 }
 
 export function StockGeneralPdf(props: StockGeneralPdfProps) {
-  const { doc, filas, avisos, generado } = props;
+  const { doc, filas, avisos, generado, consolidado } = props;
   return (
-    <Document title={`Resumen general de stock ${doc === "lg" ? "LG" : "industriales"}`} author="CRM Efameinsa">
+    <Document title={`Resumen general de stock ${doc === "lg" ? "LG" : "industriales"}${consolidado ? " · consolidado" : ""}`} author="CRM Efameinsa">
       <Page size="A4" style={s.pagina}>
         <Cabecera {...props} />
         <Avisos avisos={avisos} />
-        {doc === "lg" ? <Lg filas={filas} /> : <Industriales filas={filas} />}
+        {doc === "lg" ? <Lg filas={filas} conEmpresa={consolidado} /> : <Industriales filas={filas} conEmpresa={consolidado} />}
         <Pie doc={doc} generado={generado} />
       </Page>
     </Document>

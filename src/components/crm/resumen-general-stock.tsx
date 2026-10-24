@@ -10,11 +10,12 @@ import { cn } from "@/lib/utils";
  * almacén, en dos documentos, y Lesly solo sube su Excel cada semana. Sin costos.
  */
 export function ResumenGeneralStock({
-  enAlmacen,
+  porEmpresa,
   cargaEnRevision,
   compacto,
 }: {
-  enAlmacen: number;
+  /** Máquinas disponibles de cada empresa: un resumen por empresa, con su logo (Santos 23-10). */
+  porEmpresa: Record<"OPEN" | "EFAMEINSA", number>;
   cargaEnRevision?: { id: string; archivo: string } | null;
   compacto?: boolean;
 }) {
@@ -36,12 +37,24 @@ export function ResumenGeneralStock({
           industriales por proveedor y tipo con sus totales, y equipos LG consolidados por modelo. Sin costos.
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        {boton("/api/operaciones/stock/general?doc=industriales", "Industriales (PDF)")}
-        {boton("/api/operaciones/stock/general?doc=lg", "LG (PDF)")}
-        <span className="text-xs text-muted-foreground">
-          {enAlmacen === 0 ? "El almacén todavía no tiene máquinas: el PDF sale vacío." : `${enAlmacen} ${enAlmacen === 1 ? "máquina" : "máquinas"} en el almacén.`}
-        </span>
+      {(["OPEN", "EFAMEINSA"] as const)
+        .filter((e) => e === "OPEN" || porEmpresa[e] > 0)
+        .map((e) => (
+          <div key={e} className="flex flex-wrap items-center gap-2">
+            <span className="w-24 text-xs font-semibold text-foreground">{e === "OPEN" ? "Open" : "Efameinsa"}</span>
+            {boton(`/api/operaciones/stock/general?doc=industriales&empresa=${e}`, "Industriales (PDF)")}
+            {boton(`/api/operaciones/stock/general?doc=lg&empresa=${e}`, "LG (PDF)")}
+            <span className="text-xs text-muted-foreground">
+              {porEmpresa[e] === 0 ? "Todavía sin máquinas: el PDF sale vacío." : `${porEmpresa[e]} ${porEmpresa[e] === 1 ? "máquina" : "máquinas"} en el almacén.`}
+            </span>
+          </div>
+        ))}
+      {/* Consolidado (Santos 23-10): las dos empresas en los mismos bloques por marca, con el cuadrito de la empresa en cada fila. */}
+      <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2">
+        <span className="w-24 text-xs font-semibold text-foreground">Consolidado</span>
+        {boton(`/api/operaciones/stock/general?doc=industriales&empresa=TODAS`, "Industriales (PDF)")}
+        {boton(`/api/operaciones/stock/general?doc=lg&empresa=TODAS`, "LG (PDF)")}
+        <span className="text-xs text-muted-foreground">Open y Efameinsa juntas por marca; cada fila dice de qué empresa es ({porEmpresa.OPEN + porEmpresa.EFAMEINSA} máquinas).</span>
       </div>
       {cargaEnRevision && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-amber-300 bg-amber-50/60 p-2.5 dark:border-amber-800 dark:bg-amber-950/20">

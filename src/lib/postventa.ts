@@ -115,6 +115,8 @@ export interface ServicioPostventa {
   pago_confirmado_captura?: string | null;
   /** La apertura de despacho: el documento con el que almacén despacha (0150). */
   apertura_despacho_at?: string | null;
+  /** Dónde se hace el servicio (0566): «interna» = en nuestra planta; null = externa. */
+  apertura_modalidad?: string | null;
   apertura_despacho_por?: string | null;
   recibe_doc?: string | null;
   recibe_telefono?: string | null;
@@ -1036,11 +1038,14 @@ function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
   // servidor las vuelve a verificar al emitir.
   const pruebaLista = s.prueba_lista_at != null || marcadoEnExcel(s.prueba_embalaje);
   const planoEnviado = s.plano_enviado_at != null || marcadoEnExcel(s.planos_preinstalacion);
+  // SERVICIO INTERNO (Brenda 23-10): el equipo viene a planta, así que no hay
+  // dirección que verificar, nada que embalar ni plano que mandar. Finanzas sí.
+  const interna = s.apertura_modalidad === "interna";
   const faltaParaApertura = [
     !(pagoConfirmado || pagoDesconocido || despachoAutorizadoConSaldo || creditoSinAdelantoAprobado) ? "la confirmación de Finanzas" : null,
     faltaVistoBuenoFinanzas(s) ? "el visto bueno de Finanzas (crédito o pago sin confirmar: pago, letras y comisiones)" : null,
-    s.direccion_verificada_at == null ? (circuito.esServicio ? "dónde se hace el servicio, verificado" : "la dirección verificada") : null,
-    !circuito.esServicio && !pruebaLista
+    !interna && s.direccion_verificada_at == null ? (circuito.esServicio ? "dónde se hace el servicio, verificado" : "la dirección verificada") : null,
+    !interna && !circuito.esServicio && !pruebaLista
       ? circuito.esEmbalaje
         ? "el embalaje listo"
         : circuito.esAccesorio
@@ -1049,7 +1054,7 @@ function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
             ? "el repuesto listo y embalado"
             : "el equipo probado y embalado"
       : null,
-    circuito.esEquipo && !s.sin_plano && !planoEnviado ? "el plano de preinstalación" : null,
+    !interna && circuito.esEquipo && !s.sin_plano && !planoEnviado ? "el plano de preinstalación" : null,
     // LA PREINSTALACIÓN YA NO FRENA LA APERTURA. Carlos, 09-09: «preinstalación
     // confirmada, eso es parte de la puesta en marcha… la apertura de despacho
     // sí va en el despacho». Deja de ser un requisito para despachar y pasa al
@@ -1117,21 +1122,27 @@ function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
     : [
     {
       clave: "direccion",
-      etiqueta: circuito.esServicio
-        ? "Dónde se hace el servicio y con quién, verificados con el cliente"
-        : "Dirección y quién recibe, verificados con el cliente",
+      etiqueta: interna
+        ? "Servicio interno: el equipo viene a nuestra planta"
+        : circuito.esServicio
+          ? "Dónde se hace el servicio y con quién, verificados con el cliente"
+          : "Dirección y quién recibe, verificados con el cliente",
       responsable: "postventa",
-      hecho: s.direccion_verificada_at != null,
+      hecho: interna || s.direccion_verificada_at != null,
       cuando: s.direccion_verificada_at,
-      detalle: s.direccion_verificada_con
-        ? `Confirmó ${s.direccion_verificada_con}`
-        : "Se llama antes: 9 de cada 10 veces cambia la dirección, el teléfono o quien recibe",
+      detalle: interna
+        ? "No hay dirección que verificar: se atiende en planta"
+        : s.direccion_verificada_con
+          ? `Confirmó ${s.direccion_verificada_con}`
+          : "Se llama antes: 9 de cada 10 veces cambia la dirección, el teléfono o quien recibe",
     },
     {
       clave: "apertura",
-      etiqueta: circuito.esServicio
-        ? aperturaEmitida ? "Apertura de servicio emitida" : "Apertura de servicio"
-        : aperturaEmitida ? "Apertura de despacho emitida" : "Apertura de despacho",
+      etiqueta: interna
+        ? aperturaEmitida ? "Apertura de servicio interno emitida" : "Apertura de servicio interno"
+        : circuito.esServicio
+          ? aperturaEmitida ? "Apertura de servicio emitida" : "Apertura de servicio"
+          : aperturaEmitida ? "Apertura de despacho emitida" : "Apertura de despacho",
       responsable: "postventa",
       hecho: aperturaEmitida,
       cuando: s.apertura_despacho_at ?? null,
@@ -1155,7 +1166,7 @@ function bloquesPedidoSinNombres(s: ServicioPostventa): BloquePedido[] {
           ? `Para emitirla falta: ${faltaParaApertura.join(", ")}${
               // El plano se marca en otro bloque (preparación): sin decir
               // dónde, postventa creía que la apertura estaba rota (22-09).
-              circuito.esEquipo && !s.sin_plano && !planoEnviado
+              !interna && circuito.esEquipo && !s.sin_plano && !planoEnviado
                 ? ". Márquelo arriba, en «Plano de preinstalación enviado»: «Marcar enviado», «No se le envió» o «No lleva plano»"
                 : ""
             }`

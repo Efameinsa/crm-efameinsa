@@ -12,6 +12,7 @@ import { destinatariosDelArea, type FilaDirectorio } from "@/lib/directorio";
 import { empresaDeApertura } from "@/lib/correo/apertura";
 import { faltaParaEmitirApertura } from "@/lib/postventa";
 import { AntecedentesInterna } from "@/components/crm/antecedentes-interna";
+import { type AntecedentesInterna as AntecedentesInternaDatos } from "@/lib/apertura-interna";
 
 export const dynamic = "force-dynamic";
 
@@ -268,6 +269,8 @@ export default async function AperturaServicioPage({ params }: { params: Promise
           coordinaLogistica: s.apertura_coordina_logistica ?? null,
           ordenTipo: d.ordenTipo ?? null,
           ordenNumero: d.ordenNumero ?? null,
+          modalidad: ((s as { apertura_modalidad?: string | null }).apertura_modalidad as "externa" | "interna" | null | undefined) ?? null,
+          antecedentes: ((s as { apertura_antecedentes?: unknown }).apertura_antecedentes as AntecedentesInternaDatos | null | undefined) ?? null,
         }}
         asunto={asuntoApertura(d)}
         cuerpo={cuerpoApertura(d)}
