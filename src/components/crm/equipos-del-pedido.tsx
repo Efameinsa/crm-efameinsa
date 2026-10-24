@@ -555,11 +555,13 @@ function Fila({
   const [docsSec, setDocsSec] = useState<File[]>([]);
   // La otra máquina de la torre se prueba con la unidad pero con lo suyo (Lesly, 03-10):
   // «no da la opción para agregar las fotos y el informe de la otra máquina».
-  const [dePartes, setDePartes] = useState<Record<string, { protocolo: string; fotos: File[]; docs: File[] }>>({});
+  // El video también para la secadora y la otra máquina de la unidad (Lesly, 24-10, ABZUL).
+  const [videosSec, setVideosSec] = useState<File[]>([]);
+  const [dePartes, setDePartes] = useState<Record<string, { protocolo: string; fotos: File[]; videos: File[]; docs: File[] }>>({});
   // Lo que no se pudo hacer con esta máquina queda escrito al pie de su tarjeta.
   const [problema, setProblema] = useState<string | null>(null);
-  const deParte = (id: string) => dePartes[id] ?? { protocolo: "", fotos: [], docs: [] };
-  const cambiarParte = (id: string, cambio: Partial<{ protocolo: string; fotos: File[]; docs: File[] }>) =>
+  const deParte = (id: string) => dePartes[id] ?? { protocolo: "", fotos: [], videos: [], docs: [] };
+  const cambiarParte = (id: string, cambio: Partial<{ protocolo: string; fotos: File[]; videos: File[]; docs: File[] }>) =>
     setDePartes((x) => ({ ...x, [id]: { ...deParte(id), ...cambio } }));
   const archivosGuardados = (Array.isArray(e.protocolo_fotos) ? e.protocolo_fotos : []) as FotoAlmacen[];
   const [lineaTitulo, ...resto] = e.descripcion.split("\n");
@@ -668,7 +670,7 @@ function Fila({
     return salida;
   }
 
-  const porGuardar = fotos.length + videos.length + docs.length + fotosSec.length + docsSec.length + partes.reduce((n, p) => n + deParte(p.id).fotos.length + deParte(p.id).docs.length, 0);
+  const porGuardar = fotos.length + videos.length + docs.length + fotosSec.length + videosSec.length + docsSec.length + partes.reduce((n, p) => n + deParte(p.id).fotos.length + deParte(p.id).videos.length + deParte(p.id).docs.length, 0);
 
   // Si deja la fecha de hoy y no había otra guardada, se toma la del día en que la marque probada.
   const fechaElegida = fechaProtocolo && (fechaGuardada || fechaProtocolo !== hoyLima()) ? fechaProtocolo : "";
@@ -717,8 +719,8 @@ function Fila({
     if (t.error) return t;
     const propias = [...(await subir([...fotos, ...videos], docs) ?? [])];
     if (fotos.length + videos.length + docs.length > 0 && propias.length === 0) return { error: "No se subieron los archivos" };
-    if (torre && partes.length === 0 && fotosSec.length + docsSec.length > 0) {
-      const deSecadora = await subir(fotosSec, docsSec, "-secadora");
+    if (torre && partes.length === 0 && fotosSec.length + videosSec.length + docsSec.length > 0) {
+      const deSecadora = await subir([...fotosSec, ...videosSec], docsSec, "-secadora");
       if (!deSecadora) return { error: "No se subieron los archivos" };
       propias.push(...deSecadora);
     }
@@ -728,8 +730,8 @@ function Fila({
     }
     for (const p of partes) {
       const d = deParte(p.id);
-      if (d.fotos.length + d.docs.length === 0) continue;
-      const sp = await subir(d.fotos, d.docs, `-parte-${p.orden}`);
+      if (d.fotos.length + d.videos.length + d.docs.length === 0) continue;
+      const sp = await subir([...d.fotos, ...d.videos], d.docs, `-parte-${p.orden}`);
       if (!sp) return { error: "No se subieron los archivos" };
       const r = await agregarArchivosDelEquipo(p.id, servicioId, sp);
       if (r.error) return r;
@@ -738,6 +740,7 @@ function Fila({
     setVideos([]);
     setDocs([]);
     setFotosSec([]);
+    setVideosSec([]);
     setDocsSec([]);
     setDePartes({});
     return { error: null };
@@ -1247,6 +1250,7 @@ function Fila({
             <div className="space-y-1.5 border-t border-border pt-1.5">
               <p className="text-[11px] font-semibold text-foreground">Secadora de la torre</p>
               <TomarOSubirVarias titulo="Fotos de la secadora" archivos={fotosSec} onChange={setFotosSec} maximo={100} />
+              <VideosDeLaPrueba titulo="Video de la prueba de la secadora (opcional)" archivos={videosSec} onChange={setVideosSec} />
               <Documentos archivos={docsSec} onChange={setDocsSec} titulo={tituloDocs(e as MaquinaParaProbar, "secadora", "la secadora")} />
             </div>
           )}
@@ -1256,6 +1260,7 @@ function Fila({
                 {p.parte_nombre ?? "Otra máquina"} · serie {p.serie}
               </p>
               <TomarOSubirVarias titulo={`Fotos de la ${(p.parte_nombre ?? "otra máquina").toLowerCase()}`} archivos={deParte(p.id).fotos} onChange={(f) => cambiarParte(p.id, { fotos: f })} maximo={100} />
+              <VideosDeLaPrueba titulo={`Video de la prueba de la ${(p.parte_nombre ?? "otra máquina").toLowerCase()} (opcional)`} archivos={deParte(p.id).videos} onChange={(v) => cambiarParte(p.id, { videos: v })} />
               <Documentos archivos={deParte(p.id).docs} onChange={(d) => cambiarParte(p.id, { docs: d })} titulo={tituloDocs(p as MaquinaParaProbar, "principal", `la ${(p.parte_nombre ?? "otra máquina").toLowerCase()}`)} />
             </div>
           ))}
@@ -1344,15 +1349,15 @@ function Fila({
                 if (t.error) return t;
                 const subidas = await subir([...fotos, ...videos], docs);
                 if (!subidas) return { error: "No se subieron los archivos" };
-                if (torre && partes.length === 0 && fotosSec.length + docsSec.length > 0) {
-                  const deSecadora = await subir(fotosSec, docsSec, "-secadora");
+                if (torre && partes.length === 0 && fotosSec.length + videosSec.length + docsSec.length > 0) {
+                  const deSecadora = await subir([...fotosSec, ...videosSec], docsSec, "-secadora");
                   if (!deSecadora) return { error: "No se subieron los archivos" };
                   subidas.push(...deSecadora);
                 }
                 const deLasPartes: { id: string; protocoloRef: string; fotos: FotoAlmacen[] }[] = [];
                 for (const p of partes) {
                   const d = deParte(p.id);
-                  const s = await subir(d.fotos, d.docs, `-parte-${p.orden}`);
+                  const s = await subir([...d.fotos, ...d.videos], d.docs, `-parte-${p.orden}`);
                   if (!s) return { error: "No se subieron los archivos" };
                   deLasPartes.push({ id: p.id, protocoloRef: d.protocolo, fotos: s });
                 }
