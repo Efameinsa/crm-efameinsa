@@ -540,7 +540,8 @@ export default async function CierresCentralPage({
                       {" · "}
                       {fechaCalendario(f.fecha)}
                       {f.perfiles?.codigo_comercial && ` · ${f.perfiles.codigo_comercial}`}
-                      {f.cliente_doc && ` · ${f.cliente_doc}`}
+                      {/* En leasing, el RUC del cliente final: el del banco va en la etiqueta y en el expediente. */}
+                      {(f.leasing ? (f.cuentas?.num_doc ?? null) : f.cliente_doc) && ` · ${f.leasing ? f.cuentas?.num_doc : f.cliente_doc}`}
                     </p>
                     <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
                       <span className="font-semibold tabular-nums text-foreground">
