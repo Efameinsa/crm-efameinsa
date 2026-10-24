@@ -34,6 +34,13 @@ export function BuscadorCabecera({ href, ayuda }: { href: string; ayuda: string 
         autoComplete="off"
         list="busquedas-recientes"
       />
+      {/* Su propio botón, gris y dentro de la caja: el rojo de la cabecera es «crear», no buscar (Santos 23-10). */}
+      <button
+        type="submit"
+        className="shrink-0 rounded-md border border-border bg-card px-2.5 py-0.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+      >
+        Buscar
+      </button>
       {/* Lo último que buscó, primero (reunión 23-10 15:59). */}
       <SugerenciasDeBusqueda id="busquedas-recientes" />
     </form>
