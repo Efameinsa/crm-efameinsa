@@ -167,6 +167,10 @@ export interface ServicioPostventa {
   apertura_obs_filas?: Record<string, string> | null;
   /** La guía que se pide con la apertura y con quién coordina el técnico (0371, Lesly 02-10). */
   apertura_guia?: string | null;
+  /** Leasing (0603): el banco factura (factura_a_texto); cliente_texto es el cliente final. */
+  leasing?: boolean | null;
+  factura_a_texto?: string | null;
+  guia_a_nombre_de?: "cliente" | "banco" | null;
   apertura_guia_detalle?: string | null;
   apertura_coordina_contabilidad?: string | null;
   apertura_coordina_logistica?: string | null;

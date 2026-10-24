@@ -82,6 +82,8 @@ describe("los tres formatos son el mismo, y solo cambia el encabezado", () => {
     expect(tituloDe("puesta_marcha")).toBe("PUESTA EN MARCHA DE:");
     expect(tituloDe("servicio_instalacion")).toBe("SERVICIO E INSTALACIÓN DE:");
     expect(queQuedaEnAgenda("servicio_instalacion")).toBe("servicio");
+    expect(tituloDe("traslado")).toBe("SERVICIO DE TRASLADO DE:");
+    expect(queQuedaEnAgenda("traslado")).toBe("despacho");
   });
 
   it("solo puesta en marcha: el técnico va sin equipo y queda en agenda un servicio (Rubí, 05-10)", () => {
@@ -356,6 +358,7 @@ describe("el correo listo para pegar", () => {
       "entrega_puesta_marcha",
       "puesta_marcha",
       "servicio_instalacion",
+      "traslado",
       "mantenimiento",
       "entrega_garantia",
       "servicio_tecnico",

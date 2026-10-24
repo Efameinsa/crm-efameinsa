@@ -284,6 +284,29 @@ export async function quitarSerieDeParte(itemId: string, servicioId: string, pin
 }
 
 /**
+ * LA «×» DE CUALQUIER SERIE (0602; Santos 24-10): la principal o la de la
+ * secadora de la torre. Con el código y el motivo; la línea vuelve a esperar
+ * serie y la máquina vuelve a estar disponible en el stock.
+ */
+export async function quitarSerie(itemId: string, servicioId: string, pin: string, motivo: string) {
+  await requerirPerfil();
+  const supabase = await createClient();
+  const { data: antes } = await supabase.from("pedido_equipos").select("serie, parte_nombre").eq("id", itemId).maybeSingle();
+  const { error } = await supabase.rpc("quitar_serie_del_equipo", { p_item: itemId, p_pin: pin, p_motivo: motivo });
+  if (error) return { error: limpiar(error.message) };
+  await avisarCambioDeSerie(
+    servicioId,
+    "Serie quitada",
+    `${antes?.parte_nombre ? `${antes.parte_nombre}: ` : ""}se quitó la serie ${antes?.serie ?? "—"} y la máquina volvió al stock. Motivo: ${motivo.trim()}.`,
+  );
+  revalidar(servicioId);
+  revalidatePath(`/postventa/pedidos/${servicioId}`);
+  revalidatePath("/postventa/equipos");
+  revalidatePath("/almacen/stock");
+  return { error: null };
+}
+
+/**
  * Un cambio de serie ya dada se avisa (Lesly 21-10): a Central, que pidió las
  * series y genera el pedido con ellas; a postventa y al almacén/operaciones.
  * No le llega a quien hizo el cambio.

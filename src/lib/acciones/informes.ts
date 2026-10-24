@@ -106,6 +106,12 @@ export interface DatosInforme {
    * 12-10; 0436). null = según los renglones (tipo_pedido_del_informe).
    */
   tipoPedido?: TipoPedidoCierre | null;
+  /**
+   * VENTA POR LEASING (0603; Santos 24-10, AQU ANQA con el BanBif): se factura
+   * al banco (clienteNombre/clienteDoc son el banco) y la ficha es el cliente
+   * final, que recibe el equipo, el despacho y la guía.
+   */
+  leasing?: boolean;
 }
 
 export interface PresupuestoDisponible {
@@ -423,6 +429,7 @@ function aFila(cuentaId: string, d: DatosInforme, creadoPor: string | null) {
     nota_final: d.notaFinal,
     items: d.items,
     tipo_pedido: d.tipoPedido ?? null,
+    leasing: d.leasing === true,
     creado_por: creadoPor,
   };
 }
@@ -437,6 +444,7 @@ function validar(d: DatosInforme): string | null {
   if (d.pctAntesDespacho < 100 && (d.creditoDias == null || !Number.isFinite(d.creditoDias) || d.creditoDias < 0 || d.creditoDias > 365))
     return "Si queda saldo a crédito, diga a cuántos días (0 a 365)";
   if (!d.entregaLugar?.trim()) return "Falta el lugar de entrega: sin eso logística no puede despachar";
+  if (d.leasing && !/^\d{11}$/.test((d.clienteDoc ?? "").trim())) return "En una venta por leasing se factura al banco: escriba su RUC (11 dígitos)";
   return null;
 }
 
@@ -928,6 +936,8 @@ export interface BorradorInforme {
   adjuntos: { tipo: string; nombre: string; path: string }[];
   /** Qué se vende (0436); null = según los renglones. */
   tipoPedido: TipoPedidoCierre | null;
+  /** Venta por leasing (0603): se factura al banco; la ficha es el cliente final. */
+  leasing: boolean;
 }
 
 export async function cargarBorradorInforme(
@@ -1000,6 +1010,7 @@ export async function cargarBorradorInforme(
       gratis: texto(i.gratis),
       tipoPedido: (TIPOS_PEDIDO_CIERRE.some((t) => t.valor === i.tipo_pedido) ? i.tipo_pedido : null) as TipoPedidoCierre | null,
       notaFinal: texto(i.nota_final),
+      leasing: Boolean(i.leasing),
       items,
       adjuntos: ((i.adjuntos ?? []) as { tipo: string; nombre: string; path: string }[]).map((a) => ({
         tipo: a.tipo,
@@ -1009,4 +1020,15 @@ export async function cargarBorradorInforme(
   };
   if (i.emitido_at) return { estado: "emitido", borrador, codigo: String(i.codigo ?? ""), emitidoAt: i.emitido_at };
   return { estado: "borrador", borrador };
+}
+
+/**
+ * LOS BANCOS QUE YA FINANCIARON (0603): el comercial elige el banco del
+ * leasing de esta lista en vez de teclear su RUC cada vez. Uno nuevo entra
+ * solo al guardar el primer cierre de leasing con él.
+ */
+export async function listarEntidadesFinancieras(): Promise<{ ruc: string; razonSocial: string; direccion: string | null }[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("entidades_financieras").select("ruc, razon_social, direccion").order("razon_social");
+  return (data ?? []).map((e) => ({ ruc: e.ruc as string, razonSocial: e.razon_social as string, direccion: (e.direccion as string | null) ?? null }));
 }

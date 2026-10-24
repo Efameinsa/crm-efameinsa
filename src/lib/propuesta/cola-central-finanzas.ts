@@ -94,7 +94,7 @@ export async function cierresPorLiberar(supabase: Cliente): Promise<CierrePorLib
   const [{ data: informes }, { data: devoluciones }] = await Promise.all([
     supabase
       .from("informes_cierre")
-      .select("id, codigo, serie, cliente_nombre, emitido_at, urgente, monto_total, moneda")
+      .select("id, codigo, serie, cliente_nombre, emitido_at, urgente, monto_total, moneda, leasing, cuentas(razon_social)")
       .not("emitido_at", "is", null)
       .is("anulado_at", null)
       .order("emitido_at", { ascending: false })
@@ -102,7 +102,7 @@ export async function cierresPorLiberar(supabase: Cliente): Promise<CierrePorLib
     supabase.from("devoluciones_cierre").select("informe_id").is("resuelto_at", null),
   ]);
   const devueltos = new Set((devoluciones ?? []).map((d) => d.informe_id as string));
-  const vivos = ((informes ?? []) as { id: string; codigo: string; serie: string; cliente_nombre: string | null; emitido_at: string; urgente: boolean | null; monto_total: number | null; moneda: string | null }[]).filter(
+  const vivos = ((informes ?? []) as unknown as { id: string; codigo: string; serie: string; cliente_nombre: string | null; emitido_at: string; urgente: boolean | null; monto_total: number | null; moneda: string | null; leasing?: boolean | null; cuentas?: { razon_social: string } | null }[]).filter(
     (i) => !devueltos.has(i.id),
   );
   if (vivos.length === 0) return [];
@@ -168,7 +168,8 @@ export async function cierresPorLiberar(supabase: Cliente): Promise<CierrePorLib
       servicioId: s?.id ?? null,
       codigo: i.codigo,
       serie: i.serie === "OPEN" ? "OPEN" : "EFAMEINSA",
-      cliente: sinRuc(i.cliente_nombre),
+      // En un leasing el pedido es del cliente final, no del banco que factura (0603).
+      cliente: i.leasing ? (i.cuentas?.razon_social ?? sinRuc(i.cliente_nombre)) : sinRuc(i.cliente_nombre),
       urgente: i.urgente === true,
       monto: i.monto_total == null ? null : Number(i.monto_total),
       moneda: i.moneda ?? "USD",

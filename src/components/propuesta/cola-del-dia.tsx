@@ -53,6 +53,7 @@ export function ColaDelDia({
   abrir = null,
   base = "/nuevo",
   enNumeros,
+  clienteArriba = false,
 }: {
   nombre: string;
   tareas: Tarea[];
@@ -63,6 +64,8 @@ export function ColaDelDia({
   abrir?: string | null;
   base?: string;
   enNumeros?: { etiqueta: string; href: string };
+  /** El cliente arriba, en negrita grande, y debajo lo que hay que hacer (Santos 24-10, almacén). */
+  clienteArriba?: boolean;
 }) {
   const hora = Number(new Date().toLocaleTimeString("en-GB", { timeZone: "America/Lima", hour: "2-digit", hour12: false }));
   const saludo = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
@@ -220,15 +223,23 @@ export function ColaDelDia({
                       >
                         <Icono className="size-4" />
                       </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-foreground">
-                          {t.area && <span className="mr-1.5 rounded bg-secondary px-1.5 py-0.5 align-[1px] text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{t.area}</span>}
-                          {t.que}
-                        </p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          <b className="font-medium text-foreground">{t.cliente}</b> · {t.porque}
-                        </p>
-                      </div>
+                      {clienteArriba ? (
+                        <div className="min-w-0 flex-1">
+                          <p className="break-words text-base font-bold leading-tight text-foreground">{t.cliente}</p>
+                          <p className="mt-0.5 truncate text-sm font-medium text-foreground/90">{t.que}</p>
+                          <p className="truncate text-xs text-muted-foreground">{t.porque}</p>
+                        </div>
+                      ) : (
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-foreground">
+                            {t.area && <span className="mr-1.5 rounded bg-secondary px-1.5 py-0.5 align-[1px] text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{t.area}</span>}
+                            {t.que}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            <b className="font-medium text-foreground">{t.cliente}</b> · {t.porque}
+                          </p>
+                        </div>
+                      )}
                       {t.preguntar && <PreguntarSeguimientoBoton leadIds={t.preguntar.leadIds} comercial={t.preguntar.comercial} />}
                       <Link
                         href={t.accion.href}

@@ -26,6 +26,7 @@ export type TipoApertura =
   | "entrega_puesta_marcha"
   | "puesta_marcha"
   | "servicio_instalacion"
+  | "traslado"
   | "mantenimiento"
   | "entrega_garantia"
   | "servicio_tecnico"
@@ -57,6 +58,13 @@ export const TIPOS_APERTURA: { clave: TipoApertura; titulo: string; ayuda: strin
     clave: "servicio_instalacion",
     titulo: "SERVICIO E INSTALACIÓN DE:",
     ayuda: "El técnico va a hacer el servicio y la instalación que se vendió.",
+  },
+  // SERVICIO DE TRASLADO (Santos 24-10): el equipo se mueve de un lugar a otro
+  // —de la planta al cliente, de una sede a otra, o vuelve a planta—.
+  {
+    clave: "traslado",
+    titulo: "SERVICIO DE TRASLADO DE:",
+    ayuda: "El equipo se lleva de un lugar a otro: de planta al cliente, entre sedes o de vuelta a planta.",
   },
   {
     clave: "mantenimiento",

@@ -8,6 +8,7 @@ import { TituloParaImprimir } from "@/components/crm/titulo-para-imprimir";
 import { DetalleDelServicio } from "@/components/crm/detalle-del-servicio";
 import { EquiposDelPedido } from "@/components/crm/equipos-del-pedido";
 import { equiposDelPedido } from "@/lib/acciones/postventa";
+import { maquinasParaImprimir } from "@/lib/maquinas-del-pedido";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,7 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
   const supabase = await createClient();
   const { data: s } = await supabase
     .from("servicios_postventa")
-    .select("id, informe_cierre_id, numero_pedido_erp, cliente_texto, pedido_ejecutado_at, liquidacion_at, modalidad, pedido_generado_por, pedido_ejecutado_por, liquidacion_subida_por, liquidacion_por, tipo_pedido, despachado_at, cerrado_at")
+    .select("id, informe_cierre_id, numero_pedido_erp, cliente_texto, pedido_ejecutado_at, liquidacion_at, modalidad, pedido_generado_por, pedido_ejecutado_por, liquidacion_subida_por, liquidacion_por, tipo_pedido, despachado_at, cerrado_at, leasing, factura_a_texto, guia_a_nombre_de, cuenta_id")
     .eq("id", id)
     .maybeSingle();
   if (!s) notFound();
@@ -64,7 +65,7 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
           .eq("id", s.informe_cierre_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase.from("pedido_equipos").select("orden, descripcion, serie, cantidad, precio").eq("servicio_id", id).order("orden"),
+    supabase.from("pedido_equipos").select("id, orden, descripcion, serie, cantidad, precio, parte_de, parte_nombre").eq("servicio_id", id).order("orden"),
   ]);
   const i = inf as unknown as {
     codigo: string | null; serie: string | null; fecha: string | null; cliente_nombre: string; cliente_doc: string | null; cliente_direccion: string | null;
@@ -80,17 +81,29 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
   const ids = [idCentral, idFinanzas].filter(Boolean) as string[];
   const { data: firmantes } = ids.length ? await supabase.from("perfiles").select("id, nombre").in("id", ids) : { data: [] };
   const nombreDe = (x: string | null) => (firmantes ?? []).find((f) => f.id === x)?.nombre ?? "";
-  const lista = (equipos ?? []) as { orden: number; descripcion: string; serie: string | null; cantidad: number | null; precio: number | null }[];
+  const lista = (equipos ?? []) as {
+    id: string; orden: number; descripcion: string; serie: string | null; cantidad: number | null; precio: number | null; parte_de: string | null; parte_nombre: string | null;
+  }[];
   // El servicio se escribe (0574): cantidad y serie de la máquina atendida, sin «serie pendiente».
   const esServicio = ["mantenimiento", "revision", "embalaje"].includes((s.tipo_pedido as string | null) ?? "");
   const conPrecio = esServicio && verPrecios && lista.some((e) => e.precio != null);
-  const pendientes = esServicio ? 0 : lista.filter((e) => !e.serie).length;
+  // La torre sale en dos máquinas, cada una con su serie (Facturación, 24-10).
+  const maquinas = esServicio ? [] : maquinasParaImprimir(lista);
+  const pendientes = maquinas.filter((e) => !e.serie).length;
   // CORREGIR DESDE LA HOJA (Santos 21-10, FAMILY FARMS PED-0037-2026: «generó
   // el pedido por error y ahora no puede editarlo, no tiene vista para
   // editar»). Mientras no salga, Central lo corrige aquí mismo; no se imprime.
   const editable = perfil.rol === "central" && !s.despachado_at && !s.cerrado_at;
   const empresa = i?.serie === "OPEN" ? "Open Investments" : "Corporación Efameinsa e Ingeniería S.A.";
-  const cliente = i?.cliente_nombre ?? (s.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, "");
+  // LEASING (0603; Central 24-10, AQU ANQA): el cierre se factura al banco, pero
+  // el pedido es del cliente final (la ficha): a él se prepara, despacha y emite
+  // la guía. El banco va en su propia fila.
+  const { data: ficha } = s.leasing && s.cuenta_id
+    ? await supabase.from("cuentas").select("razon_social, num_doc, direccion").eq("id", s.cuenta_id).maybeSingle()
+    : { data: null };
+  const cliente = s.leasing
+    ? (ficha?.razon_social ?? (s.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, ""))
+    : (i?.cliente_nombre ?? (s.cliente_texto ?? "").replace(/^\d{8,11}\s*-\s*/, ""));
   const titulo = `PEDIDO ${s.numero_pedido_erp ?? "SIN NÚMERO"}`;
   // Lo regalado que es una máquina ya va en la tabla con su serie (0502); aquí
   // queda solo lo que no lleva fila (servicios sin costo y otros conceptos).
@@ -101,9 +114,15 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
   // En un servicio todo va en «Detalle del servicio», que es lo que se edita (Santos 21-10).
   const otros = esServicio ? [] : (i?.items ?? []).filter((x) => x.descripcion?.trim() && !enLaTabla.has(primeraLinea(x.descripcion)));
   const filas: [string, string | null][] = [
-    ["Cliente", cliente],
-    ["RUC / DNI", i?.cliente_doc ?? null],
-    ["Dirección fiscal", i?.cliente_direccion ?? null],
+    ["Cliente", s.leasing ? `${cliente} (cliente final · leasing)` : cliente],
+    ["RUC / DNI", s.leasing ? (ficha?.num_doc ?? null) : (i?.cliente_doc ?? null)],
+    ["Dirección fiscal", s.leasing ? (ficha?.direccion ?? null) : (i?.cliente_direccion ?? null)],
+    ...(s.leasing
+      ? ([
+          ["Se factura a (leasing)", (s.factura_a_texto as string | null) ?? (i ? `${i.cliente_doc ?? ""} - ${i.cliente_nombre}` : null)],
+          ["Guía de remisión a nombre de", s.guia_a_nombre_de === "banco" ? "El banco" : `${cliente} (cliente final)`],
+        ] as [string, string | null][])
+      : []),
     ["Cierre de venta", i?.codigo ? `N.º ${i.codigo} · ${empresa} · ${fecha(i.fecha)}` : null],
     ["Comercial", i?.perfiles ? `${i.perfiles.codigo_comercial ? `${i.perfiles.codigo_comercial} · ` : ""}${i.perfiles.nombre}` : null],
     ["Orden de compra", i?.orden_compra ?? null],
@@ -174,7 +193,21 @@ export default async function ImprimirPedidoPage({ params }: { params: Promise<{
             </tr>
           </thead>
           <tbody>
-            {lista.map((e, k) => (
+            {!esServicio &&
+              maquinas.map((m) => (
+                <tr key={m.numero}>
+                  <td className="w-10 border border-neutral-500 px-2 py-1 align-top">{m.numero}</td>
+                  <td className="whitespace-pre-line border border-neutral-500 px-2 py-1">
+                    {m.titulo && <p className="font-bold">{m.titulo}</p>}
+                    {m.ficha && <p className="font-semibold">{m.ficha}</p>}
+                    <p className={m.titulo ? "text-[11px] text-neutral-600" : ""}>{m.descripcion}</p>
+                  </td>
+                  <td className="w-40 border border-neutral-500 px-2 py-1 align-top font-mono font-semibold">
+                    {m.serie ?? <span className="font-sans text-[#8B1510]">SERIE PENDIENTE</span>}
+                  </td>
+                </tr>
+              ))}
+            {esServicio && lista.map((e, k) => (
               <tr key={k}>
                 <td className="w-8 border border-neutral-500 px-2 py-1 align-top">{k + 1}</td>
                 <td className="whitespace-pre-line border border-neutral-500 px-2 py-1">{e.descripcion}</td>

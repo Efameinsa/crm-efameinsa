@@ -102,12 +102,13 @@ function FilaTarea({ t }: { t: Tarea }) {
   const u = URGENCIA[t.urgencia];
   return (
     <li className="flex flex-col gap-2 rounded-lg border border-border bg-background p-2.5 sm:flex-row sm:items-center">
+      {/* El cliente arriba, en negrita grande; debajo, lo que hay que hacer (Santos 24-10). */}
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className={cn("rounded-full border px-1.5 py-px text-[10px] font-semibold", u.clase)}>{u.texto}</span>
-          <span className="text-sm font-semibold text-foreground">{t.que}</span>
+          <span className="break-words text-base font-bold leading-tight text-foreground">{t.cliente}</span>
         </div>
-        <p className="mt-0.5 text-xs text-foreground/80">{t.cliente}</p>
+        <p className="mt-0.5 text-sm font-medium text-foreground/90">{t.que}</p>
         <p className="text-[11px] leading-snug text-muted-foreground">{t.porque}</p>
       </div>
       <Link

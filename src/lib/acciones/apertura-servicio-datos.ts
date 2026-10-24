@@ -124,8 +124,11 @@ export async function cargarHojaApertura(
     // la ficha. INVERSIONES URGA S.A.C. compró colgada de la ficha de la
     // persona (empresa del grupo, 0310) y la apertura salía a nombre de la
     // persona natural. Nombre y RUC salen juntos de la misma fuente.
-    cliente: informe?.cliente_nombre?.trim() ? informe.cliente_nombre : (cuenta?.razon_social ?? s.cliente_texto ?? "Cliente sin nombre"),
-    ruc: informe?.cliente_nombre?.trim() ? (informe.cliente_doc ?? null) : (cuenta?.num_doc ?? null),
+    // LEASING (0603; 24-10): el cierre va al banco, pero la apertura es del cliente final.
+    cliente: s.leasing
+      ? (cuenta?.razon_social ?? s.cliente_texto ?? "Cliente sin nombre")
+      : informe?.cliente_nombre?.trim() ? informe.cliente_nombre : (cuenta?.razon_social ?? s.cliente_texto ?? "Cliente sin nombre"),
+    ruc: s.leasing ? (cuenta?.num_doc ?? null) : informe?.cliente_nombre?.trim() ? (informe.cliente_doc ?? null) : (cuenta?.num_doc ?? null),
     equipo: equipoTexto,
     serie: serieAparte,
     nota: s.apertura_nota ?? null,

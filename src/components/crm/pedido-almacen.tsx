@@ -7,6 +7,7 @@ import { celebrar } from "@/lib/celebrar";
 import { Check, Loader2, PackageCheck, Pencil, Truck, FileCheck2, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { marcarProbado, confirmarListo, registrarSalida, registrarAgencia, corregirAgencia, autorizarSalidaConSaldo } from "@/lib/acciones/almacen";
+import { LeasingDelPedido } from "@/components/crm/leasing-del-pedido";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
 import { bloquesPedido, circuitoDe, esProvincia, faltanFotosDeCarga, faltanLetrasEnAlmacen, faltaVistoBuenoFinanzas, type FotoAlmacen, type ServicioPostventa } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
@@ -230,6 +231,16 @@ export function PedidoAlmacen({
 
   return (
     <div className="space-y-3">
+      {/* VENTA POR LEASING (0603): el almacén despacha al cliente final y ve a nombre de quién va la guía. */}
+      {servicio.leasing && (
+        <LeasingDelPedido
+          servicioId={servicio.id}
+          facturaA={servicio.factura_a_texto ?? null}
+          cliente={servicio.cliente_texto ?? null}
+          guiaANombreDe={servicio.guia_a_nombre_de === "banco" ? "banco" : "cliente"}
+          editable={false}
+        />
+      )}
       <LetrasDelPedido s={servicio} cliente={cliente} puedeRecibir />
       {/* 1 · Probar y embalar. Desde la 0260 va máquina por máquina, cada una
           con su protocolo, en la lista de la derecha; esta tarjeta solo dice

@@ -74,6 +74,11 @@ export interface InformeCierrePdfProps {
     correo: string | null;
     ordenCompra: string | null;
   };
+  /**
+   * VENTA POR LEASING (0603): `cliente` es el banco que factura; este es el
+   * cliente final (la ficha), que recibe el equipo, el despacho y la guía.
+   */
+  leasing?: { clienteFinal: string; doc: string | null } | null;
   contactoVenta: ContactoInforme;
   contactoContabilidad: ContactoInforme;
   contactoDespacho: ContactoInforme;
@@ -356,7 +361,7 @@ function cifra(v: number, tapada: boolean): string {
 export function InformeCierrePdf(props: InformeCierrePdfProps) {
   const {
     logoBuffer, serie, codigo, fecha, referencia, asunto, presupuestoRef,
-    comprobante, clienteNuevo, cliente, contactoVenta, contactoContabilidad, contactoDespacho,
+    comprobante, clienteNuevo, cliente, leasing, contactoVenta, contactoContabilidad, contactoDespacho,
     modalidadPago, formaPago, numeroOperacion, tipoCambio, moneda, notaCondiciones, pctAntesDespacho, creditoDias, garantia, entrega, notaDespacho, urgente,
     incluye, gratis, notaFinal, items, itemsGratuitos, adjuntos, compendio, firma, sinMontos = false,
   } = props;
@@ -480,6 +485,21 @@ export function InformeCierrePdf(props: InformeCierrePdfProps) {
             <Text style={estilos.datoValor}>{valor || "—"}</Text>
           </View>
         ))}
+        {leasing && (
+          <>
+            <View style={estilos.datoFila}>
+              <Text style={estilos.datoEtiqueta}>MODALIDAD:</Text>
+              <Text style={estilos.datoValor}>VENTA POR LEASING · se factura al banco</Text>
+            </View>
+            <View style={estilos.datoFila}>
+              <Text style={estilos.datoEtiqueta}>CLIENTE FINAL / USUARIO:</Text>
+              <Text style={estilos.datoValor}>
+                {leasing.clienteFinal}
+                {leasing.doc ? ` · RUC ${leasing.doc}` : ""} (recibe el equipo, el despacho y la guía de remisión)
+              </Text>
+            </View>
+          </>
+        )}
 
         <Text style={estilos.seccion}>2. CONTACTOS</Text>
         <Contacto estilos={estilos} titulo="CONTACTO DE VENTA" c={contactoVenta} />

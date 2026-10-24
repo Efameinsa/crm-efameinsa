@@ -31,7 +31,8 @@ export function CandadoProtocolo({ servicioId, abiertoHasta }: { servicioId: str
   return (
     <div className="no-imprimir mb-3 rounded border border-neutral-300 bg-neutral-50 px-3 py-2 text-[12px]">
       <p>
-        🔒 <b>Informe guardado.</b> Para corregir datos, fechas, fotos o documentos de una máquina ya probada, pida el código de autorización a Lesly.
+        ✅ <b>Informe terminado: ya no es borrador.</b> Puede imprimirlo o volver al pedido; no hace falta nada más aquí. Solo si hay que
+        corregir datos, fechas, fotos o documentos de una máquina ya probada, se pide el código de autorización a Lesly.
         {!pidiendo && (
           <button type="button" className="ml-2 font-medium text-[#8B1510] hover:underline" onClick={() => setPidiendo(true)}>
             Corregir con código

@@ -18,7 +18,7 @@ import { seriesDisponibles, type SerieDisponible } from "@/lib/acciones/inventar
 import { createClient } from "@/lib/supabase/client";
 import { abrirOtroCircuito, agregarParteDelEquipo, equipoVaEnEsteDespacho, marcarProcedencia, marcarSinStock, quitarLineaQueNoCorresponde, registrarCodigoSinSerie, registrarSerieDelEquipo, revisarLargoDeSerie, type EquipoDelPedido } from "@/lib/acciones/postventa";
 import { probarEquipoDelPedido, probarKitDelPedido, tecnicoYFechaDeLaPrueba } from "@/lib/acciones/almacen";
-import { agregarLineaAlPedido, corregirSerie, editarLineaDelPedido, quitarLineaDelPedido, quitarSerieDeParte, traerLineasDelCierre } from "@/lib/acciones/pedido-central";
+import { agregarLineaAlPedido, corregirSerie, editarLineaDelPedido, quitarLineaDelPedido, quitarSerie, traerLineasDelCierre } from "@/lib/acciones/pedido-central";
 import { CampoCodigo } from "@/components/crm/campo-codigo";
 import type { FotoAlmacen } from "@/lib/postventa";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ import { subirConProgreso } from "@/lib/subir-con-progreso";
 import { cn } from "@/lib/utils";
 import { esTorre, seriesDeLaDescripcion } from "@/lib/torres";
 import { esAccesorioDelPedido, esFilaDeServicio, faltaParaProbar, hojaDelSistema, type ArchivoProtocolo, type MaquinaParaProbar } from "@/lib/protocolo-completo";
+import { ElegirTecnico } from "@/components/crm/lista-tecnicos";
 
 /** Las tres opciones de la generación de código (0385), con el nombre que usa Lesly. */
 const PROCEDENCIA: Record<string, string> = {
@@ -554,11 +555,13 @@ function Fila({
   const [docsSec, setDocsSec] = useState<File[]>([]);
   // La otra máquina de la torre se prueba con la unidad pero con lo suyo (Lesly, 03-10):
   // «no da la opción para agregar las fotos y el informe de la otra máquina».
-  const [dePartes, setDePartes] = useState<Record<string, { protocolo: string; fotos: File[]; docs: File[] }>>({});
+  // El video también para la secadora y la otra máquina de la unidad (Lesly, 24-10, ABZUL).
+  const [videosSec, setVideosSec] = useState<File[]>([]);
+  const [dePartes, setDePartes] = useState<Record<string, { protocolo: string; fotos: File[]; videos: File[]; docs: File[] }>>({});
   // Lo que no se pudo hacer con esta máquina queda escrito al pie de su tarjeta.
   const [problema, setProblema] = useState<string | null>(null);
-  const deParte = (id: string) => dePartes[id] ?? { protocolo: "", fotos: [], docs: [] };
-  const cambiarParte = (id: string, cambio: Partial<{ protocolo: string; fotos: File[]; docs: File[] }>) =>
+  const deParte = (id: string) => dePartes[id] ?? { protocolo: "", fotos: [], videos: [], docs: [] };
+  const cambiarParte = (id: string, cambio: Partial<{ protocolo: string; fotos: File[]; videos: File[]; docs: File[] }>) =>
     setDePartes((x) => ({ ...x, [id]: { ...deParte(id), ...cambio } }));
   const archivosGuardados = (Array.isArray(e.protocolo_fotos) ? e.protocolo_fotos : []) as FotoAlmacen[];
   const [lineaTitulo, ...resto] = e.descripcion.split("\n");
@@ -590,8 +593,32 @@ function Fila({
 
   const confirmando = (valor: string) => avisoSerie?.para === valor.trim().toUpperCase();
 
+  // LA «×» (0602; Santos 24-10): quitar la serie sin poner otra, para volver a elegirla.
+  const [quitando, setQuitando] = useState(false);
+  function botonQuitar(id: string, serie: string) {
+    if (despachado) return null;
+    return (
+      <button
+        type="button"
+        disabled={pendiente}
+        aria-label={`Quitar la serie ${serie}`}
+        title="Quitar esta serie (pide el código de operaciones o gerencia)"
+        onClick={() => {
+          setCorregirCual(id);
+          setSerieNueva("");
+          setQuitando(true);
+          setCorrigiendo(true);
+        }}
+        className="-ml-1 inline-flex size-5 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+      >
+        <X className="size-3.5" />
+      </button>
+    );
+  }
+
   function cerrarCorreccion() {
     setCorrigiendo(false);
+    setQuitando(false);
     setCorregirCual(e.id);
     setSerieNueva("");
     setMotivoSerie("");
@@ -643,7 +670,7 @@ function Fila({
     return salida;
   }
 
-  const porGuardar = fotos.length + videos.length + docs.length + fotosSec.length + docsSec.length + partes.reduce((n, p) => n + deParte(p.id).fotos.length + deParte(p.id).docs.length, 0);
+  const porGuardar = fotos.length + videos.length + docs.length + fotosSec.length + videosSec.length + docsSec.length + partes.reduce((n, p) => n + deParte(p.id).fotos.length + deParte(p.id).videos.length + deParte(p.id).docs.length, 0);
 
   // Si deja la fecha de hoy y no había otra guardada, se toma la del día en que la marque probada.
   const fechaElegida = fechaProtocolo && (fechaGuardada || fechaProtocolo !== hoyLima()) ? fechaProtocolo : "";
@@ -692,8 +719,8 @@ function Fila({
     if (t.error) return t;
     const propias = [...(await subir([...fotos, ...videos], docs) ?? [])];
     if (fotos.length + videos.length + docs.length > 0 && propias.length === 0) return { error: "No se subieron los archivos" };
-    if (torre && partes.length === 0 && fotosSec.length + docsSec.length > 0) {
-      const deSecadora = await subir(fotosSec, docsSec, "-secadora");
+    if (torre && partes.length === 0 && fotosSec.length + videosSec.length + docsSec.length > 0) {
+      const deSecadora = await subir([...fotosSec, ...videosSec], docsSec, "-secadora");
       if (!deSecadora) return { error: "No se subieron los archivos" };
       propias.push(...deSecadora);
     }
@@ -703,8 +730,8 @@ function Fila({
     }
     for (const p of partes) {
       const d = deParte(p.id);
-      if (d.fotos.length + d.docs.length === 0) continue;
-      const sp = await subir(d.fotos, d.docs, `-parte-${p.orden}`);
+      if (d.fotos.length + d.videos.length + d.docs.length === 0) continue;
+      const sp = await subir([...d.fotos, ...d.videos], d.docs, `-parte-${p.orden}`);
       if (!sp) return { error: "No se subieron los archivos" };
       const r = await agregarArchivosDelEquipo(p.id, servicioId, sp);
       if (r.error) return r;
@@ -713,6 +740,7 @@ function Fila({
     setVideos([]);
     setDocs([]);
     setFotosSec([]);
+    setVideosSec([]);
     setDocsSec([]);
     setDePartes({});
     return { error: null };
@@ -731,6 +759,18 @@ function Fila({
     window.addEventListener("beforeunload", avisar);
     return () => window.removeEventListener("beforeunload", avisar);
   }, [sinGuardar]);
+  // AL VOLVER DEL INFORME, LA TARJETA SE PONE AL DÍA (Santos 24-10: Lesly guardó la hoja en
+  // la otra pestaña y aquí seguía pidiendo lo mismo hasta salir y volver a entrar). No es una
+  // recarga: router.refresh() trae los datos nuevos y conserva lo elegido. Con algo sin guardar
+  // o subiendo, no se toca.
+  useEffect(() => {
+    if (!puedeSubirFotos || sinGuardar || pendiente) return;
+    const alVolver = () => {
+      if (document.visibilityState === "visible") router.refresh();
+    };
+    document.addEventListener("visibilitychange", alVolver);
+    return () => document.removeEventListener("visibilitychange", alVolver);
+  }, [puedeSubirFotos, sinGuardar, pendiente, router]);
   return (
     <li className={cn("rounded-md border px-2.5 py-2", apagado ? "border-dashed border-border bg-muted/40 text-muted-foreground" : "border-border bg-card")}>
       <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
@@ -770,6 +810,7 @@ function Fila({
                 </span>
               </>
             )}
+            {e.serie && !e.sin_serie && !e.sin_stock_motivo && !e.prueba_lista_at && botonQuitar(e.id, e.serie)}
             {e.prueba_lista_at ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 font-medium">
                 <Check className="size-3" /> Probada{e.protocolo_ref ? ` · protocolo ${e.protocolo_ref}` : ""}
@@ -855,6 +896,7 @@ function Fila({
               ) : (
                 <span className="rounded-full bg-[#1E7F4F]/10 px-2 py-0.5 font-mono font-semibold text-[#1E7F4F] whitespace-nowrap">Serie {p.serie}</span>
               )}
+              {p.serie && botonQuitar(p.id, p.serie)}
               {!despachado && (
                 <button
                   type="button"
@@ -863,6 +905,7 @@ function Fila({
                   onClick={() => {
                     setCorregirCual(p.id);
                     setSerieNueva("");
+                    setQuitando(false);
                     setCorrigiendo(true);
                   }}
                 >
@@ -962,8 +1005,9 @@ function Fila({
           {corrigiendo ? (
             <div className="space-y-1.5 rounded-md border border-amber-500/40 bg-amber-500/5 p-2">
               <p className="text-[11px] text-amber-900">
-                La serie queda fija. Para cambiarla{partes.length > 0 ? " o quitarla" : ""} hace falta el código de operaciones o gerencia; queda escrito
-                por qué y se avisa a Central, postventa y almacén.
+                {quitando
+                  ? "Quitar la serie: la línea vuelve a esperar serie y la máquina vuelve a estar disponible en el stock. Hace falta el código de operaciones o gerencia; queda escrito por qué y se avisa a Central, postventa y almacén."
+                  : "La serie queda fija. Para cambiarla o quitarla hace falta el código de operaciones o gerencia; queda escrito por qué y se avisa a Central, postventa y almacén."}
               </p>
               {partes.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
@@ -985,17 +1029,24 @@ function Fila({
                   ))}
                 </div>
               )}
-              <div className="grid gap-1.5 sm:grid-cols-2">
-                <Input value={serieNueva} onChange={(x) => setSerieNueva(x.target.value)} placeholder="Serie correcta" className="h-8 font-mono text-sm uppercase" />
-                <Input value={motivoSerie} onChange={(x) => setMotivoSerie(x.target.value)} placeholder="Por qué (ej.: se leyó mal la placa)" className="h-8 text-sm" />
+              <div className={cn("grid gap-1.5", !quitando && "sm:grid-cols-2")}>
+                {!quitando && (
+                  <Input value={serieNueva} onChange={(x) => setSerieNueva(x.target.value)} placeholder="Serie correcta" className="h-8 font-mono text-sm uppercase" />
+                )}
+                <Input
+                  value={motivoSerie}
+                  onChange={(x) => setMotivoSerie(x.target.value)}
+                  placeholder={quitando ? "Por qué (ej.: se marcó para otro cliente)" : "Por qué (ej.: se leyó mal la placa)"}
+                  className="h-8 text-sm"
+                />
               </div>
-              {avisoDeSerie(serieNueva)}
+              {!quitando && avisoDeSerie(serieNueva)}
               <CampoCodigo valor={pinSerie} onChange={setPinSerie} tono="amber" id={`pin-serie-${e.id}`} />
-              {(!serieNueva.trim() || motivoSerie.trim().length < 5 || pinSerie.replace(/\D/g, "").length < 4) && (
+              {((!quitando && !serieNueva.trim()) || motivoSerie.trim().length < 5 || pinSerie.replace(/\D/g, "").length < 4) && (
                 <p className="text-[11px] leading-snug text-muted-foreground">
                   Falta:{" "}
                   {[
-                    !serieNueva.trim() && (partes.some((p) => p.id === corregirCual) ? "la serie correcta (o «Quitar esta serie»)" : "la serie correcta"),
+                    !quitando && !serieNueva.trim() && "la serie correcta (o «Quitar esta serie»)",
                     motivoSerie.trim().length < 5 && "el motivo (al menos una frase corta)",
                     pinSerie.replace(/\D/g, "").length < 4 && "el código de 4 dígitos",
                   ]
@@ -1005,6 +1056,7 @@ function Fila({
                 </p>
               )}
               <div className="flex gap-1.5">
+                {!quitando && (
                 <Button
                   size="sm"
                   className="h-8"
@@ -1021,22 +1073,24 @@ function Fila({
                 >
                   {confirmando(serieNueva) ? "Sí, corregir así" : "Corregir"}
                 </Button>
-                {corregirCual !== e.id && partes.some((p) => p.id === corregirCual) && (
+                )}
+                {/* La principal ya probada no se quita: su protocolo es de esa máquina (0602). */}
+                {(quitando || corregirCual !== e.id || !e.prueba_lista_at) && (
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="h-8 border-destructive/40 text-destructive hover:bg-destructive/5"
+                    variant={quitando ? "default" : "outline"}
+                    className={cn("h-8", quitando ? "bg-destructive text-white hover:bg-destructive/90" : "border-destructive/40 text-destructive hover:bg-destructive/5")}
                     disabled={pendiente || motivoSerie.trim().length < 5 || pinSerie.replace(/\D/g, "").length < 4}
-                    title="Quita esta serie de la unidad; después puede registrar la correcta"
+                    title="Quita esta serie del pedido; la máquina vuelve al stock y después puede elegir la correcta"
                     onClick={() =>
                       correr(async () => {
-                        const r = await quitarSerieDeParte(corregirCual, servicioId, pinSerie, motivoSerie);
+                        const r = await quitarSerie(corregirCual, servicioId, pinSerie, motivoSerie);
                         if (!r.error) cerrarCorreccion();
                         return r;
-                      }, "Serie quitada; quedó escrito en el pedido y se avisó")
+                      }, "Serie quitada: la máquina volvió al stock y se avisó")
                     }
                   >
-                    Quitar esta serie
+                    {quitando ? "Quitar la serie" : "Quitar esta serie"}
                   </Button>
                 )}
                 <Button size="sm" variant="ghost" className="h-8" onClick={cerrarCorreccion}>
@@ -1182,7 +1236,7 @@ function Fila({
             </label>
             <label className="flex flex-wrap items-center gap-1.5">
               Técnico que hizo la prueba:
-              <Input value={tecnico} onChange={(x) => setTecnico(x.target.value)} placeholder="Nombre del técnico" maxLength={120} className="h-8 w-56 text-sm" />
+              <ElegirTecnico value={tecnico} onChange={setTecnico} className="w-full max-w-md" claseCampo="h-8 text-sm" />
             </label>
             <span>(salen en el informe; si deja la fecha de hoy, queda la de hoy)</span>
           </div>
@@ -1196,6 +1250,7 @@ function Fila({
             <div className="space-y-1.5 border-t border-border pt-1.5">
               <p className="text-[11px] font-semibold text-foreground">Secadora de la torre</p>
               <TomarOSubirVarias titulo="Fotos de la secadora" archivos={fotosSec} onChange={setFotosSec} maximo={100} />
+              <VideosDeLaPrueba titulo="Video de la prueba de la secadora (opcional)" archivos={videosSec} onChange={setVideosSec} />
               <Documentos archivos={docsSec} onChange={setDocsSec} titulo={tituloDocs(e as MaquinaParaProbar, "secadora", "la secadora")} />
             </div>
           )}
@@ -1205,6 +1260,7 @@ function Fila({
                 {p.parte_nombre ?? "Otra máquina"} · serie {p.serie}
               </p>
               <TomarOSubirVarias titulo={`Fotos de la ${(p.parte_nombre ?? "otra máquina").toLowerCase()}`} archivos={deParte(p.id).fotos} onChange={(f) => cambiarParte(p.id, { fotos: f })} maximo={100} />
+              <VideosDeLaPrueba titulo={`Video de la prueba de la ${(p.parte_nombre ?? "otra máquina").toLowerCase()} (opcional)`} archivos={deParte(p.id).videos} onChange={(v) => cambiarParte(p.id, { videos: v })} />
               <Documentos archivos={deParte(p.id).docs} onChange={(d) => cambiarParte(p.id, { docs: d })} titulo={tituloDocs(p as MaquinaParaProbar, "principal", `la ${(p.parte_nombre ?? "otra máquina").toLowerCase()}`)} />
             </div>
           ))}
@@ -1278,7 +1334,7 @@ function Fila({
                 <a href={`/pedidos/${servicioId}/protocolo`} target="_blank" rel="noreferrer" className="font-semibold underline">
                   el informe de prueba y embalaje
                 </a>
-                ; las fotos y el PDF, aquí arriba. Al volver, recargue la página.
+                ; las fotos y el PDF, aquí arriba. Al volver a esta pestaña, esta lista se pone al día sola.
               </p>
             </div>
           )}
@@ -1293,15 +1349,15 @@ function Fila({
                 if (t.error) return t;
                 const subidas = await subir([...fotos, ...videos], docs);
                 if (!subidas) return { error: "No se subieron los archivos" };
-                if (torre && partes.length === 0 && fotosSec.length + docsSec.length > 0) {
-                  const deSecadora = await subir(fotosSec, docsSec, "-secadora");
+                if (torre && partes.length === 0 && fotosSec.length + videosSec.length + docsSec.length > 0) {
+                  const deSecadora = await subir([...fotosSec, ...videosSec], docsSec, "-secadora");
                   if (!deSecadora) return { error: "No se subieron los archivos" };
                   subidas.push(...deSecadora);
                 }
                 const deLasPartes: { id: string; protocoloRef: string; fotos: FotoAlmacen[] }[] = [];
                 for (const p of partes) {
                   const d = deParte(p.id);
-                  const s = await subir(d.fotos, d.docs, `-parte-${p.orden}`);
+                  const s = await subir([...d.fotos, ...d.videos], d.docs, `-parte-${p.orden}`);
                   if (!s) return { error: "No se subieron los archivos" };
                   deLasPartes.push({ id: p.id, protocoloRef: d.protocolo, fotos: s });
                 }
@@ -1507,7 +1563,7 @@ function ProtocoloDelKit({ servicioId, piezas, cliente }: { servicioId: string; 
         </label>
         <label className="flex flex-wrap items-center gap-1.5">
           Técnico que hizo la prueba:
-          <Input value={tecnico} onChange={(x) => setTecnico(x.target.value)} placeholder="Nombre del técnico" maxLength={120} className="h-8 w-56 text-sm" />
+          <ElegirTecnico value={tecnico} onChange={setTecnico} className="w-full max-w-md" claseCampo="h-8 text-sm" />
         </label>
       </div>
       <TomarOSubirVarias titulo="Fotos del kit completo" archivos={fotos} onChange={setFotos} maximo={100} />
